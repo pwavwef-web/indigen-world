@@ -8,8 +8,10 @@ import { guarded } from './contributor-common.js';
 import { rewardSettings } from './contributor-rewards.js';
 import { consumeRateLimit } from './rate-limit.js';
 import { ARKESEL_API_KEY, isSmsConfigured, normalizeMsisdn, sendSmsToMsisdn } from './sms.js';
-import { COLLECTION_CAMPAIGN_ID, buildCollectionCampaignDocument, buildCollectionContributionReceipt,
-  buildCollectionSubmissionDocument, parseCollectionContributionInput } from './collection-contributions.js';
+import { COLLECTION_CAMPAIGN_ID, buildCollectionCampaignDocument } from './collection-contributions.js';
+import { INVITED_SOURCE_DETAIL, buildExpressionReceipt, buildExpressionSubmissionDocument,
+  type ExpressionContribution } from './expressions.js';
+import { publicationTargetFor } from './publication.js';
 
 const options = { region: 'us-central1', invoker: 'public' as const,
   enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' };
@@ -656,28 +658,38 @@ export const saveExpressionAnswer = onCall(options, guarded('saveExpressionAnswe
       ? createHash('sha256').update(`${uid}/${work}/${item}/revision/${revision}`).digest('hex')
       : firstSubmissionId;
     if (submit) {
-      const input = parseCollectionContributionInput({ collectionKind: 'dictionary', lexicalKind: 'phrase',
-        title: row.get('expression'), body: answer.translation, translations: [answer.translation, ...answer.alternatives],
-        format: 'Expression', dialect: 'Kasem', source: 'Invited speaker — everyday expression',
-        notes: expressionReviewNotes(answer.alternatives, answer.context ?? row.get('context') ?? ''),
-        rightsConfirmed: true, publicationPermission: true, participantConsentConfirmed: true,
-        usesThirdPartyMaterial: false }, uid);
-      // Expressions are complete utterances: commas and slashes are not word-list delimiters.
-      input.translations = [answer.translation, ...answer.alternatives];
-      const submission = buildCollectionSubmissionDocument(submissionId, uid, input, now);
+      const usageContext = answer.context ?? row.get('context') ?? '';
+      // An expression, filed as one: reviewed on the same desk as every other
+      // contribution and published to `expressionEntries`, never split into
+      // dictionary headwords. The English prompt is its meaning and the
+      // speaker's Kasem is the expression; each alternative is a whole way of
+      // saying it, so commas and slashes inside one are never word delimiters.
+      const contribution: ExpressionContribution = {
+        expression: {
+          phrase: answer.translation,
+          alternatives: answer.alternatives,
+          meaning: String(row.get('expression')),
+          literalTranslation: '',
+          context: usageContext,
+          kind: 'phrase',
+          dialect: 'Kasem',
+          source: { type: 'invited-speaker', detail: INVITED_SOURCE_DETAIL, speakerName: '' },
+        },
+        publicationPermission: true,
+        aiTraining: req.data?.aiTraining === true,
+        revisionOf: null,
+      };
+      const reviewerNotes = expressionReviewNotes(answer.alternatives, usageContext);
+      const submission = buildExpressionSubmissionDocument(submissionId, uid, contribution, now, 'contributor-expression-v1');
       const portal = { contributorId: uid, work, item };
       if (!campaign.exists) tx.set(campaign.ref, buildCollectionCampaignDocument(now));
       if (previousId) tx.delete(db.doc(`contributorTrainingPairs/${previousId}`));
-      const usageContext = answer.context ?? row.get('context') ?? '';
       tx.create(db.doc(`submissions/${submissionId}`), { ...submission, contributorPortal: portal,
         ...(previousId ? { revisionOf: previousId, previousReview: previous?.get('moderation') ?? null } : {}),
-        ...(usageContext ? { usageContext } : {}),
-        alternativeExpressions: answer.alternatives, permissions: { ...(submission.permissions as object),
-          aiTraining: req.data?.aiTraining === true, consentVersion: 'contributor-expression-v1' } });
+        translationNotes: reviewerNotes, alternativeExpressions: answer.alternatives });
       tx.create(db.doc(`collectionContributions/${submissionId}`), {
-        ...buildCollectionContributionReceipt(submissionId, submissionId, uid, input),
-        contributorPortal: portal, alternativeExpressions: answer.alternatives,
-        ...(usageContext ? { usageContext } : {}),
+        ...buildExpressionReceipt(submissionId, uid, contribution),
+        notes: reviewerNotes, contributorPortal: portal, alternativeExpressions: answer.alternatives,
       });
       const day = now.slice(0, 10);
       if (!previousId && member.get('streakLastDay') !== day) {
@@ -710,7 +722,11 @@ export const onContributorExpressionReviewed = onDocumentWritten(
       const itemRef = db.doc(`contributorAccounts/${portal.contributorId}/works/${portal.work}/items/${portal.item}`);
       const item = await tx.get(itemRef);
       if (item.get('submissionId') !== snap.id) return;
-      const dictionary = await tx.get(db.doc(`dictionaryEntries/collection_${snap.id}`));
+      // The public record this expression is published as: its own entry in
+      // `expressionEntries`, or — for one approved before expressions had a
+      // home — the dictionary row it was published into then.
+      const target = publicationTargetFor(data, snap.id);
+      const published = await tx.get(db.doc(`${target.collection}/${target.id}`));
       const verified = ['APPROVED', 'PUBLISHED'].includes(data.status);
       const firstSubmissionId = createHash('sha256').update(`${portal.contributorId}/${portal.work}/${portal.item}`).digest('hex');
       const accountRef = db.doc(`contributorAccounts/${portal.contributorId}`);
@@ -739,7 +755,7 @@ export const onContributorExpressionReviewed = onDocumentWritten(
         reviewedAt: data.moderation?.decidedAt ?? null,
       });
       const training = db.doc(`contributorTrainingPairs/${snap.id}`);
-      if (verified && dictionary.get('isPublished') === true
+      if (verified && published.get('isPublished') === true
         && data.permissions?.aiTraining === true && data.permissions?.publication === true) {
         tx.set(training, { id: snap.id, language: 'xsm', english: data.title, kasem: data.body,
           alternatives: data.alternativeExpressions ?? [], sourceSubmission: snap.id,

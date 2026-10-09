@@ -15,3 +15,10 @@
 # Activities, services and receivers are looked up by name at runtime, and those
 # names are the ones that never move.
 -repackageclasses ''
+
+# WorkManager starts from AndroidX Startup before Flutter can draw a frame.
+# Its Room database is created by class name and a public no-arg constructor.
+# Room 2.2.5 keeps the generated class name but its consumer rule does not keep
+# that constructor; R8 removed it from the 0.1.25 release and every launch
+# failed on the system splash screen.
+-keep class androidx.work.impl.WorkDatabase_Impl { public <init>(); }

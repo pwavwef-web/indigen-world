@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/ads/ads_screen.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/community/chat_thread_loader.dart';
@@ -14,10 +15,13 @@ import 'package:indigen_world_mobile/features/downloads/downloads_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_creation_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_library_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_screen.dart';
+import 'package:indigen_world_mobile/features/music/music_screen.dart';
 import 'package:indigen_world_mobile/features/music/now_playing_screen.dart';
+import 'package:indigen_world_mobile/features/music/widgets/mini_player.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
 import 'package:indigen_world_mobile/features/onboarding/startup_gate.dart';
 import 'package:indigen_world_mobile/features/subscriptions/membership_screen.dart';
+import 'package:indigen_world_mobile/shared/reveal_route.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
@@ -97,13 +101,39 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/downloads',
         builder: (context, state) => const DownloadsScreen(),
       ),
+      // The channels themselves, so a link or a notification can land in one.
+      GoRoute(path: '/music', builder: (context, state) => const MusicScreen()),
+      GoRoute(
+        path: '/audiobooks',
+        builder: (context, state) =>
+            const MusicScreen(kind: CollectionKind.audiobooks),
+      ),
       // A route rather than a `Navigator.push`, for two reasons. The
       // mini-player that opens it is mounted above the Navigator and cannot
       // reach a router through context, so it pushes by provider instead; and a
       // media notification wants somewhere to land when it is tapped.
+      //
+      // It grows out of the bar: see [nowPlayingOrigin]. Not opaque, so that
+      // pulling it down shows the screen it is about to fold back onto rather
+      // than a black gap.
       GoRoute(
         path: '/now-playing',
-        builder: (context, state) => const NowPlayingScreen(),
+        pageBuilder: (context, state) => CustomTransitionPage<void>(
+          key: state.pageKey,
+          opaque: false,
+          transitionDuration: const Duration(milliseconds: 480),
+          reverseTransitionDuration: const Duration(milliseconds: 400),
+          child: const NowPlayingScreen(),
+          transitionsBuilder: (context, animation, secondary, child) =>
+              buildRevealTransition(
+                context: context,
+                animation: animation,
+                origin: nowPlayingOrigin(context),
+                originRadius: kMiniPlayerRadius,
+                originColor: context.brand.surface,
+                child: child,
+              ),
+        ),
       ),
       GoRoute(
         path: '/contribute',

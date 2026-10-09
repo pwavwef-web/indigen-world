@@ -216,6 +216,11 @@ export function translationTerms(question: string): string[] {
   return found;
 }
 
+/** Whether [term] is too common to be worth looking up on its own. */
+export function isStopWord(term: string): boolean {
+  return STOP_WORDS.has(term);
+}
+
 /** Whether this question is one the dictionary should be consulted for. */
 export function looksLikeTranslationRequest(question: string): boolean {
   return translationTerms(question).length > 0;
@@ -775,12 +780,43 @@ export async function publishedEntriesFor(
  * broken one, and is not worth failing a member's question over.
  */
 export async function dictionaryContextFor(question: string): Promise<string> {
+  return (await dictionaryLookupFor(question)).briefing;
+}
+
+/** Whether [entry] answers [term] by the same measure [matchDictionary] ranks with. */
+function entryAnswersTerm(entry: DictionaryRecord, term: string): boolean {
+  const forms = surfaceForms(entry);
+  return forms.includes(term)
+    || forms.some((form) => form.startsWith(`${term} `) || form.endsWith(` ${term}`))
+    || forms.some((form) => form.startsWith(term) && form.length <= term.length + 3);
+}
+
+/**
+ * What a question asked about, and what the published dictionary holds of it.
+ *
+ * The briefing is what the model reads. [matches] and [missing] are for the
+ * app: a verified entry can be opened from under the answer, and a word the
+ * dictionary does not hold can be offered to the member as the queue item it
+ * is — so "the dictionary does not have this word yet" arrives with the way to
+ * change that, rather than as a dead end.
+ *
+ * [missing] holds whole terms only, never the parts of a phrase that
+ * [translationTerms] adds for ranking: "good morning" missing is a request for
+ * "good morning", not for "morning" as well.
+ */
+export async function dictionaryLookupFor(question: string): Promise<{
+  briefing: string;
+  terms: string[];
+  matches: DictionaryRecord[];
+  missing: string[];
+}> {
   const terms = translationTerms(question);
-  if (terms.length === 0) return '';
+  if (terms.length === 0) return { briefing: '', terms, matches: [], missing: [] };
 
   try {
     const { records, truncated, siblings } = await loadDictionary();
-    const matches = matchDictionary(records, terms);
+    let matches = matchDictionary(records, terms);
+    let briefing: string;
     if (matches.length === 0 && truncated) {
       // The direct rows are counted among themselves rather than against the
       // cached siblings map, which by definition does not hold them. Two
@@ -788,14 +824,20 @@ export async function dictionaryContextFor(question: string): Promise<string> {
       // one whose sibling is inside it does not, and that is the honest
       // degradation — a missing number is a headword that reads plainly, not
       // a wrong one.
-      const direct = matchDictionary(await exactMatches(terms), terms);
-      return dictionaryBriefing(terms, direct, countByHeadword(direct));
+      matches = matchDictionary(await exactMatches(terms), terms);
+      briefing = dictionaryBriefing(terms, matches, countByHeadword(matches));
+    } else {
+      briefing = dictionaryBriefing(terms, matches, siblings);
     }
-    return dictionaryBriefing(terms, matches, siblings);
+    const whole = terms.filter(
+      (term, index) => index === 0 || !terms.slice(0, index).some((earlier) => earlier.includes(' ') && earlier.split(' ').includes(term)),
+    );
+    const missing = whole.filter((term) => !matches.some((entry) => entryAnswersTerm(entry, term)));
+    return { briefing, terms, matches, missing };
   } catch (error) {
     logger.error('Dictionary lookup failed', {
       errorType: error instanceof Error ? error.name : 'unknown',
     });
-    return '';
+    return { briefing: '', terms, matches: [], missing: [] };
   }
 }

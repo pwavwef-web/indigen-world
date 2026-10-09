@@ -7,7 +7,8 @@ Repository status: 2026-09-21. This records implementation boundaries for the pr
 | Knowledge area | Intake and destination |
 | --- | --- |
 | Lexicon | Mobile word queue and open dictionary contribution → review → `dictionaryEntries` → Venacula and app dictionaries. |
-| Expressions and proverbs | Mobile saying contribution → review → `dictionaryEntries`; literal reading, idiomatic meaning and usage context are distinct optional fields. |
+| Expressions | TribeStudio `/studio/expressions` (`submitExpression`) and the invited contributor workspace → review → `expressionEntries`, never `dictionaryEntries`. Phrase, meaning, context, dialect, source and consent are required; see [Everyday expressions](everyday-expressions.md). |
+| Proverbs and sayings (mobile) | Mobile saying contribution → review → `dictionaryEntries`; literal reading, idiomatic meaning and usage context are distinct optional fields. Not yet moved to `expressionEntries`. |
 | Grammar and sentences | Kasem evidence and grammar-note workflows described in [Kasem evidence operations](kasem-evidence-operations.md). |
 | Literature | Mobile and TribeStudio submissions → review → published Collection content; original recording/document stays linked to its submission. |
 | Dialogue | Conversation/interview videos can be tagged as dialogue; no structured turn-by-turn dialogue corpus intake yet. |

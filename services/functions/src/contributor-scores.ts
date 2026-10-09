@@ -128,6 +128,12 @@ const CONTRIBUTION_POINTS: Record<CollectionKind, number> = {
   music: 50,
   audiobooks: 50,
   video: 50,
+  // An expression pays what a dictionary entry pays: one item, answered the
+  // way a word is answered — the Kasem, what it means, where it came from.
+  // Invited translators' expressions earned exactly this while they were filed
+  // as dictionary phrases, so giving them a kind of their own changes nobody's
+  // total. What it does change is `wordCount`: an expression is not a word.
+  expressions: 10,
 };
 
 /**

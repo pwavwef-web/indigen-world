@@ -439,10 +439,11 @@ const OUTCOME_WEIGHT: Readonly<Record<QueueOutcome, { pending: number; approved:
  * The contribution statuses that map onto each counter state.
  *
  * `needs_revision` is deliberately absent from the pending set even though the
- * work is not finished: a Collection contribution cannot be sent for revision
- * (decideSubmission refuses it), so a row in that state is a legacy artefact
- * and holding a pending count open for it would pin a word out of the queue
- * for ever.
+ * work is not finished. A queue answer can now be sent back for changes, and
+ * while it waits for its author the word is released rather than held: other
+ * members may answer it meanwhile, and a member who never comes back must not
+ * pin a word out of the queue for ever. The revision itself resubmits the
+ * answer, which moves it back to `submitted` and so back to pending.
  */
 const PENDING_STATUSES = new Set(['submitted', 'resubmitted', 'under_review']);
 const APPROVED_STATUSES = new Set(['approved', 'scheduled', 'published']);
@@ -771,8 +772,38 @@ export const skipQueueWord = onCall(CALLABLE_OPTIONS, async (req) => {
 // submitWordTranslation
 // ---------------------------------------------------------------------------
 
+/**
+ * Where a member came to a word from.
+ *
+ * Kept on the answer as provenance, so a reviewer (and the numbers) can tell
+ * a word somebody went looking for — from a search, a topic page, or Kawuri
+ * saying it did not know — from one the queue handed them.
+ */
+export const WORD_QUEUE_ORIGINS = ['queue', 'explore', 'search', 'topic', 'kawuri'] as const;
+export type WordQueueOrigin = (typeof WORD_QUEUE_ORIGINS)[number];
+
+export function parseQueueOrigin(value: unknown): WordQueueOrigin {
+  const origin = text(value).toLowerCase();
+  return (WORD_QUEUE_ORIGINS as readonly string[]).includes(origin) ? origin as WordQueueOrigin : 'queue';
+}
+
 export interface WordTranslationInput {
   readonly wordId: string;
+  /**
+   * Whether the member agreed to this answer being used to test and train
+   * Indigen's language tools. Off unless they said yes; a reviewer cannot keep
+   * an answer as training material without it.
+   */
+  readonly aiTraining: boolean;
+  /** How the member wants to be credited wherever the answer is published. */
+  readonly credit: 'name' | 'anonymous';
+  /** Where the member came to this word from. */
+  readonly origin: WordQueueOrigin;
+  /**
+   * The member's own earlier answer to this word, being corrected after a
+   * reviewer asked for changes — or null for a new answer.
+   */
+  readonly reviseContributionId: string | null;
   readonly translations: string[];
   readonly partOfSpeech: string;
   readonly partOfSpeechLabel: string;
@@ -872,6 +903,14 @@ export function parseWordTranslationInput(raw: unknown, uid = ''): WordTranslati
 
   return {
     wordId,
+    // Strictly true: consent to training use is never inferred from a missing
+    // or malformed field.
+    aiTraining: data.aiTraining === true,
+    credit: data.credit === 'anonymous' ? 'anonymous' : 'name',
+    origin: parseQueueOrigin(data.origin),
+    reviseContributionId: data.reviseContributionId == null || data.reviseContributionId === ''
+      ? null
+      : requiredId(data.reviseContributionId, 'reviseContributionId'),
     translations,
     partOfSpeech,
     partOfSpeechLabel: partOfSpeechLabel(partOfSpeech),
@@ -996,6 +1035,155 @@ export function buildWordQueueContributionInput(
   };
 }
 
+/** What a queue answer carries beyond an ordinary contribution: its provenance and the member's choices. */
+function queueAnswerStamp(input: WordTranslationInput): JsonRecord {
+  return {
+    wordQueueOrigin: input.origin,
+    attribution: { preference: input.credit },
+  };
+}
+
+/** The most revisions one answer keeps a history of. */
+const MAX_REVISION_HISTORY = 10;
+
+/**
+ * A member's corrected answer, after a reviewer asked for changes.
+ *
+ * ── Why a revision rewrites the same records ──────────────────────────────
+ * The reviewer's note was about *this* answer; a fresh contribution would
+ * arrive on the desk as a stranger, with the note and the first attempt
+ * nowhere near it, and the member's list would show two answers to one word.
+ * So the contribution and its submission are rewritten in place, the note and
+ * what was sent before go into `revisions`, and the submission goes back to
+ * SUBMITTED — the queue the review desk reads — with a count that says it has
+ * been round once already.
+ *
+ * The word's counters follow on their own: the queue trigger sees the
+ * contribution move from `needs_revision` (released) back to `submitted`
+ * (pending) and moves them, through the same ledger as every other change.
+ */
+async function reviseQueueAnswer(
+  tx: FirebaseFirestore.Transaction,
+  db: Firestore,
+  uid: string,
+  input: WordTranslationInput,
+  row: JsonRecord,
+  now: string,
+): Promise<JsonRecord> {
+  const contributionRef = db.collection('collectionContributions').doc(input.reviseContributionId!);
+  const contributionSnap = await tx.get(contributionRef);
+  if (!contributionSnap.exists) {
+    throw new HttpsError('not-found', 'That answer could not be found.');
+  }
+  const existing = contributionSnap.data() ?? {};
+  if (existing.authUid !== uid) {
+    throw new HttpsError('permission-denied', 'Only the member who sent an answer can revise it.');
+  }
+  if (text(existing.wordQueueId) !== input.wordId) {
+    throw new HttpsError('invalid-argument', 'That answer is for a different word.');
+  }
+  if (text(existing.status).toLowerCase() !== 'needs_revision') {
+    throw new HttpsError('failed-precondition', 'Only an answer a reviewer sent back for changes can be revised.');
+  }
+  const submissionId = text(existing.submissionId);
+  if (!submissionId) {
+    throw new HttpsError('failed-precondition', 'That answer has no review record to update.');
+  }
+  const submissionRef = db.collection('submissions').doc(submissionId);
+  const submissionSnap = await tx.get(submissionRef);
+  if (!submissionSnap.exists) {
+    throw new HttpsError('failed-precondition', 'That answer has no review record to update.');
+  }
+  const submission = submissionSnap.data() ?? {};
+
+  const contribution = buildWordQueueContributionInput(row, input);
+  const receipt = buildCollectionContributionReceipt(contributionRef.id, submissionId, uid, contribution);
+  const rebuilt = buildCollectionSubmissionDocument(submissionId, uid, contribution, now);
+  const history = [
+    ...(Array.isArray(existing.revisions) ? existing.revisions : []),
+    {
+      revisedAt: now,
+      reviewerNote: text(existing.reviewFeedback) || text((submission.moderation as JsonRecord | undefined)?.feedback),
+      previous: { body: text(existing.body), translations: Array.isArray(existing.translations) ? existing.translations : [] },
+    },
+  ].slice(-MAX_REVISION_HISTORY);
+  const revisionCount = Number(existing.revisionCount ?? 0) + 1;
+  const prompt = wordQueuePromptStamp(input.wordId, row);
+
+  tx.set(contributionRef, {
+    ...receipt,
+    ...queueAnswerStamp(input),
+    // Identity and first arrival are the original answer's, not the rewrite's.
+    id: contributionRef.id,
+    submissionId,
+    createdAt: existing.createdAt ?? receipt.createdAt,
+    status: 'submitted',
+    reviewDecision: null,
+    reviewFeedback: '',
+    wordQueueId: input.wordId,
+    wordQueuePrompt: prompt,
+    partOfSpeechId: input.partOfSpeech,
+    sentenceFit: input.sentenceFit,
+    revisions: history,
+    revisionCount,
+    updatedAt: FieldValue.serverTimestamp(),
+  }, { merge: true });
+
+  const lifecycle = (submission.lifecycle as JsonRecord | undefined) ?? {};
+  tx.set(submissionRef, {
+    ...rebuilt,
+    ...queueAnswerStamp(input),
+    permissions: { ...(rebuilt.permissions as JsonRecord), aiTraining: input.aiTraining },
+    status: 'SUBMITTED',
+    wordQueueId: input.wordId,
+    wordQueuePrompt: prompt,
+    partOfSpeechId: input.partOfSpeech,
+    sentenceFit: input.sentenceFit,
+    revisionCount,
+    moderation: { ...((submission.moderation as JsonRecord | undefined) ?? {}), feedback: '', decidedAt: null },
+    lifecycle: {
+      createdAt: text(lifecycle.createdAt) || now,
+      updatedAt: now,
+      version: Number(lifecycle.version ?? 1) + 1,
+    },
+  }, { merge: true });
+
+  const notificationRef = db.collection('notifications').doc();
+  tx.set(notificationRef, {
+    id: notificationRef.id,
+    recipient: { collection: 'creatorProfiles', id: uid },
+    authUid: uid,
+    type: 'review_decision',
+    title: 'Revision received',
+    body: `Your corrected answer for “${text(row.word)}” is back with the reviewers.`,
+    link: '/contribute',
+    read: false,
+    channels: ['in_app'],
+    schemaVersion: 1,
+    lifecycle: { createdAt: now, updatedAt: now, version: 1 },
+  });
+  const auditRef = db.collection('auditLogs').doc();
+  tx.set(auditRef, {
+    id: auditRef.id,
+    actor: { collection: 'creatorProfiles', id: uid },
+    action: 'wordQueue.translation.revise',
+    target: { collection: WORD_QUEUE_COLLECTION, id: input.wordId },
+    outcome: 'success',
+    source: 'functions',
+    metadata: { contributionId: contributionRef.id, submissionId, revisionCount },
+    occurredAt: now,
+  });
+
+  return {
+    wordId: input.wordId,
+    contributionId: contributionRef.id,
+    submissionId,
+    translations: input.translations,
+    status: 'SUBMITTED' as const,
+    revised: true,
+  };
+}
+
 /**
  * Answers one queued word.
  *
@@ -1042,6 +1230,10 @@ export const submitWordTranslation = onCall(CALLABLE_OPTIONS, async (req) => {
       );
     }
 
+    if (input.reviseContributionId) {
+      return reviseQueueAnswer(tx, db, uid, input, row, now);
+    }
+
     const answered = progressIds(progressSnap.get('answered'));
     const nextAnswered = advanceQueueProgress(answered, input.wordId);
     if (nextAnswered.alreadyPresent) {
@@ -1062,6 +1254,7 @@ export const submitWordTranslation = onCall(CALLABLE_OPTIONS, async (req) => {
         uid,
         contribution,
       ),
+      ...queueAnswerStamp(input),
       // Top-level rather than only inside `wordQueuePrompt`, because this is
       // the field the approval trigger reads on every write of this document
       // and a nested read costs the same but reads worse.
@@ -1073,8 +1266,11 @@ export const submitWordTranslation = onCall(CALLABLE_OPTIONS, async (req) => {
       // testable on its own; mixing member input into it would end that.
       sentenceFit: input.sentenceFit,
     });
+    const submissionDoc = buildCollectionSubmissionDocument(submissionRef.id, uid, contribution, now);
     tx.set(submissionRef, {
-      ...buildCollectionSubmissionDocument(submissionRef.id, uid, contribution, now),
+      ...submissionDoc,
+      ...queueAnswerStamp(input),
+      permissions: { ...(submissionDoc.permissions as JsonRecord), aiTraining: input.aiTraining },
       wordQueueId: input.wordId,
       wordQueuePrompt: prompt,
       partOfSpeechId: input.partOfSpeech,

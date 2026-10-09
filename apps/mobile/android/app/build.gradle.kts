@@ -102,6 +102,14 @@ android {
             // debug build must never send developer clicks to live inventory.
             manifestPlaceholders["admobAppId"] = googleMobileAdsTestAppId
         }
+        // Flutter's Gradle plugin creates `profile` with initWith(debug) before
+        // this block runs, so it never inherited the pin above, and a
+        // production-flavor profile build carried the live app id while its
+        // Dart side (not release mode) asked for Google's sample units. A
+        // profile build is a developer build: pin it the same way.
+        findByName("profile")?.apply {
+            manifestPlaceholders["admobAppId"] = googleMobileAdsTestAppId
+        }
         getByName("release") {
             // Use the upload keystore when configured; otherwise fall back to the
             // debug key so local release builds still run (Play will reject those).
@@ -139,6 +147,30 @@ android {
                 } else {
                     productionAdMobAppId.orNull ?: googleMobileAdsTestAppId
                 }
+        }
+    }
+}
+
+// Flutter can regenerate the plugin registrant after pub get while Gradle is
+// already building. The registrant then names the dev-only integration_test
+// plugin, which Gradle correctly omits from release dependencies. Remove that
+// one generated registration immediately before the release Java compile.
+tasks.matching { it.name == "compileProductionReleaseJavaWithJavac" }.configureEach {
+    doFirst {
+        val registrant = project.file("src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java")
+        if (registrant.exists()) {
+            val source = registrant.readText()
+            val testPlugin = "new dev.flutter.plugins.integration_test.IntegrationTestPlugin()"
+            if (source.contains(testPlugin)) {
+                val registration = Regex(
+                    """(?m)^    try \{\r?\n      flutterEngine\.getPlugins\(\)\.add\(new dev\.flutter\.plugins\.integration_test\.IntegrationTestPlugin\(\)\);\r?\n    \} catch \(Exception e\) \{\r?\n      Log\.e\(TAG, "Error registering plugin integration_test, dev\.flutter\.plugins\.integration_test\.IntegrationTestPlugin", e\);\r?\n    \}\r?\n""",
+                )
+                val releaseSource = source.replace(registration, "")
+                check(!releaseSource.contains(testPlugin)) {
+                    "Could not remove the dev-only integration_test registration from the release build"
+                }
+                registrant.writeText(releaseSource)
+            }
         }
     }
 }

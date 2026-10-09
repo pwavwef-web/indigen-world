@@ -4,8 +4,12 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/music/music_controller.dart';
 import 'package:indigen_world_mobile/features/music/music_library.dart';
+import 'package:indigen_world_mobile/features/music/music_providers.dart';
+import 'package:indigen_world_mobile/features/music/music_tint.dart';
+import 'package:indigen_world_mobile/features/music/widgets/music_page_header.dart';
 import 'package:indigen_world_mobile/features/music/widgets/music_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// Everything one person has in the archive, on one page.
 ///
@@ -19,6 +23,11 @@ import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 ///
 /// Opened by id rather than handed a [MusicArtist], so the page stays live: a
 /// song published while it is open joins the list underneath.
+///
+/// ── How it arrives ────────────────────────────────────────────────────────
+/// Their face flies from the circle that was tapped into the middle of a stage
+/// painted in the colour of their picture, and the page's play button rides
+/// up into the bar as the list scrolls.
 class MusicArtistScreen extends ConsumerWidget {
   const MusicArtistScreen({
     required this.artistId,
@@ -31,9 +40,7 @@ class MusicArtistScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final artist = ref.watch(
-      musicArtistProvider((kind: kind, id: artistId)),
-    );
+    final artist = ref.watch(musicArtistProvider((kind: kind, id: artistId)));
     final controller = ref.read(musicControllerProvider.notifier);
 
     if (artist == null) {
@@ -52,117 +59,121 @@ class MusicArtistScreen extends ConsumerWidget {
       );
     }
 
+    final brand = context.brand;
     final tracks = artist.tracks;
+    final fallback = musicTintForText(
+      Color.lerp(brand.heroMid, musicChannelColor(brand, kind), 0.4)!,
+    );
+    final tint = watchMusicTint(ref, artist.imageUrl) ?? fallback;
+
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 260,
-            // The name only appears in the bar once the portrait has scrolled
-            // away behind it, which is what keeps the header from saying the
-            // same thing twice.
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(artist.name, style: const TextStyle(fontSize: 15)),
-              centerTitle: true,
-              background: _Portrait(artist: artist),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${tracks.length} '
-                    '${tracks.length == 1 ? kind.pieceLabel : kind.piecesLabel} '
-                    'in the archive',
-                    style: TextStyle(
-                      color: context.brand.mutedInk,
-                      fontSize: 13,
-                    ),
+      body: EntranceGate(
+        child: AnimatedTint(
+          color: tint,
+          builder: (context, color) => CustomScrollView(
+            slivers: [
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: MusicPageHeaderDelegate(
+                  title: artist.name,
+                  subtitle:
+                      '${tracks.length} '
+                      '${tracks.length == 1 ? kind.pieceLabel : kind.piecesLabel} '
+                      'in the archive',
+                  color: color,
+                  tracks: tracks,
+                  topPadding: MediaQuery.paddingOf(context).top,
+                  visual: _Portrait(artist: artist, kind: kind),
+                  onPlay: () => controller.playCollection(
+                    tracks,
+                    startIndex: 0,
+                    kind: kind,
                   ),
-                  const SizedBox(height: 14),
-                  MusicTransportRow(
-                    count: tracks.length,
-                    onPlayAll: () => controller.playCollection(
+                  onShuffle: () async {
+                    // Shuffle goes on before the queue is cued, so the first
+                    // song is already a shuffled one.
+                    await controller.toggleShuffle();
+                    await controller.playCollection(
                       tracks,
                       startIndex: 0,
                       kind: kind,
-                    ),
-                    onShuffle: () async {
-                      // Shuffle goes on before the queue is cued, so the first
-                      // song is already a shuffled one.
-                      await controller.toggleShuffle();
-                      await controller.playCollection(
-                        tracks,
-                        startIndex: 0,
-                        kind: kind,
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: EdgeInsets.only(top: 6, bottom: 24 + musicInset(context)),
-            sliver: SliverList.builder(
-              itemCount: tracks.length,
-              itemBuilder: (context, index) => MusicTrackRow(
-                item: tracks[index],
-                leadingNumber: index + 1,
-                onPlay: () => controller.playCollection(
-                  tracks,
-                  startIndex: index,
-                  kind: kind,
+                    );
+                  },
                 ),
               ),
-            ),
+              SliverPadding(
+                padding: EdgeInsets.only(
+                  top: 8,
+                  bottom: 24 + musicInset(context),
+                ),
+                sliver: SliverList.builder(
+                  itemCount: tracks.length,
+                  itemBuilder: (context, index) => Entrance(
+                    index: index,
+                    child: MusicTrackRow(
+                      item: tracks[index],
+                      leadingNumber: index + 1,
+                      accent: brand.isDark ? null : color,
+                      onPlay: () => controller.playCollection(
+                        tracks,
+                        startIndex: index,
+                        kind: kind,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-/// The portrait behind the header: their picture, darkened towards the bottom
-/// so the name over it is legible whatever the photograph turns out to be.
-class _Portrait extends StatelessWidget {
-  const _Portrait({required this.artist});
+/// Their face on the stage, flown in from the circle that was tapped, wearing
+/// the live ring while one of their pieces plays.
+class _Portrait extends ConsumerWidget {
+  const _Portrait({required this.artist, required this.kind});
 
   final MusicArtist artist;
+  final CollectionKind kind;
 
   @override
-  Widget build(BuildContext context) {
-    final brand = context.brand;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentId = ref.watch(
+      musicMediaItemProvider.select((state) => state.asData?.value?.id),
+    );
+    final live =
+        currentId != null &&
+        artist.tracks.any((t) => t.id == currentId) &&
+        ref.watch(musicIsPlayingProvider);
+
     return Stack(
-      fit: StackFit.expand,
+      alignment: Alignment.center,
       children: [
-        // Square artwork stretched across a wide header would distort a face.
-        // Centring the circle on a plain ground keeps the picture honest and
-        // reads as a portrait rather than as a cropped album cover.
-        ColoredBox(color: brand.surfaceMuted),
-        Center(
-          child: MusicArtwork(
-            url: artist.imageUrl,
-            size: 148,
-            circle: true,
-            initial: artist.initial,
+        if (live)
+          const Positioned.fill(
+            child: MusicLiveRing(color: Colors.white, stroke: 3.5),
           ),
-        ),
-        IgnorePointer(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.bottomCenter,
-                end: Alignment.center,
-                colors: [
-                  brand.background.withValues(alpha: 0.92),
-                  brand.background.withValues(alpha: 0),
-                ],
+        DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.35),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
               ),
+            ],
+          ),
+          child: Hero(
+            tag: musicArtistHeroTag(kind, artist.id),
+            child: MusicArtwork(
+              url: artist.imageUrl,
+              size: 136,
+              circle: true,
+              initial: artist.initial,
             ),
           ),
         ),

@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .phone { --w: 430px; }
+  .stage { gap: 96px; }
+  .notes { width: 640px; display: flex; flex-direction: column; gap: 26px; }
+  .notes .eyebrow { margin-bottom: 4px; }
+  .note {
+    padding: 26px 30px;
+    border-radius: 26px;
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.20);
+  }
+  .note h2 { font-size: 30px; line-height: 1.2; font-weight: 700; }
+  .note p { margin-top: 10px; font-size: 23px; line-height: 1.4; color: rgba(255, 255, 255, 0.78); }
+  .note .for { margin-top: 14px; font-size: 17px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: #9fe7f5; }
+</style>
+<div class="stage">
+  <div class="phone"><img src="../screens/saying-top-light.png" alt=""></div>
+  <div class="notes">
+    <div class="eyebrow">New, and all optional</div>
+    <div class="note">
+      <h2>Literal English translation</h2>
+      <p>What the Kasem words say word for word</p>
+      <div class="for">Sayings</div>
+    </div>
+    <div class="note">
+      <h2>When is this saying used?</h2>
+      <p>An occasion, speaker, lesson or regional variant</p>
+      <div class="for">Sayings</div>
+    </div>
+    <div class="note">
+      <h2>French meaning</h2>
+      <p>Leave blank if you do not know it</p>
+      <div class="for">Sayings and words</div>
+    </div>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

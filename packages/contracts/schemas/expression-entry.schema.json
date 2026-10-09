@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v0/expression-entry.schema.json",
+  "title": "ExpressionEntry",
+  "description": "A reviewed Kasem expression — a greeting, blessing, idiom or saying — published whole, with its meaning, the situation it is used in and where it came from. Written only by the trusted review workflow into `expressionEntries`. Deliberately separate from dictionary entries: an expression is never split into headwords, numbered as a homograph or counted as a word.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/identifier" },
+    "language": { "$ref": "common.schema.json#/$defs/languageCode" },
+    "dialect": { "type": "string" },
+    "phrase": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "The expression in Kasem, whole and exactly as approved."
+    },
+    "alternatives": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "maxItems": 12,
+      "description": "Other complete ways of saying the same thing in Kasem. Each is a whole expression, never a word list."
+    },
+    "meaning": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What the expression means, in English — the sense a speaker intends, not a word-for-word gloss."
+    },
+    "literalTranslation": {
+      "type": "string",
+      "description": "Optional word-for-word reading, kept apart from the meaning because an idiom's words and its sense differ."
+    },
+    "context": {
+      "type": "string",
+      "description": "When the expression is used: who says it, to whom, and on what occasion."
+    },
+    "expressionKind": {
+      "type": "string",
+      "enum": ["phrase", "idiom", "proverb"],
+      "description": "An everyday phrase or greeting, an idiom whose meaning its words do not give, or a proverb or saying."
+    },
+    "source": {
+      "type": "object",
+      "description": "Where the contributor learned the expression. The speaker is named only when the contributor supplied a name.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["self", "family", "elder", "community", "written", "recording", "invited-speaker"]
+        },
+        "detail": { "type": "string", "minLength": 1 },
+        "speakerName": { "type": "string" }
+      },
+      "required": ["type", "detail"],
+      "additionalProperties": false
+    },
+    "contributor": {
+      "type": "object",
+      "description": "Public attribution only — never contact details.",
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/identifier" },
+        "displayName": { "type": "string", "minLength": 1 }
+      },
+      "required": ["id", "displayName"],
+      "additionalProperties": false
+    },
+    "licenceDisplay": { "type": "string" },
+    "authenticationStatus": { "type": "string", "enum": ["community", "reviewed", "gold", "rejected", "unspecified"] },
+    "sourceContribution": { "$ref": "common.schema.json#/$defs/reference" },
+    "submission": { "$ref": "common.schema.json#/$defs/reference" },
+    "isPublished": { "type": "boolean" },
+    "publishedAt": { "oneOf": [{ "$ref": "common.schema.json#/$defs/isoTimestamp" }, { "type": "null" }] },
+    "withdrawnAt": { "$ref": "common.schema.json#/$defs/isoTimestamp" },
+    "approvedBy": { "$ref": "common.schema.json#/$defs/identifier" },
+    "createdAt": { "$ref": "common.schema.json#/$defs/isoTimestamp" },
+    "updatedAt": { "$ref": "common.schema.json#/$defs/isoTimestamp" },
+    "schemaVersion": { "const": 1 }
+  },
+  "required": [
+    "id",
+    "language",
+    "phrase",
+    "meaning",
+    "expressionKind",
+    "source",
+    "contributor",
+    "sourceContribution",
+    "submission",
+    "isPublished",
+    "publishedAt",
+    "createdAt",
+    "updatedAt",
+    "schemaVersion"
+  ],
+  "additionalProperties": false
+}

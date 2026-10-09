@@ -161,6 +161,45 @@ class MusicBubbleBounds {
       maxTop <= minTop ? minTop : top.clamp(minTop, maxTop);
 }
 
+/// How many now-playing screens are up — in practice, zero or one.
+///
+/// ── Why the bar hides under the big player ────────────────────────────────
+/// The mini-player is drawn above every route, which is its whole job — and
+/// until this existed it was drawn above the now-playing screen too, so the
+/// small player sat over the foot of the big one, offering the same song and
+/// the same buttons twice. The now-playing screen grows *out of* the bar, so
+/// for as long as it is up the bar has, in a sense, become it.
+///
+/// A count rather than a flag, the way `fullScreenMediaProvider` is, so a
+/// second screen pushed by a notification tap cannot leave the bar hidden by
+/// closing the first. And deliberately not that provider: it means "other
+/// audio owns the speakers", and the music would duck for it.
+///
+/// Hiding is not the same as collapsing: the bar keeps its room while it is
+/// hidden, because the screens underneath will be looked at again the moment
+/// the big player folds back into it, and a layout that jumped then would be
+/// the first thing anybody saw.
+final nowPlayingOpenProvider = NotifierProvider<NowPlayingOpenCount, int>(
+  NowPlayingOpenCount.new,
+);
+
+class NowPlayingOpenCount extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  // Both are called a microtask late (a screen cannot change a provider while
+  // the tree builds), by which time the whole scope may have gone — the app
+  // closing, a test tearing down. Late news for a scope that no longer exists
+  // is simply dropped.
+  void enter() {
+    if (ref.mounted) state = state + 1;
+  }
+
+  void leave() {
+    if (ref.mounted && state > 0) state = state - 1;
+  }
+}
+
 /// The shape the player is in, and where it was last put.
 final musicBarPlacementProvider =
     NotifierProvider<MusicBarPlacementNotifier, MusicBarPlacement>(

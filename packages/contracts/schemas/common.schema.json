@@ -99,8 +99,8 @@
     },
     "collectionKind": {
       "type": "string",
-      "description": "Canonical destination in the mobile Collection library. Video is where a filmed story lands, including one a creator filed under a storytelling category — Literature is the reading channel and holds documents and written work only.",
-      "enum": ["music", "dictionary", "literature", "audiobooks", "video"]
+      "description": "Canonical destination for reviewed community work. Video is where a filmed story lands, including one a creator filed under a storytelling category — Literature is the reading channel and holds documents and written work only. Expressions are whole phrases, idioms and sayings: they publish to expressionEntries and never become dictionary headwords.",
+      "enum": ["music", "dictionary", "literature", "audiobooks", "video", "expressions"]
     },
     "campaignStatus": {
       "type": "string",

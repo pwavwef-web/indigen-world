@@ -1,13 +1,15 @@
 # Mobile advertising: first-party priority with AdMob fallback
 
 Implementation prepared 2026-09-20; console work completed the same day.
+Native rendering, placement and consent handling revised 2026-09-26 — see
+[Native rendering](#native-rendering) and [Status on 2026-09-26](#status-on-2026-09-26).
 
 What is done: the code, the release configuration, the consent message (renamed,
-*Do not consent* enabled, republished), and the Play Data Safety correction
-(submitted for review). What is not: no mobile release has been built or
-uploaded, the website has not been deployed so `app-ads.txt` is not live, AdMob
-app verification is still failing on that file, and nothing has served an
-advert.
+*Do not consent* enabled, republished), the Play Data Safety correction
+(submitted for review), and a live `app-ads.txt`. What is not proven: that the
+AdMob app is approved for full serving, that any unit is serving, or that a
+build carrying the Mobile Ads SDK is on a Play track the public can install.
+Nothing in this repository can prove those; they are console facts.
 
 ## Serving policy
 
@@ -26,8 +28,70 @@ Each position resolves in this order:
 3. no row when Google is unavailable or returns no fill.
 
 No interstitial, rewarded, app-open, or additional advertising positions are
-configured. Following, searches, short lists below their existing cadence, and
-sensitive account/payment/contribution screens remain ad-free.
+configured. Explore's Following feed, searches, short lists below their
+existing cadence, and sensitive account/payment/contribution screens are
+ad-free. Community's Following tab is *not*: both Community tabs have carried
+the Community placement since first-party adverts arrived on 2026-08-31, and
+the Google fallback inherited that. (This document said otherwise until
+2026-09-26; whether Community Following should be ad-free like Explore's is a
+product decision that also affects first-party advertisers.)
+
+The Collection overview has exactly one position. Until 2026-09-26 it was the
+last page of the place-story carousel, which advances by itself every three
+seconds: the advert slid into the place a thumb was reaching for a story card,
+and when Google had no fill, or consent did not permit a request, the carousel
+still stopped on an empty page every cycle. The position now stands still under
+the channel grid (`CollectionScreen._hasOverviewAd`), and takes no room when
+there is nothing to show. The carousel carries no advert of either kind.
+
+Which unit serves where — the Collection unit is used for the Collection
+placement and nothing else:
+
+| Placement | Unit (`admob.local.json` key) | Positions |
+|---|---|---|
+| `AdPlacement.collection` | `ADMOB_COLLECTION_NATIVE_AD_UNIT_ID` ("Indigen Collection Native") | overview (one, under the grid); Music/Audiobooks home list, Literature and Video channel lists, Dictionary browse, Heroes, Apps, Shop — after every 5th row, never in search results |
+| `AdPlacement.community` | `ADMOB_COMMUNITY_NATIVE_AD_UNIT_ID` | For you and Following timelines, after every 10th post |
+| `AdPlacement.explore` | `ADMOB_EXPLORE_NATIVE_AD_UNIT_ID` | For you reel pager, one page after every 6th reel; never Following |
+
+## Native rendering
+
+Every Google advert is a Native advanced ad drawn with the plugin's **medium**
+native template (`AdMobNativeSlot` in `lib/features/ads/admob_native.dart`).
+The rules it keeps, and why:
+
+- **Size.** The medium template's Android layout is a fixed 350dp tall; the
+  slot gives it exactly that, at most 400 wide. The earlier 300dp box clipped
+  the call-to-action button off the bottom. Google recommends 320–400 by
+  320–400 for this template. The small template is not used anywhere: it has
+  no MediaView, which a video creative requires.
+- **Legible in both themes.** Every text colour and the background are stated
+  through `NativeTemplateStyle`, taken from the app palette. Left alone, the
+  template's body text inherits the Android activity theme's colour — white
+  under the dark `Theme.Black` — on the template's own white card.
+- **Labelled and framed.** Above the template, outside the ad view, the app
+  draws "ADVERTISEMENT". The template carries Google's own "Ad" badge and the
+  SDK adds the AdChoices icon. The label is not a control, so nothing
+  interactive touches the advert's edge, and it doubles as a buffer from the
+  row above. Full-bleed hosts (Community, Music) inset the frame by the same
+  gutter as their first-party card.
+- **Space is held while a request is out.** A late advert must not push
+  content under a finger (Google's implementation guidance: ads should "not
+  cover or shift the other content"). The slot reserves its full height from
+  the first frame in which it will really request, and collapses to nothing if
+  the answer is empty.
+- **One request per slot.** A rebuild never makes another request; a loaded
+  advert is kept alive while its list is (scrolling away and back reuses it)
+  and disposed with the screen. Community keys its advert rows by slot, so new
+  posts arriving above move the advert rather than replacing it. There is no
+  timed refresh.
+- **Failure rests.** An empty answer or an error makes that placement stop
+  requesting for 60 seconds this session (`kAdMobNoFillCooldown`), so a list
+  with a slot every fifth row does not fire a request per slot while the
+  account has nothing to serve.
+- **Video starts muted** (stated explicitly), because the app plays music.
+
+First-party campaigns keep their own cards (`SponsoredCard`, `SponsoredTile`)
+and their own "Sponsored" label.
 
 ## Build configuration
 
@@ -77,6 +141,20 @@ resolved to ad-eligible. Mobile Ads initialization and inventory requests occur
 only after `canRequestAds` is true. A form, SDK, network, or no-fill failure
 collapses the slot and cannot block app content. Settings exposes Advertising
 privacy choices when UMP reports that the entry point is required.
+
+If this launch's consent update or form fails, the app still asks UMP
+`canRequestAds`, as Google's UMP guide says to ("If an error occurs during the
+consent gathering process, check if you can request ads"): a decision stored in
+an earlier session stands, and UMP answers no when it has nothing to go on. Before
+2026-09-26 any failure was treated as "no adverts this session", which was
+stricter than required but never less private.
+
+For testing the form, a debug, profile, development or staging build accepts
+`--dart-define=UMP_DEBUG_GEOGRAPHY=eea` (or `us`, `other`) and
+`--dart-define=UMP_TEST_DEVICE_IDS=<hashed id>[,…]`, the hashed id being the one
+UMP logs on a physical device. Emulators need no id: since UMP 2.2.0 they are
+test devices by default, and the plugin ships UMP 4.0.0. `developmentConsentDebugSettings` ignores both
+in a production release, and `npm run build:mobile-aab` never passes them.
 
 No child-directed or under-age treatment declaration is hard-coded. That legal
 audience designation must be made by the account owner from the actual audience
@@ -148,6 +226,77 @@ Console state on 2026-09-20:
   requested** — Google asks only once earnings reach its threshold — and no
   identity, tax, banking, or payment information was entered or read.
 
+## Status on 2026-09-26
+
+Google AdMob emailed on 2026-09-26 that publisher account
+`pub-2253236309462300` is verified and ready for use. That is the *account*.
+It does not say that the Indigen World app record is approved for full serving,
+that the three units are active, or that anything has served.
+
+Proven from the repository and the artefacts:
+
+- `admob.local.json` holds app id `…~8091919998` and the Collection unit
+  `…/5465756654`, the values AdMob issued for this app, and
+  `npm run verify:admob-release` passes (one publisher, no samples, no unit
+  used twice).
+- The preserved 0.1.26 (35) bundle
+  (`output/release-bundles/indigen-0.1.26+35.aab`, SHA-256 `6f29ca64…`) has
+  that app id in its manifest's `com.google.android.gms.ads.APPLICATION_ID`,
+  and its `libapp.so` holds the three production unit ids and no Google sample
+  id. It was built **before** the 2026-09-26 rendering and placement changes,
+  so it still has the carousel placement and the 300dp box.
+- The 0.1.27 (36) bundle (`output/release-bundles/indigen-0.1.27+36.aab`,
+  SHA-256 `c80c263c…`, built 2026-09-26) **does** carry these changes: the
+  same app id in its manifest, the three production units and no sample id in
+  `libapp.so`, and the "ADVERTISEMENT" frame compiled in. See
+  [releases/0.1.27+36.md](releases/0.1.27+36.md).
+- No tracked file holds a production identifier; only Google's sample ids
+  (debug/staging) and all-zero placeholders appear in the tree.
+- Merged manifests after the 2026-09-26 Gradle change: production release
+  carries the live app id; production debug, production profile, development
+  and staging carry Google's sample app id. Production profile carried the
+  live id before this change, because Flutter creates the `profile` build type
+  from `debug` before the app's pin is applied.
+- A development debug build on the Pixel_7 emulator with
+  `UMP_DEBUG_GEOGRAPHY=eea`: UMP recorded `IABTCF_gdprApplies=1`; the first
+  form load timed out ("Web view timed out"), the app logged the failure and
+  carried on, and the app process made no Mobile Ads SDK call at all. The
+  emulator was too starved of host memory (repeated system ANRs) to display
+  the form or render a test advert, so neither has been seen on a device.
+
+From the AdMob console, seen by the owner on 2026-09-26: the app overview shows
+**Indigen World — Free | Android — Ready**, with estimated earnings of US$0.00
+for today, yesterday, this month and last month. So the app record has passed
+Google's review. Nothing has earned yet, as expected: no build carrying these
+changes is on a Play track, and the one uploaded build with the SDK (0.1.25)
+crashes at start-up.
+
+Not provable here — see the checklist in the next paragraph: the units'
+status, the Policy Centre, `app-ads.txt` acceptance, and which Play track (if
+any) carries a Mobile Ads build. The
+0.1.25 (34) bundle, the first uploaded with the SDK, crashes at start-up and
+must not serve as evidence of anything.
+
+Console checklist, in order:
+
+1. AdMob → **Apps → Indigen World (Android, `com.indigenworld.indigen`)** →
+   App settings: approval status (**Ready** as of 2026-09-26), that the store
+   link is `com.indigenworld.indigen` (two other apps share the account), and
+   **app-ads.txt** status.
+2. AdMob → **Apps → Indigen World → Ad units**: "Indigen Collection Native"
+   ends `…6654`, format Native advanced, and the Community and Explore units
+   end `…7222` and `…7017`. The full ids live only in the git-ignored
+   `admob.local.json` at the repository root.
+3. AdMob → **Policy centre**: no app-level or site-level issue listed for this
+   app.
+4. AdMob → **Privacy & messaging**: "Indigen Android — European Consent" is
+   still published and targets this app.
+5. Play Console → **App content → Ads** says the app contains ads, and **Data
+   safety** was approved with the advertising data types.
+6. Only after a build containing this revision is on a track: install it on a
+   phone from Play, open Collection as a free member, and confirm the frame and
+   template render. Do not tap a live advert; use a test device (below).
+
 ## app-ads.txt
 
 The website build runs `scripts/emit-app-ads.mjs`, which reads
@@ -158,13 +307,23 @@ wrong publisher is worse than no file, because AdMob reads it as a statement
 that this account may *not* sell the inventory. An absent record is not an
 error; the file is simply not emitted, with a warning.
 
-**Not yet deployed.** `https://indigenworld.com/app-ads.txt` returns 404 with
-the site's HTML 404 body. The hosting predeploy (`verify:production-main`)
-requires a clean checkout on `main` matching `origin/main`, so the file cannot
-ship from this branch — it goes out with the first website deploy after this
-work merges.
+**Live.** Checked from outside on 2026-09-26:
 
-After that deployment:
+- The Play listing for `com.indigenworld.indigen` names
+  `https://indigenworld.com` as the developer website. AdMob looks for the file
+  on that host's root, and requires the store listing to name a developer
+  website at all.
+- `https://indigenworld.com/app-ads.txt` answers `200`, `text/plain;
+  charset=utf-8`, with no redirect, 59 bytes, exactly one line:
+  `google.com, pub-2253236309462300, DIRECT, f08c47fec0942fa0` — the verified
+  publisher, `DIRECT`, and Google's certification authority id.
+- `http://indigenworld.com/app-ads.txt` answers `301` to the HTTPS URL on the
+  same host. Google's crawler checks both schemes and follows redirects.
+- `www.indigenworld.com` does not resolve (NXDOMAIN). That does not affect
+  `app-ads.txt`, which the crawler looks for on the listing's host and never on
+  `www.`, but the Android App Links filter also claims `www.indigenworld.com`.
+
+Re-check any time with:
 
 ```bash
 npm run verify:app-ads
@@ -173,13 +332,14 @@ npm run verify:app-ads
 It checks status 200, `text/plain`, an unauthenticated response, no HTML body,
 no redirect off the canonical origin, and — when the record is configured — that
 the exact line is present, bypassing any CDN copy with a cache-busting query.
-Then use AdMob's **Check for updates** control on the app's verification screen.
 
-Note that AdMob will not confirm `app-ads.txt` from the file alone: its
-app-ads.txt tab currently reports "No ad requests with app-ads.txt yet", because
-Google associates the crawled file with an app only once that app actually
-requests ads. Verification therefore needs the file live *and* a release that
-serves, and Google says the crawl itself can take up to seven days.
+Whether AdMob has *accepted* the file is a console fact: AdMob → Apps →
+Indigen World → **App settings → app-ads.txt**. A 2026-09-20 session recorded it
+verified the same day the website deployed, with no release and no ad
+requests, after which the app moved from **Requires review** to **Getting
+ready**. Google says crawling can take up to 24 hours and offers **Check for
+updates**. The line "No ad requests with app-ads.txt yet" on that tab is about
+reporting, not verification.
 
 ## Play Data Safety
 
@@ -198,6 +358,18 @@ Every answer and the evidence behind it is recorded in
 Run formatting, `flutter analyze`, the advertising/subscription/widget tests,
 and a development-flavor Android debug build. Test clicks must use Google's
 sample units.
+
+To look at real rendering safely, use a debug build: it always uses Google's
+sample app and sample native unit, which return labelled test adverts and
+cannot earn or generate invalid traffic.
+
+```bash
+flutter run --debug --flavor development --dart-define=APP_ENV=development --dart-define=UMP_DEBUG_GEOGRAPHY=eea
+```
+
+To test on a phone with the *production* units instead, register the phone as
+a test device in AdMob → Settings → Test devices first; Google then serves test
+adverts to it. Never tap a live advert on an unregistered device.
 
 To roll back before release, remove the Google fallback widgets, UMP bootstrap,
 manifest metadata, package dependency, and external release variables while

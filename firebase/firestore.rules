@@ -360,6 +360,23 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ---- Reviewed Kasem expressions ----------------------------------------
+    //
+    // Greetings, blessings, idioms and sayings, published whole with their
+    // meaning, the situation they are said in and where they came from. They
+    // are deliberately NOT dictionary entries: an expression is never split
+    // into headwords, numbered against homographs or counted as a word. See
+    // services/functions/src/expressions.ts.
+    //
+    // Published rows are world-readable, so the website can show them to
+    // visitors who have no account. Unpublished and withdrawn rows stay with
+    // staff. Written only by the review workflow (`decideSubmission`) and by
+    // the contributor's own withdrawal, both server-side.
+    match /expressionEntries/{entryId} {
+      allow read: if resource.data.isPublished == true || isStaff();
+      allow write: if false;
+    }
+
     // ---- The guided word queue ---------------------------------------------
     //
     // Fifteen thousand English words in frequency order, each waiting for a
@@ -417,6 +434,24 @@ service cloud.firestore {
     // looking like an oversight.
     match /wordQueueClaims/{contributionId} {
       allow read: if isStaff();
+      allow write: if false;
+    }
+
+    // Who asked for a missing word, so one member asking twice counts once.
+    // The public queue row only ever holds the count; the asker is here,
+    // readable by them and by staff, and written only by `requestQueueWord`.
+    match /wordRequests/{requestId} {
+      allow read: if isStaff()
+        || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow write: if false;
+    }
+
+    // Word-queue answers a reviewer kept as an example sentence or a
+    // translation pair. Public once published, like a dictionary entry; the
+    // unpublished and withdrawn ones are for staff. Written only by
+    // `decideSubmission` and the withdrawal callable.
+    match /languageResources/{resourceId} {
+      allow read: if resource.data.isPublished == true || isStaff();
       allow write: if false;
     }
 
@@ -759,6 +794,87 @@ service cloud.firestore {
       allow read: if isStaff() || (
         isSignedIn() && resource.data.ownerUid == request.auth.uid
       );
+      allow write: if false;
+    }
+
+    // ---- The TribeStudio video editor --------------------------------------
+    //
+    // A project is its owner's draft: the timeline, the scene plan and the
+    // continuity notes are written by the editor itself as the member works, so
+    // leaving and coming back loses nothing. Nobody else reads it — not staff
+    // either: a draft is not a submission.
+    //
+    // `lastRender` is the renderer's to write (services/functions/src/video-editor),
+    // so an update must leave it as it was. Deleting a project goes through the
+    // `deleteVideoProject` callable, which removes its files with it; a client
+    // delete would leave the files behind where nobody could find them.
+    match /videoProjects/{projectId} {
+      function projectShapeOk(d) {
+        return d.ownerUid == request.auth.uid
+          && d.keys().hasOnly(['ownerUid', 'title', 'aspect', 'status', 'origin', 'timeline', 'plan', 'continuity', 'consent', 'schemaVersion', 'revision', 'createdAt', 'updatedAt', 'lastRender'])
+          && d.title is string && d.title.size() <= 120
+          && d.aspect in ['9:16', '1:1', '16:9']
+          && d.status in ['draft', 'archived']
+          && d.schemaVersion is int
+          && d.get('timeline', {}) is map;
+      }
+      allow read: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if isSignedIn()
+        && !isBlockedCreator(request.auth.uid)
+        && projectShapeOk(request.resource.data)
+        && request.resource.data.get('lastRender', null) == null;
+      allow update: if isSignedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && projectShapeOk(request.resource.data)
+        && request.resource.data.get('lastRender', null) == resource.data.get('lastRender', null);
+      allow delete: if false;
+
+      // The files a project uses: uploads into its own Storage folder, or the
+      // member's own AI video generations. The renderer checks the same two
+      // prefixes again before it reads anything.
+      match /media/{mediaId} {
+        function ownsProject() {
+          return isSignedIn()
+            && get(/databases/$(database)/documents/videoProjects/$(projectId)).data.ownerUid == request.auth.uid;
+        }
+        allow read: if ownsProject();
+        allow create: if ownsProject()
+          && request.resource.data.kind in ['video', 'image', 'audio']
+          && request.resource.data.storagePath is string
+          && (
+            request.resource.data.storagePath.matches('video-projects/' + request.auth.uid + '/' + projectId + '/media/' + mediaId + '/[^/]+')
+            || request.resource.data.storagePath.matches('studio-video-jobs/' + request.auth.uid + '/[^/]+/[^/]+')
+          );
+        allow update: if ownsProject()
+          && request.resource.data.storagePath == resource.data.storagePath
+          && request.resource.data.kind == resource.data.kind;
+        allow delete: if ownsProject();
+      }
+    }
+
+    // Exports: written only by the renderer, read by their owner (the editor
+    // follows progress on the document). Dispatch records exist only to
+    // trigger the renderer and are nobody's to read.
+    match /videoRenders/{renderId} {
+      allow read: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+      allow write: if false;
+    }
+    match /videoRenderDispatches/{dispatchId} {
+      allow read, write: if false;
+    }
+
+    // The editor's music and sticker libraries: generated in AZ Studio,
+    // checked, and published by tools/media-library/publish.mjs with the Admin
+    // SDK. Published items are public — they carry their licence and
+    // generation details, which anybody using one in a video should be able
+    // to read. `status` is compared directly so `where('status', '==',
+    // 'published')` is provably allowed.
+    match /videoMusicTracks/{trackId} {
+      allow read: if resource.data.status == 'published' || isStaff();
+      allow write: if false;
+    }
+    match /videoStickers/{stickerId} {
+      allow read: if resource.data.status == 'published' || isStaff();
       allow write: if false;
     }
 
@@ -2042,7 +2158,12 @@ service cloud.firestore {
         && request.resource.data.get('activeDays', []) is list
         && request.resource.data.get('activeDays', []).size() <= 800
         && request.resource.data.get('reviewCards', {}) is map
-        && request.resource.data.get('reviewCards', {}).size() <= 3000;
+        && request.resource.data.get('reviewCards', {}).size() <= 3000
+        // The dictionary entries this member saved, so they follow the account
+        // to another phone. The app keeps the list to 2000; the rule holds it
+        // there so an owner-writable document cannot grow without end.
+        && request.resource.data.get('savedWordIds', []) is list
+        && request.resource.data.get('savedWordIds', []).size() <= 2000;
       allow delete: if isOwner(uid);
     }
 

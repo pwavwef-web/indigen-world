@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .copy { position: absolute; left: 64px; top: 64px; width: 460px; }
+  .eyebrow { font-size: 16px; letter-spacing: 2.6px; }
+  h1 { margin-top: 18px; font-size: 50px; line-height: 1.05; font-weight: 800; letter-spacing: -1.2px; }
+  p { margin-top: 20px; font-size: 20px; line-height: 1.45; color: rgba(255,255,255,0.84); }
+  .tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .pill { font-size: 16px; padding: 8px 15px; gap: 9px; }
+  .pill .dot { width: 10px; height: 10px; }
+  .browser { --bw: 660px; --bh: 412px; position: absolute; left: 548px; top: 64px; transform: rotate(-2deg); }
+  .phone { --w: 205px; position: absolute; right: 30px; top: 168px; transform: rotate(5deg); z-index: 2; }
+</style>
+<div class="copy">
+  <div class="eyebrow">Indigen World &middot; Contribute</div>
+  <h1>Share a Kasem expression</h1>
+  <p>One clear task, a review you can follow, and expressions that stay expressions.</p>
+  <div class="tags">
+    <span class="pill"><span class="dot"></span>Open to everyone</span>
+    <span class="pill amber"><span class="dot"></span>Reviewed by Kasem speakers</span>
+    <span class="pill green"><span class="dot"></span>Never split into words</span>
+  </div>
+</div>
+<div class="browser"><div class="bar"><i></i><i></i><i></i><span>indigenworld.com/contribute</span></div><img src="../screens/web-contribute.png" alt=""></div>
+<div class="phone"><img src="../screens/phone-status.png" alt=""></div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

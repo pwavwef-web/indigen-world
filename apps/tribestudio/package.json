@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "icons": "node ./scripts/generate-pwa-icons.mjs",
     "typecheck": "tsc -b --pretty false",
-    "test": "node ./scripts/validate-studio.mjs && node --test ./scripts/workflows.test.mjs ./scripts/pwa.test.mjs",
+    "test": "node ./scripts/validate-studio.mjs && node --test ./scripts/workflows.test.mjs ./scripts/pwa.test.mjs ./scripts/video-editor.test.mjs",
     "check": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {

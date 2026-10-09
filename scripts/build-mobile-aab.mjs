@@ -15,8 +15,10 @@
 //
 //    which reads as an error in the app and involves nothing anybody wrote. It
 //    appears only when a release build follows a test run — which is exactly
-//    the order a release goes in. Deleting the file first makes Flutter
-//    regenerate it for the release variant, and that is the whole fix.
+//    the order a release goes in. Deleting the file first lets Flutter
+//    regenerate it for the release variant. If Flutter regenerates it with the
+//    dev plugin again during the build, Android's production Java compile
+//    removes that registration immediately before compiling.
 //
 // 2. Every release note has claimed a size, a hash, a version and a set of ABIs.
 //    Claims typed by hand from a build log drift from the artefact. These are

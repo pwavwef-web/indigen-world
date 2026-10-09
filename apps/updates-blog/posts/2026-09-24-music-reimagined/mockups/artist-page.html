@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .phone { --w: 420px; }
+  .stage { gap: 80px; }
+  .notes { display: flex; flex-direction: column; gap: 26px; width: 560px; }
+  .note { font-size: 27px; line-height: 1.4; color: rgba(255,255,255,0.88); }
+  .note b { color: #fff; }
+  .eyebrow { margin-bottom: 6px; }
+</style>
+<div class="stage">
+  <div class="phone"><img src="../screens/artist-page.png" alt=""></div>
+  <div class="notes">
+    <div class="eyebrow">An artist's page</div>
+    <div class="note"><b>The face flies in</b> from the circle you tapped.</div>
+    <div class="note"><b>The page takes their colours</b>, worked out from their picture.</div>
+    <div class="note"><b>The round play button</b> rides up into the top bar as you scroll, so it is always one tap away.</div>
+    <span class="pill"><span class="dot"></span>Shuffle beside their name</span>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

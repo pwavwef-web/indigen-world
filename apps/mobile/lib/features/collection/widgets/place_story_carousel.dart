@@ -5,9 +5,12 @@ import 'package:indigen_world_mobile/features/collection/place_stories.dart';
 import 'package:indigen_world_mobile/features/collection/place_story_screen.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+/// The place stories, advancing by themselves.
+///
+/// Deliberately never carries an advert: a page that moves on its own is the
+/// wrong place for one. See `CollectionScreen._hasOverviewAd`.
 class PlaceStoryCarousel extends StatefulWidget {
-  const PlaceStoryCarousel({this.ad, super.key});
-  final Widget? ad;
+  const PlaceStoryCarousel({super.key});
   @override
   State<PlaceStoryCarousel> createState() => _PlaceStoryCarouselState();
 }
@@ -20,7 +23,7 @@ class _PlaceStoryCarouselState extends State<PlaceStoryCarousel>
   bool _visible = true;
   bool _paused = false;
   bool _foreground = true;
-  int get _count => placeStories.length + (widget.ad == null ? 0 : 1);
+  int get _count => placeStories.length;
 
   @override
   void initState() {
@@ -50,17 +53,6 @@ class _PlaceStoryCarouselState extends State<PlaceStoryCarousel>
         ),
       );
     });
-  }
-
-  @override
-  void didUpdateWidget(PlaceStoryCarousel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_page >= _count) {
-      _page = _count - 1;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _pages.hasClients) _pages.jumpToPage(_page);
-      });
-    }
   }
 
   @override
@@ -96,9 +88,7 @@ class _PlaceStoryCarouselState extends State<PlaceStoryCarousel>
               onPageChanged: (page) => setState(() => _page = page),
               itemBuilder: (context, index) => Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 5),
-                child: index == placeStories.length
-                    ? widget.ad!
-                    : _PlaceCard(story: placeStories[index]),
+                child: _PlaceCard(story: placeStories[index]),
               ),
             ),
           ),

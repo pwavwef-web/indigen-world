@@ -9,6 +9,11 @@ Chinedum uses these posts to share updates with the community.
   and release/deployment status.
 - Include `share.md` with concise copy Chinedum can share and a clearly marked
   placeholder for the published article URL.
+- Always include relevant images in release posts. Save the assets with the post,
+  embed them in `post.html` with descriptive alt text and captions, and document
+  image credits plus Blogger upload/replacement steps in `README.md`. Prefer
+  verified product screenshots when they explain the change; label illustrations
+  clearly. Do not leave an image placeholder without the actual image asset.
 - Explain what changed, who benefits, how to use it, and relevant availability
   limits in plain language. Base claims on verified implementation and release
   evidence; distinguish implemented features from confirmed live releases.

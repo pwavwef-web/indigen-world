@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/music/music_track.dart';
 
@@ -235,6 +236,91 @@ final musicArtistsProvider =
             const <PublishedReel>[],
       ),
     );
+
+/// When a record was published, for ordering, or null when it does not say.
+DateTime? publishedMoment(PublishedReel reel) {
+  final raw = reel.publishedAt ?? reel.createdAt;
+  return raw == null ? null : DateTime.tryParse(raw);
+}
+
+/// [items], newest publication first.
+///
+/// Records that carry no date keep their place behind every dated one, in the
+/// order they arrived: an undated record is not "old", it is unknown, and it
+/// should not jump the queue of things that can prove they are new.
+List<PublishedReel> newestFirst(List<PublishedReel> items) {
+  final indexed = [for (final (i, item) in items.indexed) (i, item)];
+  indexed.sort((a, b) {
+    final da = publishedMoment(a.$2);
+    final db = publishedMoment(b.$2);
+    if (da == null && db == null) return a.$1.compareTo(b.$1);
+    if (da == null) return 1;
+    if (db == null) return -1;
+    final byDate = db.compareTo(da);
+    return byDate != 0 ? byDate : a.$1.compareTo(b.$1);
+  });
+  return List.unmodifiable([for (final entry in indexed) entry.$2]);
+}
+
+/// One kind of piece — a category the archive files its work under — and
+/// everything filed there.
+@immutable
+class MusicCategory {
+  const MusicCategory({required this.name, required this.tracks});
+
+  final String name;
+  final List<PublishedReel> tracks;
+}
+
+/// The categories worth a tile: every one holding at least [minimum] pieces,
+/// fullest first — or none at all when fewer than two qualify.
+///
+/// "None at all" is the point of the threshold. A browse grid with one tile in
+/// it is a button labelled with the only answer, and a tile holding one song
+/// is a shelf pretending to be a section.
+List<MusicCategory> musicCategories(
+  List<PublishedReel> items, {
+  int minimum = 2,
+}) {
+  final byName = <String, List<PublishedReel>>{};
+  final display = <String, String>{};
+  for (final item in items) {
+    final name = item.category.trim();
+    if (name.isEmpty) continue;
+    final key = normaliseMusicText(name);
+    byName.putIfAbsent(key, () => <PublishedReel>[]).add(item);
+    display.putIfAbsent(key, () => name);
+  }
+  final categories = [
+    for (final entry in byName.entries)
+      if (entry.value.length >= minimum)
+        MusicCategory(
+          name: display[entry.key]!,
+          tracks: List.unmodifiable(entry.value),
+        ),
+  ]..sort((a, b) {
+      final bySize = b.tracks.length.compareTo(a.tracks.length);
+      return bySize != 0
+          ? bySize
+          : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+  return categories.length < 2
+      ? const <MusicCategory>[]
+      : List.unmodifiable(categories);
+}
+
+/// The ids kept on this phone, for the "plays offline" mark on a row.
+///
+/// Read only while downloads are available at all. The download index lives
+/// in the on-device database, and opening it in a scope with no platform — a
+/// widget test, a member with no subscription who has never downloaded — is
+/// work, and in a test a failure no `try` here can catch. A member without
+/// downloads has nothing kept offline to mark.
+final musicOfflineIdsProvider = Provider<Set<String>>(
+  (ref) => ref.watch(downloadsAllowedProvider)
+      ? ref.watch(downloadedIdsProvider)
+      : const <String>{},
+);
 
 /// One artist by id, or null once their last record leaves the collection.
 ///

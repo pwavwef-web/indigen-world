@@ -5,6 +5,7 @@ import { consumeRateLimit } from './rate-limit.js';
 import {
   COLLECTION_KINDS,
   collectionKindForSubmission,
+  publicationTargetFor,
   type CollectionKind,
 } from './publication.js';
 import {
@@ -292,6 +293,15 @@ export function parseCollectionContributionInput(
       `collectionKind must be one of: ${COLLECTION_KINDS.join(', ')}.`,
     );
   }
+  // Expressions have their own door, `submitExpression`, which insists on the
+  // context and the source this generic parser treats as optional. Accepting
+  // one here would let a client file an expression nobody could use or check.
+  if (kind === 'expressions') {
+    throw new HttpsError(
+      'invalid-argument',
+      'Send expressions with submitExpression, which records their meaning, context and source.',
+    );
+  }
   if (data.rightsConfirmed !== true) {
     throw new HttpsError('failed-precondition', 'Permission to share this work for community review is required.');
   }
@@ -448,13 +458,16 @@ function lexicalDetailFields(input: CollectionContributionInput): Record<string,
 
 function studioTypeFor(kind: CollectionKind): 'writing' | 'audio' | 'translation' | 'video' {
   if (kind === 'music' || kind === 'audiobooks') return 'audio';
-  if (kind === 'dictionary') return 'translation';
+  if (kind === 'dictionary' || kind === 'expressions') return 'translation';
   if (kind === 'video') return 'video';
   return 'writing';
 }
 
 /** Corpus classification is separate from the public Collection shelf. */
 export function corpusAreaFor(input: Pick<CollectionContributionInput, 'collectionKind' | 'lexicalKind' | 'format'>): string {
+  if (input.collectionKind === 'expressions') {
+    return input.lexicalKind === 'proverb' ? 'proverbs' : 'expressions';
+  }
   if (input.collectionKind === 'dictionary') {
     if (input.lexicalKind === 'proverb') return 'proverbs';
     if (input.lexicalKind === 'idiom' || input.lexicalKind === 'phrase') return 'expressions';
@@ -518,7 +531,9 @@ export function buildCollectionSubmissionDocument(
     ...(input.usageContext ? { usageContext: input.usageContext } : {}),
     ...(input.frenchTranslation ? { frenchTranslation: input.frenchTranslation } : {}),
     translationNotes: input.notes,
-    englishSummary: input.collectionKind === 'dictionary' ? input.title : '',
+    englishSummary: input.collectionKind === 'dictionary' || input.collectionKind === 'expressions'
+      ? input.title
+      : '',
     culturalContext: '',
     externalPostUrl: input.mediaUrl || null,
     // Spread rather than a null field: Firestore rejects `undefined`, and a
@@ -812,13 +827,19 @@ export const withdrawCollectionContribution = onCall(
       if (!collectionKind || contribution.collectionKind !== collectionKind) {
         throw new HttpsError('failed-precondition', 'Contribution collection kind is inconsistent.');
       }
-      const publicRef = collectionKind === 'dictionary'
-        ? db.collection('dictionaryEntries').doc(`collection_${submissionId}`)
-        : db.collection('publishedContent').doc(`pub_${submissionId}`);
+      // Where this contribution is, or was, published. An expression lives in
+      // `expressionEntries`; one translated in the invited workspace before
+      // expressions had a home may still be the dictionary row it was published
+      // as, and the recorded target is what reaches it.
+      const target = publicationTargetFor(submission, submissionId);
+      const publicRef = db.collection(target.collection).doc(target.id);
+      // Dictionary and expression rows point back at the contribution; a
+      // publishedContent record points at the submission.
+      const flagPublished = target.collection !== 'publishedContent';
       const publicSnap = await tx.get(publicRef);
       if (publicSnap.exists) {
         const publicData = publicSnap.data() as Record<string, any>;
-        const ownsPublicTarget = collectionKind === 'dictionary'
+        const ownsPublicTarget = flagPublished
           ? publicData.sourceContribution?.collection === 'collectionContributions'
             && publicData.sourceContribution?.id === contributionId
           : publicData.submission?.collection === 'submissions'
@@ -828,7 +849,7 @@ export const withdrawCollectionContribution = onCall(
         }
       }
 
-      const publicWasLive = publicSnap.exists && (collectionKind === 'dictionary'
+      const publicWasLive = publicSnap.exists && (flagPublished
         ? publicSnap.get('isPublished') === true
         : publicSnap.get('publicationStatus') === 'published');
       const alreadyWithdrawn = contribution.status === 'withdrawn'
@@ -860,12 +881,21 @@ export const withdrawCollectionContribution = onCall(
       tx.update(submissionRef, {
         status: 'WITHDRAWN',
         'permissions.publication': false,
+        // Withdrawing takes back every use the contributor allowed, training
+        // included; the pair kept for it goes below.
+        'permissions.aiTraining': false,
         'moderation.feedback': 'Withdrawn by the contributor.',
         'lifecycle.updatedAt': now,
         'lifecycle.version': FieldValue.increment(1),
       });
+      // A reviewer may have kept this answer as training material. Deleting a
+      // pair that was never written is harmless, so this is unconditional.
+      tx.delete(db.collection('contributorTrainingPairs').doc(submissionId));
       if (publicSnap.exists) {
-        if (collectionKind === 'dictionary') {
+        if (target.collection === 'expressionEntries' || target.collection === 'languageResources') {
+          // ISO strings, like every other date on these records.
+          tx.update(publicRef, { isPublished: false, withdrawnAt: now, updatedAt: now });
+        } else if (target.collection === 'dictionaryEntries') {
           tx.update(publicRef, {
             isPublished: false,
             withdrawnAt: FieldValue.serverTimestamp(),
@@ -880,14 +910,17 @@ export const withdrawCollectionContribution = onCall(
           });
         }
       }
+      // An expression is named by its Kasem, which is its `body`; everything
+      // else by its title. Expressions sent from TribeStudio are followed there.
+      const isExpression = collectionKind === 'expressions';
       tx.set(notificationRef, {
         id: notificationRef.id,
         recipient: { collection: 'creatorProfiles', id: uid },
         authUid: uid,
         type: 'review_decision',
-        title: 'Collection contribution withdrawn',
-        body: `“${String(contribution.title ?? submission.title ?? 'Your contribution')}” is no longer available for review or publication.`,
-        link: '/contribute',
+        title: isExpression ? 'Expression withdrawn' : 'Collection contribution withdrawn',
+        body: `“${String((isExpression ? contribution.body : contribution.title) ?? submission.title ?? 'Your contribution')}” is no longer available for review or publication.`,
+        link: isExpression && !submission.contributorPortal ? '/studio/expressions' : '/contribute',
         read: false,
         channels: ['in_app'],
         schemaVersion: 1,

@@ -8,6 +8,7 @@ import 'package:indigen_world_mobile/features/learn/learn_catalog.dart';
 import 'package:indigen_world_mobile/features/learn/learn_content.dart';
 import 'package:indigen_world_mobile/features/learn/learn_progress.dart';
 import 'package:indigen_world_mobile/features/learn/learn_sheets.dart';
+import 'package:indigen_world_mobile/shared/kassena_pattern.dart';
 
 /// ─────────────────────────────────────────────────────────────────────────────
 /// THE LEARN DASHBOARD
@@ -1460,62 +1461,4 @@ class _LearnDashboardSkeletonState extends State<LearnDashboardSkeleton>
       ),
     );
   }
-}
-
-// ── The pattern ─────────────────────────────────────────────────────────────
-
-/// Bands of triangles and lozenges in the manner of Kassena wall painting —
-/// the geometric work women paint on compound walls in Tiébélé and across the
-/// Kassena homeland. Drawn, not photographed: a texture in the house palette,
-/// never a claim about any particular wall. Painted in the theme's own colour,
-/// handed in by the widget because a painter has no context.
-class KassenaPatternPainter extends CustomPainter {
-  const KassenaPatternPainter({required this.tint, this.opacity = 0.1});
-
-  final Color tint;
-  final double opacity;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final ochre = Paint()
-      ..color = tint.withValues(alpha: opacity);
-    final cream = Paint()
-      ..color = Colors.white.withValues(alpha: opacity * 0.8);
-    final ink = Paint()
-      ..color = const Color(0xFF000000).withValues(alpha: opacity * 0.9)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-    const band = 22.0;
-    var row = 0;
-    for (var top = 0.0; top < size.height; top += band, row++) {
-      final step = band;
-      for (var left = -step; left < size.width + step; left += step) {
-        final offset = row.isOdd ? step / 2 : 0;
-        final x = left + offset;
-        if (row % 3 == 2) {
-          final lozenge = Path()
-            ..moveTo(x + step / 2, top + 3)
-            ..lineTo(x + step - 3, top + band / 2)
-            ..lineTo(x + step / 2, top + band - 3)
-            ..lineTo(x + 3, top + band / 2)
-            ..close();
-          canvas
-            ..drawPath(lozenge, cream)
-            ..drawPath(lozenge, ink);
-        } else {
-          final triangle = Path()
-            ..moveTo(x, top + band)
-            ..lineTo(x + step / 2, top + 2)
-            ..lineTo(x + step, top + band)
-            ..close();
-          canvas.drawPath(triangle, row.isEven ? ochre : cream);
-        }
-      }
-      canvas.drawLine(Offset(0, top), Offset(size.width, top), ink);
-    }
-  }
-
-  @override
-  bool shouldRepaint(KassenaPatternPainter old) =>
-      old.opacity != opacity || old.tint != tint;
 }

@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:indigen_world_mobile/features/ads/admob_config.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
 
 enum AdConsentAvailability { unresolved, canRequestAds, cannotRequestAds }
@@ -31,22 +33,72 @@ abstract interface class AdConsentGateway {
   Future<bool> privacyOptionsRequired();
 }
 
+/// UMP debug settings for testing the consent form, from `--dart-define`s.
+///
+/// Returns null unless [testMode] — a debug, profile, development or staging
+/// build, which also only ever uses Google's sample ad units — so no release
+/// of the production app can carry a forced geography or a test device list.
+///
+/// * `UMP_DEBUG_GEOGRAPHY`: `eea`, `us` (a regulated US state) or `other`.
+/// * `UMP_TEST_DEVICE_IDS`: comma-separated hashed ids, as UMP prints them to
+///   logcat on a physical device.
+ConsentDebugSettings? developmentConsentDebugSettings({
+  required bool testMode,
+  String geography = const String.fromEnvironment('UMP_DEBUG_GEOGRAPHY'),
+  String testDeviceIds = const String.fromEnvironment('UMP_TEST_DEVICE_IDS'),
+}) {
+  if (!testMode) return null;
+  final debugGeography = switch (geography.trim().toLowerCase()) {
+    'eea' => DebugGeography.debugGeographyEea,
+    'us' => DebugGeography.debugGeographyRegulatedUsState,
+    'other' => DebugGeography.debugGeographyOther,
+    _ => null,
+  };
+  final ids = [
+    for (final id in testDeviceIds.split(','))
+      if (id.trim().isNotEmpty) id.trim(),
+  ];
+  if (debugGeography == null && ids.isEmpty) return null;
+  return ConsentDebugSettings(
+    debugGeography: debugGeography,
+    testIdentifiers: ids.isEmpty ? null : ids,
+  );
+}
+
 class GoogleAdConsentGateway implements AdConsentGateway {
-  const GoogleAdConsentGateway();
+  const GoogleAdConsentGateway({this.debugSettings});
+
+  /// Only ever non-null in a test-mode build; see
+  /// [developmentConsentDebugSettings].
+  final ConsentDebugSettings? debugSettings;
 
   @override
   Future<AdConsentState> gather() async {
-    await _requestUpdate();
+    try {
+      await _requestUpdate();
 
-    final form = Completer<void>();
-    await ConsentForm.loadAndShowConsentFormIfRequired((error) {
-      if (error == null) {
-        form.complete();
-      } else {
-        form.completeError(error);
+      final form = Completer<void>();
+      await ConsentForm.loadAndShowConsentFormIfRequired((error) {
+        if (error == null) {
+          form.complete();
+        } else {
+          form.completeError(error);
+        }
+      });
+      await form.future;
+    } on Object catch (error) {
+      // "If an error occurs during the consent gathering process, check if
+      // you can request ads. The UMP SDK uses the consent status from the
+      // previous app session." (Google's UMP guide.) UMP answers no when it
+      // has nothing to go on, so a failure here is never treated as consent,
+      // and never as a refusal UMP did not make.
+      if (kDebugMode) {
+        debugPrint(
+          'UMP consent gathering failed: '
+          '${error is FormError ? '${error.errorCode} ${error.message}' : error}',
+        );
       }
-    });
-    await form.future;
+    }
     return _currentState();
   }
 
@@ -78,7 +130,7 @@ class GoogleAdConsentGateway implements AdConsentGateway {
   Future<void> _requestUpdate() {
     final update = Completer<void>();
     ConsentInformation.instance.requestConsentInfoUpdate(
-      ConsentRequestParameters(),
+      ConsentRequestParameters(consentDebugSettings: debugSettings),
       update.complete,
       update.completeError,
     );
@@ -100,7 +152,11 @@ class GoogleAdConsentGateway implements AdConsentGateway {
 }
 
 final adConsentGatewayProvider = Provider<AdConsentGateway>(
-  (ref) => const GoogleAdConsentGateway(),
+  (ref) => GoogleAdConsentGateway(
+    debugSettings: developmentConsentDebugSettings(
+      testMode: ref.watch(adMobConfigProvider).testMode,
+    ),
+  ),
 );
 
 class AdConsentController extends Notifier<AdConsentState> {

@@ -1,0 +1,4 @@
+# Install CPU PyTorch separately using https://download.pytorch.org/whl/cpu.
+transformers>=4.57,<5
+huggingface-hub>=0.34,<1
+numpy>=1.26,<3

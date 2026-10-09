@@ -69,12 +69,15 @@ export {
   submitCollectionContribution,
   withdrawCollectionContribution,
 } from './collection-contributions.js';
+export { submitExpression } from './expressions.js';
 export {
   nextQueueWords,
   skipQueueWord,
   submitWordTranslation,
   onWordQueueContributionWritten,
 } from './word-queue.js';
+// The language loop: a missing word asked for from search, a topic page or Kawuri.
+export { requestQueueWord } from './language-loop.js';
 export {
   awardContributorPoints,
   remindContributorStreaks,
@@ -135,6 +138,18 @@ export {
   getStudioVideoPlaybackUrl,
   sweepStudioVideoJobs,
 } from './studio-video.js';
+export {
+  startVideoRender,
+  retryVideoRender,
+  cancelVideoRender,
+  getVideoRenderUrl,
+  copyVideoRenderForPost,
+  deleteVideoProject,
+  onVideoRenderDispatched,
+  sweepVideoRenders,
+  planVideoScenes,
+  alignVideoCaptions,
+} from './video-editor/video-projects.js';
 export { startIntegrityCheck, verifyDeviceIntegrity } from './play-integrity.js';
 export {
   startRestoreKeyRegistration,

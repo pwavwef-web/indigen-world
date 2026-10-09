@@ -22,7 +22,7 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { arrayUnion, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 const PROJECT_ID = 'demo-indigen-world';
 const host = '127.0.0.1';
@@ -309,6 +309,52 @@ test('progress cannot be negative', async () => {
   );
   await assertFails(
     setDoc(doc(db(owner), `learnProgress/${LEARNER}`), makeProgress(LEARNER, { streakDays: -3 })),
+  );
+});
+
+test('saved words ride on the progress document, within a bound', async () => {
+  const owner = env.authenticatedContext(LEARNER);
+  const other = env.authenticatedContext(OTHER);
+  const ids = (count) => Array.from({ length: count }, (_, index) => `entry-${index}`);
+
+  await assertSucceeds(
+    setDoc(
+      doc(db(owner), `learnProgress/${LEARNER}`),
+      makeProgress(LEARNER, { savedWordIds: ids(2000) }),
+    ),
+  );
+  // Somebody else's account cannot be given, or robbed of, saved words.
+  await assertFails(
+    setDoc(
+      doc(db(other), `learnProgress/${LEARNER}`),
+      makeProgress(LEARNER, { savedWordIds: [] }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(db(owner), `learnProgress/${LEARNER}`),
+      makeProgress(LEARNER, { savedWordIds: ids(2001) }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(db(owner), `learnProgress/${LEARNER}`),
+      makeProgress(LEARNER, { savedWordIds: 'entry-1' }),
+    ),
+  );
+});
+
+test('a member who saves a word before any lesson can still sync it', async () => {
+  // The app's own write, on an account with no progress document yet: merged,
+  // carrying the uid, and creating the lesson list the rule insists on
+  // without touching one that already exists.
+  const fresh = env.authenticatedContext(OTHER);
+  await assertSucceeds(
+    setDoc(
+      doc(db(fresh), `learnProgress/${OTHER}`),
+      { uid: OTHER, savedWordIds: ['entry-1'], completedLessons: arrayUnion() },
+      { merge: true },
+    ),
   );
 });
 

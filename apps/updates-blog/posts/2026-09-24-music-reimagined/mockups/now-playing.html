@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .phone { --w: 410px; }
+  .stage { gap: 64px; }
+</style>
+<div class="stage">
+  <div class="column">
+    <div class="phone"><img src="../screens/now-playing.png" alt=""></div>
+    <span class="pill green"><span class="dot"></span>Playing: the cover comes forward</span>
+  </div>
+  <div class="arrow">&harr;</div>
+  <div class="column">
+    <div class="phone"><img src="../screens/now-playing-paused.png" alt=""></div>
+    <span class="pill amber"><span class="dot"></span>Paused: it steps back</span>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>

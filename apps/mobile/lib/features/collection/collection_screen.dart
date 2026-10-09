@@ -20,12 +20,17 @@ import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/heroes/heroes_data.dart';
 import 'package:indigen_world_mobile/features/heroes/heroes_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_fab.dart';
+import 'package:indigen_world_mobile/features/music/music_controller.dart';
+import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/features/music/music_screen.dart';
+import 'package:indigen_world_mobile/features/music/music_tint.dart';
+import 'package:indigen_world_mobile/features/music/widgets/music_bubble.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
 import 'package:indigen_world_mobile/shared/profile_orb.dart';
+import 'package:indigen_world_mobile/shared/reveal_route.dart';
 
 class CollectionScreen extends ConsumerStatefulWidget {
   const CollectionScreen({super.key});
@@ -95,15 +100,13 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
         icon: Icons.graphic_eq_rounded,
         // Music, Dictionary and Literature each need a hue of their own now
         // that the palette's accents are all one blue family.
-        color: context.brand.pick(
-          const Color(0xFF0E7490),
-          const Color(0xFF67E8F9),
-        ),
+        color: musicChannelColor(context.brand, CollectionKind.music),
         value: ref.watch(musicCollectionProvider),
         aliases: const ['songs', 'audio', 'recordings'],
         itemMatches: _publishedReelMatches,
         onRetry: () => ref.invalidate(musicCollectionProvider),
-        onTap: () => _open(context, const MusicScreen()),
+        liveKind: CollectionKind.music,
+        onOpen: (tile) => _open(tile, const MusicScreen()),
       ),
       _portal<DictionaryEntry>(
         title: l10n.collectionDictionary,
@@ -113,7 +116,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
         aliases: const ['words', 'kasem', 'english', 'translation'],
         itemMatches: (entry, query) => entry.matches(query),
         onRetry: () => ref.invalidate(publishedDictionaryEntriesProvider),
-        onTap: () => _open(context, const DictionaryCollectionScreen()),
+        onOpen: (tile) => _open(tile, const DictionaryCollectionScreen()),
       ),
       _portal<PublishedReel>(
         title: l10n.collectionLiterature,
@@ -126,7 +129,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
         aliases: const ['stories', 'poems', 'writing', 'books'],
         itemMatches: _publishedReelMatches,
         onRetry: () => ref.invalidate(literatureCollectionProvider),
-        onTap: () => _open(context, const LiteratureCollectionScreen()),
+        onOpen: (tile) => _open(tile, const LiteratureCollectionScreen()),
       ),
       _portal<PublishedReel>(
         title: l10n.collectionAudiobooks,
@@ -136,8 +139,9 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
         aliases: const ['audio books', 'readings', 'spoken'],
         itemMatches: _publishedReelMatches,
         onRetry: () => ref.invalidate(audiobookCollectionProvider),
-        onTap: () =>
-            _open(context, const MusicScreen(kind: CollectionKind.audiobooks)),
+        liveKind: CollectionKind.audiobooks,
+        onOpen: (tile) =>
+            _open(tile, const MusicScreen(kind: CollectionKind.audiobooks)),
       ),
       _portal<KasemHero>(
         title: l10n.collectionHeroes,
@@ -147,7 +151,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
         aliases: const ['people', 'elders', 'chiefs', 'history'],
         itemMatches: _heroMatches,
         onRetry: () => ref.invalidate(kasemHeroesProvider),
-        onTap: () => _open(context, const HeroesCollectionScreen()),
+        onOpen: (tile) => _open(tile, const HeroesCollectionScreen()),
       ),
       _portal<DirectoryApp>(
         title: l10n.collectionApps,
@@ -157,7 +161,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
         aliases: const ['software', 'directory'],
         itemMatches: _directoryAppMatches,
         onRetry: () => ref.invalidate(directoryAppsProvider),
-        onTap: () => _open(context, const AppsCollectionScreen()),
+        onOpen: (tile) => _open(tile, const AppsCollectionScreen()),
       ),
       _portal<ShopProduct>(
         title: l10n.collectionShop,
@@ -167,7 +171,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
         aliases: const ['store', 'products', 'craft', 'souvenirs'],
         itemMatches: _shopProductMatches,
         onRetry: () => ref.invalidate(shopProductsProvider),
-        onTap: () => _open(context, const ShopCollectionScreen()),
+        onOpen: (tile) => _open(tile, const ShopCollectionScreen()),
       ),
     ];
 
@@ -201,21 +205,21 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
               ),
             ),
             if (query.isEmpty)
-              SliverToBoxAdapter(
-                child: PlaceStoryCarousel(
-                  ad: adInventory.allowed && adInventory.resolved
-                      ? UnifiedAdSlot(
-                          slot: adInventory.slot(0),
-                          compact: true,
-                          firstPartyBuilder: (context, ad) =>
-                              SponsoredTile(ad: ad),
-                        )
-                      : null,
+              const SliverToBoxAdapter(child: PlaceStoryCarousel()),
+            if (visiblePortals.isNotEmpty) ...[
+              _CollectionGrid(portals: visiblePortals),
+              if (query.isEmpty && _hasOverviewAd(adInventory))
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                  sliver: SliverToBoxAdapter(
+                    child: UnifiedAdSlot(
+                      slot: adInventory.slot(0),
+                      firstPartyBuilder: (context, ad) =>
+                          SizedBox(height: 230, child: SponsoredTile(ad: ad)),
+                    ),
+                  ),
                 ),
-              ),
-            if (visiblePortals.isNotEmpty)
-              _CollectionGrid(portals: visiblePortals)
-            else if (hasLoading)
+            ] else if (hasLoading)
               const _CollectionGridSkeleton()
             else if (hasErrors)
               SliverFillRemaining(
@@ -247,7 +251,8 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
     required List<String> aliases,
     required bool Function(T item, String query) itemMatches,
     required VoidCallback onRetry,
-    required VoidCallback onTap,
+    required ValueChanged<BuildContext> onOpen,
+    CollectionKind? liveKind,
     bool available = true,
   }) {
     final data = value.asData?.value;
@@ -262,16 +267,39 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
       failed: failed,
       available: available,
       onRetry: failed ? onRetry : null,
-      onTap: available ? onTap : null,
+      onOpen: available ? onOpen : null,
+      liveKind: liveKind,
       contentMatches: data == null
           ? null
           : (query) => data.any((item) => itemMatches(item, query)),
     );
   }
 
-  static void _open(BuildContext context, Widget screen) {
-    Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (context) => screen));
+  /// Whether the overview's one advert position has anything to show.
+  ///
+  /// ── Why it sits under the grid and not in the story carousel ─────────────
+  /// It used to be the carousel's last page. That carousel advances by itself
+  /// every three seconds, so the advert slid into the place a thumb was already
+  /// reaching for a story card — the accidental click Google's guidance warns
+  /// about — and when Google had nothing to fill it, or consent did not allow a
+  /// request, the carousel still stopped on an empty page every cycle. Here it
+  /// stands still, below the channels, after the last thing anybody came to
+  /// tap, and it takes no room at all when there is nothing to show.
+  static bool _hasOverviewAd(AdPlacementInventory inventory) =>
+      inventory.allowed &&
+      inventory.resolved &&
+      (inventory.firstParty.isNotEmpty || inventory.adMobEligible);
+
+  /// Opens [screen] out of the tile that was tapped: the card becomes the page.
+  static void _open(BuildContext tile, Widget screen) {
+    Navigator.of(tile).push(
+      RevealPageRoute<void>(
+        origin: globalRectOf(tile),
+        originRadius: 22,
+        originColor: tile.brand.surface,
+        builder: (context) => screen,
+      ),
+    );
   }
 }
 
@@ -286,8 +314,9 @@ class _CollectionPortal {
     required this.failed,
     required this.available,
     required this.onRetry,
-    required this.onTap,
+    required this.onOpen,
     required this.contentMatches,
+    this.liveKind,
   });
 
   final String title;
@@ -299,10 +328,17 @@ class _CollectionPortal {
   final bool failed;
   final bool available;
   final VoidCallback? onRetry;
-  final VoidCallback? onTap;
+
+  /// Opens the channel, given the tile's own context so the page can grow
+  /// out of the tile.
+  final ValueChanged<BuildContext>? onOpen;
   final bool Function(String query)? contentMatches;
 
-  bool get isOpen => available && onTap != null;
+  /// The player collection this channel is, when it is one — so the tile can
+  /// say it is playing.
+  final CollectionKind? liveKind;
+
+  bool get isOpen => available && onOpen != null;
   bool get hasPublished => count != null && count! > 0;
 
   bool matchesSearch(String query) {
@@ -505,7 +541,12 @@ class _CollectionPortalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final action = portal.failed ? portal.onRetry : portal.onTap;
+    final open = portal.onOpen;
+    final action = portal.failed
+        ? portal.onRetry
+        : open == null
+        ? null
+        : () => open(context);
     final semanticState = portal.failed
         ? 'Could not load. Tap to retry.'
         : portal.isOpen
@@ -578,14 +619,49 @@ class _PortalIcon extends StatelessWidget {
   }
 }
 
-class _CollectionPortalStatus extends StatelessWidget {
+class _CollectionPortalStatus extends ConsumerWidget {
   const _CollectionPortalStatus({required this.portal});
 
   final _CollectionPortal portal;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final brand = context.brand;
+    // A player channel that is the one sounding says so, and says what: the
+    // tile is the way back to the rest of it.
+    final liveKind = portal.liveKind;
+    if (liveKind != null && !portal.failed) {
+      final playing = ref.watch(musicIsPlayingProvider);
+      final fromHere =
+          ref.watch(
+            musicControllerProvider.select((state) => state.queueKind),
+          ) ==
+          liveKind;
+      final title = ref.watch(
+        musicMediaItemProvider.select((state) => state.asData?.value?.title),
+      );
+      if (playing && fromHere && title != null) {
+        return Row(
+          children: [
+            MusicEqualizer(color: portal.color, size: const Size(14, 11)),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: portal.color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  height: 1.2,
+                ),
+              ),
+            ),
+          ],
+        );
+      }
+    }
     final failed = portal.failed;
     final comingSoon = !portal.isOpen && !failed;
     // Only the failure keeps a colour of its own. A count is supporting text

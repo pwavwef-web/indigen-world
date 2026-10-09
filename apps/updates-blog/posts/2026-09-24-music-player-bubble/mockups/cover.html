@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<style>
+  .stage { justify-content: flex-start; padding: 0 0 0 72px; gap: 0; }
+  .copy { width: 520px; }
+  .eyebrow { font-size: 17px; letter-spacing: 2.6px; }
+  h1 { margin-top: 18px; font-size: 58px; line-height: 1.02; font-weight: 800; letter-spacing: -1.3px; }
+  p { margin-top: 20px; font-size: 20px; line-height: 1.45; color: rgba(255,255,255,0.82); }
+  .tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .pill { font-size: 17px; padding: 9px 16px; gap: 9px; }
+  .pill .dot { width: 10px; height: 10px; }
+  .phones { position: absolute; right: 36px; top: 0; width: 560px; height: 630px; }
+  .phones .phone { position: absolute; }
+  .a { --w: 250px; left: 20px; top: 70px; transform: rotate(-6deg); }
+  .b { --w: 262px; right: 20px; top: 40px; transform: rotate(5deg); z-index: 2; }
+</style>
+<div class="stage">
+  <div class="copy">
+    <div class="eyebrow">Indigen World 0.1.23</div>
+    <h1>Music that makes room</h1>
+    <p>Fold the music player into a bubble you can move anywhere, close it for good with one tap, and give Kasem sayings the context they carry.</p>
+    <div class="tags">
+      <span class="pill"><span class="dot"></span>Minimise the player</span>
+      <span class="pill"><span class="dot"></span>Drag it anywhere</span>
+      <span class="pill amber"><span class="dot"></span>Close means close</span>
+      <span class="pill green"><span class="dot"></span>Kasem sayings</span>
+    </div>
+  </div>
+  <div class="phones">
+    <div class="phone a"><img src="../screens/music-bar-light.png" alt=""></div>
+    <div class="phone b"><img src="../screens/music-bubble-dark.png" alt=""></div>
+  </div>
+</div>
+<script>Promise.all([...document.images].map((i) => i.decode().catch(() => {}))).then(() => document.fonts.ready).then(() => { window.__ready = true; });</script>
