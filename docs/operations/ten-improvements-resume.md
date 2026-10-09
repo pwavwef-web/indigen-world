@@ -67,3 +67,50 @@ logs in ignored .tooling/ten-shipping. Need separate results per invocation so
 web/emulator invocations do not overwrite summary. Flutter devices: Windows,
 Chrome, Edge only; Android/iOS physical playback unverified. Node24 host vs
 Functions Node22 target noted. Keep checkpoints; do not deploy/backfill production.
+
+
+## Checkpoint 4 — resumed after usage reset, 2026-10-09
+
+Preserve the original checkout. Branch/worktree/base remain as above. Last committed
+checkpoint: `6a7ef92`. Latest changes are uncommitted, including browser/mobile
+regressions, recovery retry refinements and the release post with actual screenshots.
+
+Passed after resume: Studio, dictionary, website, admin and shared builds/types;
+22 contract fixtures; functions helper 655/655 (before latest word correction refinement);
+main browser three widths/refresh recovery/Unicode/ten signed-out category destinations;
+progress browser 320–1440px, all views, motion/focus/popup checks; reviewer browser with
+real Auth/Firestore emulators now exits 0 after explicit Firestore termination;
+low-data actual media widget test passed (zero optional requests, deliberate video
+request, synthetic network failure). Existing mobile repository/recovery/Downloads
+checks passed in checkpoint 3. Final Flutter analysis/focused runner still running.
+
+New concrete fixes pending final checks: word queue durable account-scoped retry
+receipts (including corrections), recovery entry visible offline, preserve completed
+owned uploads; correction revision preconditions and full earlier metadata history;
+prefill lexical details on correction; dictionary phone source dialog inert background
+and focus wrap. Emulator word test failure was fixture status then expected notification
+count (real review adds a notice); fixed to use actual reviewer REQUEST_REVISION and
+expect three notices across arrival/review/correction, no retry notice. Rerun required.
+
+Release content: `apps/updates-blog/posts/2026-10-09-reliable-contribution-and-reference-workflows/`
+now has `post.html`, `README.md`, `share.md`, real screenshots at three widths and actual
+Flutter widget evidence. NOT deployed, published or shared. Review images and finalize
+`ten-improvements-verification.md` after final results. Candidate deployment/rollback:
+`docs/operations/kawuri-candidate-rollout.md` (flag + readiness gated, no production run).
+
+Current sessions: 2201 web/mobile runner (web passed; Flutter startup/analysis delayed),
+20864 focused queue screen test waiting for Flutter lock. Last emulator/browser run
+99549 completed: build/functions and all browser groups 0, emulator failed only the
+notification assertion now repaired. Avoid repeating unchanged browser checks.
+Run `npm run verify:ten-shipping -- --emulator` after latest functions edits; finish
+Flutter and full helper checks. Runner strips live credential environment for children.
+
+Security follow-up: an inherited API key accidentally appeared in a diagnostic log
+excerpt during shutdown investigation; user notified to rotate it. Local log removed,
+runner now allowlists tool environment. Never repeat the key or read raw Firebase
+logs with environment context. No key was used or committed. Logs remain ignored.
+
+CI latest main run 37818504989 (8e805e4) has no executed steps and failure; billing
+blocker previously verified. Flutter3.47.0/Dart3.13.0 pinned match; no Android/iOS
+physical device, some Android SDK licenses unaccepted, no Visual Studio toolchain.
+Node24 host vs functions Node22 target remains a disclosed toolchain difference.

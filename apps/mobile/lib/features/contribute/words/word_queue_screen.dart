@@ -26,6 +26,7 @@ import 'package:indigen_world_mobile/features/contribute/words/widgets/translati
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
+import 'package:uuid/uuid.dart';
 
 /// One word at a time, until the member has had enough.
 ///
@@ -123,6 +124,9 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   /// permission to give, or no data to spend must still be able to answer the
   /// word.
   PickedContributionFile? _recording;
+  UploadedContributionFile? _uploadedRecording;
+  String _requestId = const Uuid().v4();
+  String? _recoveryFocusWordId;
 
   /// Upload progress while a take is on its way, or null.
   double? _uploadProgress;
@@ -189,6 +193,8 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   /// answer to *boy*, and carrying it onto the next word would publish the
   /// wrong sound on a word nobody would think to check.
   void _clearAnswer() {
+    _requestId = const Uuid().v4();
+    _uploadedRecording = null;
     _translations.clear();
     _kasemExample.clear();
     _notes.clear();
@@ -212,6 +218,8 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
       area: 'word-queue',
       snapshot: () => {
         'wordId': _answeringWordId,
+        'requestId': _requestId,
+        'uploadedRecording': _uploadedRecording?.toMap(),
         'translations': _translations.text,
         'example': _kasemExample.text,
         'notes': _notes.text,
@@ -227,7 +235,8 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
           _translations.text.isNotEmpty ||
           _notes.text.isNotEmpty ||
           _kasemExample.text.isNotEmpty,
-      version: () => _reviseContributionId ?? '',
+      version: () =>
+          '${_reviseContributionId ?? ''}:${widget.revision?.revisionCount ?? 0}',
       changed: () {
         if (mounted) setState(() {});
       },
@@ -240,6 +249,23 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
       if (revision.dialect.isNotEmpty) _dialect = revision.dialect;
       _partOfSpeech = partOfSpeechById(revision.partOfSpeechId);
       _reviseContributionId = revision.contributionId;
+      _forms.recover({
+        ...?(revision.details['forms'] as Map?),
+        'ipa': revision.details['ipa'],
+        'kasemDefinition': revision.details['kasemDefinition'],
+        'etymology': revision.details['etymology'],
+      });
+      _alsoUsedAs = Set<String>.from(
+        revision.details['alsoUsedAs'] as List? ?? [],
+      );
+      _sentenceFit = WordQueueSentenceFit.values.firstWhere(
+        (fit) => fit.wire == revision.details['sentenceFit'],
+        orElse: () => WordQueueSentenceFit.fits,
+      );
+      _creditByName =
+          (revision.details['attribution'] as Map?)?['preference'] !=
+          'anonymous';
+      _restoreUploadedRecording(revision.details['media']);
     }
     _translations.addListener(_noteFormStart);
     final focusId = widget.focusWordId ?? revision?.wordId;
@@ -309,6 +335,24 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     // rural connection to learn something the phone already knew.
     final firebaseReady = ref.watch(firebaseReadyProvider);
     final signedIn = ref.watch(isSignedInProvider);
+    if (_recoveryFocusWordId != null &&
+        _focusWord?.id != _recoveryFocusWordId) {
+      return _shell(
+        child: Column(
+          children: [
+            const Text(
+              'Your answer is retained. Load its original word before editing or sending.',
+            ),
+            FilledButton(
+              onPressed: _focusLoading ? null : _retryRecoveredWord,
+              child: Text(
+                _focusLoading ? 'Loading word…' : 'Retry loading word',
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     final focusing = widget.focusWordId != null || widget.revision != null;
     if (focusing && _focusLoading) return _shell(child: const _Waiting());
     if (focusing && _focusGone) {
@@ -421,7 +465,13 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
         // The mini-player floats above the Navigator and covers a pushed route
         // too, so the space it needs is asked for rather than assumed.
         padding: EdgeInsets.fromLTRB(20, 6, 20, 40 + musicInset(context)),
-        children: [child],
+        children: [
+          DraftRecoveryPanel(
+            session: _recovery,
+            restore: (value) => unawaited(_restoreQueueRecovery(value)),
+          ),
+          child,
+        ],
       ),
     ),
   );
@@ -434,10 +484,6 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        DraftRecoveryPanel(
-          session: _recovery,
-          restore: (value) => unawaited(_restoreQueueRecovery(value)),
-        ),
         if (revising && widget.revision!.reviewerNote.isNotEmpty) ...[
           _ReviewerNote(note: widget.revision!.reviewerNote),
           const SizedBox(height: 12),
@@ -560,8 +606,14 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
                 file: _recording,
                 progress: _uploadProgress,
                 enabled: !state.sending && _uploadProgress == null,
-                onRecorded: (file) => setState(() => _recording = file),
-                onCleared: () => setState(() => _recording = null),
+                onRecorded: (file) => setState(() {
+                  _recording = file;
+                  _uploadedRecording = null;
+                }),
+                onCleared: () => setState(() {
+                  _recording = null;
+                  _uploadedRecording = null;
+                }),
               ),
               const SizedBox(height: 13),
               DropdownButtonFormField<String>(
@@ -699,12 +751,12 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   Future<void> _restoreQueueRecovery(Map<String, dynamic> value) async {
     final wordId = value['wordId'] as String?;
     if (wordId == null) return;
-    await _loadFocus(wordId);
-    if (!mounted || _focusWord == null) return;
-    _focusPending = false;
     _answeringWordId = wordId;
-    ref.read(wordQueueControllerProvider.notifier).focus(_focusWord!);
+    _recoveryFocusWordId = wordId;
+    _focusPending = true;
     setState(() {
+      _requestId = value['requestId'] as String? ?? const Uuid().v4();
+      _restoreUploadedRecording(value['uploadedRecording']);
       _translations.text = value['translations'] as String? ?? '';
       _kasemExample.text = value['example'] as String? ?? '';
       _notes.text = value['notes'] as String? ?? '';
@@ -721,6 +773,46 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
       _allowTraining = false;
       _recording = null;
     });
+    await _recovery.flush();
+    await _retryRecoveredWord();
+    if (!mounted) return;
+    if (_focusWord == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Draft retained. Reconnect and reopen this form to load its word.',
+          ),
+        ),
+      );
+      return;
+    }
+  }
+
+  void _restoreUploadedRecording(dynamic media) {
+    final uid = ref.read(authStateProvider).asData?.value?.uid ?? '';
+    _uploadedRecording =
+        media is Map &&
+            uid.isNotEmpty &&
+            (media['storagePath'] as String? ?? '').startsWith(
+              'creator-submissions/$uid/',
+            )
+        ? UploadedContributionFile(
+            storagePath: media['storagePath'] as String,
+            mimeType: media['mimeType'] as String? ?? '',
+            sizeBytes: media['sizeBytes'] as int? ?? 0,
+            mediaType: 'audio',
+          )
+        : null;
+  }
+
+  Future<void> _retryRecoveredWord() async {
+    final wordId = _recoveryFocusWordId;
+    if (wordId == null) return;
+    await _loadFocus(wordId);
+    if (!mounted || _focusWord == null) return;
+    ref.read(wordQueueControllerProvider.notifier).focus(_focusWord!);
+    _focusPending = false;
+    setState(() => _recoveryFocusWordId = null);
   }
 
   Future<void> _submit() async {
@@ -745,17 +837,23 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     // sound is a bonus — so this returns null on failure, says so, and the
     // answer is sent without it.
     final uploaded = await _uploadRecording();
-    if (!mounted) return;
+    if (!mounted || !_recovery.canSubmit) return;
+    await _recovery.flush();
 
     final sent = await ref
         .read(wordQueueControllerProvider.notifier)
         .submit(
           WordTranslationDraft(
             wordId: wordId,
+            requestId: _requestId,
             origin: _originFor(wordId),
             creditByName: _creditByName,
             allowTraining: _allowTraining,
+            publicationPermission: revise == null ? true : widget.revision?.publicationPermission ?? false,
             reviseContributionId: revise,
+            expectedRevision: revise != null
+                ? widget.revision?.revisionCount
+                : null,
             translations: parseTranslations(_translations.text),
             partOfSpeech: chosen.id,
             dialect: _dialect ?? '',
@@ -845,6 +943,7 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   /// The take is left attached on failure rather than cleared, so a member who
   /// wants to try again on a better signal still has it.
   Future<UploadedContributionFile?> _uploadRecording() async {
+    if (_uploadedRecording != null) return _uploadedRecording;
     final take = _recording;
     if (take == null) return null;
     final uid = ref.read(firebaseAuthProvider)?.currentUser?.uid;
@@ -852,13 +951,14 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
 
     setState(() => _uploadProgress = 0);
     try {
-      return await const ContributionUploader().upload(
+      _uploadedRecording = await const ContributionUploader().upload(
         uid: uid,
         file: take,
         onProgress: (value) {
           if (mounted) setState(() => _uploadProgress = value);
         },
       );
+      return _uploadedRecording;
     } on ContributionUploadFailure catch (failure) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

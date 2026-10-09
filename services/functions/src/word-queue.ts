@@ -10,6 +10,7 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { requireAuth } from './auth.js';
 import { consumeRateLimit } from './rate-limit.js';
+import { submissionRetry, checkSubmissionRetry } from './submission-retry.js';
 import {
   COLLECTION_CAMPAIGN_ID,
   buildCollectionCampaignDocument,
@@ -807,6 +808,7 @@ export interface WordTranslationInput {
    * reviewer asked for changes — or null for a new answer.
    */
   readonly reviseContributionId: string | null;
+  readonly expectedRevision: number | null;
   readonly translations: string[];
   readonly partOfSpeech: string;
   readonly partOfSpeechLabel: string;
@@ -904,8 +906,12 @@ export function parseWordTranslationInput(raw: unknown, uid = ''): WordTranslati
   // Read before the return because the paradigm parser needs it.
   const alsoUsedAs = parseAlsoUsedAs(data.alsoUsedAs).filter((id) => id !== partOfSpeech);
 
+  if (data.expectedRevision != null && (!Number.isInteger(data.expectedRevision) || data.expectedRevision < 0)) {
+    throw new HttpsError('invalid-argument', 'Invalid correction revision.');
+  }
   return {
     wordId,
+    expectedRevision: data.expectedRevision ?? null,
     // Strictly true: consent to training use is never inferred from a missing
     // or malformed field.
     aiTraining: data.aiTraining === true,
@@ -1085,6 +1091,9 @@ async function reviseQueueAnswer(
   if (text(existing.wordQueueId) !== input.wordId) {
     throw new HttpsError('invalid-argument', 'That answer is for a different word.');
   }
+  if (input.expectedRevision !== null && input.expectedRevision !== Number(existing.revisionCount ?? 0)) {
+    throw new HttpsError('aborted', 'A newer correction exists. Your draft is retained; reopen My contributions and compare the latest version.');
+  }
   if (text(existing.status).toLowerCase() !== 'needs_revision') {
     throw new HttpsError('failed-precondition', 'Only an answer a reviewer sent back for changes can be revised.');
   }
@@ -1107,14 +1116,17 @@ async function reviseQueueAnswer(
     {
       revisedAt: now,
       reviewerNote: text(existing.reviewFeedback) || text((submission.moderation as JsonRecord | undefined)?.feedback),
-      previous: { body: text(existing.body), translations: Array.isArray(existing.translations) ? existing.translations : [] },
+      previous: { body: text(existing.body), translations: Array.isArray(existing.translations) ? existing.translations : [], dialect: existing.dialect ?? null, source: existing.source ?? null, notes: existing.notes ?? null, kasemExample: existing.kasemExample ?? null, englishExample: existing.englishExample ?? null, forms: existing.forms ?? null, ipa: existing.ipa ?? null, kasemDefinition: existing.kasemDefinition ?? null, etymology: existing.etymology ?? null, alsoUsedAs: existing.alsoUsedAs ?? [], media: existing.media ?? null, publicationPermission: existing.publicationPermission ?? false },
     },
   ].slice(-MAX_REVISION_HISTORY);
   const revisionCount = Number(existing.revisionCount ?? 0) + 1;
   const prompt = wordQueuePromptStamp(input.wordId, row);
+  // An explicitly cleared optional field must not survive a merge from an older revision.
+  const optionalFields = (rebuilt: JsonRecord) => Object.fromEntries(['forms', 'ipa', 'kasemDefinition', 'etymology', 'alsoUsedAs', 'media'].map(key => [key, rebuilt[key] ?? FieldValue.delete()]));
 
   tx.set(contributionRef, {
     ...receipt,
+    ...optionalFields(receipt),
     ...queueAnswerStamp(input),
     // Identity and first arrival are the original answer's, not the rewrite's.
     id: contributionRef.id,
@@ -1135,6 +1147,7 @@ async function reviseQueueAnswer(
   const lifecycle = (submission.lifecycle as JsonRecord | undefined) ?? {};
   tx.set(submissionRef, {
     ...rebuilt,
+    ...optionalFields(rebuilt),
     ...queueAnswerStamp(input),
     permissions: { ...(rebuilt.permissions as JsonRecord), aiTraining: input.aiTraining },
     status: 'SUBMITTED',
@@ -1216,8 +1229,11 @@ export async function submitQueueTranslation(
   const uid = requireAuth(req);
   await consumeRateLimit('submitWordTranslation', uid, 60);
   const input = parseWordTranslationInput(req.data, uid);
+  const retry = submissionRetry(uid, 'word-queue', asRecord(req.data, 'A word and its translation are required.').requestId, input);
 
   const db = getFirestore();
+  // Private receipts also cover revisions, whose original contribution ID stays fixed.
+  const retryRef = retry ? db.collection('submissionRetryReceipts').doc(retry.id) : null;
   const wordRef = db.collection(WORD_QUEUE_COLLECTION).doc(input.wordId);
   const progressRef = db.collection(WORD_QUEUE_PROGRESS_COLLECTION).doc(uid);
   const campaignRef = db.collection('campaigns').doc(COLLECTION_CAMPAIGN_ID);
@@ -1231,6 +1247,13 @@ export async function submitQueueTranslation(
   return db.runTransaction(async (tx) => {
     const previous = await checkpoint?.validate(tx);
     if (previous) return previous;
+    if (retryRef && retry) {
+      const saved = (await tx.get(retryRef)).data();
+      if (checkSubmissionRetry(saved, uid, retry.hash)) return saved!.receipt as QueueTranslationReceipt;
+    }
+    const saveRetry = (receipt: QueueTranslationReceipt | JsonRecord) => {
+      if (retryRef && retry) tx.create(retryRef, { authUid: uid, submissionRequestHash: retry.hash, receipt, createdAt: now });
+    };
     const [wordSnap, progressSnap, campaignSnap] = await tx.getAll(
       wordRef,
       progressRef,
@@ -1251,7 +1274,9 @@ export async function submitQueueTranslation(
     }
 
     if (input.reviseContributionId) {
-      return reviseQueueAnswer(tx, db, uid, input, row, now);
+      const receipt = await reviseQueueAnswer(tx, db, uid, input, row, now);
+      saveRetry(receipt);
+      return receipt;
     }
 
     const answered = progressIds(progressSnap.get('answered'));
@@ -1351,6 +1376,7 @@ export async function submitQueueTranslation(
       status: 'SUBMITTED' as const,
     };
     checkpoint?.complete(tx, receipt);
+    saveRetry(receipt);
     return receipt;
   });
 }

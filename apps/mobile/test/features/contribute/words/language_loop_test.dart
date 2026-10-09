@@ -340,12 +340,18 @@ void main() {
         creditByName: false,
         allowTraining: true,
         reviseContributionId: 'c1',
+        requestId: 'stable-synthetic-key',
+        expectedRevision: 2,
+        publicationPermission: false,
       );
       final payload = chosen.toPayload();
       expect(payload['origin'], 'kawuri');
       expect(payload['credit'], 'anonymous');
       expect(payload['aiTraining'], isTrue);
       expect(payload['reviseContributionId'], 'c1');
+      expect(payload['requestId'], 'stable-synthetic-key');
+      expect(payload['expectedRevision'], 2);
+      expect(payload['publicationPermission'], false);
     });
   });
 

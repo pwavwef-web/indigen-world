@@ -10,6 +10,7 @@ import { promisify } from 'node:util';
 import { decideSubmission } from '../../services/functions/lib/creators.js';
 import { candidateDocument, candidateKey, refreshCandidate, findCandidates } from '../../services/functions/lib/kawuri-candidate-index.js';
 import { groundedAnswerFor, loadGroundingSources } from '../../services/functions/lib/kawuri-grounding.js';
+import { submitWordTranslation } from '../../services/functions/lib/word-queue.js';
 import { submitExpression } from '../../services/functions/lib/expressions.js';
 import { resolveKnowledgeCandidates } from '../../services/functions/lib/knowledge-release.js';
 import { knowledgeHash } from '../../services/functions/lib/knowledge-records.js';
@@ -133,4 +134,34 @@ test('backfill dry-run writes nothing and applied page resumes only at its recor
  const first=await run(['--apply']);assert.equal(first.complete,false);
  const resumed=await run(['--apply','--after',first.nextCursor]);assert.equal(resumed.scanned,1);
  assert.equal((await db.doc('kawuriIndexState/backfill-grammarRules').get()).get('complete'),true);
+});
+
+
+test('word queue retries and correction acknowledgements are atomic and account scoped', async () => {
+ const data = {requestId:'shipping-word-request-1',wordId:'synthetic-word-retry',translations:['TEST ONLY ɛ ɔ ŋ'],partOfSpeech:'noun',dialect:'Navrongo',notes:'Synthetic contextual note',forms:{plural:'TEST ONLY plural'},publicationPermission:true};
+ await db.doc('wordQueue/'+data.wordId).set({word:'Synthetic prompt',sentence:'Synthetic sentence',status:'open',pendingCount:0,rank:1});
+ const req={auth:{uid:'word-retry-owner',token:{}},data};
+ await assert.rejects(submitWordTranslation.run({...req,data:{...data,translations:[]}}));
+ const [a,b]=await Promise.all([submitWordTranslation.run(req),submitWordTranslation.run(req)]);
+ assert.equal(a.submissionId,b.submissionId);
+ assert.equal((await db.collection('submissions').where('authUid','==','word-retry-owner').get()).size,1);
+ assert.equal((await db.collection('notifications').where('authUid','==','word-retry-owner').get()).size,1);
+ const saved=(await db.doc('submissions/'+a.submissionId).get()).data();
+ assert.equal(saved.dialect,'Navrongo'); assert.equal(saved.body.includes('TEST ONLY'),true);
+ await assert.rejects(submitWordTranslation.run({...req,data:{...data,notes:'Changed'}}),/different/);
+ const other=await submitWordTranslation.run({...req,auth:{uid:'word-other-owner',token:{}}});assert.notEqual(a.submissionId,other.submissionId);
+ await decideSubmission.run({auth:{uid:'word-reviewer',token:{role:'validator'}},data:{submissionId:a.submissionId,decision:'REQUEST_REVISION',feedback:'TEST ONLY clarify wording',expectedStatus:'SUBMITTED',expectedVersion:1}});
+ const correction={...req,data:{...data,requestId:'shipping-word-correction-1',reviseContributionId:a.contributionId,expectedRevision:0,translations:['TEST ONLY corrected ɛ ɔ ŋ']}};
+ const c=await submitWordTranslation.run(correction),d=await submitWordTranslation.run(correction);
+ assert.equal(c.submissionId,a.submissionId); assert.deepEqual(c,d);
+ const corrected=await db.doc('collectionContributions/'+a.contributionId).get();
+ assert.equal(corrected.get('revisionCount'),1); assert.equal(corrected.get('forms.plural'),data.forms.plural);
+ assert.equal(corrected.get('revisions')[0].previous.forms.plural,data.forms.plural);
+ await db.doc('collectionContributions/'+a.contributionId).update({status:'needs_revision'});
+ await assert.rejects(submitWordTranslation.run({...correction,data:{...correction.data,requestId:'shipping-stale-correction-1'}}),/newer correction/);
+ // One arrival notice, one reviewer notice, one correction notice; retries add none.
+ assert.equal((await db.collection('notifications').where('authUid','==','word-retry-owner').get()).size,3);
+ const anonymous=rules.unauthenticatedContext().firestore();
+ const receipts=await db.collection('submissionRetryReceipts').where('authUid','==','word-retry-owner').get();
+ await assertFails(getDoc(doc(anonymous,receipts.docs[0].ref.path)));
 });

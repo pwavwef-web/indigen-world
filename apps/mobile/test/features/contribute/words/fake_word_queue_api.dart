@@ -50,6 +50,7 @@ class FakeWordQueueApi implements WordQueueApi {
   var nextCalls = 0;
   final skips = <(String, WordQueueSkipReason)>[];
   final submissions = <WordTranslationDraft>[];
+  final attempts = <WordTranslationDraft>[];
 
   @override
   Future<QueueBatch> next({int limit = kQueueBatchSize}) async {
@@ -72,6 +73,7 @@ class FakeWordQueueApi implements WordQueueApi {
     QueueWord word,
     WordTranslationDraft draft,
   ) async {
+    attempts.add(draft);
     final failure = failSubmitWith;
     if (failure != null) throw failure;
     submissions.add(draft);

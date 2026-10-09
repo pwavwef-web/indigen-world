@@ -26,6 +26,7 @@ class CollectionContributionRecord {
     this.publishedAs = '',
     this.duplicateOf = '',
     this.revisionCount = 0,
+    this.queueDetails = const {},
   });
 
   final String id;
@@ -53,6 +54,7 @@ class CollectionContributionRecord {
   /// The dictionary entry a rejected answer repeats, when that was the reason.
   final String duplicateOf;
   final int revisionCount;
+  final Map<String, dynamic> queueDetails;
 
   bool get isQueueAnswer => wordQueueId.isNotEmpty;
 
@@ -70,6 +72,20 @@ class CollectionContributionRecord {
     );
     final created = data['createdAt'];
     return CollectionContributionRecord(
+      queueDetails: {
+        for (final key in [
+          'forms',
+          'ipa',
+          'kasemDefinition',
+          'etymology',
+          'alsoUsedAs',
+          'media',
+          'sentenceFit',
+          'attribution',
+          'wordQueueOrigin',
+        ])
+          if (data[key] != null) key: data[key],
+      },
       id: doc.id,
       kind: category,
       title: _text(data['title'], fallback: 'Untitled contribution'),
