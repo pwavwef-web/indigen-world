@@ -14,7 +14,7 @@ import 'package:indigen_world_mobile/features/downloads/downloads_screen.dart';
 void main() {
   final row = DownloadedTrackRecord(
     trackId: 'test-only',
-    title: 'TEST ONLY · ɛ ɔ ŋ',
+    title: 'TEST ONLY · Offline track',
     artist: 'Synthetic fixture',
     album: 'Local test collection',
     kind: 'music',
@@ -37,6 +37,7 @@ void main() {
           final artifacts = File(Platform.resolvedExecutable).parent.parent.parent;
           for (final font in [
             ('Noto Sans', 'roboto-regular.ttf'),
+            ('Roboto', 'roboto-regular.ttf'),
             ('MaterialIcons', 'materialicons-regular.otf'),
           ]) {
             final loader = FontLoader(font.$1);
