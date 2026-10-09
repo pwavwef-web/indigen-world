@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -10,7 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:indigen_world_mobile/features/contribute/draft_recovery.dart';
 
 const sentenceConstructionLabels = {
   'word-order': 'Word order',
@@ -53,6 +54,7 @@ class GrammarNoteScreen extends ConsumerStatefulWidget {
 }
 
 class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
+  late AccountDraftSession _recovery;
   final _fields = <String, TextEditingController>{};
   final _examples = List.generate(6, (_) => <String, TextEditingController>{});
   final _annotations = List.generate(6, (_) => <Map<String, dynamic>>[]);
@@ -77,14 +79,15 @@ class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
   String get _uid => ref.read(firebaseReadyProvider)
       ? FirebaseAuth.instance.currentUser?.uid ?? 'offline'
       : 'offline';
-  String get _draftKey =>
-      'kasem-evidence-v2-$_uid-${widget.initialData?['id'] as String? ?? 'new'}';
+
 
   @override
   void initState() {
     super.initState();
     if (widget.initialData != null) _restore(widget.initialData!);
     if (widget.prefillData != null) _restore(widget.prefillData!);
+    final draftProviders = ProviderScope.containerOf(context, listen: false);
+    _recovery = AccountDraftSession(account: () => draftProviders.read(authStateProvider).asData?.value?.uid ?? '', area: 'evidence:${widget.initialData?['id'] ?? 'new'}', snapshot: _payload, meaningful: () => f('title').text.isNotEmpty || _examples.any((row) => row.values.any((field) => field.text.isNotEmpty)), version: () => '${widget.initialData?['revision'] ?? 0}', changed: () { if (mounted) setState(() {}); });
   }
 
   void _restore(Map<String, dynamic> data) {
@@ -219,36 +222,6 @@ class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
           },
       ],
     };
-  }
-
-  Future<void> _draft(bool restore) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      if (restore) {
-        final raw = prefs.getString(_draftKey);
-        if (raw != null && mounted) {
-          setState(
-            () => _restore(Map<String, dynamic>.from(jsonDecode(raw) as Map)),
-          );
-        }
-        if (mounted) {
-          _notice(
-            raw == null
-                ? 'No saved draft.'
-                : 'Draft restored. Reattach any pending audio.',
-          );
-        }
-      } else {
-        await prefs.setString(_draftKey, jsonEncode(_payload()));
-        if (mounted) {
-          _notice('Draft saved on this device. Pending audio is not saved.');
-        }
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _error = 'The draft could not be saved or restored.');
-      }
-    }
   }
 
   void _notice(String message) =>
@@ -394,6 +367,7 @@ class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
   }
 
   Future<void> _submit() async {
+    if (!_recovery.canSubmit) return;
     if (_busy) return;
     if (_permissions['review'] != true ||
         _permissions['sourceConfirmed'] != true) {
@@ -429,6 +403,7 @@ class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
         _audioPaths[entry.key] = path;
         _audio.remove(entry.key);
       }
+      await _recovery.flush();
       final payload = _payload();
       final editing = widget.initialData != null;
       if (editing) {
@@ -438,7 +413,8 @@ class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
       await FirebaseFunctions.instance
           .httpsCallable(editing ? 'reviseGrammarNote' : 'submitGrammarNote')
           .call(payload);
-      await (await SharedPreferences.getInstance()).remove(_draftKey);
+      await _recovery.clear();
+
       if (!mounted) return;
       _notice(
         'Saved for independent review. Training permission alone does not approve a sentence.',
@@ -574,6 +550,8 @@ class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(authStateProvider);
+    if (_recovery.accountChanged) return accountChangedDraftScreen(context);
     final signedIn = ref.watch(isSignedInProvider);
     return Scaffold(
       appBar: AppBar(
@@ -599,6 +577,7 @@ class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          DraftRecoveryPanel(session: _recovery, restore: (value) => setState(() { _restore(value); _permissions['sourceConfirmed'] = false; })),
           const Text(
             'Share how you would say it, and when. You can leave a word unexplained.',
           ),
@@ -725,17 +704,17 @@ class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
             spacing: 12,
             children: [
               TextButton(
-                onPressed: () => _draft(false),
+                onPressed: _recovery.flush,
                 child: const Text('Save draft'),
               ),
               TextButton(
-                onPressed: () => _draft(true),
+                onPressed: () { final value = _recovery.continueDraft(); if (value != null) setState(() { _restore(value); _permissions['sourceConfirmed'] = false; }); },
                 child: const Text('Restore draft'),
               ),
             ],
           ),
           FilledButton(
-            onPressed: signedIn && !_busy ? _submit : null,
+            onPressed: signedIn && !_busy && _recovery.canSubmit ? _submit : null,
             child: Text(
               _busy
                   ? 'Saving…'
@@ -751,6 +730,7 @@ class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
 
   @override
   void dispose() {
+    unawaited(_recovery.flush(closing: true)); _recovery.dispose();
     for (final c in [..._fields.values, ..._examples.expand((e) => e.values)]) {
       c.dispose();
     }

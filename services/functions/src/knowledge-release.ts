@@ -14,7 +14,7 @@ const destinationFrom = (raw: unknown): Destination => {
 function idFrom(raw: unknown) { try { return knowledgeId(raw); } catch { throw new HttpsError('invalid-argument', 'Choose a valid record ID.'); } }
 
 /** Rechecked for each read; there is deliberately no warm-process eligibility cache. */
-async function denials(tx: Transaction, record: KnowledgeRecord, destination: Destination, policy: KnowledgePolicy, visited = new Set<string>()) {
+async function denials(tx: Transaction, record: KnowledgeRecord, destination: Destination, policy: KnowledgePolicy, visited = new Set<string>(), requireFamily = false) {
   const key = `${record.id}:${record.revision}`;
   if (visited.has(key)) return [];
   if (visited.size >= 100) return ['The relationship graph needs a smaller reviewed release scope.'];
@@ -22,6 +22,10 @@ async function denials(tx: Transaction, record: KnowledgeRecord, destination: De
   const reasons = releaseDenials(record, destination, policy);
   if (reasons.length) return reasons;
   const db = getFirestore();
+  if (requireFamily && destination === 'kawuri' && record.sourceFamily) {
+    const family = await tx.get(db.collection('knowledgeSourceSplits').doc(knowledgeHash(record.sourceFamily.normalize('NFC').trim().toLocaleLowerCase('en'))));
+    if (!family.exists || family.get('split') !== 'train') reasons.push('Source family is not cleared for retrieval.');
+  }
   const reviewDocs = await tx.get(db.collection('knowledgeRecords').doc(record.id).collection('reviews').where('revision', '==', record.revision));
   const reviews: KnowledgeReview[] = [];
   for (const doc of reviewDocs.docs) {
@@ -32,7 +36,7 @@ async function denials(tx: Transaction, record: KnowledgeRecord, destination: De
   if (authenticationFor(record, reviews, policy) !== 'gold') reasons.push('Qualified authentication is no longer current.');
   for (const relation of record.relations ?? []) {
     const target = (await tx.get(db.collection('knowledgeRecords').doc(relation.recordId))).data() as KnowledgeRecord | undefined;
-    if (!target || target.language !== record.language || target.revision !== relation.revision || (await denials(tx, target, destination, policy, visited)).length) reasons.push('A required relationship is no longer eligible at its exact revision.');
+    if (!target || target.language !== record.language || target.revision !== relation.revision || (await denials(tx, target, destination, policy, visited, requireFamily)).length) reasons.push('A required relationship is no longer eligible at its exact revision.');
   }
   return reasons;
 }
@@ -100,11 +104,37 @@ export async function resolveKnowledge(destination: Destination, query = '', cur
     const snapshots = await tx.get(q), records: ReturnType<typeof knowledgeProjection>[] = [];
     for (const release of snapshots.docs.slice(0, limit)) {
       const record = (await tx.get(db.collection('knowledgeRecords').doc(release.get('recordId')))).data() as KnowledgeRecord | undefined;
-      if (!record || record.revision !== release.get('revision') || release.get('policyVersion') !== policy.version || (await denials(tx, record, destination, policy)).length) continue;
+      if (!record || !await currentRelease(tx, record, release.data(), destination, policy)) continue;
       if (query && !knowledgeSearchText(record).includes(query.normalize('NFC').toLocaleLowerCase('en'))) continue;
       records.push(knowledgeProjection(record, destination));
     }
     return { records, nextCursor: snapshots.size > limit ? snapshots.docs[limit - 1].id : null, policyVersion: policy.version };
+  });
+}
+async function currentRelease(tx: Transaction, record: KnowledgeRecord, release: Record<string, unknown>, destination: Destination, policy: KnowledgePolicy) {
+  if (release.recordId !== record.id || release.destination !== destination || release.state !== 'released' || record.revision !== release.revision || release.policyVersion !== policy.version
+    || record.rights?.version !== release.rightsVersion || (await denials(tx, record, destination, policy, new Set(), true)).length) return false;
+  if (destination === 'kawuri' && record.sourceFamily) {
+    const family = await tx.get(getFirestore().collection('knowledgeSourceSplits').doc(knowledgeHash(record.sourceFamily.normalize('NFC').trim().toLocaleLowerCase('en'))));
+    if (!family.exists || family.get('split') !== 'train') return false;
+  }
+  return true;
+}
+/** Candidate IDs select records; every permission/release/grant is read again. */
+export async function resolveKnowledgeCandidates(ids: readonly string[]) {
+  if (ids.length > 100) throw new Error('Resolve at most 100 candidate IDs per batch.');
+  const db = getFirestore();
+  return db.runTransaction(async tx => {
+    const policy = policyFrom((await tx.get(db.doc('knowledgePolicies/current'))).data());
+    const records: ReturnType<typeof knowledgeProjection>[] = [];
+    if (!policy.approved || !policy.destinations.includes('kawuri')) return records;
+    for (const id of [...new Set(ids)]) {
+      const validId = idFrom(id);
+      const release = await tx.get(db.collection('knowledgeReleases').doc(`${validId}-kawuri`));
+      const record = (await tx.get(db.collection('knowledgeRecords').doc(validId))).data() as KnowledgeRecord | undefined;
+      if (record && release.exists && await currentRelease(tx, record, release.data()!, 'kawuri', policy)) records.push(knowledgeProjection(record, 'kawuri'));
+    }
+    return records;
   });
 }
 export const resolveKnowledgeRecords = onCall(options, async req => {

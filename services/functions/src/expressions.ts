@@ -33,6 +33,7 @@
  * contributor's receipt all see the same shape as every other contribution.
  */
 import { getFirestore } from 'firebase-admin/firestore';
+import { submissionRetry, checkSubmissionRetry } from './submission-retry.js';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { requireAuth } from './auth.js';
 import { consumeRateLimit } from './rate-limit.js';
@@ -509,7 +510,8 @@ export const submitExpression = onCall(
     await consumeRateLimit('submitExpression', uid, 20);
     const contribution = parseExpressionContribution(req.data);
     const db = getFirestore();
-    const contributionRef = db.collection('collectionContributions').doc();
+    const retry = submissionRetry(uid, 'expression', req.data?.requestId, contribution);
+    const contributionRef = retry ? db.collection('collectionContributions').doc(retry.id) : db.collection('collectionContributions').doc();
     const submissionRef = db.collection('submissions').doc(contributionRef.id);
     const campaignRef = db.collection('campaigns').doc(COLLECTION_CAMPAIGN_ID);
     const notificationRef = db.collection('notifications').doc();
@@ -518,6 +520,7 @@ export const submitExpression = onCall(
     const { phrase } = contribution.expression;
 
     await db.runTransaction(async (tx) => {
+      if (retry && checkSubmissionRetry((await tx.get(contributionRef)).data(), uid, retry.hash)) return;
       const campaign = await tx.get(campaignRef);
       const previousRef = contribution.revisionOf
         ? db.collection('collectionContributions').doc(contribution.revisionOf)
@@ -544,7 +547,7 @@ export const submitExpression = onCall(
         tx.update(previousRef, { correctedBy: contributionRef.id });
       }
       if (!campaign.exists) tx.set(campaignRef, buildCollectionCampaignDocument(now));
-      tx.set(contributionRef, buildExpressionReceipt(contributionRef.id, uid, contribution));
+      tx.set(contributionRef, { ...buildExpressionReceipt(contributionRef.id, uid, contribution), ...(retry ? { submissionRequestHash: retry.hash } : {}) });
       tx.set(submissionRef, buildExpressionSubmissionDocument(submissionRef.id, uid, contribution, now));
       tx.set(notificationRef, {
         id: notificationRef.id,

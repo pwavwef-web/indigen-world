@@ -276,6 +276,10 @@ export function ProgressPage() {
             <p className="progress-status" role="status">Some counts could not be read just now and are shown as “—”.</p>
           )}
           {live.fixtureMode && <p className="progress-preview-notice" role="status"><strong>Sample counts &amp; targets</strong> · Preview only, not live progress.</p>}
+          {!showVessels && <nav className="progress-offline-contributions" aria-label="Contribution destinations while counts reconnect">
+            <p>Choose a contribution. Verified counts will appear when the connection recovers.</p>
+            <div className="btn-row">{categories.map(({ category }) => <Button key={category.id} href={category.ctaUrl} external variant="secondary">{category.ctaLabel}</Button>)}</div>
+          </nav>}
 
           <div ref={stageRef} className={`pipeline-stage pipeline-stage--${viewMode}`} data-motion={decorativeMotion ? 'animated' : 'static'}>
             {showVessels && hasPipes && (

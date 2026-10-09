@@ -1,7 +1,7 @@
 name: indigen_world_mobile
 description: Offline-first mobile experience for Indigen World and Project Kassena.
 publish_to: none
-version: 0.1.30+39
+version: 0.1.31+40
 
 environment:
   sdk: ^3.13.0
@@ -50,7 +50,9 @@ dependencies:
   just_audio: ^0.9.46
   video_player: ^2.9.2
   visibility_detector: ^0.4.0+2
-  video_thumbnail: ^0.5.6
+  # Pinned 0.5.6 runtime with a narrow Gradle 9 compatibility patch.
+  video_thumbnail:
+    path: third_party/video_thumbnail
   in_app_review: ^2.0.12
   in_app_purchase: ^3.3.0
   in_app_purchase_android: ^0.5.3
@@ -59,6 +61,7 @@ dependencies:
   app_links: ^7.2.1
 
 dev_dependencies:
+  video_player_platform_interface: 6.9.0
   integration_test:
     sdk: flutter
   flutter_test:

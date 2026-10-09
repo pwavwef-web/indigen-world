@@ -13,8 +13,9 @@
  * own desk, and the form says so when it looks like one has been typed here.
  */
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link } from '../../router';
+import { Link, useQueryParam } from '../../router';
 import { useAuth } from '../../auth';
+import { DraftRecovery, useRecovery } from '../../drafts/useRecovery';
 import { trackEvent } from '../../analytics';
 import { KasemPalette, insertIntoField } from '../KasemPalette';
 import {
@@ -31,10 +32,8 @@ import {
   draftFromDeclined,
   emptyExpressionDraft,
   fetchMyExpressions,
-  loadExpressionDraft,
   looksLikeSingleWord,
   missingPiece,
-  saveExpressionDraft,
   statusOf,
   submitExpression,
   withdrawExpression,
@@ -65,9 +64,13 @@ function errorMessage(err: unknown): string {
 
 export function ExpressionsPage() {
   const { user } = useAuth();
-  const uid = user?.uid ?? '';
-  const [draft, setDraft] = useState<ExpressionDraft>(() => (uid ? loadExpressionDraft(uid) : null) ?? emptyExpressionDraft());
-  const [restored] = useState(() => Boolean(uid && loadExpressionDraft(uid)));
+  return user ? <ExpressionEditor key={user.uid} uid={user.uid} /> : null;
+}
+function ExpressionEditor({ uid }: { uid: string }) {
+  const { user } = useAuth();
+  const requestedKind = useQueryParam('kind');
+  const [draft, setDraft] = useState<ExpressionDraft>(() => ({ ...emptyExpressionDraft(), kind: requestedKind === 'proverb' ? 'proverb' : 'phrase' }));
+  const recovery = useRecovery(uid, 'expressions', draft, Boolean(draft.phrase || draft.meaning || draft.context), restored => setDraft({ ...emptyExpressionDraft(), ...restored, speakerConsent: false, everydayConfirmed: false }));
   const [busy, setBusy] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const sending = useRef(false);
@@ -94,19 +97,6 @@ export function ExpressionsPage() {
 
   useEffect(loadMine, [loadMine]);
 
-  // Autosave, so a dropped connection or a closed tab costs nothing typed.
-  useEffect(() => {
-    if (!uid || sent) return;
-    const timer = window.setTimeout(() => saveExpressionDraft(uid, draft), 400);
-    return () => window.clearTimeout(timer);
-  }, [uid, draft, sent]);
-
-  const latestDraft = useRef({ draft, sent }); latestDraft.current = { draft, sent };
-  useEffect(() => {
-    const flush = () => { if (uid && !latestDraft.current.sent) saveExpressionDraft(uid, latestDraft.current.draft); };
-    window.addEventListener('studio:before-navigate', flush); window.addEventListener('pagehide', flush);
-    return () => { flush(); window.removeEventListener('studio:before-navigate', flush); window.removeEventListener('pagehide', flush); };
-  }, [uid]);
 
   const update = <K extends keyof ExpressionDraft>(key: K, value: ExpressionDraft[K]) => {
     setError('');
@@ -133,7 +123,7 @@ export function ExpressionsPage() {
       setReviewing(false);
       // Enumerated fields only: never the expression or anything identifying.
       trackEvent('expression_submitted', { kind: draft.kind, source: draft.sourceType, correction: draft.revisionOf ? 1 : 0 });
-      clearExpressionDraft(uid);
+      recovery.clear();
       setSent(draft.phrase.trim());
       setDraft(emptyExpressionDraft());
       loadMine();
@@ -147,12 +137,14 @@ export function ExpressionsPage() {
   };
 
   const startAnother = () => {
+    recovery.resumeSaving();
     setSent(null);
     setDraft(emptyExpressionDraft());
     window.requestAnimationFrame(() => phraseRef.current?.focus());
   };
 
   const correct = (item: MyExpression) => {
+    recovery.resumeSaving();
     setSent(null);
     setError('');
     setDraft(draftFromDeclined(item));
@@ -239,9 +231,7 @@ export function ExpressionsPage() {
             </section>
           ) : (
             <form className="cr-compose__card cr-expr__form" onSubmit={(event) => { event.preventDefault(); const missing = missingPiece(draft); if (missing) { setError(missing); window.requestAnimationFrame(() => errorRef.current?.focus()); } else setReviewing(true); }} noValidate>
-              {restored && !draft.revisionOf ? (
-                <Notice tone="info" icon="refresh">An unfinished expression was restored from this browser. Nothing has been sent.</Notice>
-              ) : null}
+              <DraftRecovery draft={recovery} />
               {draft.revisionOf ? (
                 <div className="cr-correction">
                   <div className="cr-correction__copy">

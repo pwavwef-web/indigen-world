@@ -3,6 +3,7 @@
 // itself, Kawuri's lookups, the reviewer's choices and the member's view of
 // what their answer became.
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -72,6 +73,11 @@ class _FakeLookup implements QueueLookup {
     state: QueueWordState.open,
     created: true,
   );
+}
+
+class _SyntheticUser extends Fake implements User {
+  @override
+  String get uid => 'synthetic-loop-owner';
 }
 
 class _Recorder extends LoopAnalytics {
@@ -254,6 +260,7 @@ void main() {
         final container = ProviderContainer(
           overrides: [
             firebaseReadyProvider.overrideWithValue(true),
+            authStateProvider.overrideWith((ref) => Stream<User?>.value(ref.watch(_signedInProvider) ? _SyntheticUser() : null)),
             isSignedInProvider.overrideWith((ref) => ref.watch(_signedInProvider)),
             wordQueueApiProvider.overrideWithValue(api),
             queueLookupProvider.overrideWithValue(
@@ -340,12 +347,18 @@ void main() {
         creditByName: false,
         allowTraining: true,
         reviseContributionId: 'c1',
+        requestId: 'stable-synthetic-key',
+        expectedRevision: 2,
+        publicationPermission: false,
       );
       final payload = chosen.toPayload();
       expect(payload['origin'], 'kawuri');
       expect(payload['credit'], 'anonymous');
       expect(payload['aiTraining'], isTrue);
       expect(payload['reviseContributionId'], 'c1');
+      expect(payload['requestId'], 'stable-synthetic-key');
+      expect(payload['expectedRevision'], 2);
+      expect(payload['publicationPermission'], false);
     });
   });
 

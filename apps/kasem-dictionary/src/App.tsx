@@ -50,28 +50,31 @@ function EntryDetail({ entry, saved, onToggleSaved }: {
       </div>
 
       <p className="word-class">{entry.partOfSpeech}</p>
-      <h2 lang="xsm">{entry.headword}</h2>
-      <p className="meaning-label">English meaning</p>
+      <h2 lang={entry.illustration ? undefined : "xsm"}>{entry.headword}</h2>
+      <p className="meaning-label">{entry.illustration ? "Source caption" : "English meaning"}</p>
       <p className="translation">{entry.translation}</p>
       {entry.frenchTranslation && <p className="translation">French: {entry.frenchTranslation}</p>}
-      <div className="entry-meta"><span>Kasem</span>{entry.dialect !== "Kasem" && <span>{entry.dialect}</span>}</div>
+      <div className="entry-meta"><span>{entry.illustration ? "Source illustration" : "Kasem"}</span>{entry.dialect !== "Kasem" && <span>{entry.dialect}</span>}</div>
 
       <dl className="definition-list">
         {entry.literalTranslation && <div><dt>Literal translation</dt><dd>{entry.literalTranslation}</dd></div>}
         {entry.usageContext && <div><dt>When it is used</dt><dd>{entry.usageContext}</dd></div>}
-        {(entry.audioUrl || !/^(No written guide yet|Audio not available yet)$/.test(entry.pronunciation)) && <div>
+        {(entry.audioUrl || !!entry.pronunciation && !/^(No written guide yet|Audio not available yet)$/.test(entry.pronunciation)) && <div>
           <dt>Pronunciation</dt>
           <dd>{entry.pronunciation}</dd>
           {entry.audioUrl && <audio key={entry.id} controls preload="none" src={entry.audioUrl} aria-label={`Pronunciation of ${entry.headword}`} />}
         </div>}
-        {entry.example !== "No example yet" && <div className="example-block">
+        {!!entry.example && entry.example !== "No example yet" && <div className="example-block">
           <dt>Example</dt>
           <dd lang="xsm">{entry.example}</dd>
           {entry.exampleTranslation !== "No translated example yet" && <dd className="example-translation">{entry.exampleTranslation}</dd>}
         </div>}
         {entry.culturalNote && <div><dt>Usage and context</dt><dd>{entry.culturalNote}</dd></div>}
       </dl>
-      <details className="source-note"><summary>Source and attribution</summary><p>{entry.attribution}</p></details>
+      {entry.examples?.length ? <section aria-label="Recorded grammar examples">{entry.examples.map((example, index) => <blockquote key={index}><p lang="xsm">{example.kasem}</p><p>{example.english}</p></blockquote>)}</section> : null}
+      {entry.illustration ? <figure className="reference-illustration"><img src={entry.illustration.url} alt={entry.illustration.alt} loading="lazy" /><figcaption>{entry.illustration.caption}</figcaption></figure> : null}
+      <details className="source-note"><summary>Source and attribution</summary><p>{entry.reference.title}</p><p>{entry.reference.references.length ? entry.reference.references.join(' · ') : 'Page or section not recorded'}</p><p>{entry.attribution}</p><p>Dialect: {entry.dialect}</p>{entry.reference.href ? <a href={entry.reference.href}>Open the book reference and its illustrations in context</a> : null}</details>
+      <a href={`?collection=${encodeURIComponent(entry.sourceCollection === 'grammarIllustrations' ? 'illustrations' : entry.sourceCollection === 'grammarRules' ? 'grammar' : entry.sourceCollection === 'kasemSentences' ? 'sentences' : entry.sourceCollection === 'dictionaryEntries' ? 'words' : entry.partOfSpeech === 'Proverb' ? 'proverbs' : entry.sourceCollection === 'kasemNames' ? 'names' : 'phrases')}&entry=${encodeURIComponent(entry.id)}`}>Link to this record</a>
       <a className="knowledge-link" href={entry.sourceCollection === "kasemNames" ? "https://tribestudio.indigenworld.com/studio/knowledge" : `https://tribestudio.indigenworld.com/studio/knowledge?related=${encodeURIComponent(entry.id.includes(":") ? entry.id : `${entry.sourceCollection}:${entry.id}`)}`}>
         Contribute context or a pronunciation <span aria-hidden="true">↗</span>
       </a>
@@ -81,7 +84,10 @@ function EntryDetail({ entry, saved, onToggleSaved }: {
 }
 
 export function App() {
-  const [collectionKind, setCollectionKind] = useState<CollectionKind>("words");
+  const [collectionKind, setCollectionKind] = useState<CollectionKind>(() => {
+    const requested = new URLSearchParams(location.search).get('collection');
+    return requested && Object.hasOwn(COLLECTIONS, requested) ? requested as CollectionKind : 'words';
+  });
   const collection = COLLECTIONS[collectionKind];
   const browseRef = useRef<HTMLDivElement>(null);
   const [entries, setEntries] = useState<DictionaryEntry[]>([]);
@@ -131,6 +137,20 @@ export function App() {
     const previousOverflow = document.body.style.overflow;
     const mobileLayout = window.matchMedia("(max-width: 700px)");
     document.body.style.overflow = "hidden";
+    const background = Array.from(document.querySelectorAll<HTMLElement>(".app-header, .browse-panel, .explore-panel, footer"));
+    const previousInert = background.map(node => node.inert);
+    background.forEach(node => { node.inert = true; });
+    const trapFocus = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const panel = document.querySelector<HTMLElement>(".definition-panel");
+      const controls = Array.from(panel?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], summary, input:not(:disabled), [tabindex="0"]') ?? []).filter(node => node.getClientRects().length > 0);
+      const first = controls[0], last = controls.at(-1);
+      if (!first || !last) return;
+      if ((event.shiftKey && (document.activeElement === first || !controls.includes(document.activeElement as HTMLElement))) || (!event.shiftKey && document.activeElement === last)) {
+        event.preventDefault(); (event.shiftKey ? last : first).focus();
+      }
+    };
+    document.addEventListener("keydown", trapFocus);
 
     const closeWhenLayoutChanges = (event: MediaQueryListEvent) => {
       if (!event.matches) setMobileDetail(false);
@@ -139,6 +159,8 @@ export function App() {
 
     return () => {
       document.body.style.overflow = previousOverflow;
+      background.forEach((node, index) => { node.inert = previousInert[index]; });
+      document.removeEventListener("keydown", trapFocus);
       mobileLayout.removeEventListener("change", closeWhenLayoutChanges);
       requestAnimationFrame(() => returnFocusRef.current?.focus({ preventScroll: true }));
     };
@@ -163,6 +185,8 @@ export function App() {
     return subscribeToDictionary(
       (next) => {
         setEntries(next);
+        const requested = new URLSearchParams(location.search).get('entry');
+        if (requested && next.some(entry => entry.id === requested)) setSelectedId(requested);
         setStatus("ready");
       },
       () => setStatus("error"),

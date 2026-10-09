@@ -143,6 +143,11 @@ class FirebaseWordQueueApi implements WordQueueApi {
         // The member answered this word already — on another device, or on a
         // send that succeeded and whose reply was lost. Either way the answer
         // is in; the only wrong thing to do is make them type it again.
+        'already-exists'
+            when (error.message ?? '').contains('different content') =>
+          const WordQueueFailure(
+            'An earlier attempt was received with different content. Your draft is retained; check My contributions before changing it again.',
+          ),
         'already-exists' => const WordQueueFailure(
           'You have already answered this word. Here is the next one.',
           movePastWord: true,
@@ -151,6 +156,9 @@ class FirebaseWordQueueApi implements WordQueueApi {
         'failed-precondition' || 'not-found' => const WordQueueFailure(
           'That word has left the queue. Here is the next one.',
           movePastWord: true,
+        ),
+        'aborted' => const WordQueueFailure(
+          'A newer correction exists. Your draft is retained; reopen My contributions to compare it.',
         ),
         'unauthenticated' => const WordQueueFailure(
           'Sign in to send translations.',

@@ -100,6 +100,28 @@ class MusicQueuePlan {
   bool get isEmpty => tracks.isEmpty;
 }
 
+MusicQueuePlan buildDownloadedQueue(
+  List<DownloadedTrackRecord> rows,
+  String trackId,
+  Map<String, String> urls,
+) {
+  final tracks = <MusicTrack>[
+    for (final row in rows)
+      if (urls[row.trackId]?.startsWith('file:') ?? false)
+        MusicTrack(
+          id: row.trackId,
+          title: row.title,
+          artist: row.artist,
+          album: row.album,
+          url: urls[row.trackId]!,
+        ),
+  ];
+  final index = tracks.indexWhere((track) => track.id == trackId);
+  return index < 0
+      ? const MusicQueuePlan(tracks: [], startIndex: 0)
+      : MusicQueuePlan(tracks: tracks, startIndex: index);
+}
+
 /// Turns a collection listing into a playable queue.
 ///
 /// ── Why the index is re-found and not carried ─────────────────────────────
@@ -259,6 +281,10 @@ class MusicController extends Notifier<MusicSessionState> {
     List<DownloadedTrackRecord> rows, {
     required String trackId,
   }) async {
+    if (!ref.read(downloadsAllowedProvider)) {
+      state = state.copyWith(error: 'An active offline subscription is required. Your files are still kept on this device.');
+      return;
+    }
     final local = await ref.read(downloadsRepositoryProvider).playableIndex();
     final artwork = await ref.read(downloadsRepositoryProvider).artworkIndex();
     final tracks = downloadedQueue(rows, local, artwork: artwork);
@@ -336,6 +362,7 @@ class MusicController extends Notifier<MusicSessionState> {
   /// Failure is empty rather than fatal: an unreadable index means everything
   /// streams, which is what would have happened before downloads existed.
   Future<Map<String, String>> _offlineUrls() async {
+    if (!ref.read(downloadsAllowedProvider)) return const <String, String>{};
     try {
       return await ref.read(offlineTrackUrlsLookupProvider)();
     } on Object catch (error) {

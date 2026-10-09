@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { DraftRecovery, useRecovery } from '../drafts/useRecovery';
 import { enums } from '@indigen-world/contracts';
 import lexicalEntrySchema from '@indigen-world/contracts/schemas/lexical-entry.schema.json';
 import { canContribute, canValidate, useAuth, type Role } from '../auth';
@@ -103,7 +104,7 @@ export function LexiconWorkspace() {
 
       <section aria-label="Lexicon task content" className="ts-enter" key={tab}>
         {tab === 'contribute' && canContribute(role) ? (
-          <ContributeTab role={role} uid={user.uid} flash={flash} />
+          <ContributeTab key={user.uid} role={role} uid={user.uid} flash={flash} />
         ) : tab === 'contribute' ? (
           <EmptyState boxed icon="lock" title="Contributor access required" body="An administrator must grant your account a contributor role before these controls are available." />
         ) : (
@@ -124,12 +125,12 @@ function ContributeTab({
   flash: (kind: 'ok' | 'err', text: string) => void;
 }) {
   const [languages, setLanguages] = useState<LanguageOption[]>([]);
-  const [form, setForm] = useState<EntryInput>(() => {
-    try { const saved = JSON.parse(localStorage.getItem('tribestudio:lexicon-draft:' + uid) || 'null'); if (saved && typeof saved.headword === 'string' && typeof saved.definition === 'string') return { ...emptyForm('kasem'), ...saved }; } catch { /* Recovery is optional. */ }
-    return emptyForm('kasem');
-  });
+  const [form, setForm] = useState<EntryInput>(() => emptyForm('kasem'));
+  const requestId = useRef(crypto.randomUUID());
   const saving = useRef(false);
-  useEffect(() => { try { localStorage.setItem('tribestudio:lexicon-draft:' + uid, JSON.stringify(form)); } catch { /* Keep the editor open if storage is unavailable. */ } }, [form,uid]);
+  const recovery = useRecovery(uid, 'lexicon', {form, requestId: requestId.current}, Boolean(form.headword || form.definition || form.example), saved => {
+    setForm({...saved.form, consentGranted:false}); requestId.current = saved.requestId;
+  });
   const [entries, setEntries] = useState<LexicalEntryDoc[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -160,7 +161,7 @@ function ContributeTab({
   const valid = form.headword.trim() && form.definition.trim();
 
   const save = async (status: 'draft' | 'submitted') => {
-    if (saving.current) return;
+    if (saving.current || recovery.recovery) return;
     if (!valid) {
       flash('err', 'A headword and definition are required.');
       return;
@@ -172,9 +173,10 @@ function ContributeTab({
     saving.current = true;
     setBusy(true);
     try {
-      await createEntry(uid, form, status);
+      await createEntry(uid, form, status, requestId.current);
+      recovery.clear(); requestId.current = crypto.randomUUID();
       flash('ok', status === 'submitted' ? 'Submitted for validation.' : 'Draft saved.');
-      setForm(emptyForm(form.languageId));
+      setForm(emptyForm(form.languageId)); recovery.resumeSaving();
       await loadEntries();
     } catch (err) {
       flash('err', err instanceof Error ? err.message : 'Save failed.');
@@ -202,6 +204,7 @@ function ContributeTab({
 
   return (
     <div className="ts-split ts-split--even">
+      <DraftRecovery draft={recovery} />
       <Panel title="Add a Kasem entry" description="Kept in this browser until you save it.">
         {!canContribute(role) ? (
           <Notice tone="warning">Your account does not yet have contributor access. An administrator must grant a role before submissions will be accepted.</Notice>

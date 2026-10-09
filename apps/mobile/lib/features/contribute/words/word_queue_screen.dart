@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_form_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_kinds.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_upload.dart';
+import 'package:indigen_world_mobile/features/contribute/draft_recovery.dart';
 import 'package:indigen_world_mobile/features/contribute/language_loop_analytics.dart';
 import 'package:indigen_world_mobile/features/contribute/my_submissions_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/pronunciation_recorder.dart';
@@ -25,6 +27,14 @@ import 'package:indigen_world_mobile/features/contribute/words/widgets/translati
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
+
+String _queueRequestId() {
+  final random = Random.secure();
+  return List.generate(
+    16,
+    (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+  ).join();
+}
 
 /// One word at a time, until the member has had enough.
 ///
@@ -76,6 +86,7 @@ class WordQueueScreen extends ConsumerStatefulWidget {
 }
 
 class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
+  late AccountDraftSession _recovery;
   final _formKey = GlobalKey<FormState>();
   final _translations = TextEditingController();
   final _kasemExample = TextEditingController();
@@ -121,6 +132,9 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   /// permission to give, or no data to spend must still be able to answer the
   /// word.
   PickedContributionFile? _recording;
+  UploadedContributionFile? _uploadedRecording;
+  String _requestId = _queueRequestId();
+  String? _recoveryFocusWordId;
 
   /// Upload progress while a take is on its way, or null.
   double? _uploadProgress;
@@ -187,6 +201,8 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   /// answer to *boy*, and carrying it onto the next word would publish the
   /// wrong sound on a word nobody would think to check.
   void _clearAnswer() {
+    _requestId = _queueRequestId();
+    _uploadedRecording = null;
     _translations.clear();
     _kasemExample.clear();
     _notes.clear();
@@ -205,6 +221,36 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   @override
   void initState() {
     super.initState();
+    final draftProviders = ProviderScope.containerOf(context, listen: false);
+    _recovery = AccountDraftSession(
+      account: () =>
+          draftProviders.read(authStateProvider).asData?.value?.uid ?? '',
+      area: 'word-queue',
+      snapshot: () => {
+        'wordId': _answeringWordId,
+        'requestId': _requestId,
+        'uploadedRecording': _uploadedRecording?.toMap(),
+        'translations': _translations.text,
+        'example': _kasemExample.text,
+        'notes': _notes.text,
+        'forms': _forms.recoverySnapshot(),
+        'dialect': _dialect,
+        'partOfSpeech': _partOfSpeech?.id,
+        'alsoUsedAs': _alsoUsedAs.toList(),
+        'sentenceFit': _sentenceFit.name,
+        'revisionId': _reviseContributionId,
+        'creditByName': _creditByName,
+      },
+      meaningful: () =>
+          _translations.text.isNotEmpty ||
+          _notes.text.isNotEmpty ||
+          _kasemExample.text.isNotEmpty,
+      version: () =>
+          '${_reviseContributionId ?? ''}:${widget.revision?.revisionCount ?? 0}',
+      changed: () {
+        if (mounted) setState(() {});
+      },
+    );
     final revision = widget.revision;
     if (revision != null) {
       _translations.text = revision.translations;
@@ -213,6 +259,23 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
       if (revision.dialect.isNotEmpty) _dialect = revision.dialect;
       _partOfSpeech = partOfSpeechById(revision.partOfSpeechId);
       _reviseContributionId = revision.contributionId;
+      _forms.recover({
+        ...?(revision.details['forms'] as Map?),
+        'ipa': revision.details['ipa'],
+        'kasemDefinition': revision.details['kasemDefinition'],
+        'etymology': revision.details['etymology'],
+      });
+      _alsoUsedAs = Set<String>.from(
+        revision.details['alsoUsedAs'] as List? ?? [],
+      );
+      _sentenceFit = WordQueueSentenceFit.values.firstWhere(
+        (fit) => fit.wire == revision.details['sentenceFit'],
+        orElse: () => WordQueueSentenceFit.fits,
+      );
+      _creditByName =
+          (revision.details['attribution'] as Map?)?['preference'] !=
+          'anonymous';
+      _restoreUploadedRecording(revision.details['media']);
     }
     _translations.addListener(_noteFormStart);
     final focusId = widget.focusWordId ?? revision?.wordId;
@@ -243,14 +306,16 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     final wordId = _answeringWordId;
     if (wordId == null || _translations.text.trim().isEmpty) return;
     if (!_startedWords.add(wordId)) return;
-    ref.read(loopAnalyticsProvider).log(
-      LoopEvent.formStart,
-      parameters: loopParameters({
-        'origin': _originFor(wordId),
-        'word_id': wordId,
-        'revision': _reviseContributionId == null ? 0 : 1,
-      }),
-    );
+    ref
+        .read(loopAnalyticsProvider)
+        .log(
+          LoopEvent.formStart,
+          parameters: loopParameters({
+            'origin': _originFor(wordId),
+            'word_id': wordId,
+            'revision': _reviseContributionId == null ? 0 : 1,
+          }),
+        );
   }
 
   /// Where the member came to [wordId] from: the door they arrived by for the
@@ -260,6 +325,8 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
 
   @override
   void dispose() {
+    unawaited(_recovery.flush(closing: true));
+    _recovery.dispose();
     _translations.removeListener(_noteFormStart);
     _translations.dispose();
     _kasemExample.dispose();
@@ -270,12 +337,32 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(authStateProvider);
+    if (_recovery.accountChanged) return accountChangedDraftScreen(context);
     // Read before the controller is watched, so a signed-out member never
     // triggers a fetch that can only come back `unauthenticated`. The queue
     // callables all require auth; asking anyway would spend a round trip on a
     // rural connection to learn something the phone already knew.
     final firebaseReady = ref.watch(firebaseReadyProvider);
     final signedIn = ref.watch(isSignedInProvider);
+    if (_recoveryFocusWordId != null &&
+        _focusWord?.id != _recoveryFocusWordId) {
+      return _shell(
+        child: Column(
+          children: [
+            const Text(
+              'Your answer is retained. Load its original word before editing or sending.',
+            ),
+            FilledButton(
+              onPressed: _focusLoading ? null : _retryRecoveredWord,
+              child: Text(
+                _focusLoading ? 'Loading word…' : 'Retry loading word',
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     final focusing = widget.focusWordId != null || widget.revision != null;
     if (focusing && _focusLoading) return _shell(child: const _Waiting());
     if (focusing && _focusGone) {
@@ -388,7 +475,13 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
         // The mini-player floats above the Navigator and covers a pushed route
         // too, so the space it needs is asked for rather than assumed.
         padding: EdgeInsets.fromLTRB(20, 6, 20, 40 + musicInset(context)),
-        children: [child],
+        children: [
+          DraftRecoveryPanel(
+            session: _recovery,
+            restore: (value) => unawaited(_restoreQueueRecovery(value)),
+          ),
+          child,
+        ],
       ),
     ),
   );
@@ -433,8 +526,9 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
         // orientation, not instruction: somebody four words in knows how this
         // works, and a sentence that keeps explaining it starts reading as an
         // apology for the screen.
-        if (guest) ...[
-        ] else if (state.answered == 0 && state.skipped == 0) ...[
+        if (guest)
+          ...[]
+        else if (state.answered == 0 && state.skipped == 0) ...[
           Text(
             'We give you an English word. You give us the Kasem. '
             'Pass on anything you are not sure about.',
@@ -522,8 +616,14 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
                 file: _recording,
                 progress: _uploadProgress,
                 enabled: !state.sending && _uploadProgress == null,
-                onRecorded: (file) => setState(() => _recording = file),
-                onCleared: () => setState(() => _recording = null),
+                onRecorded: (file) => setState(() {
+                  _recording = file;
+                  _uploadedRecording = null;
+                }),
+                onCleared: () => setState(() {
+                  _recording = null;
+                  _uploadedRecording = null;
+                }),
               ),
               const SizedBox(height: 13),
               DropdownButtonFormField<String>(
@@ -609,7 +709,7 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
           )
         else
           FilledButton.icon(
-            onPressed: state.sending ? null : _submit,
+            onPressed: state.sending || !_recovery.canSubmit ? null : _submit,
             icon: state.sending
                 ? const SizedBox.square(
                     dimension: 20,
@@ -658,7 +758,75 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     if (ref.read(isSignedInProvider)) setState(() => _signedInToSend = true);
   }
 
+  Future<void> _restoreQueueRecovery(Map<String, dynamic> value) async {
+    final wordId = value['wordId'] as String?;
+    if (wordId == null) return;
+    _answeringWordId = wordId;
+    _recoveryFocusWordId = wordId;
+    _focusPending = true;
+    setState(() {
+      _requestId = value['requestId'] as String? ?? _queueRequestId();
+      _restoreUploadedRecording(value['uploadedRecording']);
+      _translations.text = value['translations'] as String? ?? '';
+      _kasemExample.text = value['example'] as String? ?? '';
+      _notes.text = value['notes'] as String? ?? '';
+      _forms.recover(value['forms'] as Map? ?? {});
+      _dialect = value['dialect'] as String?;
+      _partOfSpeech = partOfSpeechById(value['partOfSpeech'] as String? ?? '');
+      _alsoUsedAs = Set<String>.from(value['alsoUsedAs'] as List? ?? []);
+      _sentenceFit = WordQueueSentenceFit.values.firstWhere(
+        (fit) => fit.name == value['sentenceFit'],
+        orElse: () => WordQueueSentenceFit.fits,
+      );
+      _reviseContributionId = value['revisionId'] as String?;
+      _creditByName = value['creditByName'] != false;
+      _allowTraining = false;
+      _recording = null;
+    });
+    await _recovery.flush();
+    await _retryRecoveredWord();
+    if (!mounted) return;
+    if (_focusWord == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Draft retained. Reconnect and reopen this form to load its word.',
+          ),
+        ),
+      );
+      return;
+    }
+  }
+
+  void _restoreUploadedRecording(dynamic media) {
+    final uid = ref.read(authStateProvider).asData?.value?.uid ?? '';
+    _uploadedRecording =
+        media is Map &&
+            uid.isNotEmpty &&
+            (media['storagePath'] as String? ?? '').startsWith(
+              'creator-submissions/$uid/',
+            )
+        ? UploadedContributionFile(
+            storagePath: media['storagePath'] as String,
+            mimeType: media['mimeType'] as String? ?? '',
+            sizeBytes: media['sizeBytes'] as int? ?? 0,
+            mediaType: 'audio',
+          )
+        : null;
+  }
+
+  Future<void> _retryRecoveredWord() async {
+    final wordId = _recoveryFocusWordId;
+    if (wordId == null) return;
+    await _loadFocus(wordId);
+    if (!mounted || _focusWord == null) return;
+    ref.read(wordQueueControllerProvider.notifier).focus(_focusWord!);
+    _focusPending = false;
+    setState(() => _recoveryFocusWordId = null);
+  }
+
   Future<void> _submit() async {
+    if (!_recovery.canSubmit) return;
     FocusScope.of(context).unfocus();
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final chosen = _partOfSpeech;
@@ -679,17 +847,25 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     // sound is a bonus — so this returns null on failure, says so, and the
     // answer is sent without it.
     final uploaded = await _uploadRecording();
-    if (!mounted) return;
+    if (!mounted || !_recovery.canSubmit) return;
+    await _recovery.flush();
 
     final sent = await ref
         .read(wordQueueControllerProvider.notifier)
         .submit(
           WordTranslationDraft(
             wordId: wordId,
+            requestId: _requestId,
             origin: _originFor(wordId),
             creditByName: _creditByName,
             allowTraining: _allowTraining,
+            publicationPermission: revise == null
+                ? true
+                : widget.revision?.publicationPermission ?? false,
             reviseContributionId: revise,
+            expectedRevision: revise != null
+                ? widget.revision?.revisionCount
+                : null,
             translations: parseTranslations(_translations.text),
             partOfSpeech: chosen.id,
             dialect: _dialect ?? '',
@@ -731,20 +907,23 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
           ),
         );
     if (!sent || !mounted) return;
+    await _recovery.clear(restart: true);
 
-    ref.read(loopAnalyticsProvider).log(
-      LoopEvent.submit,
-      parameters: loopParameters({
-        'origin': _originFor(wordId),
-        'word_id': wordId,
-        'revision': revise == null ? 0 : 1,
-      }),
-    );
+    ref
+        .read(loopAnalyticsProvider)
+        .log(
+          LoopEvent.submit,
+          parameters: loopParameters({
+            'origin': _originFor(wordId),
+            'word_id': wordId,
+            'revision': revise == null ? 0 : 1,
+          }),
+        );
     // Never offered again in Explore, on this phone, whatever else happens.
     unawaited(
-      ref.read(queuePromptMemoryProvider.future).then(
-        (memory) => memory.markAnswered(wordId),
-      ),
+      ref
+          .read(queuePromptMemoryProvider.future)
+          .then((memory) => memory.markAnswered(wordId)),
     );
     if (revise != null) _reviseContributionId = null;
     _signedInToSend = false;
@@ -776,6 +955,7 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   /// The take is left attached on failure rather than cleared, so a member who
   /// wants to try again on a better signal still has it.
   Future<UploadedContributionFile?> _uploadRecording() async {
+    if (_uploadedRecording != null) return _uploadedRecording;
     final take = _recording;
     if (take == null) return null;
     final uid = ref.read(firebaseAuthProvider)?.currentUser?.uid;
@@ -783,13 +963,14 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
 
     setState(() => _uploadProgress = 0);
     try {
-      return await const ContributionUploader().upload(
+      _uploadedRecording = await const ContributionUploader().upload(
         uid: uid,
         file: take,
         onProgress: (value) {
           if (mounted) setState(() => _uploadProgress = value);
         },
       );
+      return _uploadedRecording;
     } on ContributionUploadFailure catch (failure) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -829,6 +1010,8 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   /// network on purpose, so the next word is already on screen here and the
   /// scroll is never waiting on a round trip.
   Future<void> _skip(WordQueueSkipReason reason) async {
+    await _recovery.flush();
+    if (!mounted) return;
     FocusScope.of(context).unfocus();
     final recorded = ref
         .read(wordQueueControllerProvider.notifier)
@@ -944,7 +1127,11 @@ class _OwnWordOffer extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
           child: Row(
             children: [
-              Icon(Icons.lightbulb_outline_rounded, size: 18, color: brand.gold),
+              Icon(
+                Icons.lightbulb_outline_rounded,
+                size: 18,
+                color: brand.gold,
+              ),
               const SizedBox(width: 11),
               Expanded(
                 child: Column(
@@ -982,7 +1169,6 @@ class _OwnWordOffer extends StatelessWidget {
     );
   }
 }
-
 
 /// "Did that sentence actually show the word?"
 ///
@@ -1550,13 +1736,21 @@ class _ReviewerNote extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   note,
-                  style: TextStyle(color: brand.ink, fontSize: 12.5, height: 1.45),
+                  style: TextStyle(
+                    color: brand.ink,
+                    fontSize: 12.5,
+                    height: 1.45,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Your earlier answer is filled in below. Correct it and send '
                   'it back; it keeps its place with the same reviewer.',
-                  style: TextStyle(color: brand.mutedInk, fontSize: 11, height: 1.4),
+                  style: TextStyle(
+                    color: brand.mutedInk,
+                    fontSize: 11,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),

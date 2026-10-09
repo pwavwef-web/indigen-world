@@ -159,6 +159,7 @@ export async function submitDictionaryEntry(draft: EntryDraft): Promise<void> {
   );
 
   await call({
+    requestId: draft.requestId,
     collectionKind: 'dictionary',
     culturalPermissionTier: draft.culturalPermissionTier,
     lexicalKind: 'word',

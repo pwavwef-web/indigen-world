@@ -6,6 +6,7 @@ import { CaptureFields } from './CaptureFields';
 import { CorpusReference } from './CorpusReference';
 import { useId, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth';
+import { DraftRecovery, useRecovery } from '../drafts/useRecovery';
 import { useRoute } from '../router';
 import { blankRecord, editable, knowledgeServices, missingFields, needsCulturalReview,
   type AudioClip, type CatalogEntry, type DatasetType, type KnowledgeRecord, type KnowledgeServices,
@@ -42,11 +43,12 @@ const canLeave = () => window.dispatchEvent(new Event('knowledge:before-record',
 export function KnowledgeWorkspace() {
   const { user } = useAuth();
   const { search } = useRoute();
-  return <KnowledgeDesk uid={user?.uid ?? ''} services={knowledgeServices} related={new URLSearchParams(search).get('related') ?? ''} />;
+  const category = new URLSearchParams(search).get('category') ?? '';
+  return <KnowledgeDesk key={user?.uid ?? 'guest'} uid={user?.uid ?? ''} services={knowledgeServices} related={new URLSearchParams(search).get('related') ?? ''} initialCategory={Object.hasOwn(DATASET_MARKS, category) ? category as DatasetType : undefined} />;
 }
 
-export function KnowledgeDesk({ uid, services, preview = false, related = '' }: {
-  uid: string; services: KnowledgeServices; preview?: boolean; related?: string;
+export function KnowledgeDesk({ uid, services, preview = false, related = '', initialCategory }: {
+  uid: string; services: KnowledgeServices; preview?: boolean; related?: string; initialCategory?: DatasetType;
 }) {
   const [tab, setTab] = useState<'records' | 'reference' | 'guide'>('records');
   const [policy, setPolicy] = useState({ version: 'unapproved', approved: false, sentenceEnabled: false, releaseEnabled: false });
@@ -57,7 +59,7 @@ export function KnowledgeDesk({ uid, services, preview = false, related = '' }: 
   const [records, setRecords] = useState<KnowledgeRecord[]>([]);
   const [canReview, setCanReview] = useState(false);
   const [scope, setScope] = useState<'mine' | 'review'>('mine');
-  const [category, setCategory] = useState<DatasetType | ''>('');
+  const [category, setCategory] = useState<DatasetType | ''>(initialCategory ?? '');
   const [status, setStatus] = useState('');
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState<string | null>(null);
@@ -65,7 +67,7 @@ export function KnowledgeDesk({ uid, services, preview = false, related = '' }: 
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [detail, setDetail] = useState<RecordDetail | null>(null);
-  const [newType, setNewType] = useState<DatasetType | null>(null);
+  const [newType, setNewType] = useState<DatasetType | null>(initialCategory ?? null);
   const [opening, setOpening] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const listEpoch = useRef(0);
@@ -259,6 +261,9 @@ function RecordEditor({ uid, services, catalog, initial, type, related, canRevie
   const [withdrawConfirm, setWithdrawConfirm] = useState(false);
   const readOnly = Boolean(initial?.historical || existing && (existing.authorUid !== uid || existing.status === 'withdrawn'));
   const dirty = !readOnly && JSON.stringify(draft) !== baseline.current;
+  const recovery = useRecovery(uid, `knowledge:${initial?.record.id ?? type}`, { draft, pending: pendingRequest.current }, dirty, saved => {
+    setDraft(saved.draft); pendingRequest.current = saved.pending; setChecking(true);
+  }, String(initial?.record.revision ?? 0));
   const area = catalog.find((entry) => entry.id === draft.datasetType);
   const missing = useMemo(() => missingFields(draft, area, sentenceEnabled), [draft, area, sentenceEnabled]);
   const update = <K extends keyof RecordInput>(key: K, value: RecordInput[K]) => setDraft((record) => ({ ...record, [key]: value }));
@@ -270,6 +275,7 @@ function RecordEditor({ uid, services, catalog, initial, type, related, canRevie
   }, [dirty, uploading, busy]);
   useEffect(() => () => { urls.current.forEach((url) => URL.revokeObjectURL(url)); }, []);
   const save = async (submit: boolean, auto = false) => {
+    if (recovery.recovery || readOnly) return;
     setBusy(true); setError('');
     const fingerprint = JSON.stringify({ record: draft, submit, revision: existing?.revision });
     if (pendingRequest.current?.fingerprint !== fingerprint) pendingRequest.current = { fingerprint, id: crypto.randomUUID() };
@@ -277,12 +283,13 @@ function RecordEditor({ uid, services, catalog, initial, type, related, canRevie
       const result = await services.save({ ...(existing ? { id: existing.id, revision: existing.revision } : {}), requestId: pendingRequest.current.id, record: draft, submit });
       baseline.current = JSON.stringify(draft);
       setExisting(result.record); setChecking(false);
+      recovery.clear(); recovery.resumeSaving();
       if (!auto) await onSaved(result.record, submit ? `Submitted for review. Receipt: ${result.record.id}:${result.record.revision}.` : `Draft saved at ${result.record.updatedAt}.`);
     } catch (reason) { setError(message(reason)); }
     finally { setBusy(false); }
   };
   useEffect(() => {
-    if (!dirty || busy || uploading !== null || error || checking) return;
+    if (!dirty || busy || uploading !== null || error || checking || recovery.recovery) return;
     const timer = setTimeout(() => { void save(false, true); }, 2000);
     return () => clearTimeout(timer);
   }, [draft, dirty, busy, uploading, error, checking]);
@@ -315,6 +322,7 @@ function RecordEditor({ uid, services, catalog, initial, type, related, canRevie
     finally { setBusy(false); }
   };
   return <div className="kw-editor">
+    {!readOnly ? <DraftRecovery draft={recovery} /> : null}
     <header className="kw-editor-head"><div><p className="ts-overline">{existing ? `${existing.displayId ? `${existing.displayId} · ` : ''}${existing.id}` : 'NEW RECORD'}</p><h2>{existing?.title || `Document ${area?.label.toLocaleLowerCase() ?? 'knowledge'}`}</h2></div><span className={`kw-badge kw-badge--${existing?.status ?? 'draft'}`}>{existing ? `${WORKFLOW_LABELS[knowledgeState(existing).workflow]} · ${AUTHENTICATION_LABELS[knowledgeState(existing).authentication]}` : 'Unsaved draft'}</span></header>
     {existing ? <div className="kw-revision">Revision {existing.revision} · Updated {date(existing.updatedAt)} · {existing.reviewCount} human review{existing.reviewCount === 1 ? '' : 's'}{existing.authorUid === uid ? ' · Your contribution' : ''}</div> : null}
     {initial?.historical && existing ? <p className="ts-notice ts-notice--info">Historical revision {existing.revision}. <button onClick={() => onOpenVersion(existing, initial.currentVersion!)}>Open current revision</button></p> : null}

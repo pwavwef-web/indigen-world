@@ -25,6 +25,15 @@ export function signIn() {
 }
 
 export function signOutUser() {
+  const uid = auth.currentUser?.uid;
+  window.dispatchEvent(new Event('studio:before-navigate', { cancelable: true }));
+  if (uid && window.confirm('Discard this account’s local draft recovery copies on this device? Cancel keeps them for your next sign-in. Saved account drafts are unaffected.')) {
+    window.dispatchEvent(new CustomEvent('studio:discard-drafts', { detail: uid }));
+    try {
+      const prefix = `tribestudio:recovery:v1:${encodeURIComponent(uid)}:`;
+      for (const key of Object.keys(localStorage)) if (key.startsWith(prefix)) localStorage.removeItem(key);
+    } catch { /* Storage may be unavailable; server drafts are unaffected. */ }
+  }
   return signOut(auth);
 }
 

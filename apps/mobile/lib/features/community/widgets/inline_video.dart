@@ -109,7 +109,12 @@ class _InlineVideoTileState extends ConsumerState<InlineVideoTile> {
   // ── Decoder slots ─────────────────────────────────────────────────────────
 
   Future<void> _open() async {
-    if (!mounted || _controller != null || _failed) return;
+    if (!mounted ||
+        !ref.read(effectiveVideoAutoplayProvider) ||
+        _controller != null ||
+        _failed) {
+      return;
+    }
     if (_openTiles >= _maxOpen) {
       _waitingForSlot.add(this);
       return;
@@ -233,7 +238,7 @@ class _InlineVideoTileState extends ConsumerState<InlineVideoTile> {
     final shouldPlay =
         identical(_floor, this) &&
         _fraction >= _stopThreshold &&
-        ref.read(videoAutoplayProvider) &&
+        ref.read(effectiveVideoAutoplayProvider) &&
         // Nothing in the feed plays under a full-screen viewer: the viewer is
         // showing the same clip, with the sound on.
         ref.read(fullScreenMediaProvider) == 0 &&
@@ -260,7 +265,14 @@ class _InlineVideoTileState extends ConsumerState<InlineVideoTile> {
     ref.listen<bool>(videoMutedProvider, (_, muted) {
       unawaited(_controller?.setVolume(_silent || muted ? 0 : 1));
     });
-    ref.listen<bool>(videoAutoplayProvider, (_, _) => _syncPlayback());
+    ref.listen<bool>(effectiveVideoAutoplayProvider, (_, enabled) {
+      if (!enabled) {
+        _waitingForSlot.remove(this);
+        setState(_release);
+      } else if (_fraction > 0.02) {
+        unawaited(_open());
+      }
+    });
     ref.listen<int>(fullScreenMediaProvider, (_, _) => _syncPlayback());
     ref.listen<bool>(musicIsPlayingProvider, (_, _) => _syncPlayback());
     final muted = _silent || ref.watch(videoMutedProvider);
@@ -373,7 +385,8 @@ class _VideoChrome extends StatelessWidget {
   Widget build(BuildContext context) {
     final player = controller;
     if (player == null) {
-      return _layout(context, 
+      return _layout(
+        context,
         remaining: mediaClockLabel(Duration(seconds: fallbackSeconds ?? 0)),
         progress: 0,
       );
@@ -388,7 +401,8 @@ class _VideoChrome extends StatelessWidget {
         final progress = total.inMilliseconds <= 0
             ? 0.0
             : (into.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0);
-        return _layout(context, 
+        return _layout(
+          context,
           remaining: mediaClockLabel(left.isNegative ? Duration.zero : left),
           progress: progress,
         );
@@ -400,53 +414,50 @@ class _VideoChrome extends StatelessWidget {
     BuildContext context, {
     required String remaining,
     required double progress,
-  }) =>
-      Stack(
-        fit: StackFit.expand,
-        children: [
-          // The gradient is what keeps white chrome legible over a pale frame
-          // without laying a scrim across the whole picture.
-          const IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.center,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Color(0x73000000)],
-                ),
-              ),
+  }) => Stack(
+    fit: StackFit.expand,
+    children: [
+      // The gradient is what keeps white chrome legible over a pale frame
+      // without laying a scrim across the whole picture.
+      const IgnorePointer(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.center,
+              end: Alignment.bottomCenter,
+              colors: [Colors.transparent, Color(0x73000000)],
             ),
           ),
-          Positioned(
-            left: 10,
-            bottom: 10,
-            child: IgnorePointer(child: MediaPill(label: remaining)),
-          ),
-          Positioned(
-            right: 10,
-            bottom: 10,
-            child: _MuteButton(muted: muted, onTap: onToggleMute),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: IgnorePointer(
-              child: ClipRRect(
-                borderRadius: borderRadius,
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 3,
-                  backgroundColor: Colors.white24,
-                  valueColor: AlwaysStoppedAnimation(
-                    context.brand.highlight,
-                  ),
-                ),
-              ),
+        ),
+      ),
+      Positioned(
+        left: 10,
+        bottom: 10,
+        child: IgnorePointer(child: MediaPill(label: remaining)),
+      ),
+      Positioned(
+        right: 10,
+        bottom: 10,
+        child: _MuteButton(muted: muted, onTap: onToggleMute),
+      ),
+      Positioned(
+        left: 0,
+        right: 0,
+        bottom: 0,
+        child: IgnorePointer(
+          child: ClipRRect(
+            borderRadius: borderRadius,
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 3,
+              backgroundColor: Colors.white24,
+              valueColor: AlwaysStoppedAnimation(context.brand.highlight),
             ),
           ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
 }
 
 /// `m:ss`, the way every player writes a short clip.

@@ -14,7 +14,7 @@ const usingEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
 export const firebaseConfig = {
   apiKey: 'AIzaSyDe9TAz3pl0tiNqpIZZ0EQxmPEgMtf6kRA',
   authDomain: 'project-kassena-7e026.firebaseapp.com',
-  projectId: usingEmulators ? 'demo-indigen-world' : 'project-kassena-7e026',
+  projectId: usingEmulators ? (import.meta.env.VITE_EMULATOR_PROJECT_ID || 'demo-indigen-world') : 'project-kassena-7e026',
   storageBucket: usingEmulators ? 'demo-indigen-world.appspot.com' : 'project-kassena-7e026.firebasestorage.app',
   messagingSenderId: '111428711822',
   appId: '1:111428711822:web:eddc5b73a667f17329a0df',
@@ -41,8 +41,8 @@ if (!usingEmulators && typeof appCheckSiteKey === 'string' && appCheckSiteKey.le
 // Opt-in local emulator wiring: set VITE_USE_EMULATORS=true when running against
 // `firebase emulators:start`. Ports match firebase.json.
 if (usingEmulators) {
-  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-  connectFirestoreEmulator(db, '127.0.0.1', 8080);
+  connectAuthEmulator(auth, `http://127.0.0.1:${import.meta.env.VITE_AUTH_EMULATOR_PORT || 9099}`, { disableWarnings: true });
+  connectFirestoreEmulator(db, '127.0.0.1', Number(import.meta.env.VITE_FIRESTORE_EMULATOR_PORT || 8080));
   connectFunctionsEmulator(functions, '127.0.0.1', 5001);
   connectStorageEmulator(storage, '127.0.0.1', 9199);
 }

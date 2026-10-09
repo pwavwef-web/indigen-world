@@ -6,6 +6,7 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/music/music_controller.dart';
 import 'package:indigen_world_mobile/features/music/music_track.dart';
+import 'package:indigen_world_mobile/features/music/now_playing_screen.dart';
 import 'package:indigen_world_mobile/features/music/widgets/audio_artwork.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
 import 'package:indigen_world_mobile/features/subscriptions/membership_screen.dart';
@@ -15,13 +16,8 @@ import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
 /// What is kept on this device, and how much of it there is.
 ///
-/// ── Why downloads survive a lapsed subscription ───────────────────────────
-/// Nothing here is deleted when somebody stops paying. The files are already on
-/// their phone, they were downloaded while the subscription was live, and
-/// reaching into a member's storage to take back songs they can still stream
-/// for nothing would be a punishment with no purpose. What lapses is the
-/// ability to add *more*: the limit drops to zero and the download button on a
-/// new track starts opening the paywall instead.
+/// Files remain device-local after expiry. Managed offline playback and new
+/// downloads require the current account's unexpired subscription benefits.
 class DownloadsScreen extends ConsumerStatefulWidget {
   const DownloadsScreen({super.key});
 
@@ -61,6 +57,7 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
         ref.watch(downloadedArtworkProvider).asData?.value ??
         const <String, String>{};
     final limit = ref.watch(downloadLimitProvider);
+    final allowed = ref.watch(downloadsAllowedProvider);
     final bytes = ref.watch(downloadsSizeProvider).asData?.value ?? 0;
     final rows = downloads.asData?.value ?? const <DownloadedTrackRecord>[];
 
@@ -115,6 +112,7 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
                   _DownloadRow(
                     row: row,
                     artwork: artwork[row.trackId] ?? row.artworkUrl,
+                    allowed: allowed,
                     playable:
                         (playable.asData?.value.containsKey(row.trackId) ??
                             false) &&
@@ -136,7 +134,9 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
                         if (error != null) {
                           setState(() => _failedPlayback.add(row.trackId));
                           showGlassToast(context, error);
+                          return;
                         }
+                        await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const NowPlayingScreen()));
                       } on Object {
                         if (context.mounted) {
                           setState(() => _failedPlayback.add(row.trackId));
@@ -166,7 +166,7 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
     setState(() {});
     try {
       final limit = ref.read(downloadLimitProvider);
-      if (limit <= 0) {
+      if (limit <= 0 || !ref.read(downloadsAllowedProvider)) {
         await _openPaywall(context);
         return;
       }
@@ -309,12 +309,14 @@ class _DownloadRow extends StatelessWidget {
     this.artwork,
     required this.onRemove,
     required this.playable,
+    required this.allowed,
     required this.checking,
     required this.onPlay,
     required this.onRetry,
   });
   final String? artwork;
   final bool playable;
+  final bool allowed;
   final bool checking;
   final VoidCallback onPlay;
   final VoidCallback onRetry;
@@ -332,8 +334,8 @@ class _DownloadRow extends StatelessWidget {
         child: Row(
           children: [
             IconButton(
-              tooltip: playable ? 'Play download' : 'Download again',
-              onPressed: checking
+              tooltip: playable ? 'Play downloaded track' : 'Download missing or incomplete file again',
+              onPressed: checking || !allowed
                   ? null
                   : playable
                   ? onPlay

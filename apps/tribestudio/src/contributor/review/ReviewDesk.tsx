@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { collection, limit, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, getCountFromServer, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { getDownloadURL, ref } from 'firebase/storage';
 import { canValidate, signOutUser, useAuth } from '../../auth';
@@ -75,15 +75,27 @@ function AuthorizedDesk() {
   const [loading, setLoading] = useState(true), [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0), [notice, setNotice] = useState('');
   const [deciding, setDeciding] = useState(false);
+  const [pageSize, setPageSize] = useState(60);
+  const [counts, setCounts] = useState<Record<string, number | null>>({});
+  const countSignature = rows.map(row => row.id).join('|');
   useEffect(() => {
-    setRows([]); setLoading(true); setError(''); setSelected(null); setCategory('');
-    return onSnapshot(query(collection(db, config.collection), where('status', '==', status), limit(60)), snapshot => {
+    let active = true; setCounts({});
+    void Promise.all(config.queues.map(async ([value]) => {
+      try { return [value, (await getCountFromServer(query(collection(db, config.collection), where('status', '==', value)))).data().count] as const; }
+      catch { return [value, null] as const; }
+    })).then(values => { if (active) setCounts(Object.fromEntries(values)); });
+    return () => { active = false; };
+  }, [config.collection, status, notice, attempt, countSignature]);
+  useEffect(() => { setPageSize(60); setRows([]); setSelected(null); setCategory(''); }, [desk, status]);
+  useEffect(() => {
+    setLoading(true); setError('');
+    return onSnapshot(query(collection(db, config.collection), where('status', '==', status), ...(desk === 'contributions' ? [orderBy('lifecycle.createdAt', 'asc')] : []), limit(pageSize)), snapshot => {
       const next = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ReviewRecord));
       const date = (row: ReviewRecord) => { const value = row.lifecycle?.createdAt ?? row.createdAt; return value?.toMillis?.() ?? (Date.parse(value ?? '') || 0); };
       next.sort((a,b) => date(a) - date(b));
       setRows(next); setLoading(false);
     }, reason => { setError(reason.message); setLoading(false); });
-  }, [config.collection,status,attempt]);
+  }, [config.collection,status,attempt,pageSize,desk]);
   const title = (row: ReviewRecord) => row.title || row.name || row.headline || row.examples?.[0]?.kasem || 'Untitled contribution';
   const kind = (row: ReviewRecord) => row.collectionKind || row.studioType || row.origin || row.kind || row.format || config.label;
   const filtered = rows.filter(row => (!category || kind(row) === category) && [title(row),row.body,row.translation,row.id].join(' ').toLocaleLowerCase().includes(needle.trim().toLocaleLowerCase()));
@@ -132,7 +144,7 @@ function AuthorizedDesk() {
             {config.queues.map(([value, label]) => (
               <button key={value} type="button" className="ts-chip" aria-pressed={status === value} onClick={() => switchQueue(desk, value)}>
                 <span className="ts-dot" style={{ ['--dot' as string]: `var(--${STATUS_TONE[value] === 'success' ? 'success-dot' : STATUS_TONE[value] === 'warning' ? 'warning-dot' : STATUS_TONE[value] === 'danger' ? 'danger-dot' : 'c-blue'})` }} aria-hidden="true" />
-                {label}
+                {label} <span aria-label="records" title="Server total; refreshed when this queue changes">{counts[value] ?? '—'}</span>
               </button>
             ))}
           </div>
@@ -149,7 +161,7 @@ function AuthorizedDesk() {
                 {[...new Set(rows.map(kind))].map(value => <option key={value}>{value}</option>)}
               </select>
             </label>
-            <span className="ts-toolbar__count" title="Up to 60 records per queue are loaded, oldest first.">{filtered.length} of {rows.length} loaded{rows.length >= 60 ? ' · first 60' : ''}</span>
+            <span className="ts-toolbar__count">{filtered.length} of {rows.length} loaded · {counts[status] ?? '—'} in this queue</span>
           </div>
         </div>
 
@@ -191,7 +203,9 @@ function AuthorizedDesk() {
                 </button>
               ))}
               {!filtered.length ? <p className="ts-hint rv-queue__none">No matching records. Clear the search or category filter.</p> : null}
-              <p className="ts-hint rv-queue__note"><Icon name="info" />Up to 60 records per queue, oldest first.</p>
+              <p className="ts-hint rv-queue__note"><Icon name="info" />Search and category filters apply to loaded records.{desk === 'contributions' ? ' Oldest first.' : ''}</p>
+              {rows.length >= pageSize && pageSize < 300 ? <button type="button" className="ts-btn ts-btn--secondary" onClick={() => setPageSize(size => size + 60)}>Load 60 more</button> : null}
+              {pageSize >= 300 && rows.length >= 300 ? <p className="ts-hint">300 records loaded. Choose another status to focus the queue.</p> : null}
             </section>
             {selected ? (
               <div className="rv-record-col">
@@ -208,7 +222,10 @@ function AuthorizedDesk() {
                     </div>
                   </div>
                 ) : null}
-                <ReviewDetail key={selected.id + ':' + recordVersion(selected)} desk={desk} item={selected} stale={stale} statusLabel={statusLabel(selected.status)} onDeciding={setDeciding} onSaved={message => { setNotice(message); setSelected(null); setDeciding(false); }} />
+                <ReviewDetail key={selected.id + ':' + recordVersion(selected)} desk={desk} item={selected} stale={stale} statusLabel={statusLabel(selected.status)} onDeciding={setDeciding} onSaved={message => {
+                  const position = filtered.findIndex(row => row.id === selected.id);
+                  setNotice(message); setSelected(filtered[position + 1] ?? filtered[position - 1] ?? null); setDeciding(false);
+                }} />
               </div>
             ) : (
               <div className="ts-panel ts-panel--dashed rv-placeholder">
@@ -398,6 +415,15 @@ function ReviewDetail({ desk, item, stale, statusLabel, onSaved, onDeciding }: {
 
       {desk !== 'sentences' ? (
         <aside className="rv-decide" aria-label="Decision">
+          <section className="ts-panel rv-source-summary" aria-label="Source evidence">
+            <h3>Source evidence</h3>
+            <Evidence label="Dialect" value={item.dialect || item.primaryLanguage || 'Not recorded'} />
+            <Evidence label="Context" value={item.expression?.context || item.usageContext || item.culturalContext || 'Not recorded'} />
+            <Evidence label="Source" value={item.expression?.source?.detail || item.sourceReferences || 'Not recorded'} />
+            {typeof item.sourceReferences === 'string' ? item.sourceReferences.split(/\s+/).filter((value: string) => safeUrl(value)).slice(0, 8).map((value: string) => <a key={value} href={safeUrl(value)!} target="_blank" rel="noreferrer" className="ts-link">Open source reference <Icon name="external" /></a>) : null}
+            <Evidence label="Publication grant" value={item.permissions?.publication ?? 'Not recorded'} />
+            <Evidence label="Previous feedback" value={item.moderation?.feedback || item.reviewFeedback || 'No feedback recorded'} />
+          </section>
           {dictionary ? <EntryLookup initial={item.body || ''} selected={entryId} onSelect={setEntryId} /> : null}
           {actions.length ? (
             <form className="ts-panel rv-decide__form" onSubmit={async event => {

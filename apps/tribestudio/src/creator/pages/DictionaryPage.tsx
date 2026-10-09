@@ -22,6 +22,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { enums } from '@indigen-world/contracts';
 import { useAuth } from '../../auth';
+import { DraftRecovery, useRecovery } from '../../drafts/useRecovery';
 import {
   type EntryDraft,
   type SenseDraft,
@@ -31,17 +32,14 @@ import {
   SENSE_DOMAINS,
   SENSE_REGISTERS,
   articleIn,
-  clearDraft,
   completeness,
   domainLabel,
   emptyDraft,
   emptySense,
   formGroupsFor,
-  loadDraft,
   partOfSpeechLabel,
   pronounForDefinite,
   registerLabel,
-  saveDraft,
   splitList,
 } from '../lexicon';
 import {
@@ -60,7 +58,7 @@ import { TableShell } from '@indigen-world/console-ui';
 import { VoiceRecorder } from '../components';
 import { KasemPalette, insertIntoField } from '../KasemPalette';
 import { uploadSubmissionMedia } from '../data';
-import { Badge, Dialog, EmptyState, Icon, Notice, PageHeader, Skeleton, Steps, type Tone } from '../../ui';
+import { Badge, Dialog, EmptyState, Icon, PageHeader, Skeleton, Steps, type Tone } from '../../ui';
 
 const TIERS = enums.culturalPermissionTier as readonly string[];
 const TIER_LABELS: Record<string, string> = {
@@ -100,7 +98,12 @@ function crossClassOffers(declared: string): string[] {
 
 export function DictionaryPage() {
   const { user } = useAuth();
-  const [draft, setDraft] = useState<EntryDraft>(() => loadDraft() ?? emptyDraft());
+  return user ? <DictionaryEditor key={user.uid} uid={user.uid} /> : null;
+}
+function DictionaryEditor({ uid }: { uid: string }) {
+  const { user } = useAuth();
+  const [draft, setDraft] = useState<EntryDraft>(emptyDraft);
+  const recovery = useRecovery(uid, 'dictionary', draft, Boolean(draft.headword || draft.source || draft.senses.some(s => s.definition)), restored => setDraft({ ...emptyDraft(), ...restored, consentGranted: false }));
   const [busy, setBusy] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const sending = useRef(false);
@@ -112,7 +115,6 @@ export function DictionaryPage() {
   const [confirmWithdraw, setConfirmWithdraw] = useState<string | null>(null);
   const [assist, setAssist] = useState<AssistCheck[]>([]);
   const [loadingMine, setLoadingMine] = useState(true);
-  const [restored] = useState(() => loadDraft() != null);
 
   // The field the character palette last touched. A palette that always types
   // into the headword would be useless on the eleven paradigm slots and the
@@ -125,23 +127,10 @@ export function DictionaryPage() {
   }, []);
 
   const update = useCallback(<K extends keyof EntryDraft>(key: K, value: EntryDraft[K]) => {
+    recovery.resumeSaving();
     setDraft((current) => ({ ...current, [key]: value }));
   }, []);
 
-  // Autosave. Debounced so a fast typist does not write to localStorage on
-  // every keystroke, and short enough that a stray reload loses a sentence
-  // rather than a session.
-  useEffect(() => {
-    const timer = window.setTimeout(() => saveDraft(draft), 600);
-    return () => window.clearTimeout(timer);
-  }, [draft]);
-
-  const latestDraft = useRef(draft); latestDraft.current = draft;
-  useEffect(() => {
-    const flush = () => saveDraft(latestDraft.current);
-    window.addEventListener('studio:before-navigate', flush); window.addEventListener('pagehide', flush);
-    return () => { flush(); window.removeEventListener('studio:before-navigate', flush); window.removeEventListener('pagehide', flush); };
-  }, []);
 
   // What already exists under this spelling. Debounced against typing for the
   // same reason, and it warns rather than blocks — see `fetchHeadwordMatches`.
@@ -378,7 +367,7 @@ export function DictionaryPage() {
     try {
       await submitDictionaryEntry(draft);
       setReviewing(false);
-      clearDraft();
+      recovery.clear();
       setDraft(emptyDraft());
       setMatches([]);
       flash('ok', 'Sent for review. It joins the same queue as phone contributions.');
@@ -425,9 +414,7 @@ export function DictionaryPage() {
           </div>
         </Dialog>
       ) : null}
-      {restored ? (
-        <Notice tone="info" icon="refresh">An unfinished entry was restored from this browser. Nothing was sent.</Notice>
-      ) : null}
+      <DraftRecovery draft={recovery} />
 
       <div className="dict__cols">
         {/* ---------------------------------------------------------------- */}
@@ -787,7 +774,7 @@ export function DictionaryPage() {
                 disabled={busy}
                 onClick={() => {
                   if (!window.confirm('Clear this entry and its saved draft?')) return;
-                  clearDraft();
+                  recovery.discard();
                   setDraft(emptyDraft());
                   setMatches([]);
                   flash('ok', 'Cleared.');
