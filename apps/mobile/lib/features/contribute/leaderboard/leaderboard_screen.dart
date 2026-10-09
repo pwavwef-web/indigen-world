@@ -147,6 +147,10 @@ void _openContributor(BuildContext context, ContributorScore score) =>
 void _showPointsInfo(BuildContext context) {
   showModalBottomSheet<void>(
     context: context,
+    sheetAnimationStyle: AnimationStyle(
+      duration: motionOr(context, AppMotion.standard),
+      reverseDuration: motionOr(context, AppMotion.quick),
+    ),
     showDragHandle: true,
     isScrollControlled: true,
     builder: (context) => SafeArea(

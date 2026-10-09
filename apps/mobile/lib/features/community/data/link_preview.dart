@@ -156,11 +156,14 @@ const _trackingParams = <String>{
 
 String _keepableQuery(String query) {
   if (query.isEmpty) return '';
-  final kept = query.split('&').where((pair) {
-    if (pair.isEmpty) return false;
-    final name = pair.split('=').first.toLowerCase();
-    return !name.startsWith('utm_') && !_trackingParams.contains(name);
-  }).toList(growable: false);
+  final kept = query
+      .split('&')
+      .where((pair) {
+        if (pair.isEmpty) return false;
+        final name = pair.split('=').first.toLowerCase();
+        return !name.startsWith('utm_') && !_trackingParams.contains(name);
+      })
+      .toList(growable: false);
   return kept.isEmpty ? '' : '?${kept.join('&')}';
 }
 

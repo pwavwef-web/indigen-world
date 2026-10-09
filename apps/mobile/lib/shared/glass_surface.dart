@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// ─────────────────────────────────────────────────────────────────────────────
 /// GLASS SURFACES
@@ -348,7 +349,7 @@ class _GlassCardState extends State<GlassCard> {
       label: widget.semanticLabel,
       child: AnimatedScale(
         scale: _pressed ? 0.978 : 1,
-        duration: const Duration(milliseconds: 130),
+        duration: motionOr(context, AppMotion.quick),
         curve: Curves.easeOut,
         child: GlassSurface(
           padding: EdgeInsets.zero,
@@ -465,7 +466,7 @@ class GlassPill extends StatelessWidget {
                   onTap!();
                 },
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
+            duration: motionOr(context, AppMotion.standard),
             curve: Curves.easeOut,
             padding: padding,
             decoration: BoxDecoration(
@@ -671,7 +672,17 @@ class _GlassSkeletonState extends State<GlassSkeleton>
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1500),
-  )..repeat();
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (motionAllowed(context) && TickerMode.valuesOf(context).enabled) {
+      if (!_controller.isAnimating) _controller.repeat();
+    } else {
+      _controller.stop();
+    }
+  }
 
   @override
   void dispose() {
@@ -685,7 +696,7 @@ class _GlassSkeletonState extends State<GlassSkeleton>
     // A reader who has switched animations off gets the plain pane; a sweeping
     // highlight is decoration, and decoration is exactly what that setting is
     // asking us to stop doing.
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (!motionAllowed(context)) {
       return GlassSurface(
         blur: false,
         height: widget.height,

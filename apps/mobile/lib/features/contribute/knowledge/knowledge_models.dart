@@ -78,9 +78,21 @@ class KnowledgeDraft {
 
   Map<String, dynamic> toRecord() => {
     for (final key in const [
-      'datasetType', 'language', 'title', 'original', 'english', 'french',
-      'context', 'region', 'source', 'sourceType', 'sourceReference',
-      'details', 'variants', 'relatedRecordIds', 'audio',
+      'datasetType',
+      'language',
+      'title',
+      'original',
+      'english',
+      'french',
+      'context',
+      'region',
+      'source',
+      'sourceType',
+      'sourceReference',
+      'details',
+      'variants',
+      'relatedRecordIds',
+      'audio',
     ])
       if (data.containsKey(key)) key: data[key],
     'permissions': {

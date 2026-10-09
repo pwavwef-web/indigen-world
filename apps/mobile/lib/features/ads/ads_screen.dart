@@ -52,12 +52,7 @@ class _AdsBody extends ConsumerWidget {
 
     return ListView(
       key: const PageStorageKey('profile-ads-scroll'),
-      padding: EdgeInsets.fromLTRB(
-        18,
-        8,
-        18,
-        shellBottomReserve(context) + 28,
-      ),
+      padding: EdgeInsets.fromLTRB(18, 8, 18, shellBottomReserve(context) + 28),
       children: [
         _AdsHero(onCreate: create),
         const SizedBox(height: 16),

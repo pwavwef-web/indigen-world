@@ -144,12 +144,12 @@
       }
     }
   },
-  "communityPostCategory": "Kind of post",
-  "postCategoryQuestion": "Question",
-  "postCategoryLanguage": "Language",
+  "communityPostCategory": "Tag",
+  "postCategoryQuestion": "Questions",
+  "postCategoryLanguage": "Language Learning",
   "postCategoryCulture": "Culture",
   "postCategoryMusic": "Music",
-  "postCategoryStory": "Story",
+  "postCategoryStory": "Stories",
   "postCategoryAnnouncement": "Announcement",
   "communitiesTitle": "Communities",
   "communitiesSearchHint": "Search name, language, place or topic",

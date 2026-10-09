@@ -602,3 +602,10 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
 }
+
+.rv-source-summary { display: grid; gap: var(--space-3); overflow-wrap: anywhere; border-top: 3px solid var(--c-blue); }
+.rv-source-summary h3 { margin: 0; font: 700 var(--fs-md)/1.4 var(--font-display); }
+.rv-source-summary .rv-evidence { min-width: 0; }
+.rv-source-summary .rv-evidence__value { margin: 0; white-space: pre-wrap; }
+.rv-queues .ts-toolbar__count { white-space: normal; }
+@media (max-width: 600px) { .rv-queues .ts-toolbar { align-items: stretch; } .rv-queues .ts-search { flex-basis: 100%; } }

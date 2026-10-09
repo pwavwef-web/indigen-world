@@ -135,6 +135,32 @@ class LexicalFormsControllers {
     etymology,
   ];
 
+  Map<String, TextEditingController> get recoveryFields => {
+    'definite': definite,
+    'plural': plural,
+    'pluralDefinite': pluralDefinite,
+    'counted': counted,
+    'pronoun': pronoun,
+    'present': present,
+    'past': past,
+    'future': future,
+    'pluralSubject': pluralSubject,
+    'imperative': imperative,
+    'agreeingOne': agreeingOne,
+    'agreeingTwo': agreeingTwo,
+    'ipa': ipa,
+    'kasemDefinition': kasemDefinition,
+    'etymology': etymology,
+  };
+  Map<String, dynamic> recoverySnapshot() => {
+    for (final entry in recoveryFields.entries) entry.key: entry.value.text,
+  };
+  void recover(Map value) {
+    for (final entry in recoveryFields.entries) {
+      entry.value.text = value[entry.key] as String? ?? '';
+    }
+  }
+
   void clear() {
     for (final controller in _all) {
       controller.clear();
@@ -373,7 +399,10 @@ class _NounParadigm extends StatelessWidget {
           hint: 'the boy came, then … came again',
           icon: Icons.person_outline_rounded,
         ),
-        _PronounNote(definite: controllers.definite, pronoun: controllers.pronoun),
+        _PronounNote(
+          definite: controllers.definite,
+          pronoun: controllers.pronoun,
+        ),
         // Listens to the plural rather than asking the screen to rebuild, so
         // the follow-ups appear as the member types and no state above this
         // widget has to know that these fields are related.
@@ -456,7 +485,8 @@ class _VerbParadigmState extends State<_VerbParadigm> {
     // Opened automatically for anybody who has already answered one of them —
     // a controller restored from a draft, or a member who filled them in and
     // then collapsed the section by accident.
-    final rest = _showRest ||
+    final rest =
+        _showRest ||
         controllers.pluralSubjectText.isNotEmpty ||
         controllers.imperativeText.isNotEmpty;
     return Column(
@@ -615,7 +645,8 @@ class AdvancedDetailSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final brand = context.brand;
-    final filled = controllers.ipaText.isNotEmpty ||
+    final filled =
+        controllers.ipaText.isNotEmpty ||
         controllers.kasemDefinitionText.isNotEmpty ||
         controllers.etymologyText.isNotEmpty;
     return Theme(
@@ -686,11 +717,7 @@ class AdvancedDetailSection extends StatelessWidget {
           Text(
             'All three are optional and any one of them helps. Leave them '
             'blank and the word is still a good contribution.',
-            style: TextStyle(
-              color: brand.faintInk,
-              fontSize: 11,
-              height: 1.45,
-            ),
+            style: TextStyle(color: brand.faintInk, fontSize: 11, height: 1.45),
           ),
         ],
       ),

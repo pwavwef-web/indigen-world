@@ -21,6 +21,7 @@ import 'package:indigen_world_mobile/features/community/widgets/post_category_st
 import 'package:indigen_world_mobile/features/settings/kasem_keyboard_toggle.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
@@ -255,6 +256,7 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
   Future<void> _saveDraft() => const ComposeDraftStore().save(
     ComposeDraft(
       text: _controller.text,
+      category: _category,
       replyToId: widget.replyTo?.id,
       quoteToId: widget.quoteTo?.id,
       attachmentPaths: [for (final upload in _attachments) upload.path],
@@ -569,7 +571,10 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
                 ),
                 onChanged: _publishing
                     ? null
-                    : (category) => setState(() => _category = category),
+                    : (category) {
+                        setState(() => _category = category);
+                        unawaited(_saveDraft());
+                      },
               ),
             ],
             const SizedBox(height: 18),
@@ -678,57 +683,143 @@ class _CommunityContext extends StatelessWidget {
   }
 }
 
-/// The optional "kind of post" choice. Tapping the chosen one again clears it.
+/// Optional topics remain separate from attachments and their media formats.
 class _CategoryPicker extends StatelessWidget {
   const _CategoryPicker({
     required this.selected,
     required this.choices,
     required this.onChanged,
   });
-
   final PostCategory? selected;
   final List<PostCategory> choices;
   final ValueChanged<PostCategory?>? onChanged;
 
   @override
-  Widget build(BuildContext context) {
-    final brand = context.brand;
-    final l10n = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.communityPostCategory,
-          style: TextStyle(
-            color: brand.mutedInk,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children: [
-            for (final category in choices)
-              ChoiceChip(
-                key: ValueKey('post-category-${category.wire}'),
-                avatar: Icon(
-                  category.icon,
-                  size: 16,
-                  color: category.colorOn(brand),
-                ),
-                label: Text(category.label(l10n)),
-                selected: selected == category,
-                showCheckmark: false,
-                materialTapTargetSize: MaterialTapTargetSize.padded,
-                onSelected: onChanged == null
-                    ? null
-                    : (on) => onChanged!(on ? category : null),
+  Widget build(BuildContext context) => OutlinedButton.icon(
+    key: const Key('post-tag-picker'),
+    icon: Icon(selected?.icon ?? Icons.label_outline_rounded),
+    label: Text(
+      'Tag: ${selected?.label(AppLocalizations.of(context)) ?? 'Choose a tag'}',
+    ),
+    onPressed: onChanged == null
+        ? null
+        : () async {
+            final choice = await showModalBottomSheet<String>(
+              context: context,
+              sheetAnimationStyle: AnimationStyle(
+                duration: motionOr(context, AppMotion.standard),
+                reverseDuration: motionOr(context, AppMotion.quick),
               ),
+              isScrollControlled: true,
+              useSafeArea: true,
+              builder: (_) =>
+                  _TagSearchSheet(choices: choices, selected: selected),
+            );
+            if (choice != null) onChanged!(PostCategory.fromWire(choice));
+          },
+  );
+}
+
+class _TagSearchSheet extends StatefulWidget {
+  const _TagSearchSheet({required this.choices, this.selected});
+  final List<PostCategory> choices;
+  final PostCategory? selected;
+  @override
+  State<_TagSearchSheet> createState() => _TagSearchSheetState();
+}
+
+class _TagSearchSheetState extends State<_TagSearchSheet> {
+  final _search = TextEditingController();
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final query = _search.text.trim().toLowerCase();
+    final results = widget.choices
+        .where((tag) => tag.label(l10n).toLowerCase().contains(query))
+        .toList();
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        16 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * 0.55,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Tag',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                if (widget.selected != null)
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, ''),
+                    child: const Text('Clear tag'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _search,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'Search tags',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _search.text.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Clear search',
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
+                          _search.clear();
+                          setState(() {});
+                        },
+                      ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: results.isEmpty
+                  ? Center(
+                      child: Text(
+                        widget.choices.isEmpty
+                            ? 'No tags available'
+                            : 'No matching tags',
+                      ),
+                    )
+                  : ListView(
+                      children: [
+                        for (final tag in results)
+                          ListTile(
+                            key: ValueKey('post-category-${tag.wire}'),
+                            leading: Icon(
+                              tag.icon,
+                              color: tag.colorOn(context.brand),
+                            ),
+                            title: Text(tag.label(l10n)),
+                            trailing: tag == widget.selected
+                                ? const Icon(Icons.check)
+                                : null,
+                            onTap: () => Navigator.pop(context, tag.wire),
+                          ),
+                      ],
+                    ),
+            ),
           ],
         ),
-      ],
+      ),
     );
   }
 }

@@ -45,8 +45,9 @@ DictionaryEntry entry({
   senses: senses,
 );
 
-List<String> headwordsOf(DictionaryResults results) =>
-    [for (final hit in results.hits) hit.entry.headword];
+List<String> headwordsOf(DictionaryResults results) => [
+  for (final hit in results.hits) hit.entry.headword,
+];
 
 void main() {
   group('ranking', () {
@@ -198,7 +199,10 @@ void main() {
 
     test('a question mark is exactly one letter', () {
       final results = searchDictionary(
-        entries: [entry(headword: 'bu'), entry(headword: 'buga')],
+        entries: [
+          entry(headword: 'bu'),
+          entry(headword: 'buga'),
+        ],
         query: 'b?',
       );
       expect(headwordsOf(results), <String>['bu']);
@@ -224,10 +228,9 @@ void main() {
         query: 'bakeria',
       );
       expect(results.hits, isEmpty);
-      expect(
-        [for (final row in results.suggestions) row.headword],
-        contains('bakeira'),
-      );
+      expect([
+        for (final row in results.suggestions) row.headword,
+      ], contains('bakeira'));
     });
 
     test('nothing is suggested when the search succeeded', () {

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/auth/sign_in_sheet.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
@@ -15,6 +16,7 @@ import 'package:indigen_world_mobile/features/notifications/data/notification_mo
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/notification_settings_screen.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// The notifications centre: everything that happened to you, newest first,
 /// grouped into Today / This week / Earlier.
@@ -84,11 +86,20 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 AsyncValue(:final value?) when value.isEmpty =>
                   const _EmptyState(),
                 AsyncValue(:final value?) => _NotificationList(
-                  notifications: value,
+                  notifications: {for (final item in value) item.id: item}
+                      .values
+                      .toList(),
+                  onLoadMore:
+                      value.length >= ref.watch(notificationWindowProvider)
+                      ? () =>
+                            ref.read(notificationWindowProvider.notifier).grow()
+                      : null,
                   onOpen: _open,
                   onDelete: _deleteOne,
                 ),
-                AsyncValue(hasError: true) => const _ErrorState(),
+                AsyncValue(hasError: true) => _ErrorState(
+                  onRetry: () => ref.invalidate(notificationFeedProvider),
+                ),
                 _ => const _LoadingState(),
               },
             ),
@@ -154,11 +165,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   Future<void> _open(IndigenNotification notification) async {
-    final repository = ref.read(notificationsRepositoryProvider);
-    // Not awaited: the row is already visually read, so blocking navigation on
-    // a write that cannot fail visibly would only add latency.
+    // Navigation stays responsive while the live backend read state updates.
     if (!notification.read) {
-      unawaited(repository?.markRead(notification.id) ?? Future<void>.value());
+      unawaited(_markRead(notification.id));
     }
 
     final postId = notification.postId;
@@ -171,6 +180,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       return;
     }
 
+    final route = notificationDestination(notification);
+    if (route != null) {
+      if (context.mounted) await context.push(route);
+      return;
+    }
     final actorId = notification.actorId;
     if (actorId != null) {
       await Navigator.of(context).push(
@@ -178,6 +192,24 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           builder: (context) => CommunityProfileScreen(uid: actorId),
         ),
       );
+    } else if (mounted) {
+      showCommunityMessage(
+        context,
+        'This notification no longer has an available destination.',
+      );
+    }
+  }
+
+  Future<void> _markRead(String id) async {
+    try {
+      await ref.read(notificationsRepositoryProvider)?.markRead(id);
+    } on Object {
+      if (mounted) {
+        showCommunityMessage(
+          context,
+          'Could not mark this alert read. Try opening it again.',
+        );
+      }
     }
   }
 
@@ -204,32 +236,44 @@ class _NotificationList extends StatelessWidget {
     required this.notifications,
     required this.onOpen,
     required this.onDelete,
+    this.onLoadMore,
   });
 
   final List<IndigenNotification> notifications;
+  final VoidCallback? onLoadMore;
   final ValueChanged<IndigenNotification> onOpen;
   final ValueChanged<IndigenNotification> onDelete;
 
   @override
   Widget build(BuildContext context) {
     final grouped = groupNotifications(notifications);
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-      children: [
-        for (final entry in grouped.entries) ...[
-          _BucketHeading(label: entry.key.label, count: entry.value.length),
-          for (final notification in entry.value) ...[
-            _NotificationRow(
+    final rows = <Widget>[
+      for (final entry in grouped.entries) ...[
+        _BucketHeading(label: entry.key.label, count: entry.value.length),
+        for (final notification in entry.value)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _NotificationRow(
+              key: ValueKey(notification.id),
               notification: notification,
               onTap: () => onOpen(notification),
               onDelete: () => onDelete(notification),
             ),
-            const SizedBox(height: 8),
-          ],
-          const SizedBox(height: 12),
-        ],
+          ),
+        const SizedBox(height: 12),
       ],
+      if (onLoadMore != null)
+        TextButton.icon(
+          onPressed: onLoadMore,
+          icon: const Icon(Icons.expand_more),
+          label: const Text('Load older notifications'),
+        ),
+    ];
+    return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      itemCount: rows.length,
+      itemBuilder: (_, index) => rows[index],
     );
   }
 }
@@ -275,6 +319,7 @@ class _NotificationRow extends StatelessWidget {
     required this.notification,
     required this.onTap,
     required this.onDelete,
+    super.key,
   });
 
   final IndigenNotification notification;
@@ -291,109 +336,111 @@ class _NotificationRow extends StatelessWidget {
       label: unread
           ? 'Unread. ${notification.title}. ${notification.body}'
           : '${notification.title}. ${notification.body}',
-      excludeSemantics: true,
-      child: Material(
-        color: unread ? context.brand.surface : context.brand.surfaceMuted,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
+      child: AnimatedContainer(
+        duration: motionOr(context, AppMotion.quick),
+        child: Material(
+          color: unread ? context.brand.surface : context.brand.surfaceMuted,
           borderRadius: BorderRadius.circular(18),
-          onTap: onTap,
-          child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: unread
-                    ? accent.withValues(alpha: 0.34)
-                    : context.brand.divider,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: onTap,
+            child: Ink(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: unread
+                      ? accent.withValues(alpha: 0.34)
+                      : context.brand.divider,
+                ),
+                gradient: unread
+                    ? LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          accent.withValues(alpha: 0.07),
+                          Colors.transparent,
+                        ],
+                      )
+                    : null,
               ),
-              gradient: unread
-                  ? LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [
-                        accent.withValues(alpha: 0.07),
-                        Colors.transparent,
-                      ],
-                    )
-                  : null,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(13, 13, 13, 13),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _ActorMark(notification: notification, accent: accent),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          notification.title,
-                          style: TextStyle(
-                            fontSize: 14.5,
-                            height: 1.3,
-                            fontWeight: unread
-                                ? FontWeight.w800
-                                : FontWeight.w600,
-                            color: context.brand.ink,
-                          ),
-                        ),
-                        if (notification.body.trim().isNotEmpty) ...[
-                          const SizedBox(height: 4),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(13, 13, 13, 13),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _ActorMark(notification: notification, accent: accent),
+                    const SizedBox(width: 13),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            notification.body.trim(),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                            notification.title,
                             style: TextStyle(
-                              color: context.brand.mutedInk,
-                              fontSize: 13,
-                              height: 1.35,
+                              fontSize: 14.5,
+                              height: 1.3,
+                              fontWeight: unread
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
+                              color: context.brand.ink,
                             ),
                           ),
+                          if (notification.body.trim().isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              notification.body.trim(),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: context.brand.mutedInk,
+                                fontSize: 13,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                          if (notification.postPreview.trim().isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            _PostPreview(text: notification.postPreview.trim()),
+                          ],
                         ],
-                        if (notification.postPreview.trim().isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          _PostPreview(text: notification.postPreview.trim()),
-                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          communityAgeLabel(notification.createdAt),
+                          style: TextStyle(
+                            color: context.brand.mutedInk,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        if (unread)
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: accent,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const SizedBox(width: 8, height: 8),
+                          ),
+                        const SizedBox(height: 3),
+                        IconButton(
+                          tooltip: 'Delete notification',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: onDelete,
+                          icon: const Icon(
+                            Icons.delete_outline_rounded,
+                            size: 19,
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        communityAgeLabel(notification.createdAt),
-                        style: TextStyle(
-                          color: context.brand.mutedInk,
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (unread)
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: accent,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const SizedBox(width: 8, height: 8),
-                        ),
-                      const SizedBox(height: 3),
-                      IconButton(
-                        tooltip: 'Delete notification',
-                        visualDensity: VisualDensity.compact,
-                        onPressed: onDelete,
-                        icon: const Icon(
-                          Icons.delete_outline_rounded,
-                          size: 19,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -517,17 +564,23 @@ class _GuestState extends StatelessWidget {
 }
 
 class _ErrorState extends StatelessWidget {
-  const _ErrorState();
+  const _ErrorState({required this.onRetry});
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) => ListView(
     physics: const AlwaysScrollableScrollPhysics(),
-    children: const [
-      SizedBox(height: 40),
+    children: [
+      const SizedBox(height: 40),
       CommunityEmptyState(
         icon: Icons.cloud_off_rounded,
         title: 'Alerts could not load',
-        message: 'Check your connection and pull down to try again.',
+        message: 'Check your connection and try again.',
+        action: OutlinedButton.icon(
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Retry'),
+        ),
       ),
     ],
   );
@@ -553,4 +606,39 @@ class _LoadingState extends StatelessWidget {
       ],
     ],
   );
+}
+
+/// Accept only destinations implemented by this router, never arbitrary URLs.
+String? notificationDestination(IndigenNotification notification) {
+  final route = notification.route;
+  if (route == null || route == '/notifications') return null;
+  final uri = Uri.tryParse(route);
+  if (uri == null ||
+      uri.hasScheme ||
+      uri.hasAuthority ||
+      uri.fragment.isNotEmpty) {
+    return null;
+  }
+  final path = uri.path;
+  if (const {
+    '/',
+    '/contribute',
+    '/ads',
+    '/communities',
+    '/messages',
+    '/kawuri',
+    '/kawuri/creations',
+    '/subscribe',
+    '/subscription',
+    '/downloads',
+    '/music',
+    '/audiobooks',
+  }.contains(path)) {
+    return route;
+  }
+  if (RegExp(r'^/(post|communities|chat|entry)/[^/]+$').hasMatch(path) ||
+      RegExp(r'^/kawuri/creations/[^/]+$').hasMatch(path)) {
+    return route;
+  }
+  return null;
 }

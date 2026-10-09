@@ -1,5 +1,4 @@
 import 'package:audio_service/audio_service.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +7,7 @@ import 'package:indigen_world_mobile/features/music/music_bar_placement.dart';
 import 'package:indigen_world_mobile/features/music/music_controller.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/features/music/music_tint.dart';
+import 'package:indigen_world_mobile/features/music/widgets/audio_artwork.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/motion.dart';
 
@@ -94,7 +94,7 @@ class MiniPlayer extends ConsumerWidget {
     return AnimatedTint(
       color: tint ?? brand.accent,
       builder: (context, color) {
-        final wash = tint == null
+        final wash = brand.isBlack || tint == null
             ? brand.surface
             : Color.alphaBlend(
                 color.withValues(alpha: brand.isDark ? 0.32 : 0.1),
@@ -317,7 +317,7 @@ class _SwipeTitleState extends State<_SwipeTitle>
 
   late final AnimationController _return = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 260),
+    duration: AppMotion.standard,
   )..addListener(() => setState(() => _dx = _from * (1 - _return.value)));
   double _from = 0;
 
@@ -339,6 +339,10 @@ class _SwipeTitleState extends State<_SwipeTitle>
         _dx = 0;
       });
       widget.onSkip(direction);
+      return;
+    }
+    if (!motionAllowed(context)) {
+      setState(() => _dx = 0);
       return;
     }
     _from = _dx;
@@ -545,7 +549,7 @@ class _Artwork extends StatelessWidget {
     );
     final art = item.artUri?.toString();
     if (art == null || art.isEmpty) return placeholder;
-    return CachedNetworkImage(
+    return AudioArtwork(
       imageUrl: art,
       width: kMiniPlayerHeight,
       height: kMiniPlayerHeight,

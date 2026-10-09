@@ -307,6 +307,9 @@ export function DictionaryPage() {
             <h1>Words with a living context.</h1>
             <a href="/spelling-guide.html">Kasem spelling rules and book examples</a>
             <a href="/grammar-guide.html">Kasem grammar, sentences and word forms</a>
+            <a href="https://www.venacula.com/?collection=sentences">Browse whole sentences with sources</a>
+            <a href="https://www.venacula.com/?collection=grammar">Search published grammar rules</a>
+            <a href="https://www.venacula.com/?collection=illustrations">Explore original book illustrations in context</a>
             <p>Search the community-published Kasem dictionary by Kasem, English, or dialect.</p><p><a className="button button--primary" href="https://kasem-dictionary.web.app/">Open Kasem web app</a></p>
             <p className="dictionary-page__role">
               Use the website for quick search and sharing. The mobile app carries the same

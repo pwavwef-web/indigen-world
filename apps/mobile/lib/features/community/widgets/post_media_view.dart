@@ -15,6 +15,7 @@ import 'package:indigen_world_mobile/features/community/widgets/verified_badge.d
 import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
 import 'package:indigen_world_mobile/features/subscriptions/widgets/supporter_badge.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:video_player/video_player.dart';
@@ -205,11 +206,7 @@ class _PostMediaViewState extends State<PostMediaView> {
       borderRadius: BorderRadius.circular(PostMediaView._radius),
       child: AspectRatio(
         aspectRatio: PostMediaView.gridAspect,
-        child: _MediaGrid(
-          media: media,
-          heroBase: _heroBase,
-          onOpen: _open,
-        ),
+        child: _MediaGrid(media: media, heroBase: _heroBase, onOpen: _open),
       ),
     );
   }
@@ -302,7 +299,7 @@ class _MediaGrid extends StatelessWidget {
   }
 }
 
-class _MediaTile extends StatelessWidget {
+class _MediaTile extends ConsumerWidget {
   const _MediaTile({
     required this.item,
     required this.onOpen,
@@ -323,7 +320,13 @@ class _MediaTile extends StatelessWidget {
   final int overflow;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lowData = ref.watch(lowDataModeProvider);
+    final imageUrl = feedImageUrl(
+      lowData: lowData,
+      original: item.url,
+      thumbnail: item.thumbnailUrl,
+    );
     if (item.isAudio) return AudioPlayerTile(item: item, compact: true);
 
     if (item.isVideo && live) {
@@ -334,12 +337,22 @@ class _MediaTile extends StatelessWidget {
       );
     }
 
-    final picture = item.isVideo
+    final Widget picture =
+        (lowData &&
+            (item.isVideo
+                ? item.thumbnailUrl?.isNotEmpty != true
+                : imageUrl == null))
+        ? ColoredBox(
+            color: context.brand.divider,
+            child: const Center(child: Text('Tap to load media')),
+          )
+        : item.isVideo
         ? VideoCover(videoUrl: item.url, thumbnailUrl: item.thumbnailUrl)
         : CachedNetworkImage(
-            imageUrl: item.url,
+            imageUrl: imageUrl!,
             fit: BoxFit.cover,
-            placeholder: (context, url) => ColoredBox(color: context.brand.divider),
+            placeholder: (context, url) =>
+                ColoredBox(color: context.brand.divider),
             errorWidget: (context, url, error) => ColoredBox(
               color: context.brand.divider,
               child: Icon(
@@ -421,19 +434,29 @@ class AudioPlayerTile extends StatefulWidget {
 class _AudioPlayerTileState extends State<AudioPlayerTile> {
   late final AudioPlayer _player;
   var _failed = false;
+  var _loaded = false;
+  var _opening = false;
 
   @override
   void initState() {
     super.initState();
     _player = AudioPlayer();
-    unawaited(_load());
   }
 
   Future<void> _load() async {
+    if (_opening) return;
+    setState(() {
+      _opening = true;
+      _failed = false;
+    });
     try {
       await _player.setUrl(widget.item.url);
+      _loaded = true;
+      if (mounted) unawaited(_player.play());
     } on Object {
       if (mounted) setState(() => _failed = true);
+    } finally {
+      if (mounted) setState(() => _opening = false);
     }
   }
 
@@ -463,14 +486,18 @@ class _AudioPlayerTileState extends State<AudioPlayerTile> {
                   processing == ProcessingState.buffering;
               return IconButton.filled(
                 tooltip: playing ? 'Pause voice note' : 'Play voice note',
-                onPressed: _failed || loading
+                onPressed: loading || _opening
                     ? null
-                    : () => playing ? _player.pause() : _player.play(),
+                    : () => !_loaded || _failed
+                          ? _load()
+                          : playing
+                          ? _player.pause()
+                          : _player.play(),
                 style: IconButton.styleFrom(
                   backgroundColor: context.brand.gold,
                   foregroundColor: context.brand.ink,
                 ),
-                icon: loading
+                icon: loading || _opening
                     ? const SizedBox.square(
                         dimension: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
@@ -583,10 +610,11 @@ Future<void> openMediaViewer(
       actions: actions,
       author: author,
     ),
-    transitionsBuilder: (context, animation, secondary, child) => FadeTransition(
-      opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-      child: child,
-    ),
+    transitionsBuilder: (context, animation, secondary, child) =>
+        FadeTransition(
+          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+          child: child,
+        ),
   ),
 );
 
@@ -732,9 +760,8 @@ class _MediaViewerPageState extends ConsumerState<MediaViewerPage>
   void _appreciate() {
     final actions = widget.actions;
     if (actions == null) return;
-    final liked = ref.read(myLikesProvider).asData?.value.contains(
-          actions.postId,
-        ) ??
+    final liked =
+        ref.read(myLikesProvider).asData?.value.contains(actions.postId) ??
         false;
     HapticFeedback.mediumImpact();
     setState(() => _likeDelta = liked ? -1 : 1);
@@ -980,7 +1007,7 @@ class _ViewerVideoState extends ConsumerState<_ViewerVideo> {
     );
     final window = widget.item.clipWindow;
     try {
-      await controller.initialize();
+      await controller.initialize().timeout(const Duration(seconds: 20));
       await controller.setLooping(true);
       await controller.setVolume(
         _silent || ref.read(videoMutedProvider) ? 0 : 1,
@@ -988,8 +1015,15 @@ class _ViewerVideoState extends ConsumerState<_ViewerVideo> {
       if (window != null) await controller.seekTo(window.start);
       await controller.play();
     } on Object {
-      await controller.dispose();
       if (mounted) setState(() => _failed = true);
+      // Some native creation failures leave the plugin's creation completer
+      // pending. Surface the error immediately rather than awaiting cleanup.
+      unawaited(
+        controller
+            .dispose()
+            .timeout(const Duration(seconds: 2))
+            .catchError((Object _) {}),
+      );
       return;
     }
     if (!mounted) {
@@ -1168,7 +1202,7 @@ class _ViewerChromeState extends State<_ViewerChrome> {
       ignoring: !widget.visible,
       child: AnimatedOpacity(
         opacity: widget.visible ? 1 : 0,
-        duration: const Duration(milliseconds: 180),
+        duration: motionOr(context, AppMotion.quick),
         child: Stack(
           children: [
             // White chrome over an unknown photograph is a coin toss. The two

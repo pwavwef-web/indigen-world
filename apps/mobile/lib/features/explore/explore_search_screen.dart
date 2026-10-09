@@ -103,9 +103,7 @@ class _ExploreSearchScreenState extends ConsumerState<ExploreSearchScreen>
 
   void _openReel(List<Reel> results, int index) {
     HapticFeedback.selectionClick();
-    unawaited(
-      ref.read(recentSearchesProvider.notifier).remember(_query),
-    );
+    unawaited(ref.read(recentSearchesProvider.notifier).remember(_query));
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) => _SearchResultFeed(
@@ -434,8 +432,11 @@ class _RecentRow extends StatelessWidget {
             tooltip: 'Remove',
             onPressed: onRemove,
             visualDensity: VisualDensity.compact,
-            icon: const Icon(Icons.close_rounded, color: Colors.white38,
-                size: 17),
+            icon: const Icon(
+              Icons.close_rounded,
+              color: Colors.white38,
+              size: 17,
+            ),
           ),
         ],
       ),
@@ -807,10 +808,7 @@ class _PersonRow extends StatelessWidget {
                 Text(
                   profile.handle,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 12.5,
-                  ),
+                  style: const TextStyle(color: Colors.white54, fontSize: 12.5),
                 ),
               ],
             ),
@@ -955,9 +953,7 @@ class _EmptyResults extends StatelessWidget {
           const Icon(Icons.search_off_rounded, color: Colors.white38, size: 34),
           const SizedBox(height: 14),
           Text(
-            query.isEmpty
-                ? 'Nothing matched.'
-                : 'Nothing here for “$query”.',
+            query.isEmpty ? 'Nothing matched.' : 'Nothing here for “$query”.',
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,

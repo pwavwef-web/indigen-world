@@ -19,14 +19,12 @@ import 'package:indigen_world_mobile/features/community/community_profile_screen
 import 'package:indigen_world_mobile/features/community/compose_post_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/chat_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
-import 'package:indigen_world_mobile/features/community/data/community_prompt.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_space_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/compose_draft_store.dart';
 import 'package:indigen_world_mobile/features/community/data/feed_discovery.dart';
-import 'package:indigen_world_mobile/features/community/data/post_category.dart';
-import 'package:indigen_world_mobile/features/community/feed_preferences_screen.dart';
 import 'package:indigen_world_mobile/features/community/media_picker.dart';
 import 'package:indigen_world_mobile/features/community/people_screen.dart';
 import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
@@ -34,7 +32,6 @@ import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart'
 import 'package:indigen_world_mobile/features/community/widgets/community_compose_bar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_post_card.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_sidebar.dart';
-import 'package:indigen_world_mobile/features/community/widgets/daily_prompt_strip.dart';
 import 'package:indigen_world_mobile/features/community/widgets/new_voices_module.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
@@ -43,6 +40,7 @@ import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 /// The community tab: a live Firestore feed with the daily prompt, the
@@ -63,6 +61,13 @@ const double kCommunityHeaderHeight = _headerRowHeight + _feedTabsHeight;
 
 class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   var _tab = 0;
+  String? _communityId;
+  CommunitySpace? get _space => ref
+      .read(joinedCommunitiesProvider)
+      .asData
+      ?.value
+      .where((space) => space.id == _communityId)
+      .firstOrNull;
   final _viewedPostIds = <String>{};
 
   /// The feed's own scroll, so the header and the rail can be brought back and
@@ -191,6 +196,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
           replyTo: replyTo,
           quoteTo: quoteTo,
           initialText: draft.text,
+          initialCategory: draft.category,
           initialAttachments: staged,
         ),
       ),
@@ -315,7 +321,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     setState(() => _adopt(_latestFeed));
     ref.read(shellChromeVisibilityProvider.notifier).reveal();
     if (!_scroll.hasClients) return;
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (!motionAllowed(context)) {
       _lastScrollOffset = 0;
       _scroll.jumpTo(0);
       return;
@@ -326,15 +332,16 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     _lastScrollOffset = 0;
     await _scroll.animateTo(
       0,
-      duration: const Duration(milliseconds: 420),
+      duration: AppMotion.emphasized,
       curve: Curves.easeOutCubic,
     );
   }
 
   void _switchTab(int tab) {
-    if (tab == _tab) return;
+    if (tab == _tab && _communityId == null) return;
     setState(() {
       _tab = tab;
+      _communityId = null;
       // The other half of the timeline has its own line to draw.
       _anchor = null;
       _knownIds.clear();
@@ -387,11 +394,15 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   /// its end, and the page they have is full — a short page is the whole feed.
   void _maybeLoadMore(ScrollMetrics metrics) {
     if (metrics.extentAfter > 1400) return;
-    final key = _tab == 0 ? kForYouFeed : kFollowingFeed;
-    final window = _tab == 0
+    final key = _communityId ?? (_tab == 0 ? kForYouFeed : kFollowingFeed);
+    final window = _communityId != null
+        ? ref.watch(communityFeedWindowsProvider(_communityId!))
+        : _tab == 0
         ? ref.read(communityFeedWindowProvider)
         : ref.read(communityFeedWindowsProvider(kFollowingFeed));
-    final raw = _tab == 0
+    final raw = _communityId != null
+        ? ref.read(rawCommunitySpaceFeedProvider(_communityId!))
+        : _tab == 0
         ? ref.read(rawCommunityFeedProvider)
         : ref.read(rawFollowingFeedProvider);
     final delivered = raw.value?.length ?? 0;
@@ -422,19 +433,10 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   Future<void> _composeWithMedia(
     CommunityActions actions,
     CommunityMediaKind kind,
-  ) => actions.compose(context, startWithMedia: kind);
-
-  Future<void> _answerPrompt(
-    CommunityActions actions,
-    CommunityPrompt? prompt,
   ) => actions.compose(
     context,
-    initialText: prompt?.initialText ?? '',
-    category: prompt == null
-        ? PostCategory.language
-        : prompt.category ?? PostCategory.language,
-    hintText:
-        prompt?.composeHint ?? AppLocalizations.of(context).communityPromptHint,
+    startWithMedia: kind,
+    community: _space?.toPostStamp(),
   );
 
   void _trackVisiblePost(
@@ -469,7 +471,16 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
       unawaited(_flyHome());
     });
     final actions = CommunityActions(ref);
-    final feed = _tab == 0
+    ref.listen(joinedCommunitiesProvider, (_, next) {
+      if (_communityId != null &&
+          next.hasValue &&
+          !next.value!.any((space) => space.id == _communityId)) {
+        _switchTab(0);
+      }
+    });
+    final feed = _communityId != null
+        ? ref.watch(communitySpaceFeedProvider(_communityId!))
+        : _tab == 0
         ? ref.watch(communityFeedProvider)
         : ref.watch(followingFeedProvider);
     if (feed case AsyncError(:final error)) _noteFeedFailure(error);
@@ -483,11 +494,15 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
         const <String, String>{};
     final currentUid = ref.watch(currentUidProvider);
     final chromeVisible = ref.watch(shellChromeVisibilityProvider);
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
-    final rawFeed = _tab == 0
+    final reduceMotion = !motionAllowed(context);
+    final rawFeed = _communityId != null
+        ? ref.watch(rawCommunitySpaceFeedProvider(_communityId!))
+        : _tab == 0
         ? ref.watch(rawCommunityFeedProvider)
         : ref.watch(rawFollowingFeedProvider);
-    final window = _tab == 0
+    final window = _communityId != null
+        ? ref.watch(communityFeedWindowsProvider(_communityId!))
+        : _tab == 0
         ? ref.watch(communityFeedWindowProvider)
         : ref.watch(communityFeedWindowsProvider(kFollowingFeed));
     // Widening the window re-subscribes at a larger limit. While that is in
@@ -526,7 +541,8 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
               child: FloatingActionButton(
                 heroTag: 'community-compose',
                 tooltip: l10n.communityNewPost,
-                onPressed: () => actions.compose(context),
+                onPressed: () =>
+                    actions.compose(context, community: _space?.toPostStamp()),
                 backgroundColor: context.brand.accentFill,
                 foregroundColor: context.brand.onAccentFill,
                 child: const Icon(Icons.edit_rounded),
@@ -544,6 +560,11 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                 // The spinner belongs under the header rather than behind it.
                 edgeOffset: kCommunityHeaderHeight,
                 onRefresh: () async {
+                  if (_communityId != null) {
+                    ref.invalidate(
+                      rawCommunitySpaceFeedProvider(_communityId!),
+                    );
+                  }
                   ref
                     ..invalidate(communityFeedClientProvider)
                     ..invalidate(rawCommunityFeedProvider)
@@ -571,18 +592,13 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                     ),
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                        child: _HomePromptStrip(
-                          onAnswer: (prompt) => _answerPrompt(actions, prompt),
-                        ),
-                      ),
-                    ),
-                    SliverToBoxAdapter(
-                      child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                         child: CommunityComposeBar(
                           placeholder: l10n.communityCompose,
-                          onCompose: () => actions.compose(context),
+                          onCompose: () => actions.compose(
+                            context,
+                            community: _space?.toPostStamp(),
+                          ),
                           onAddPhoto: () => _composeWithMedia(
                             actions,
                             CommunityMediaKind.photo,
@@ -606,7 +622,11 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                     ...switch ((feed, shown)) {
                       (_, final posts?) when posts.isEmpty => [
                         SliverToBoxAdapter(
-                          child: _EmptyFeed(tab: _tab, actions: actions),
+                          child: _EmptyFeed(
+                            tab: _communityId == null ? _tab : 2,
+                            actions: actions,
+                            community: _space,
+                          ),
                         ),
                       ],
                       (_, final posts?) => [
@@ -631,7 +651,10 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                             onSeen: _trackVisiblePost,
                             // For you only: the Following feed is people the
                             // reader already chose.
-                            offerNewVoices: _tab == 0 && _offerNewVoices,
+                            offerNewVoices:
+                                _communityId == null &&
+                                _tab == 0 &&
+                                _offerNewVoices,
                             footer: loadingMore
                                 ? const _FeedFooter.loading()
                                 : reachedEnd && posts.length > 4
@@ -641,7 +664,12 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                         ),
                       ],
                       (AsyncValue(:final error?), _) => [
-                        SliverToBoxAdapter(child: _FeedError(error: error)),
+                        SliverToBoxAdapter(
+                          child: _FeedError(
+                            error: error,
+                            communityId: _communityId,
+                          ),
+                        ),
                       ],
                       _ => [const SliverToBoxAdapter(child: _FeedSkeleton())],
                     },
@@ -654,6 +682,18 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                 right: 0,
                 child: _PinnedCommunityHeader(
                   tab: _tab,
+                  communityId: _communityId,
+                  onCommunity: (id) {
+                    setState(() {
+                      _communityId = id;
+                      _anchor = null;
+                      _knownIds.clear();
+                      _pending = 0;
+                      _requestedWindow = 0;
+                    });
+                    if (_scroll.hasClients) _scroll.jumpTo(0);
+                    ref.read(shellChromeVisibilityProvider.notifier).reveal();
+                  },
                   onChangeTab: _switchTab,
                   onOpenMenu: () => _scaffoldKey.currentState?.openDrawer(),
                 ),
@@ -911,7 +951,12 @@ class _FeedPost extends ConsumerWidget {
         onMore: () => actions.showPostMenu(context, post),
         onOpen: () => Navigator.of(context).push(
           MaterialPageRoute<void>(
-            builder: (context) => PostDetailScreen(postId: post.id),
+            builder: (context) => PostDetailScreen(
+              postId: post.id,
+              privateCommunityId: post.community?.isPrivate == true
+                  ? post.community!.id
+                  : null,
+            ),
           ),
         ),
         onOpenAuthor: () {
@@ -960,9 +1005,13 @@ class _PinnedCommunityHeader extends ConsumerWidget {
     required this.tab,
     required this.onChangeTab,
     required this.onOpenMenu,
+    required this.communityId,
+    required this.onCommunity,
   });
 
   final int tab;
+  final String? communityId;
+  final ValueChanged<String> onCommunity;
   final ValueChanged<int> onChangeTab;
   final VoidCallback onOpenMenu;
 
@@ -975,7 +1024,7 @@ class _PinnedCommunityHeader extends ConsumerWidget {
       child: AnimatedContainer(
         // Respects the system's reduce-motion setting: the header still goes,
         // it just does not travel.
-        duration: MediaQuery.disableAnimationsOf(context)
+        duration: !motionAllowed(context)
             ? Duration.zero
             : const Duration(milliseconds: 240),
         curve: Curves.easeOutCubic,
@@ -1005,7 +1054,12 @@ class _PinnedCommunityHeader extends ConsumerWidget {
                   ),
                   SizedBox(
                     height: _feedTabsHeight,
-                    child: _FeedTabs(selected: tab, onChanged: onChangeTab),
+                    child: _FeedTabs(
+                      selected: tab,
+                      onChanged: onChangeTab,
+                      communityId: communityId,
+                      onCommunity: onCommunity,
+                    ),
                   ),
                 ],
               ),
@@ -1035,11 +1089,11 @@ class _NewPostsPill extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return AnimatedSlide(
       offset: count > 0 ? Offset.zero : const Offset(0, -1.8),
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutBack,
+      duration: motionOr(context, AppMotion.standard),
+      curve: AppMotion.arrive,
       child: AnimatedOpacity(
         opacity: count > 0 ? 1 : 0,
-        duration: const Duration(milliseconds: 180),
+        duration: motionOr(context, AppMotion.quick),
         child: IgnorePointer(
           ignoring: count == 0,
           child: Semantics(
@@ -1304,86 +1358,77 @@ class _NotificationBell extends StatelessWidget {
   }
 }
 
-// ── Daily prompt ────────────────────────────────────────────────────────────
+// ── Feed switch ─────────────────────────────────────────────────────────────
 
-/// The main feed's daily prompt: whatever staff have published for the home
-/// scope, or the built-in invitation in [kHomeFeedPromptLanguage].
-class _HomePromptStrip extends ConsumerWidget {
-  const _HomePromptStrip({required this.onAnswer});
-
-  final ValueChanged<CommunityPrompt?> onAnswer;
+class _FeedTabs extends ConsumerWidget {
+  const _FeedTabs({
+    required this.selected,
+    required this.onChanged,
+    required this.communityId,
+    required this.onCommunity,
+  });
+  final int selected;
+  final ValueChanged<int> onChanged;
+  final String? communityId;
+  final ValueChanged<String> onCommunity;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final prompt = ref
-        .watch(communityPromptProvider(kHomeFeedPromptScope))
-        .asData
-        ?.value;
-    final title =
-        prompt?.title ?? l10n.communityPromptTitle(kHomeFeedPromptLanguage);
-    final subtitle = prompt?.subtitle ?? l10n.communityPromptSubtitle;
-    return DailyPromptStrip(
-      title: title,
-      subtitle: subtitle,
-      imageUrl: prompt?.imageUrl,
-      semanticLabel: l10n.communityPromptSemantics(title, subtitle),
-      onTap: () => onAnswer(prompt),
-    );
-  }
-}
-
-// ── Feed switch ─────────────────────────────────────────────────────────────
-
-class _FeedTabs extends StatelessWidget {
-  const _FeedTabs({required this.selected, required this.onChanged});
-
-  final int selected;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Row(
-      children: [
-        _FeedTab(
-          label: l10n.communityForYou,
-          selected: selected == 0,
-          onTap: () => onChanged(0),
-        ),
-        _FeedTab(
-          label: l10n.communityFollowing,
-          selected: selected == 1,
-          onTap: () => onChanged(1),
-        ),
-        if (communityRecommendationsEnabled)
-          IconButton(
-            tooltip: 'Your feed interests',
-            icon: const Icon(Icons.tune_rounded),
-            onPressed: () => Navigator.of(context).push(
+    final joined = ref.watch(joinedCommunitiesProvider);
+    final seen = <String>{};
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _FeedTab(
+            label: l10n.communityForYou,
+            selected: communityId == null && selected == 0,
+            onTap: () => onChanged(0),
+          ),
+          _FeedTab(
+            label: l10n.communityFollowing,
+            selected: communityId == null && selected == 1,
+            onTap: () => onChanged(1),
+          ),
+          _FeedTab(
+            key: const Key('community-communities-tab'),
+            label: l10n.communityCommunitiesTab,
+            semanticLabel: l10n.communityCommunitiesTabSemantics,
+            leading: Icons.add_rounded,
+            selected: false,
+            selectable: false,
+            onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
-                builder: (_) => const FeedPreferencesScreen(),
+                builder: (_) => const CommunitiesScreen(),
               ),
             ),
           ),
-        // Not a third feed. It sits in the same row, set in the same type, so
-        // it reads as part of where you can go from here — but it has no rule
-        // under it, because it is never where you *are*: it opens the
-        // communities directory on top of the feed.
-        _FeedTab(
-          key: const Key('community-communities-tab'),
-          label: l10n.communityCommunitiesTab,
-          semanticLabel: l10n.communityCommunitiesTabSemantics,
-          leading: Icons.add_rounded,
-          selected: false,
-          selectable: false,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (context) => const CommunitiesScreen(),
+          for (final space in joined.asData?.value ?? const <CommunitySpace>[])
+            if (seen.add(space.id))
+              _FeedTab(
+                key: ValueKey('feed-community-${space.id}'),
+                label: space.name,
+                selected: space.id == communityId,
+                onTap: () => onCommunity(space.id),
+              ),
+          if (joined.isLoading)
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             ),
-          ),
-        ),
-      ],
+          if (joined.hasError)
+            IconButton(
+              tooltip: 'Retry joined communities',
+              onPressed: () => ref.invalidate(joinedCommunitiesProvider),
+              icon: const Icon(Icons.refresh_rounded),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -1395,7 +1440,7 @@ class _FeedTabs extends StatelessWidget {
 /// between two halves of the same timeline is not something you press so much
 /// as somewhere you are — which is what an underline says and a filled
 /// capsule does not.
-class _FeedTab extends StatelessWidget {
+class _FeedTab extends StatefulWidget {
   const _FeedTab({
     required this.label,
     required this.selected,
@@ -1421,7 +1466,28 @@ class _FeedTab extends StatelessWidget {
   final bool selectable;
 
   @override
+  State<_FeedTab> createState() => _FeedTabState();
+}
+
+class _FeedTabState extends State<_FeedTab> {
+  bool _revealSelected = true;
+  @override
+  void didUpdateWidget(_FeedTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.selected && widget.selected ||
+        oldWidget.label != widget.label) {
+      _revealSelected = true;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final label = widget.label;
+    final selected = widget.selected;
+    final leading = widget.leading;
+    final semanticLabel = widget.semanticLabel;
+    final selectable = widget.selectable;
+    final onTap = widget.onTap;
     final brand = context.brand;
     final color = selected ? brand.ink : brand.mutedInk;
     final style = TextStyle(
@@ -1429,7 +1495,21 @@ class _FeedTab extends StatelessWidget {
       fontSize: 14.5,
       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
     );
-    return Expanded(
+    if (selected && _revealSelected) {
+      _revealSelected = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          Scrollable.ensureVisible(
+            context,
+            duration: motionOr(context, AppMotion.standard),
+            alignment: 0.5,
+          );
+        }
+      });
+    }
+    return SizedBox(
+      height: _feedTabsHeight,
+      width: (label.length * 9.0 + 40).clamp(100, 280),
       child: Semantics(
         button: true,
         selected: selectable ? selected : null,
@@ -1442,33 +1522,31 @@ class _FeedTab extends StatelessWidget {
             children: [
               Expanded(
                 child: Center(
-                  // Scales down rather than wrapping or clipping when a long
-                  // translation or a large text size meets a narrow phone.
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (leading != null) ...[
-                            Icon(leading, size: 18, color: brand.accent),
-                            const SizedBox(width: 3),
-                          ],
-                          Text(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (leading != null) ...[
+                          Icon(leading, size: 18, color: brand.accent),
+                          const SizedBox(width: 3),
+                        ],
+                        Flexible(
+                          child: Text(
                             label,
                             textAlign: TextAlign.center,
                             maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: style,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
               AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
+                duration: motionOr(context, AppMotion.quick),
                 curve: Curves.easeOut,
                 height: 3,
                 width: selected ? 58 : 0,
@@ -1488,7 +1566,8 @@ class _FeedTab extends StatelessWidget {
 // ── Placeholder states ──────────────────────────────────────────────────────
 
 class _EmptyFeed extends StatelessWidget {
-  const _EmptyFeed({required this.tab, required this.actions});
+  const _EmptyFeed({required this.tab, required this.actions, this.community});
+  final CommunitySpace? community;
 
   final int tab;
   final CommunityActions actions;
@@ -1514,7 +1593,8 @@ class _EmptyFeed extends StatelessWidget {
             icon: Icons.forum_outlined,
             title: l10n.communityEmptyFeed,
             action: FilledButton.icon(
-              onPressed: () => actions.compose(context),
+              onPressed: () =>
+                  actions.compose(context, community: community?.toPostStamp()),
               icon: const Icon(Icons.edit_rounded),
               label: Text(l10n.communityFirstPost),
             ),
@@ -1529,7 +1609,8 @@ class _EmptyFeed extends StatelessWidget {
 /// and telling somebody on full signal to check their connection only sends
 /// them looking in the wrong place.
 class _FeedError extends ConsumerWidget {
-  const _FeedError({required this.error});
+  const _FeedError({required this.error, this.communityId});
+  final String? communityId;
 
   final Object error;
 
@@ -1543,6 +1624,9 @@ class _FeedError extends ConsumerWidget {
           : l10n.communityFeedFailed,
       action: FilledButton.icon(
         onPressed: () {
+          if (communityId != null) {
+            ref.invalidate(rawCommunitySpaceFeedProvider(communityId!));
+          }
           ref
             ..invalidate(communityFeedClientProvider)
             ..invalidate(rawCommunityFeedProvider)

@@ -35,6 +35,7 @@ import 'package:indigen_world_mobile/features/explore/reel_media.dart';
 import 'package:indigen_world_mobile/features/explore/reel_overflow_menu.dart';
 import 'package:indigen_world_mobile/features/explore/reel_rail.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:video_player/video_player.dart';
 
 /// One card in a vertical reel feed.
@@ -725,6 +726,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
   /// The member's own intent for the active reel: they have not tapped it to a
   /// stop. Reset to true on every new reel.
   var _playing = true;
+  var _manuallyRequested = false;
   var _foreground = true;
 
   /// True while a full screen this feed pushed — a creator's page, a thread, a
@@ -856,7 +858,11 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     }
   }
 
-  bool get _effectivePlaying => _playing && !_sheetPaused && !_audioPaused;
+  bool get _effectivePlaying =>
+      _playing &&
+      (_manuallyRequested || ref.read(effectiveVideoAutoplayProvider)) &&
+      !_sheetPaused &&
+      !_audioPaused;
 
   @override
   void didUpdateWidget(ReelFeedView oldWidget) {
@@ -891,6 +897,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
       // one slides into its place and is a new look, not a continuation.
       _activeIndex = oldIndex.clamp(0, next.length - 1);
       _playing = true;
+      _manuallyRequested = false;
       _startVisit();
       // The pager is moved with it. A list that shrank past the member's page
       // left the pager beyond its own end, and the spring that brought it back
@@ -969,6 +976,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     setState(() {
       _activeIndex = index;
       _playing = true;
+      _manuallyRequested = false;
       _sheetPaused = false;
       _audioPaused = false;
     });
@@ -1112,7 +1120,8 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     if (reel.isVideo) {
       HapticFeedback.selectionClick();
       setState(() {
-        _playing = !_playing;
+        _playing = !_effectivePlaying;
+        _manuallyRequested = true;
         _audioPaused = false;
       });
       if (_playing) chrome?.interacted();
@@ -1197,7 +1206,7 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
     // The data-saving switch in Settings. Off means only the reel in front is
     // ever fetched: nothing opened ahead of a swipe the member may not make,
     // and nothing kept behind them either.
-    final openNeighbours = ref.watch(videoAutoplayProvider);
+    final openNeighbours = ref.watch(effectiveVideoAutoplayProvider);
 
     // Its own Material, so the words and ink on every card have a text style
     // and a surface to draw on wherever the feed is shown — the shell provides
@@ -1262,9 +1271,12 @@ class _ReelFeedViewState extends ConsumerState<ReelFeedView>
                   isActive: isActive,
                   keepPlayer:
                       _holdPlayers &&
-                      (isActive || (isNeighbour && openNeighbours)),
+                      ((isActive && (openNeighbours || _manuallyRequested)) ||
+                          (isNeighbour && openNeighbours)),
                   isPlaying: isActive && _effectivePlaying,
-                  userPaused: isActive && !_playing,
+                  userPaused:
+                      isActive &&
+                      (!_playing || (!openNeighbours && !_manuallyRequested)),
                   onScreen: onScreen,
                   liked: liked,
                   serverLiked: serverLiked,
@@ -1763,7 +1775,10 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
   Offset? _heartAt;
   var _heartKey = 0;
 
+  bool _stillRequested = false;
   void _onTapUp(TapUpDetails details) {
+    if (widget.reel.isImage && !_stillRequested)
+      setState(() => _stillRequested = true);
     final like = widget.onDoubleTapLike;
     if (like == null) {
       widget.onTapMedia();
@@ -2055,7 +2070,10 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
 
     final ready = _ready ? _controller : null;
     final media = ReelMediaFrame(
-      imageUrl: reel.imageUrl,
+      imageUrl:
+          ref.watch(lowDataModeProvider) && reel.isImage && !_stillRequested
+          ? (reel.communityMedia?.thumbnailUrl ?? '')
+          : reel.imageUrl,
       isActive: widget.isActive,
       controller: ready,
       aspectRatio: reel.mediaAspectRatio,
@@ -2091,6 +2109,18 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
           fit: StackFit.expand,
           children: [
             media,
+            if (ref.watch(lowDataModeProvider) &&
+                reel.isImage &&
+                !_stillRequested)
+              const Center(
+                child: Text(
+                  'Tap to load full image',
+                  style: TextStyle(
+                    color: Colors.white,
+                    backgroundColor: Colors.black54,
+                  ),
+                ),
+              ),
             // The shades exist to make the words legible, so they leave with
             // the words and the picture is left clean.
             Positioned(
@@ -2326,7 +2356,7 @@ class _HeartBurstState extends State<_HeartBurst>
               tween: Tween(
                 begin: 0.4,
                 end: 1.18,
-              ).chain(CurveTween(curve: Curves.easeOutBack)),
+              ).chain(CurveTween(curve: AppMotion.arrive)),
               weight: 35,
             ),
             TweenSequenceItem(tween: Tween(begin: 1.18, end: 1), weight: 15),
@@ -2384,7 +2414,7 @@ class _ProgressDock extends StatelessWidget {
     if (chrome == null) return dock(bottomInset);
     return ValueListenableBuilder<bool>(
       valueListenable: chrome,
-      builder: (context, visible, _) => dock(visible ? bottomInset : 0),
+      builder: (context, visible, _) => dock(bottomInset),
     );
   }
 }
@@ -2639,7 +2669,7 @@ class _ReelProgressBarState extends State<ReelProgressBar> {
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 3),
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 140),
+                    duration: motionOr(context, AppMotion.quick),
                     // The track spans the card; only the gold part is how far
                     // through the clip it is.
                     width: double.infinity,

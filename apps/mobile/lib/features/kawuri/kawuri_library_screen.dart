@@ -174,7 +174,11 @@ class KawuriCreationTile extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
           child: Row(
             children: [
-              Icon(kawuriCreationIcon(creation), color: context.brand.nightAccent, size: 28),
+              Icon(
+                kawuriCreationIcon(creation),
+                color: context.brand.nightAccent,
+                size: 28,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

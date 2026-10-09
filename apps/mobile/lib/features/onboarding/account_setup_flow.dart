@@ -12,6 +12,7 @@ import 'package:indigen_world_mobile/features/community/request_kasem_name_scree
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// What a new account is walked through the moment it exists.
 ///
@@ -62,7 +63,7 @@ extension on _Step {
 ///
 /// Long enough to read as a movement rather than a cut, short enough that
 /// somebody filling in five steps never waits on it.
-const _kStepDuration = Duration(milliseconds: 420);
+const _kStepDuration = AppMotion.standard;
 const _kStepCurve = Curves.easeOutCubic;
 
 class _AccountSetupFlowState extends ConsumerState<AccountSetupFlow> {
@@ -103,7 +104,8 @@ class _AccountSetupFlowState extends ConsumerState<AccountSetupFlow> {
   }
 
   void _next() {
-    final next = _Step.values[(_step.index + 1).clamp(0, _Step.values.length - 1)];
+    final next =
+        _Step.values[(_step.index + 1).clamp(0, _Step.values.length - 1)];
     HapticFeedback.selectionClick();
     _goTo(next);
   }
@@ -283,7 +285,7 @@ class _FlowHeader extends StatelessWidget {
               ),
               Expanded(
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 260),
+                  duration: motionOr(context, AppMotion.standard),
                   child: Text(
                     step.label,
                     key: ValueKey(step),
@@ -946,8 +948,8 @@ Future<String?> _awaitUid(ProviderContainer container) async {
 /// would read as a page somebody navigated to rather than as the same moment
 /// continuing.
 Route<bool> accountSetupRoute() => PageRouteBuilder<bool>(
-  transitionDuration: const Duration(milliseconds: 460),
-  reverseTransitionDuration: const Duration(milliseconds: 280),
+  transitionDuration: AppMotion.emphasized,
+  reverseTransitionDuration: AppMotion.standard,
   pageBuilder: (context, animation, secondaryAnimation) =>
       const AccountSetupFlow(),
   transitionsBuilder: (context, animation, secondaryAnimation, child) {

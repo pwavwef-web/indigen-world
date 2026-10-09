@@ -20,19 +20,28 @@ void main() {
       {'lexicalKind': 'idiom'},
       {'lexicalKind': 'proverb'},
     ]) {
-      expect(dictionaryEntryFromData('expression', {
-        'kasemText': 'A whole expression, with clauses / intact',
-        'englishText': 'Hello, how are you?',
-        'isPublished': true,
-        ...fields,
-      }), isNull);
+      expect(
+        dictionaryEntryFromData('expression', {
+          'kasemText': 'A whole expression, with clauses / intact',
+          'englishText': 'Hello, how are you?',
+          'isPublished': true,
+          ...fields,
+        }),
+        isNull,
+      );
     }
   });
   test('legacy words and word entries with sentence examples remain', () {
-    for (final fields in <Map<String, dynamic>>[{}, {'lexicalKind': 'word'}]) {
+    for (final fields in <Map<String, dynamic>>[
+      {},
+      {'lexicalKind': 'word'},
+    ]) {
       final entry = dictionaryEntryFromData('word', {
-        'kasemText': 'Na', 'englishText': 'water', 'isPublished': true,
-        'kasemExample': 'A complete example sentence.', ...fields,
+        'kasemText': 'Na',
+        'englishText': 'water',
+        'isPublished': true,
+        'kasemExample': 'A complete example sentence.',
+        ...fields,
       });
       expect(entry, isNotNull);
       expect(entry!.example, 'A complete example sentence.');
@@ -330,21 +339,24 @@ void main() {
       expect(entry.verbForms, hasLength(3));
     });
 
-    test('the stored readings of the forms are preferred to re-parsing them', () {
-      final entry = dictionaryEntryFromData('da', {
-        'kasemText': 'da',
-        'englishText': 'days',
-        'partOfSpeech': 'noun',
-        'isPublished': true,
-        'forms': {'definite': 'da yam', 'counted': 'da yalei'},
-        'definiteArticle': 'yam',
-        'numeralSeries': 'yalei',
-        'numeralPrefix': 'ya',
-      })!;
+    test(
+      'the stored readings of the forms are preferred to re-parsing them',
+      () {
+        final entry = dictionaryEntryFromData('da', {
+          'kasemText': 'da',
+          'englishText': 'days',
+          'partOfSpeech': 'noun',
+          'isPublished': true,
+          'forms': {'definite': 'da yam', 'counted': 'da yalei'},
+          'definiteArticle': 'yam',
+          'numeralSeries': 'yalei',
+          'numeralPrefix': 'ya',
+        })!;
 
-      expect(entry.article, 'yam');
-      expect(entry.numeral?.prefix, 'ya');
-    });
+        expect(entry.article, 'yam');
+        expect(entry.numeral?.prefix, 'ya');
+      },
+    );
 
     test('an entry from before any of this reads as having none of it', () {
       // Fifteen thousand rows, and not one of them is going to be back-filled.

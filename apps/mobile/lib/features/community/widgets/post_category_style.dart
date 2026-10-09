@@ -12,6 +12,8 @@ import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 /// Every value clears 4.5:1 against its own ground, because the label is text.
 extension PostCategoryStyle on PostCategory {
   Color colorOn(BrandPalette brand) => switch (this) {
+    PostCategory.event => brand.accent,
+    PostCategory.update => brand.success,
     PostCategory.question => brand.pick(
       const Color(0xFF2149B8),
       const Color(0xFF8EB4FF),
@@ -39,6 +41,8 @@ extension PostCategoryStyle on PostCategory {
   };
 
   IconData get icon => switch (this) {
+    PostCategory.event => Icons.event_outlined,
+    PostCategory.update => Icons.groups_outlined,
     PostCategory.question => Icons.help_outline_rounded,
     PostCategory.language => Icons.translate_rounded,
     PostCategory.culture => Icons.diversity_3_rounded,
@@ -48,6 +52,8 @@ extension PostCategoryStyle on PostCategory {
   };
 
   String label(AppLocalizations l10n) => switch (this) {
+    PostCategory.event => 'Events',
+    PostCategory.update => 'Community Updates',
     PostCategory.question => l10n.postCategoryQuestion,
     PostCategory.language => l10n.postCategoryLanguage,
     PostCategory.culture => l10n.postCategoryCulture,

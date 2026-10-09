@@ -2,25 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
-/// Whether Explore's furniture is on screen: the search and profile controls,
-/// the topic row, the action rail, the words at the bottom and the nav bar.
+/// Shared emphasis for Explore's header, topic row, action rail and captions.
+/// All controls stay visible and tappable. The flag selects full or subdued
+/// opacity; it never means that the controls are removed.
 ///
-/// ── One flag for all of it ──────────────────────────────────────────────────
-/// They leave together and come back together. A rail that lingers after the
-/// caption has gone, or a nav bar that returns before the rail, reads as a
-/// layout coming apart rather than as a screen getting out of the way.
-///
-/// ── The rules ───────────────────────────────────────────────────────────────
-///   * Everything is visible when Explore opens.
-///   * It goes while a reel plays uninterrupted, after [idleDelay] with nobody
-///     touching anything, and while the member drags on to the next reel.
-///   * It comes back on a tap, on a small drag back towards the previous reel,
-///     when playback is paused, and whenever something is [hold]ing it — an
-///     open menu, the Context sheet, the translation panel.
-///   * It comes back when a new reel settles, briefly, so every reel says who
-///     made it before it gets out of the way. That is the one "interaction
-///     requires it" the feed decides for itself.
+/// Full emphasis returns on the first touch, while paused, when a new reel
+/// settles and while a menu or sheet holds the controls. After idle playback,
+/// or during a swipe, controls become subdued without changing their layout.
 ///
 /// ── No flicker ──────────────────────────────────────────────────────────────
 /// A hide asked for within [settleGap] of a show is deferred rather than
@@ -198,10 +188,9 @@ class ExploreChromeController extends ChangeNotifier
 /// Fades and nudges [child] with the chrome, and stops it taking touches while
 /// it is away.
 ///
-/// Only opacity and a small translation move — never layout — so the reel
-/// behind does not shift by a pixel when the chrome goes. With no controller
-/// the child is simply always there, which is how a creator's page and search
-/// results keep their controls.
+/// Controls remain visible and tappable while subdued. The first touch restores
+/// full emphasis and reaches the original action without pausing the video.
+/// Opacity changes never move the reel or its touch targets.
 class ExploreChromeFade extends StatelessWidget {
   const ExploreChromeFade({
     required this.controller,
@@ -213,32 +202,25 @@ class ExploreChromeFade extends StatelessWidget {
   final ValueListenable<bool>? controller;
   final Widget child;
 
-  /// Where the child drifts to while hidden, as a fraction of its own size.
+  /// Retained for existing callers; subdued controls keep their position.
   final Offset slide;
 
   @override
   Widget build(BuildContext context) {
     final controller = this.controller;
     if (controller == null) return child;
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
-    final duration = reduceMotion
-        ? Duration.zero
-        : const Duration(milliseconds: 220);
     return ValueListenableBuilder<bool>(
       valueListenable: controller,
       child: child,
-      builder: (context, visible, child) => IgnorePointer(
-        ignoring: !visible,
-        child: AnimatedSlide(
-          offset: visible || reduceMotion ? Offset.zero : slide,
-          duration: duration,
-          curve: Curves.easeOutCubic,
-          child: AnimatedOpacity(
-            opacity: visible ? 1 : 0,
-            duration: duration,
-            curve: Curves.easeOut,
-            child: ExcludeSemantics(excluding: !visible, child: child),
-          ),
+      builder: (context, visible, child) => Listener(
+        onPointerDown: (_) {
+          if (controller is ExploreChromeController) controller.interacted();
+        },
+        child: AnimatedOpacity(
+          opacity: visible ? 1 : 0.72,
+          duration: motionOr(context, AppMotion.standard),
+          curve: AppMotion.arrive,
+          child: child,
         ),
       ),
     );

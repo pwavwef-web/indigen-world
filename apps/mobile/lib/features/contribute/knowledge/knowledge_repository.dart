@@ -51,16 +51,21 @@ class FirebaseKnowledgeRepository implements KnowledgeRepository {
     _member();
     try {
       final result = await FirebaseFunctions.instance
-          .httpsCallable(name, options: HttpsCallableOptions(timeout: const Duration(seconds: 45)))
+          .httpsCallable(
+            name,
+            options: HttpsCallableOptions(timeout: const Duration(seconds: 45)),
+          )
           .call<Object?>(arguments);
       return knowledgeMap(result.data);
     } on FirebaseFunctionsException catch (error) {
       throw KnowledgeFailure(switch (error.code) {
-        'unauthenticated' => 'Your session has ended. Sign in from your profile and try again.',
+        'unauthenticated' =>
+          'Your session has ended. Sign in from your profile and try again.',
         'permission-denied' => 'This record is not available to your account.',
         'aborted' => 'This record changed on another device. Reopen it before saving your next revision.',
         'not-found' || 'unimplemented' => 'The knowledge workspace is not available on this server yet. Please try again later.',
-        'invalid-argument' || 'failed-precondition' => error.message ?? 'Check the record and permissions, then try again.',
+        'invalid-argument' || 'failed-precondition' =>
+          error.message ?? 'Check the record and permissions, then try again.',
         _ => 'The workspace could not be reached. Check your connection and retry. Any open edits are still here.',
       });
     }
@@ -68,28 +73,46 @@ class FirebaseKnowledgeRepository implements KnowledgeRepository {
 
   @override
   Future<KnowledgePage> list({String? cursor}) async => KnowledgePage.fromMap(
-    await _call('listKnowledgeRecords', {'scope': 'mine', if (cursor != null) 'cursor': cursor}),
+    await _call('listKnowledgeRecords', {'scope': 'mine', 'cursor': ?cursor}),
   );
 
   @override
-  Future<Map<String, dynamic>> get(String id) => _call('getKnowledgeRecord', {'id': id});
+  Future<Map<String, dynamic>> get(String id) =>
+      _call('getKnowledgeRecord', {'id': id});
 
   @override
-  Future<Map<String, dynamic>> save({required Map<String, dynamic> record, required String requestId, required bool submit, String? id, int? revision}) async => knowledgeMap(
+  Future<Map<String, dynamic>> save({
+    required Map<String, dynamic> record,
+    required String requestId,
+    required bool submit,
+    String? id,
+    int? revision,
+  }) async => knowledgeMap(
     (await _call('saveKnowledgeRecord', {
-      'record': record, 'requestId': requestId, 'submit': submit,
-      if (id != null) 'id': id, if (revision != null) 'revision': revision,
+      'record': record,
+      'requestId': requestId,
+      'submit': submit,
+      'id': ?id,
+      'revision': ?revision,
     }))['record'],
   );
 
   @override
-  Future<Map<String, dynamic>> withdraw(String id, int revision) async => knowledgeMap(
-    (await _call('withdrawKnowledgeRecord', {'id': id, 'revision': revision}))['record'],
-  );
+  Future<Map<String, dynamic>> withdraw(String id, int revision) async =>
+      knowledgeMap(
+        (await _call('withdrawKnowledgeRecord', {
+          'id': id,
+          'revision': revision,
+        }))['record'],
+      );
 
   @override
   Future<Map<String, dynamic>> readAudio(String id, int revision, int index) =>
-    _call('readKnowledgeAudio', {'id': id, 'revision': revision, 'index': index});
+      _call('readKnowledgeAudio', {
+        'id': id,
+        'revision': revision,
+        'index': index,
+      });
 
   @override
   Future<String> upload(PickedContributionFile file) async {
@@ -98,20 +121,26 @@ class FirebaseKnowledgeRepository implements KnowledgeRepository {
       throw const KnowledgeFailure('Choose a recording smaller than 20 MB.');
     }
     final safeName = file.name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
-    final path = 'grammarAudio/$uid/${DateTime.now().microsecondsSinceEpoch}_$safeName';
+    final path =
+        'grammarAudio/$uid/${DateTime.now().microsecondsSinceEpoch}_$safeName';
     try {
-      await FirebaseStorage.instance.ref(path).putFile(
-        File(file.path), SettableMetadata(contentType: file.mimeType),
-      );
+      await FirebaseStorage.instance
+          .ref(path)
+          .putFile(
+            File(file.path),
+            SettableMetadata(contentType: file.mimeType),
+          );
       return path;
     } on FirebaseException {
-      throw const KnowledgeFailure('The recording was not uploaded. Check your connection and try again.');
+      throw const KnowledgeFailure(
+        'The recording was not uploaded. Check your connection and try again.',
+      );
     }
   }
 }
 
-final knowledgeRepositoryProvider = Provider<KnowledgeRepository>((ref) =>
-  FirebaseKnowledgeRepository(ref.watch(firebaseAuthProvider)),
+final knowledgeRepositoryProvider = Provider<KnowledgeRepository>(
+  (ref) => FirebaseKnowledgeRepository(ref.watch(firebaseAuthProvider)),
 );
 
 final knowledgePageProvider = FutureProvider<KnowledgePage>((ref) {

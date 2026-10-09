@@ -143,10 +143,10 @@ void main() {
         song(id: '2', title: 'Zaanem'),
       ];
 
-      expect(
-        resolveRecent(['2', '1'], items).map((item) => item.title),
-        ['Zaanem', 'Na'],
-      );
+      expect(resolveRecent(['2', '1'], items).map((item) => item.title), [
+        'Zaanem',
+        'Na',
+      ]);
     });
 
     test('an unpublished record drops off the shelf instead of throwing', () {

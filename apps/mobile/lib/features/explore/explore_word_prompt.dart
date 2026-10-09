@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:indigen_world_mobile/features/contribute/language_loop_analytics.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/queue_lookup.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/word_queue_models.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// Reels the member moves through before the first word prompt.
 const int kPromptFirstAfterReels = 5;
@@ -142,35 +143,41 @@ class _ExploreWordPromptState extends ConsumerState<ExploreWordPrompt> {
       _shown++;
       _lastShownAt = _moves;
     });
-    ref.read(loopAnalyticsProvider).log(
-      LoopEvent.promptImpression,
-      parameters: loopParameters({
-        'origin': 'explore',
-        'word_id': next.id,
-        'word': next.word,
-      }),
-    );
+    ref
+        .read(loopAnalyticsProvider)
+        .log(
+          LoopEvent.promptImpression,
+          parameters: loopParameters({
+            'origin': 'explore',
+            'word_id': next.id,
+            'word': next.word,
+          }),
+        );
   }
 
   void _open(QueueWord word) {
-    ref.read(loopAnalyticsProvider).log(
-      LoopEvent.promptOpen,
-      parameters: loopParameters({
-        'origin': 'explore',
-        'word_id': word.id,
-        'word': word.word,
-      }),
-    );
+    ref
+        .read(loopAnalyticsProvider)
+        .log(
+          LoopEvent.promptOpen,
+          parameters: loopParameters({
+            'origin': 'explore',
+            'word_id': word.id,
+            'word': word.word,
+          }),
+        );
     setState(() => _word = null);
     unawaited(context.push('/contribute/word/${word.id}?origin=explore'));
   }
 
   Future<void> _dismiss(QueueWord word) async {
     setState(() => _word = null);
-    ref.read(loopAnalyticsProvider).log(
-      LoopEvent.promptDismiss,
-      parameters: loopParameters({'origin': 'explore', 'word_id': word.id}),
-    );
+    ref
+        .read(loopAnalyticsProvider)
+        .log(
+          LoopEvent.promptDismiss,
+          parameters: loopParameters({'origin': 'explore', 'word_id': word.id}),
+        );
     try {
       await (await ref.read(queuePromptMemoryProvider.future)).dismiss(word.id);
     } on Object {
@@ -186,7 +193,7 @@ class _ExploreWordPromptState extends ConsumerState<ExploreWordPrompt> {
       left: 12,
       right: 12,
       child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 260),
+        duration: motionOr(context, AppMotion.standard),
         switchInCurve: Curves.easeOutCubic,
         switchOutCurve: Curves.easeInCubic,
         transitionBuilder: (child, animation) => FadeTransition(

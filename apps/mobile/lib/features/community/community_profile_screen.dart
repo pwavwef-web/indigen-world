@@ -14,6 +14,7 @@ import 'package:indigen_world_mobile/features/community/widgets/people_widgets.d
 import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
 import 'package:indigen_world_mobile/features/subscriptions/widgets/supporter_badge.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// A member's community profile: cover, identity, counts and their posts,
 /// replies, media and appreciated posts.
@@ -535,7 +536,7 @@ class _ProfileTabs extends StatelessWidget {
                     ),
                     const SizedBox(height: 7),
                     AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
+                      duration: motionOr(context, AppMotion.standard),
                       height: 3,
                       width: selected == index ? 26 : 0,
                       decoration: BoxDecoration(

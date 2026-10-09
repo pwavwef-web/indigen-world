@@ -16,7 +16,7 @@ const id = (x: unknown): string => {
   if (typeof x !== 'string' || !/^[\w-]{1,128}$/.test(x)) throw new HttpsError('invalid-argument', 'Invalid identifier.');
   return x;
 };
-const validTopics = ['question','language','culture','music','story','announcement'];
+const validTopics = ['question','language','culture','music','story','event','community_update','announcement'];
 const arrayFields = ['topics','cultures','languages','countries','communities','mutedTopics'] as const;
 export function validateFeedPreferences(data: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};

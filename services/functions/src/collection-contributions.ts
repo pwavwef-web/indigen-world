@@ -1,4 +1,5 @@
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { submissionRetry, checkSubmissionRetry } from './submission-retry.js';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { requireAuth } from './auth.js';
 import { consumeRateLimit } from './rate-limit.js';
@@ -701,7 +702,8 @@ export const submitCollectionContribution = onCall(
     await consumeRateLimit('submitCollectionContribution', uid, 10);
     const input = parseCollectionContributionInput(req.data, uid);
     const db = getFirestore();
-    const contributionRef = db.collection('collectionContributions').doc();
+    const retry = submissionRetry(uid, 'collection', req.data?.requestId, input);
+    const contributionRef = retry ? db.collection('collectionContributions').doc(retry.id) : db.collection('collectionContributions').doc();
     const submissionRef = db.collection('submissions').doc(contributionRef.id);
     const campaignRef = db.collection('campaigns').doc(COLLECTION_CAMPAIGN_ID);
     const auditRef = db.collection('auditLogs').doc();
@@ -709,17 +711,18 @@ export const submitCollectionContribution = onCall(
     const now = nowIso();
 
     await db.runTransaction(async (tx) => {
+      if (retry && checkSubmissionRetry((await tx.get(contributionRef)).data(), uid, retry.hash)) return;
       const campaign = await tx.get(campaignRef);
       if (!campaign.exists) {
         tx.set(campaignRef, buildCollectionCampaignDocument(now));
       }
 
-      tx.set(contributionRef, buildCollectionContributionReceipt(
+      tx.set(contributionRef, { ...buildCollectionContributionReceipt(
         contributionRef.id,
         submissionRef.id,
         uid,
         input,
-      ));
+      ), ...(retry ? { submissionRequestHash: retry.hash } : {}) });
       tx.set(submissionRef, buildCollectionSubmissionDocument(
         submissionRef.id,
         uid,

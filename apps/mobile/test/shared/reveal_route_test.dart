@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:indigen_world_mobile/shared/reveal_route.dart';
 
 const _tileKey = Key('tile');
@@ -66,7 +67,7 @@ void main() {
 
     await tester.tap(find.text('open'));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 16));
+    await tester.pump(AppMotion.emphasized * 0.02);
 
     // A moment in, the window is still about the tile's size and place.
     final early = _window(tester);

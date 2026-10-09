@@ -305,10 +305,15 @@ class WordTranslationDraft {
     this.origin = 'queue',
     this.creditByName = true,
     this.allowTraining = false,
+    this.publicationPermission = true,
     this.reviseContributionId,
+    this.requestId,
+    this.expectedRevision,
   });
 
   final String wordId;
+  final String? requestId;
+  final int? expectedRevision;
 
   /// Where the member came to this word from: `queue`, `explore`, `search`,
   /// `topic` or `kawuri`. Kept on the answer as provenance.
@@ -321,6 +326,7 @@ class WordTranslationDraft {
   /// Whether the member agreed to this answer being used to test and train
   /// Indigen's language tools. Off unless they said yes.
   final bool allowTraining;
+  final bool publicationPermission;
 
   /// The member's own earlier answer to this word that a reviewer sent back
   /// for changes, when this draft corrects it; null for a new answer.
@@ -500,6 +506,8 @@ class WordTranslationDraft {
   /// either; and the server refuses a client-supplied copy in both worlds,
   /// because a stored copy of a rule is free to disagree with the rule.
   Map<String, Object?> toPayload() => <String, Object?>{
+    'requestId': ?requestId,
+    'expectedRevision': ?expectedRevision,
     'wordId': wordId,
     'translations': translations,
     'partOfSpeech': partOfSpeech,
@@ -511,6 +519,7 @@ class WordTranslationDraft {
     'origin': origin,
     'credit': creditByName ? 'name' : 'anonymous',
     if (allowTraining) 'aiTraining': true,
+    if (!publicationPermission) 'publicationPermission': false,
     'reviseContributionId': ?reviseContributionId,
     // Every one of these is omitted when empty, so the great majority of
     // answers send exactly the keys they always did.
@@ -631,6 +640,9 @@ class QueueRevision {
     this.dialect = '',
     this.partOfSpeechId = '',
     this.reviewerNote = '',
+    this.revisionCount = 0,
+    this.details = const {},
+    this.publicationPermission = true,
   });
 
   final String contributionId;
@@ -646,4 +658,7 @@ class QueueRevision {
   final String dialect;
   final String partOfSpeechId;
   final String reviewerNote;
+  final int revisionCount;
+  final Map<String, dynamic> details;
+  final bool publicationPermission;
 }

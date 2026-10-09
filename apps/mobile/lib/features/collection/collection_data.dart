@@ -546,7 +546,10 @@ String _formsValue(Map<String, dynamic> data, String key) {
 /// When neither yields anything the list is derived by splitting the English
 /// gloss, which is how the fifteen thousand entries published before any of
 /// this existed gain the new shape without a migration nobody was going to run.
-List<String> _translations(Map<String, dynamic> data, {required String english}) {
+List<String> _translations(
+  Map<String, dynamic> data, {
+  required String english,
+}) {
   final declared = _stringList(data['englishTranslations']);
   // Joined and re-split rather than used as-is, so a list that arrived from an
   // older client keeps the same de-duplication, trimming and cap as one this

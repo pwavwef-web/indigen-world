@@ -1,3 +1,4 @@
+import { studioReturn } from '../authReturn';
 import { WorkspaceContext } from './context';
 import { KnowledgeWorkspace } from '../knowledge/KnowledgeWorkspace';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -29,9 +30,11 @@ import './contributor.css';
  */
 export function ContributorPortal() {
   const { user, ready, role, refreshToken } = useAuth();
-  const { path, search } = useRoute();
+  const { path, search, navigate } = useRoute();
   const linkOwner = invitationLinkOwner(path);
   const code = new URLSearchParams(search).get('oobCode');
+  const returnTo = studioReturn(new URLSearchParams(search).get('returnTo'));
+  useEffect(() => { if (ready && user && returnTo && !code && !linkOwner) navigate(returnTo, { replace: true }); }, [ready, user?.uid, returnTo, code, linkOwner]);
   const corpusRoute = path === '/contributor/corpus';
   const reviewRoute = path === '/contributor/review';
   const [access, setAccess] = useState<'loading' | 'active' | 'denied'>('loading');
@@ -235,7 +238,8 @@ export function ContributorActivation() {
 }
 
 export function ContributorSignIn({ code }: { code: string | null }) {
-  const { path, navigate } = useRoute();
+  const { path, navigate, search } = useRoute();
+  const destination = studioReturn(new URLSearchParams(search).get('returnTo')) ?? (code ? path : path + search);
   const [email, setEmail] = useState(''), [password, setPassword] = useState('');
   const [error, setError] = useState(''), [busy, setBusy] = useState(false);
   const [reset, setReset] = useState(false), [notice, setNotice] = useState('');
@@ -248,13 +252,13 @@ export function ContributorSignIn({ code }: { code: string | null }) {
       event.preventDefault(); setBusy(true); setError('');
       try {
         if (reset) {
-          await sendPasswordResetEmail(auth, email.trim(), { url: window.location.origin + '/contributor' });
+          await sendPasswordResetEmail(auth, email.trim(), { url: window.location.origin + '/contributor' + (studioReturn(new URLSearchParams(search).get('returnTo')) ? '?returnTo=' + encodeURIComponent(destination) : '') });
           setNotice('If this email has an account, a reset link is on its way. Check your inbox and spam folder.');
           return;
         }
         if (code) await confirmPasswordReset(auth, code, password);
         await signInWithEmailAndPassword(auth, email, password);
-        navigate(path, { replace: true });
+        navigate(destination, { replace: true });
       } catch (reason) {
         const codeName = (reason as { code?: string })?.code ?? '';
         setError(['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found', 'auth/invalid-login-credentials'].includes(codeName)

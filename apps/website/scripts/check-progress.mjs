@@ -22,6 +22,7 @@ const capture = async (page, name) => {
 const errors = [];
 async function samplePage(options = {}) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, ...options });
+  if(process.env.PROGRESS_BLOCK_EXTERNAL === 'true') await context.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
   const page = await context.newPage();
   page.on('pageerror', error => errors.push(error.message));
   await page.addInitScript(() => {
@@ -33,7 +34,6 @@ async function samplePage(options = {}) {
     }).observe(document, { childList: true, subtree: true });
   });
   await page.goto(origin + '/progress');
-  await page.locator('.floating-vessel').first().waitFor();
   await page.getByRole('button', { name: 'Options', exact: true }).click();
   await page.getByRole('button', { name: 'Preview sample targets', exact: true }).click();
   await page.locator('.pipeline-status[data-state="sample"]').waitFor();

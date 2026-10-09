@@ -110,7 +110,11 @@ class PracticeMessage extends StatelessWidget {
 }
 
 class PracticeProgressBar extends StatelessWidget {
-  const PracticeProgressBar({required this.done, required this.total, super.key});
+  const PracticeProgressBar({
+    required this.done,
+    required this.total,
+    super.key,
+  });
 
   final int done;
   final int total;

@@ -146,7 +146,8 @@ class ContributeScreen extends StatelessWidget {
                     key: const ValueKey('contribute-knowledge-workspace'),
                     icon: Icons.menu_book_rounded,
                     title: 'Build Kasem knowledge',
-                    subtitle: 'Capture meaning, context, sources and regional forms',
+                    subtitle:
+                        'Capture meaning, context, sources and regional forms',
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (context) => const KnowledgeWorkspaceScreen(),
@@ -309,7 +310,8 @@ class _ReviewDeskCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (!ref.watch(isReviewerProvider)) return const SizedBox.shrink();
 
-    final waitingWork = ref.watch(reviewWaitingCountProvider).asData?.value ?? 0;
+    final waitingWork =
+        ref.watch(reviewWaitingCountProvider).asData?.value ?? 0;
     final waitingAds =
         ref.watch(adReviewWaitingCountProvider).asData?.value ?? 0;
     final waiting = waitingWork + waitingAds;
@@ -337,9 +339,7 @@ class _ReviewDeskCard extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 15, 14, 15),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: brand.accent.withValues(alpha: 0.35),
-                ),
+                border: Border.all(color: brand.accent.withValues(alpha: 0.35)),
               ),
               child: Row(
                 children: [
@@ -394,10 +394,7 @@ class _ReviewDeskCard extends ConsumerWidget {
                                     '${waitingWork == 1 ? '' : 's'} · '
                                     '$waitingAds advert'
                                     '${waitingAds == 1 ? '' : 's'}',
-                          style: TextStyle(
-                            color: brand.mutedInk,
-                            fontSize: 12,
-                          ),
+                          style: TextStyle(color: brand.mutedInk, fontSize: 12),
                         ),
                       ],
                     ),

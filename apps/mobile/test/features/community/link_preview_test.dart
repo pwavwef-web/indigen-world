@@ -29,19 +29,18 @@ CommunityPost _post(
   String text, {
   List<CommunityMedia> media = const [],
   bool verified = true,
-}) =>
-    CommunityPost(
-      id: 'post-1',
-      authorId: 'author-1',
-      authorName: 'Ayine',
-      authorUsername: 'ayine',
-      authorPhoneVerified: verified,
-      text: text,
-      media: media,
-      likeCount: 0,
-      replyCount: 0,
-      createdAt: DateTime(2026, 9, 4),
-    );
+}) => CommunityPost(
+  id: 'post-1',
+  authorId: 'author-1',
+  authorName: 'Ayine',
+  authorUsername: 'ayine',
+  authorPhoneVerified: verified,
+  text: text,
+  media: media,
+  likeCount: 0,
+  replyCount: 0,
+  createdAt: DateTime(2026, 9, 4),
+);
 
 Future<void> _pumpPost(
   WidgetTester tester, {
@@ -102,7 +101,10 @@ void main() {
     });
 
     test('a default port is dropped and an unusual one is kept', () {
-      expect(normaliseLinkUrl('https://example.com:443/a'), 'https://example.com/a');
+      expect(
+        normaliseLinkUrl('https://example.com:443/a'),
+        'https://example.com/a',
+      );
       expect(
         normaliseLinkUrl('https://example.com:8443/a'),
         'https://example.com:8443/a',
@@ -167,14 +169,18 @@ void main() {
       );
       expect(
         linkPreviewKey(
-          normaliseLinkUrl('https://WWW.bbc.co.uk/news/story?id=7&utm_source=x')!,
+          normaliseLinkUrl(
+            'https://WWW.bbc.co.uk/news/story?id=7&utm_source=x',
+          )!,
         ),
         '32e43d37b4ee8bbd5e80d823ca7639e002adb903a9c494d59b534fc1a67ebfb3',
       );
     });
 
     test('two spellings of the same link land on one document', () {
-      final plain = linkPreviewKey(normaliseLinkUrl('https://example.com/a?b=1')!);
+      final plain = linkPreviewKey(
+        normaliseLinkUrl('https://example.com/a?b=1')!,
+      );
       final shared = linkPreviewKey(
         normaliseLinkUrl('HTTPS://Example.com:443/a?b=1&fbclid=zzz#top')!,
       );

@@ -27,6 +27,31 @@ double _entranceOpacity(WidgetTester tester) {
 }
 
 void main() {
+  testWidgets(
+    'system accessibility navigation disables shared motion without hiding content',
+    (tester) async {
+      bool? allowed;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(accessibleNavigation: true),
+            child: Builder(
+              builder: (context) {
+                allowed = motionAllowed(context);
+                return const EntranceGate(
+                  child: Entrance(child: Text('Ready')),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      expect(allowed, isFalse);
+      expect(find.text('Ready'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('an entrance fades its child in, once', (tester) async {
     await tester.pumpWidget(_app(const Entrance(child: Text('hello'))));
 
@@ -45,7 +70,7 @@ void main() {
     expect(find.byType(Opacity), findsNothing);
   });
 
-  testWidgets('a list staggers, and stops staggering after the eighth', (
+  testWidgets('list rows arrive together without delaying long lists', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -66,9 +91,8 @@ void main() {
           find.ancestor(of: find.text(text), matching: find.byType(Opacity)),
         )
         .opacity;
-    expect(opacityOf('first'), greaterThan(opacityOf('eighth')));
-    // The fortieth row waits exactly as long as the eighth, not five times
-    // longer for rows nobody can see yet.
+    expect(opacityOf('first'), opacityOf('eighth'));
+    // Later rows use the same brief feedback as the first.
     expect(opacityOf('fortieth'), opacityOf('eighth'));
     await tester.pump(const Duration(milliseconds: 800));
   });

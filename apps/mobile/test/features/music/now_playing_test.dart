@@ -53,6 +53,7 @@ final _navigator = GlobalKey<NavigatorState>();
 Future<ProviderContainer> _pumpApp(
   WidgetTester tester, {
   bool playing = true,
+  bool reduced = false,
 }) async {
   tester.view
     ..physicalSize = const Size(1170, 2532)
@@ -83,9 +84,12 @@ Future<ProviderContainer> _pumpApp(
       child: MaterialApp(
         navigatorKey: _navigator,
         theme: buildIndigenTheme(),
-        builder: (context, child) => MusicOverlay(
-          brand: brandPaletteFor(Brightness.light),
-          child: child!,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: reduced),
+          child: MusicOverlay(
+            brand: brandPaletteFor(Brightness.light),
+            child: child!,
+          ),
         ),
         home: Scaffold(
           body: Builder(
@@ -171,6 +175,24 @@ void main() {
     await tester.pump();
     expect(_controllerOf(container).touched, ['pause']);
   });
+
+  testWidgets(
+    'reduced motion keeps artwork skip gestures immediate and artwork centred',
+    (tester) async {
+      final container = await _pumpApp(tester, reduced: true);
+      await _openNowPlaying(tester);
+      final artwork = find.bySemanticsLabel(RegExp('^Artwork for'));
+      await tester.fling(artwork, const Offset(-300, 0), 1500);
+      expect(_controllerOf(container).touched, ['next']);
+      await tester.pump();
+      expect(tester.getCenter(artwork).dx, closeTo(195, 1));
+      await tester.fling(artwork, const Offset(300, 0), 1500);
+      expect(_controllerOf(container).touched, ['next', 'previous']);
+      await tester.pump();
+      expect(tester.getCenter(artwork).dx, closeTo(195, 1));
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('throwing the artwork sideways changes the song', (tester) async {
     final container = await _pumpApp(tester);

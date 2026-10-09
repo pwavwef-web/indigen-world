@@ -3,7 +3,8 @@ import { logger } from 'firebase-functions';
 import { dictionaryRecordFrom, englishSenses, normaliseTerm, sentenceRequest, translationTerms, type DictionaryRecord } from './kawuri-dictionary.js';
 import { publicSentences, type EvidenceNote } from './kasem-evidence.js';
 import { heldOutEvidenceIds } from './kasem-dataset.js';
-import { resolveKnowledge } from './knowledge-release.js';
+import { resolveKnowledge, resolveKnowledgeCandidates } from './knowledge-release.js';
+import { findCandidates, CANDIDATE_MAX_KEYS, CANDIDATE_MAX_PAGES, CANDIDATE_PAGE_SIZE } from './kawuri-candidate-index.js';
 import type { knowledgeProjection } from './knowledge-policy.js';
 import { directSourceCorpusRecord } from './kawuri-corpus.js';
 import { grammarRecordFrom, matchSpellingRules, matchBookGrammarRules, type GrammarRecord } from './kawuri-grammar.js';
@@ -37,7 +38,7 @@ export interface QuotedExpression {
   dialect: string; context: string; source: 'contributor' | 'evidence' | 'corpus' | 'book';
   category?: string; attribution?: string;
 }
-export interface GroundingSources { words: DictionaryRecord[]; expressions: QuotedExpression[]; spellingRules?: GrammarRecord[] }
+export interface GroundingSources { words: DictionaryRecord[]; expressions: QuotedExpression[]; spellingRules?: GrammarRecord[]; lookup?: { candidates: number; limited: boolean; evidenceWithheld: boolean } }
 export interface GroundedAnswer {
   configured: true; reply: string;
   verified: { entryId: string; kasem: string; english: string }[];
@@ -111,13 +112,20 @@ async function loadReleasedExpressions(): Promise<QuotedExpression[]> {
 
 function isWord(data: Record<string, unknown>): boolean {
   return data.isPublished === true && data.contentKind !== 'expression'
+    && data.withdrawn !== true && data.deleted !== true && data.publicationEligible !== false
+    && (!data.culturalPermissionTier || data.culturalPermissionTier === 'public')
+    && (!data.datasetSplit || data.datasetSplit === 'train') && !data.reservedSplit
     && data.collectionKind !== 'expressions' && !['phrase', 'idiom', 'proverb'].includes(clean(data.lexicalKind));
 }
 
 /** Read publication and withdrawal state fresh. No dictionary cache or provider
  * upload; evaluation evidence remains excluded even from this local lookup. */
-export async function loadGroundingSources(): Promise<GroundingSources> {
+export async function loadGroundingSources(plan?: GroundingPlan): Promise<GroundingSources> {
   const db = getFirestore();
+  if (plan && process.env.KAWURI_CANDIDATE_INDEX === 'true') {
+    const readiness = await db.doc('kawuriIndexState/current').get();
+    if (readiness.get('schema') === 1 && readiness.get('ready') === true) return loadIndexedGrounding(plan);
+  }
   const [dictionary, pairs, evidence, released] = await Promise.all([
     db.collection('dictionaryEntries').where('isPublished', '==', true).limit(MAX_RECORDS + 1).get(),
     db.collection('contributorTrainingPairs').limit(MAX_RECORDS + 1).get(),
@@ -183,6 +191,70 @@ export async function loadGroundingSources(): Promise<GroundingSources> {
     }
   }
   return { words, expressions, spellingRules };
+}
+
+async function loadIndexedGrounding(plan: GroundingPlan): Promise<GroundingSources> {
+  const db = getFirestore();
+  const terms = plan.examples ? [`examples:${plan.category}`] : [plan.query];
+  if (isSpellingQuestion(plan.query) || isBookGrammarQuestion(plan.query)) terms.push(...plan.query.toLowerCase().match(/[a-z]+/g) ?? []);
+  const { candidates, limited } = await findCandidates(terms.slice(0, CANDIDATE_MAX_KEYS));
+  const words: DictionaryRecord[] = [], expressions: QuotedExpression[] = [], spellingRules: GrammarRecord[] = [];
+  const corpusIds = candidates.filter(row => row.collection === 'knowledgeRecords').map(row => row.sourceId);
+  for (let start = 0; start < corpusIds.length; start += 100) {
+    for (const record of await resolveKnowledgeCandidates(corpusIds.slice(start, start + 100))) {
+      const expression = releasedExpression(record); if (expression) expressions.push(expression);
+    }
+  }
+  const ordinary = candidates.filter(row => !['knowledgeRecords', 'kasemEvidence'].includes(row.collection));
+  for (let start = 0; start < ordinary.length; start += 100) {
+    const page = ordinary.slice(start, start + 100);
+    const sources = await db.getAll(...page.map(row => db.collection(row.collection).doc(row.sourceId)));
+    for (let index = 0; index < sources.length; index++) {
+      const source = sources[index]!, data = source.data(), collection = page[index]!.collection;
+      if (!data || data.withdrawn === true || data.deleted === true) continue;
+      if (collection === 'dictionaryEntries' && isWord(data)) {
+        const importId = data.importId ?? data.importBatch;
+        if (data.publicationMode === 'owner-direct-source' && (!DIRECT_SOURCE_BOOK_IDS.some(id => id === importId) || !publishedSourceManifest(importId, { ...(await db.collection('dictionaryImports').doc(importId).get()).data(), importId }))) continue;
+        const word = dictionaryRecordFrom(source.id, data);
+        if (word && quotableForm(word.kasem) && quotableForm(word.english)) words.push(word);
+      } else if (collection === 'submissions') {
+        const expression = contributorExpression(source.id, data); if (expression) expressions.push(expression);
+      } else if (['kasemSentences', 'grammarRules', 'expressionEntries'].includes(collection)) {
+        const importId = data.importId ?? data.importBatch;
+        if (!DIRECT_SOURCE_BOOK_IDS.some(id => id === importId)) continue;
+        const manifest = { ...(await db.collection('dictionaryImports').doc(importId).get()).data(), importId };
+        if (!publishedSourceManifest(importId, manifest)) continue;
+        if (collection === 'kasemSentences') {
+          const record = directSourceCorpusRecord(source.id, data, manifest);
+          if (record && quotableForm(record.kasem)) expressions.push({ id: source.id, english: record.english, kasem: record.kasem, alternatives: [], dialect: record.dialect, context: record.note, source: 'book', attribution: clean(data.attribution) });
+        } else if (collection === 'grammarRules' && data.status === 'published' && data.publicationMode === 'owner-direct-source') {
+          const record = grammarRecordFrom(source.id, data); if (record) spellingRules.push(record);
+        } else if (collection === 'expressionEntries' && data.isPublished === true && data.publicationMode === 'owner-direct-source' && quotableForm(data.phrase)) {
+          expressions.push({ id: source.id, english: clean(data.meaning), kasem: data.phrase, alternatives: [], dialect: clean(data.dialect), context: clean(data.culturalNote), source: 'book', attribution: clean(data.attribution) });
+        }
+      }
+    }
+  }
+  // Family membership is computed by the existing complete-set algorithm.
+  // A partial graph cannot certify absence of a held-out relative. At the
+  // family ceiling withhold this source alone, keeping other exact matches usable.
+  let evidenceWithheld = false;
+  const evidenceIds = new Set(candidates.filter(row => row.collection === 'kasemEvidence').map(row => row.sourceId));
+  if (evidenceIds.size && process.env.KASEM_EVIDENCE_RETRIEVAL !== 'false') {
+    const snapshot = await db.collection('kasemEvidence').where('schemaVersion', '==', 2).limit(MAX_RECORDS + 1).get();
+    evidenceWithheld = snapshot.size > MAX_RECORDS;
+    if (!evidenceWithheld) {
+      const notes = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as EvidenceNote);
+      const heldOut = heldOutEvidenceIds(notes);
+      for (const note of notes) if (evidenceIds.has(note.id) && !heldOut.has(note.id)) {
+        for (const row of publicSentences(note, new Date().toISOString())) if (quotableForm(row.kasem)) {
+          const context = row.context as { situation?: string; preceding?: string } | undefined;
+          expressions.push({ id: clean(row.id), english: clean(row.english), kasem: row.kasem, alternatives: [], dialect: clean(row.dialect), context: [context?.situation, context?.preceding].filter(Boolean).join('\n'), source: 'evidence' });
+        }
+      }
+    }
+  }
+  return { words, expressions, spellingRules, lookup: { candidates: candidates.length, limited, evidenceWithheld } };
 }
 
 export function parseGroundingPlan(raw: unknown): GroundingPlan | null {
@@ -332,10 +404,14 @@ export function renderGroundedLesson(turns: readonly GroundingTurn[], entries: D
 }
 
 export async function groundedAnswerFor(turns: readonly GroundingTurn[], planned: GroundingPlan | null,
-  load: () => Promise<GroundingSources> = loadGroundingSources): Promise<GroundedAnswer> {
+  load: (plan?: GroundingPlan) => Promise<GroundingSources> = loadGroundingSources): Promise<GroundedAnswer> {
   const plan = chooseGroundingPlan(turns, planned);
   if (plan.kind === 'app' || plan.kind === 'unsupported') return renderGroundedAnswer(plan, { words: [], expressions: [] });
-  try { return renderGroundedAnswer(plan, await load()); }
+  try {
+    const sources = await load(plan), answer = renderGroundedAnswer(plan, sources);
+    if (sources.lookup && (sources.lookup.limited || sources.lookup.evidenceWithheld || answer.reply === MISSING)) answer.reply += `\n\nThis lookup checks up to ${CANDIDATE_MAX_PAGES * CANDIDATE_PAGE_SIZE} indexed candidates. ${sources.lookup.limited ? 'More candidates exist; this is not a complete inventory.' : 'A missing match does not prove no record exists.'}${sources.lookup.evidenceWithheld ? ' Sentence evidence is withheld because its complete held-out family graph exceeds the verification limit.' : ''}`;
+    return answer;
+  }
   catch (error) {
     logger.warn('Kawuri grounding unavailable; returning no language', { errorType: error instanceof Error ? error.name : 'unknown' });
     return { configured: true, reply: UNAVAILABLE, verified: [] };

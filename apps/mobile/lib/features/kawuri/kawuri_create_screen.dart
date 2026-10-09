@@ -454,7 +454,11 @@ class _KawuriCreateScreenState extends ConsumerState<KawuriCreateScreen> {
                     ),
                   )
                 else
-                  Icon(Icons.image_outlined, color: context.brand.nightAccent, size: 40),
+                  Icon(
+                    Icons.image_outlined,
+                    color: context.brand.nightAccent,
+                    size: 40,
+                  ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(

@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -20,7 +22,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 ///
 /// Order of preference: a real thumbnail, then the clip's first frame, then a
 /// branded placeholder. It never shows a bare colour.
-class VideoCover extends StatefulWidget {
+class VideoCover extends ConsumerStatefulWidget {
   const VideoCover({
     required this.videoUrl,
     this.thumbnailUrl,
@@ -37,10 +39,10 @@ class VideoCover extends StatefulWidget {
   final BoxFit fit;
 
   @override
-  State<VideoCover> createState() => _VideoCoverState();
+  ConsumerState<VideoCover> createState() => _VideoCoverState();
 }
 
-class _VideoCoverState extends State<VideoCover> {
+class _VideoCoverState extends ConsumerState<VideoCover> {
   /// How many covers may hold a decoder at once, across the whole app.
   ///
   /// One visible video tile is cheap. A three-column grid of a creator's work
@@ -92,7 +94,13 @@ class _VideoCoverState extends State<VideoCover> {
   }
 
   Future<void> _open() async {
-    if (!mounted || _controller != null || _failed || !_needsFrame) return;
+    if (!mounted ||
+        _controller != null ||
+        _failed ||
+        !_needsFrame ||
+        ref.read(lowDataModeProvider)) {
+      return;
+    }
     if (_openCovers >= _maxOpenCovers) {
       _waitingForSlot.add(this);
       return;
@@ -185,6 +193,12 @@ class _VideoCoverState extends State<VideoCover> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<bool>(lowDataModeProvider, (_, enabled) {
+      if (enabled) {
+        _waitingForSlot.remove(this);
+        setState(_release);
+      }
+    });
     final thumbnail = widget.thumbnailUrl;
     if (thumbnail != null && thumbnail.isNotEmpty) {
       return CachedNetworkImage(
@@ -195,6 +209,7 @@ class _VideoCoverState extends State<VideoCover> {
       );
     }
 
+    if (ref.watch(lowDataModeProvider)) return const VideoCoverPlaceholder();
     final controller = _controller;
     return VisibilityDetector(
       key: ValueKey('video-cover-${widget.videoUrl}'),

@@ -195,8 +195,8 @@ void main() {
     expect(find.text('Pour vous'), findsOneWidget);
     expect(find.text('Abonnements'), findsOneWidget);
     expect(find.text('Communautés'), findsOneWidget);
-    expect(find.text("Aujourd'hui en Kasem"), findsOneWidget);
-    expect(find.text('Partagez un mot de chez vous'), findsOneWidget);
+    expect(find.text("Aujourd'hui en Kasem"), findsNothing);
+    expect(find.text('Partagez un mot de chez vous'), findsNothing);
     expect(find.text('Publier'), findsOneWidget);
   });
 

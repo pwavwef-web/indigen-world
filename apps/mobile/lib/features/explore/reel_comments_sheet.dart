@@ -9,6 +9,7 @@ import 'package:indigen_world_mobile/features/community/data/community_providers
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/explore/reel_engagement.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
 
 /// Opens the reply thread for a published reel.
@@ -24,6 +25,10 @@ Future<void> showReelCommentsSheet(
   required String title,
 }) => showModalBottomSheet<void>(
   context: context,
+  sheetAnimationStyle: AnimationStyle(
+    duration: motionOr(context, AppMotion.standard),
+    reverseDuration: motionOr(context, AppMotion.quick),
+  ),
   isScrollControlled: true,
   backgroundColor: Colors.transparent,
   builder: (context) => ReelCommentsSheet(reelId: reelId, title: title),

@@ -93,6 +93,27 @@ Future<void> _settle(ProviderContainer container) async {
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
+  test(
+    'Black is free, pure black in either mode and survives restart',
+    () async {
+      final container = _container();
+      await container
+          .read(brandThemeChoiceProvider.notifier)
+          .choose(BrandThemes.black);
+      expect((await readStoredBrandTheme()).themeId, 'black');
+      final restored = _container(
+        chosen: (await readStoredBrandTheme()).themeId,
+      );
+      await _settle(restored);
+      expect(restored.read(activeBrandThemeProvider), BrandThemes.black);
+      for (final brightness in Brightness.values) {
+        final theme = buildBrandTheme(BrandThemes.black, brightness);
+        expect(theme.scaffoldBackgroundColor, Colors.black);
+        expect(theme.brightness, Brightness.dark);
+      }
+    },
+  );
+
   test('a fresh install is blue', () async {
     final container = _container();
     await _settle(container);

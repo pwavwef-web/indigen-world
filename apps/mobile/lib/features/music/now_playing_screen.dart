@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
 
 import 'package:audio_service/audio_service.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +15,7 @@ import 'package:indigen_world_mobile/features/music/music_controller.dart';
 import 'package:indigen_world_mobile/features/music/music_library.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/features/music/music_tint.dart';
+import 'package:indigen_world_mobile/features/music/widgets/audio_artwork.dart';
 import 'package:indigen_world_mobile/features/music/widgets/music_bubble.dart';
 import 'package:indigen_world_mobile/features/music/widgets/music_scrubber.dart';
 import 'package:indigen_world_mobile/features/music/widgets/now_playing_backdrop.dart';
@@ -78,7 +78,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
 
   late final AnimationController _settle = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 320),
+    duration: AppMotion.standard,
   )..addListener(_onSettle);
   double _settleFrom = 0;
 
@@ -152,6 +152,8 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
       if (_pull > _dismissAt || flung) {
         HapticFeedback.lightImpact();
         Navigator.of(context).maybePop();
+      } else if (!motionAllowed(context)) {
+        setState(() => _pull = 0);
       } else {
         _settleFrom = _pull;
         _settle.forward(from: 0);
@@ -188,7 +190,9 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
         0.4,
       )!,
     );
-    final tint = watchMusicTint(ref, art) ?? fallback;
+    final tint = brand.isBlack
+        ? brand.background
+        : watchMusicTint(ref, art) ?? fallback;
     final media = MediaQuery.of(context);
     final artSize = math
         .min(media.size.width - 56, media.size.height * 0.4)
@@ -360,6 +364,10 @@ class _TopBar extends ConsumerWidget {
             tooltip: 'Up next',
             onPressed: () => showModalBottomSheet<void>(
               context: context,
+              sheetAnimationStyle: AnimationStyle(
+                duration: motionOr(context, AppMotion.standard),
+                reverseDuration: motionOr(context, AppMotion.quick),
+              ),
               isScrollControlled: true,
               backgroundColor: brand.surfaceElevated,
               showDragHandle: true,
@@ -418,6 +426,23 @@ class _ArtworkDeckState extends State<_ArtworkDeck>
   double get _offstage => widget.size * 1.35;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!motionAllowed(context)) {
+      final skip = _phase == _DeckPhase.leaving ? _pending : 0;
+      _move.stop();
+      _dx = 0;
+      _pending = 0;
+      _phase = _DeckPhase.resting;
+      if (skip != 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) widget.onSkip(skip);
+        });
+      }
+    }
+  }
+
+  @override
   void didUpdateWidget(covariant _ArtworkDeck oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.item.id == widget.item.id) return;
@@ -431,8 +456,8 @@ class _ArtworkDeckState extends State<_ArtworkDeck>
     _run(
       from: side * _offstage * 0.8,
       to: 0,
-      duration: const Duration(milliseconds: 460),
-      curve: Curves.easeOutBack,
+      duration: AppMotion.emphasized,
+      curve: AppMotion.arrive,
       phase: _DeckPhase.arriving,
     );
   }
@@ -485,8 +510,8 @@ class _ArtworkDeckState extends State<_ArtworkDeck>
         _run(
           from: side * _offstage,
           to: 0,
-          duration: const Duration(milliseconds: 420),
-          curve: Curves.easeOutBack,
+          duration: AppMotion.emphasized,
+          curve: AppMotion.arrive,
           phase: _DeckPhase.arriving,
         );
       case _DeckPhase.arriving:
@@ -512,6 +537,16 @@ class _ArtworkDeckState extends State<_ArtworkDeck>
     final velocity = details.primaryVelocity ?? 0;
     final far = _dx.abs() > widget.size * 0.28;
     final flung = velocity.abs() > 800;
+    if (!motionAllowed(context)) {
+      final direction = (flung ? velocity : _dx) < 0 ? 1 : -1;
+      setState(() {
+        _dx = 0;
+        _pending = 0;
+        _phase = _DeckPhase.resting;
+      });
+      if (far || flung) widget.onSkip(direction);
+      return;
+    }
     if (far || flung) {
       // Thrown left means "the next one"; thrown right, "the one before".
       final direction = (flung ? velocity : _dx) < 0 ? 1 : -1;
@@ -520,7 +555,7 @@ class _ArtworkDeckState extends State<_ArtworkDeck>
       _run(
         from: _dx,
         to: -direction * _offstage,
-        duration: const Duration(milliseconds: 170),
+        duration: AppMotion.quick,
         curve: Curves.easeIn,
         phase: _DeckPhase.leaving,
       );
@@ -528,8 +563,8 @@ class _ArtworkDeckState extends State<_ArtworkDeck>
       _run(
         from: _dx,
         to: 0,
-        duration: const Duration(milliseconds: 360),
-        curve: Curves.easeOutBack,
+        duration: AppMotion.emphasized,
+        curve: AppMotion.arrive,
         phase: _DeckPhase.arriving,
       );
     }
@@ -588,7 +623,7 @@ class _ArtworkDeckState extends State<_ArtworkDeck>
                     borderRadius: BorderRadius.circular(24),
                     child: art == null || art.isEmpty
                         ? fallback
-                        : CachedNetworkImage(
+                        : AudioArtwork(
                             imageUrl: art,
                             fit: BoxFit.cover,
                             memCacheWidth: decode,
@@ -862,7 +897,7 @@ class _NudgeButtonState extends State<_NudgeButton>
     with SingleTickerProviderStateMixin {
   late final AnimationController _nudge = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 300),
+    duration: motionOr(context, AppMotion.standard),
   );
 
   @override

@@ -415,7 +415,11 @@ String _text(Object? value, {String fallback = ''}) {
 /// What a reviewer may decide a word-queue answer becomes. Mirrors
 /// `PUBLISH_AS` in `services/functions/src/language-loop.ts`.
 enum AnswerTarget {
-  headword('headword', 'A dictionary word', 'Published as an entry of its own.'),
+  headword(
+    'headword',
+    'A dictionary word',
+    'Published as an entry of its own.',
+  ),
   variant(
     'variant',
     'A regional variant',

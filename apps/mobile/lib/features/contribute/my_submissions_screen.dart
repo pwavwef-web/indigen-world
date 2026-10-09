@@ -203,6 +203,10 @@ class _ContributionActivity extends ConsumerWidget {
                                         dialect: item.dialect,
                                         partOfSpeechId: item.partOfSpeechId,
                                         reviewerNote: item.reviewFeedback,
+                                        revisionCount: item.revisionCount,
+                                        details: item.queueDetails,
+                                        publicationPermission:
+                                            item.publicationPermission,
                                       ),
                                     ),
                                   ),

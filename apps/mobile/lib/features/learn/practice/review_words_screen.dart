@@ -11,6 +11,7 @@ import 'package:indigen_world_mobile/features/learn/daily_word.dart';
 import 'package:indigen_world_mobile/features/learn/learn_progress.dart';
 import 'package:indigen_world_mobile/features/learn/practice/practice_decks.dart';
 import 'package:indigen_world_mobile/features/learn/practice/practice_widgets.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// Spaced-repetition review of dictionary words.
 ///
@@ -101,8 +102,7 @@ class _ReviewWordsScreenState extends ConsumerState<ReviewWordsScreen> {
       return PracticeMessage(
         icon: Icons.menu_book_rounded,
         title: 'Nothing to review yet',
-        body:
-            'The dictionary has no published words to practise yet. New words appear here as they are approved.',
+        body: 'The dictionary has no published words to practise yet. New words appear here as they are approved.',
         actionLabel: 'Open the dictionary',
         onAction: () => Navigator.of(context).pushReplacement(
           MaterialPageRoute<void>(
@@ -118,7 +118,8 @@ class _ReviewWordsScreenState extends ConsumerState<ReviewWordsScreen> {
         title: 'Review complete',
         lines: [
           '$_knew of ${deck.length - _requeued.length} words known first time.',
-          if (_paid == true) '+${LearnProgress.xpPerPracticeDay} XP for today’s review.',
+          if (_paid == true)
+            '+${LearnProgress.xpPerPracticeDay} XP for today’s review.',
           if (_paid == false) 'Today’s review XP was already earned.',
           due == 0
               ? 'Nothing else is due today.'
@@ -128,8 +129,11 @@ class _ReviewWordsScreenState extends ConsumerState<ReviewWordsScreen> {
       );
     }
     final entry = deck[_position];
-    final card =
-        ref.watch(learnProgressProvider).asData?.value.reviewCards[entry.id];
+    final card = ref
+        .watch(learnProgressProvider)
+        .asData
+        ?.value
+        .reviewCards[entry.id];
     final brand = context.brand;
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -176,13 +180,11 @@ class _ReviewWordsScreenState extends ConsumerState<ReviewWordsScreen> {
               const SizedBox(height: 14),
               PronunciationButton(
                 audioUrl: entry.audioUrl,
-                onUnavailable: () => showPronunciationUnavailable(
-                  context,
-                  entry: entry,
-                ),
+                onUnavailable: () =>
+                    showPronunciationUnavailable(context, entry: entry),
               ),
               AnimatedSize(
-                duration: const Duration(milliseconds: 200),
+                duration: motionOr(context, AppMotion.standard),
                 child: !_revealed
                     ? const SizedBox(width: double.infinity)
                     : Padding(
@@ -261,9 +263,7 @@ class _ReviewWordsScreenState extends ConsumerState<ReviewWordsScreen> {
                 child: FilledButton(
                   key: const Key('review-knew-it'),
                   onPressed: () => _answer(knew: true),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(0, 50),
-                  ),
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 50)),
                   child: const Text('Knew it'),
                 ),
               ),

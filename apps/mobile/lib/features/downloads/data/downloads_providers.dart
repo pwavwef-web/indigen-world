@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
+import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_repository.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
 
@@ -50,12 +53,46 @@ final downloadLimitProvider = Provider<int>(
 );
 
 /// Whether offline listening is available at all right now.
+final offlineEntitlementActiveProvider = StreamProvider<bool>((ref) {
+  final uid = ref.watch(currentUidProvider);
+  final result = ref.watch(entitlementProvider);
+  final entitlement = uid == null || result.isLoading
+      ? null
+      : result.asData?.value;
+  final controller = StreamController<bool>();
+  controller.add(entitlement?.isActive ?? false);
+  Timer? timer;
+  final expiry = entitlement?.expiresAt;
+  if (expiry != null && expiry.isAfter(DateTime.now())) {
+    timer = Timer(
+      expiry.difference(DateTime.now()),
+      () => controller.add(false),
+    );
+  }
+  ref.onDispose(() {
+    timer?.cancel();
+    unawaited(controller.close());
+  });
+  return controller.stream;
+});
 final downloadsAllowedProvider = Provider<bool>(
-  (ref) => ref.watch(downloadLimitProvider) > 0,
+  (ref) =>
+      (ref.watch(offlineEntitlementActiveProvider).asData?.value ?? false) &&
+      ref.watch(downloadLimitProvider) > 0,
 );
+
+final playableDownloadsProvider = FutureProvider<Map<String, String>>((ref) {
+  ref.watch(downloadsProvider);
+  return ref.watch(downloadsRepositoryProvider).playableIndex();
+});
 
 /// Bytes on disk, for the line under the Downloads heading.
 final downloadsSizeProvider = FutureProvider<int>((ref) async {
   ref.watch(downloadsProvider);
   return ref.watch(downloadsRepositoryProvider).bytesUsed();
+});
+
+final downloadedArtworkProvider = FutureProvider<Map<String, String>>((ref) {
+  ref.watch(downloadsProvider);
+  return ref.watch(downloadsRepositoryProvider).artworkIndex();
 });

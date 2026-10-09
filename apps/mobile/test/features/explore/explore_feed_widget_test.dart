@@ -482,16 +482,23 @@ void main() {
       await _drain(tester);
     });
 
-    testWidgets('saving data opens only the reel in front', (tester) async {
-      final harness = await _pump(tester, autoplay: false);
-      await _settle(tester);
-      expect(harness.open, hasLength(1));
-      expect(
-        harness.open.single.dataSource,
-        endsWith('/${harness.order[0]}.mp4'),
-      );
-      await _drain(tester);
-    });
+    testWidgets(
+      'autoplay off waits for a tap and opens only the reel in front',
+      (tester) async {
+        final harness = await _pump(tester, autoplay: false);
+        await _settle(tester);
+        expect(harness.open, isEmpty);
+        await tester.tapAt(tester.getCenter(find.byType(PageView)));
+        await tester.pump(kDoubleTapTimeout);
+        await _settle(tester);
+        expect(harness.open, hasLength(1));
+        expect(
+          harness.open.single.dataSource,
+          endsWith('/${harness.order[0]}.mp4'),
+        );
+        await _drain(tester);
+      },
+    );
   });
 
   group('double-tap', () {

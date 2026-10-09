@@ -229,7 +229,8 @@ class FirebaseQueueLookup implements QueueLookup {
               : 'That word could not be added.',
         'resource-exhausted' =>
           'That is a lot of words very quickly. Give it a minute.',
-        _ => 'The word could not be added. Check your connection and try again.',
+        _ =>
+          'The word could not be added. Check your connection and try again.',
       });
     } on Object {
       throw const QueueLookupFailure(

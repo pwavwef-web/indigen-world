@@ -73,7 +73,9 @@ class ContributionKindScreen extends StatelessWidget {
     // only because both are exceptions and one of them has to be first.
     if (offer.isGrammarNote) {
       await navigator.push<bool>(
-        MaterialPageRoute<bool>(builder: (context) => const GrammarNoteScreen()),
+        MaterialPageRoute<bool>(
+          builder: (context) => const GrammarNoteScreen(),
+        ),
       );
       return;
     }

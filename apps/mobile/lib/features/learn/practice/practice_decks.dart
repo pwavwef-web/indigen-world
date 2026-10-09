@@ -57,7 +57,11 @@ List<DictionaryEntry> buildReviewDeck({
   if (usable.isNotEmpty) {
     final start =
         startOfDay(now).difference(DateTime(2020)).inDays.abs() % usable.length;
-    for (var step = 0; step < usable.length && fresh.length < newLimit; step++) {
+    for (
+      var step = 0;
+      step < usable.length && fresh.length < newLimit;
+      step++
+    ) {
       offer(usable[(start + step) % usable.length]);
     }
   }

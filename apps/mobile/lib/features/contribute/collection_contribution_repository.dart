@@ -26,6 +26,7 @@ class CollectionContributionRecord {
     this.publishedAs = '',
     this.duplicateOf = '',
     this.revisionCount = 0,
+    this.queueDetails = const {},
   });
 
   final String id;
@@ -53,6 +54,7 @@ class CollectionContributionRecord {
   /// The dictionary entry a rejected answer repeats, when that was the reason.
   final String duplicateOf;
   final int revisionCount;
+  final Map<String, dynamic> queueDetails;
 
   bool get isQueueAnswer => wordQueueId.isNotEmpty;
 
@@ -70,6 +72,20 @@ class CollectionContributionRecord {
     );
     final created = data['createdAt'];
     return CollectionContributionRecord(
+      queueDetails: {
+        for (final key in [
+          'forms',
+          'ipa',
+          'kasemDefinition',
+          'etymology',
+          'alsoUsedAs',
+          'media',
+          'sentenceFit',
+          'attribution',
+          'wordQueueOrigin',
+        ])
+          if (data[key] != null) key: data[key],
+      },
       id: doc.id,
       kind: category,
       title: _text(data['title'], fallback: 'Untitled contribution'),
@@ -206,12 +222,16 @@ class CollectionContributionRepository {
   CollectionReference<Map<String, dynamic>> get _collection =>
       _firestore.collection('collectionContributions');
 
-  Future<void> submit(CollectionContributionDraft draft) async {
+  Future<void> submit(
+    CollectionContributionDraft draft, {
+    String? requestId,
+  }) async {
     final callable = _functions.httpsCallable(
       'submitCollectionContribution',
       options: HttpsCallableOptions(timeout: const Duration(seconds: 45)),
     );
     await callable.call<Map<Object?, Object?>>({
+      'requestId': ?requestId,
       'collectionKind': draft.kind.name,
       'lexicalKind': draft.lexicalKind,
       'title': draft.title.trim(),
@@ -245,7 +265,8 @@ class CollectionContributionRepository {
       if (draft.ipa.trim().isNotEmpty) 'ipa': draft.ipa.trim(),
       if (draft.kasemDefinition.trim().isNotEmpty)
         'kasemDefinition': draft.kasemDefinition.trim(),
-      if (draft.etymology.trim().isNotEmpty) 'etymology': draft.etymology.trim(),
+      if (draft.etymology.trim().isNotEmpty)
+        'etymology': draft.etymology.trim(),
       // Omitted rather than sent empty, on the same terms as `forms` above.
       if (draft.senses.isNotEmpty) 'senses': draft.senses,
       'rightsConfirmed': true,
@@ -294,10 +315,7 @@ class CollectionContributionRepository {
       }
     } on FirebaseException catch (error) {
       if (error.code != 'failed-precondition') rethrow;
-      yield* mine
-          .limit(kMyContributionsLimit)
-          .snapshots()
-          .map(_newestFirst);
+      yield* mine.limit(kMyContributionsLimit).snapshots().map(_newestFirst);
     }
   }
 

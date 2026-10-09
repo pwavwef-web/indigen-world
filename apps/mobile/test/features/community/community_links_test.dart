@@ -98,8 +98,13 @@ void main() {
         onOpenLink: opened.add,
       );
 
-      expect(find.textContaining('not tappable', findRichText: true), findsNothing);
-      await tester.tapOnText(find.textRange.ofSubstring('https://example.com/a'));
+      expect(
+        find.textContaining('not tappable', findRichText: true),
+        findsNothing,
+      );
+      await tester.tapOnText(
+        find.textRange.ofSubstring('https://example.com/a'),
+      );
       expect(opened, ['https://example.com/a']);
     });
 
@@ -121,7 +126,9 @@ void main() {
         find.textContaining('https://example.com/a', findRichText: true),
         findsOneWidget,
       );
-      await tester.tapOnText(find.textRange.ofSubstring('https://example.com/a'));
+      await tester.tapOnText(
+        find.textRange.ofSubstring('https://example.com/a'),
+      );
       expect(opened, isEmpty);
     });
 

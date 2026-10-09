@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -41,44 +40,8 @@ class CollectionScreen extends ConsumerStatefulWidget {
 
 class _CollectionScreenState extends ConsumerState<CollectionScreen>
     with AutomaticKeepAliveClientMixin {
-  final _searchController = TextEditingController();
-  Timer? _searchDebounce;
-  var _query = '';
-
   @override
   bool get wantKeepAlive => true;
-
-  @override
-  void dispose() {
-    _searchDebounce?.cancel();
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onSearchChanged(String value) {
-    _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 260), () {
-      if (!mounted) return;
-      final next = value.trim();
-      if (next == _query) return;
-      setState(() => _query = next);
-    });
-  }
-
-  void _clearSearch() {
-    _searchDebounce?.cancel();
-    _searchController.clear();
-    if (_query.isNotEmpty) setState(() => _query = '');
-  }
-
-  void _resetFilters() {
-    _searchDebounce?.cancel();
-    _searchController.clear();
-    setState(() {
-      _query = '';
-    });
-  }
-
   void _retryAll() {
     ref.invalidate(musicCollectionProvider);
     ref.invalidate(publishedDictionaryEntriesProvider);
@@ -190,7 +153,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
       ),
     ];
 
-    final query = _normalise(_query);
+    const query = '';
     final visiblePortals = portals
         .where((portal) => !portal.hiddenWhileEmpty)
         .where((portal) => portal.matchesSearch(query))
@@ -213,13 +176,6 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           slivers: [
             const SliverToBoxAdapter(child: _CollectionHeader()),
-            SliverToBoxAdapter(
-              child: _CollectionSearchField(
-                controller: _searchController,
-                onChanged: _onSearchChanged,
-                onClear: _clearSearch,
-              ),
-            ),
             if (query.isEmpty)
               const SliverToBoxAdapter(child: PlaceStoryCarousel()),
             if (visiblePortals.isNotEmpty) ...[
@@ -246,8 +202,8 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen>
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: _CollectionEmptySearchState(
-                  query: _query,
-                  onReset: _resetFilters,
+                  query: query,
+                  onReset: _retryAll,
                 ),
               ),
             SliverToBoxAdapter(
@@ -414,72 +370,6 @@ class _CollectionHeader extends StatelessWidget {
       ),
     ),
   );
-}
-
-class _CollectionSearchField extends StatelessWidget {
-  const _CollectionSearchField({
-    required this.controller,
-    required this.onChanged,
-    required this.onClear,
-  });
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    final brand = context.brand;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
-      child: Semantics(
-        label: 'Search the collection',
-        textField: true,
-        child: TextField(
-          key: const Key('collection-search-field'),
-          controller: controller,
-          onChanged: onChanged,
-          textInputAction: TextInputAction.search,
-          style: TextStyle(color: brand.ink, fontWeight: FontWeight.w600),
-          decoration: InputDecoration(
-            hintText: 'Search the collection',
-            prefixIcon: Icon(Icons.search_rounded, color: brand.mutedInk),
-            suffixIcon: ValueListenableBuilder<TextEditingValue>(
-              valueListenable: controller,
-              builder: (context, value, _) => value.text.isEmpty
-                  ? const SizedBox.shrink()
-                  : IconButton(
-                      tooltip: 'Clear search',
-                      onPressed: onClear,
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-            ),
-            filled: true,
-            fillColor: Color.alphaBlend(
-              brand.accent.withValues(alpha: brand.isDark ? 0.06 : 0.035),
-              brand.surfaceMuted,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 18,
-              vertical: 18,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(24),
-              borderSide: BorderSide(color: brand.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(24),
-              borderSide: BorderSide(color: brand.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(24),
-              borderSide: BorderSide(color: brand.accent, width: 1.4),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _CollectionGrid extends StatelessWidget {

@@ -5,6 +5,7 @@ import { storage } from '../../firebase';
 import type { Campaign, Submission } from '@indigen-world/contracts/creator-models';
 import { Link, matchRoute, useQueryParam, useRoute } from '../../router';
 import { useAuth } from '../../auth';
+import { DraftRecovery, useRecovery } from '../../drafts/useRecovery';
 import { trackEvent } from '../../analytics';
 import { useConfig } from '../CreatorProvider';
 import {
@@ -121,9 +122,10 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
   if (!submissionIdRef.current) submissionIdRef.current = existing?.id ?? newSubmissionId();
   const submissionId = submissionIdRef;
   const persistedRef = useRef(existing !== null);
+  const remoteVersion = useRef(existing?.lifecycle.version);
   const recoveryKey = 'tribestudio:last-draft:' + user?.uid + ':' + campaignId;
   const [recoverableId, setRecoverableId] = useState<string | null>(() => {
-    try { return window.sessionStorage.getItem(recoveryKey); } catch { return null; }
+    try { return window.localStorage.getItem(recoveryKey); } catch { return null; }
   });
   useEffect(() => {
     const reconnect = () => { setOnline(true); setSaveStatus(''); };
@@ -151,7 +153,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
   // Form state
   const [studioType, setStudioType] = useState<StudioType>(existing?.studioType ?? initialType);
   const [title, setTitle] = useState(existing?.title ?? '');
-  const [category, setCategory] = useState(existing?.category ?? '');
+  const [category, setCategory] = useState(existing?.category ?? useQueryParam('category') ?? '');
   const [primaryLanguage, setPrimaryLanguage] = useState(existing?.primaryLanguage ?? 'xsm');
   const [dialect, setDialect] = useState(existing?.dialect ?? '');
   const [description, setDescription] = useState(existing?.description ?? '');
@@ -235,7 +237,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
   // posting impossible on a project whose config document has not been seeded.
   const FALLBACK_CATEGORIES = [
     'storytelling', 'folklore', 'proverb', 'song', 'oral-history',
-    'language-lesson', 'craft', 'festival', 'everyday-life', 'other',
+    'language-lesson', 'craft', 'festival', 'everyday-life', 'culture', 'other',
   ];
   const configuredCategories = (config?.contentCategories ?? []).map((c) => c.slug);
   const categories = campaign?.categories && campaign.categories.length > 0
@@ -282,11 +284,28 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
   const snapshot = snapshotOf(draftInput);
   const initialSnapshot = useRef(snapshot);
   const dirty = snapshot !== (savedSnapshot ?? initialSnapshot.current);
+  const recovery = useRecovery(user?.uid ?? '', `submission:${campaignId}`, { input: draftInput, persisted: persistedRef.current }, dirty, saved => {
+    if (saved.persisted && saved.input.id !== existing?.id) { navigate(`/studio/submissions/${encodeURIComponent(saved.input.id)}/edit`); return; }
+    const input = saved.input;
+    if (input.uid !== user?.uid || input.campaignId !== campaignId) return;
+    submissionId.current = input.id; persistedRef.current = saved.persisted;
+    setStudioType(input.studioType ?? 'writing'); setTitle(input.title); setCategory(input.category);
+    setPrimaryLanguage(input.primaryLanguage); setDialect(input.dialect); setDescription(input.description);
+    setBody(input.body); setTags(input.tags.join(', ')); setTargetAudience(input.targetAudience);
+    setSourceReferences(input.sourceReferences); setTranslationNotes(input.translationNotes);
+    setSourceLanguage(input.translation.sourceLanguage ?? 'xsm'); setTargetLanguage(input.translation.targetLanguage ?? 'en');
+    setSourceContent(input.translation.sourceContent ?? ''); setTranslatedContent(input.translation.translatedContent ?? ''); setTranslatorNotes(input.translation.translatorNotes ?? '');
+    setCaption(input.caption); setAltText(input.altText); setEnglishSummary(input.englishSummary); setCulturalContext(input.culturalContext); setExternalPostUrl(input.externalPostUrl);
+    setInvolvesMinors(input.disclosures.involvesMinors); setUsesThirdParty(input.disclosures.usesThirdPartyMaterial); setSourceInfo(input.disclosures.sourceInfo);
+    setPermReview(input.permissions.review); setPermPublish(input.permissions.publication); setPermPromo(input.permissions.promotion); setPermAi(input.permissions.aiTraining);
+    setMedia(input.media ?? undefined);
+    setAttRights(false); setAttParticipants(false); setAttGuardian(false); setAttCopyright(false);
+  }, String(existing?.lifecycle.version ?? 0));
   const dirtyRef = useRef(false);
   dirtyRef.current = dirty;
 
   useEffect(() => {
-    if (!online || !dirty || loading || saving || uploadBusy.current || saveStatus.startsWith('Not saved')) return;
+    if (!online || !dirty || loading || saving || uploadBusy.current || recovery.recovery || saveStatus.startsWith('Not saved')) return;
     const timer = window.setTimeout(() => { void saveDraft(); }, 1500);
     return () => window.clearTimeout(timer);
   }, [snapshot, dirty, loading, saving, uploadPct, saveStatus, online]);
@@ -378,6 +397,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
   };
 
   const saveDraft = async () => {
+    if (recovery.recovery) return false;
     if (!user || writeBusy.current || uploadBusy.current) return false;
     if (!online) { setSaveStatus('Not saved — reconnect to save your latest changes.'); return false; }
     writeBusy.current = true;
@@ -385,11 +405,12 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
     setSaving(true);
     setError(null);
     try {
-      await saveSubmission(draftInput, 'DRAFT', persistedRef.current ? undefined : null);
+      const saved = await saveSubmission(draftInput, 'DRAFT', persistedRef.current ? undefined : null, remoteVersion.current);
+      if (saved) remoteVersion.current = saved.lifecycle.version;
       persistedRef.current = true;
       setSavedSnapshot(snapshotOf(draftInput));
       setSaveStatus('Saved to your account');
-      try { window.sessionStorage.setItem(recoveryKey, submissionId.current); } catch { /* Saving to the account already succeeded. */ }
+      try { window.localStorage.setItem(recoveryKey, submissionId.current); } catch { /* Saving to the account already succeeded. */ }
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save draft.');
@@ -430,10 +451,12 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
     setSaving(true);
     setError(null);
     try {
-      await saveSubmission(draftInput, 'SUBMITTED', persistedRef.current ? undefined : null);
+      const saved = await saveSubmission(draftInput, 'SUBMITTED', persistedRef.current ? undefined : null, remoteVersion.current);
+      if (saved) remoteVersion.current = saved.lifecycle.version;
+      recovery.clear();
       persistedRef.current = true;
       trackEvent(existing ? 'submission_updated' : 'submission_completed', { campaign: campaign?.slug ?? OPEN_CAMPAIGN_ID });
-      try { window.sessionStorage.removeItem(recoveryKey); } catch { /* No local draft pointer. */ }
+      try { window.localStorage.removeItem(recoveryKey); } catch { /* No local draft pointer. */ }
       dirtyRef.current = false;
       writeBusy.current = false;
       navigate(`/studio/submissions/${submissionId.current}`);
@@ -479,15 +502,16 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
           {failedSave && online ? <button type="button" className="ts-btn ts-btn--secondary ts-btn--sm" disabled={saving} onClick={() => void saveDraft()}>Retry saving</button> : null}
         </div>
       </div>
+      <DraftRecovery draft={recovery} />
 
       {!existing && recoverableId && recoverableId !== submissionId.current ? (
         <Notice
           tone="info"
-          title="You have a saved draft from this session."
+          title="You have a saved account draft."
           action={(
             <span className="ts-cluster">
               <Link className="ts-btn ts-btn--secondary ts-btn--sm" to={`/studio/submissions/${encodeURIComponent(recoverableId)}/edit`}>Resume saved draft</Link>
-              <button type="button" className="ts-btn ts-btn--ghost ts-btn--sm" onClick={() => { setRecoverableId(null); try { window.sessionStorage.removeItem(recoveryKey); } catch { /* Optional pointer. */ } }}>Start a separate post</button>
+              <button type="button" className="ts-btn ts-btn--ghost ts-btn--sm" onClick={() => { setRecoverableId(null); try { window.localStorage.removeItem(recoveryKey); } catch { /* Optional pointer. */ } }}>Start a separate post</button>
             </span>
           )}
         >
@@ -505,7 +529,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
       ) : null}
       {!online ? (
         <Notice tone="warning" icon="wifi-off" title="You are offline.">
-          You can keep writing in this tab. Keep it open: your latest changes save when you reconnect. Uploading and publishing need a connection.
+          You can keep writing. Check the draft recovery indicator before leaving; uploading and publishing need a connection.
         </Notice>
       ) : null}
       {existing?.moderation?.feedback ? (

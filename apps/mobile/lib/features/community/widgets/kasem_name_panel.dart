@@ -123,9 +123,7 @@ class _NameChip extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: name.meaning.isEmpty
-          ? name.name
-          : '${name.name}, ${name.meaning}',
+      label: name.meaning.isEmpty ? name.name : '${name.name}, ${name.meaning}',
       excludeSemantics: true,
       child: Tooltip(
         // The meaning belongs on the chip somewhere, and there is no room for
@@ -150,11 +148,7 @@ class _NameChip extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (selected) ...[
-                    Icon(
-                      Icons.check_rounded,
-                      size: 14,
-                      color: brand.accent,
-                    ),
+                    Icon(Icons.check_rounded, size: 14, color: brand.accent),
                     const SizedBox(width: 5),
                   ],
                   Text(

@@ -13,6 +13,7 @@ import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart
 import 'package:indigen_world_mobile/features/contribute/contribution_upload.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// The regions an advertiser can ask for. Kassena country first, then the rest
 /// of Ghana, then everyone — the order somebody here would actually think in.
@@ -150,7 +151,7 @@ class _CreateAdScreenState extends ConsumerState<CreateAdScreen> {
     });
     _controller.animateToPage(
       step,
-      duration: const Duration(milliseconds: 260),
+      duration: AppMotion.standard,
       curve: Curves.easeOutCubic,
     );
   }
@@ -438,7 +439,7 @@ class _StepRail extends StatelessWidget {
         for (var index = 0; index < total; index++) ...[
           Expanded(
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 260),
+              duration: motionOr(context, AppMotion.standard),
               height: 4,
               decoration: BoxDecoration(
                 color: index <= step

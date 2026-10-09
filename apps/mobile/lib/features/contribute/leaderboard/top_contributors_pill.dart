@@ -94,7 +94,9 @@ class _PillFrame extends StatelessWidget {
       // at would be two screens to explain one idea, and the board is where the
       // scoring rules are written down.
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (context) => const LeaderboardScreen()),
+        MaterialPageRoute<void>(
+          builder: (context) => const LeaderboardScreen(),
+        ),
       ),
       blur: false,
       padding: const EdgeInsets.fromLTRB(15, 12, 13, 12),

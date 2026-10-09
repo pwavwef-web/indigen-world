@@ -62,14 +62,8 @@ void main() {
     });
 
     test('a followed post and a milestone open the post itself', () {
-      expect(
-        pushRouteFor({'type': 'post', 'postId': 'p1'}),
-        '/post/p1',
-      );
-      expect(
-        pushRouteFor({'type': 'milestone', 'postId': 'p1'}),
-        '/post/p1',
-      );
+      expect(pushRouteFor({'type': 'post', 'postId': 'p1'}), '/post/p1');
+      expect(pushRouteFor({'type': 'milestone', 'postId': 'p1'}), '/post/p1');
     });
 
     test('a reel alert lands on the home tab, where reels are', () {
@@ -246,7 +240,11 @@ void main() {
     test('an alert with no collapse key is still keyed on itself', () {
       expect(
         alertKeyFor(
-          message({'type': 'like', 'notificationId': 'like_1', 'collapseKey': ''}),
+          message({
+            'type': 'like',
+            'notificationId': 'like_1',
+            'collapseKey': '',
+          }),
         ),
         'like_1',
       );

@@ -168,15 +168,13 @@ class AppDatabase extends _$AppDatabase {
   )..where((row) => row.entryId.equals(entryId))).go();
 
   /// Every download, newest first, as a live stream.
-  Stream<List<DownloadedTrackRecord>> watchDownloads() =>
-      (select(downloadedTrackRecords)
-            ..orderBy([(row) => OrderingTerm.desc(row.downloadedAt)]))
-          .watch();
+  Stream<List<DownloadedTrackRecord>> watchDownloads() => (select(
+    downloadedTrackRecords,
+  )..orderBy([(row) => OrderingTerm.desc(row.downloadedAt)])).watch();
 
-  Future<List<DownloadedTrackRecord>> getDownloads() =>
-      (select(downloadedTrackRecords)
-            ..orderBy([(row) => OrderingTerm.desc(row.downloadedAt)]))
-          .get();
+  Future<List<DownloadedTrackRecord>> getDownloads() => (select(
+    downloadedTrackRecords,
+  )..orderBy([(row) => OrderingTerm.desc(row.downloadedAt)])).get();
 
   Future<int> countDownloads() async {
     final rows = await select(downloadedTrackRecords).get();

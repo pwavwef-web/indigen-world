@@ -1167,7 +1167,7 @@ service cloud.firestore {
     // inside a community only its moderators.
     function validPostCategory(data, communityId) {
       return data.get('category', '') in
-          ['', 'question', 'language', 'culture', 'music', 'story', 'announcement']
+          ['', 'question', 'language', 'culture', 'music', 'story', 'event', 'community_update', 'announcement']
         && (data.get('category', '') != 'announcement'
           || isStaff()
           || (communityId != null && isSpaceModerator(communityId)));

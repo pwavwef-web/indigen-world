@@ -54,7 +54,10 @@ class EntryPatch {
   static bool _same(Object? left, Object? right) {
     if (left is List && right is List) {
       return left.length == right.length &&
-          List.generate(left.length, (i) => left[i] == right[i]).every((x) => x);
+          List.generate(
+            left.length,
+            (i) => left[i] == right[i],
+          ).every((x) => x);
     }
     if (left is Map && right is Map) {
       return left.length == right.length &&
@@ -301,8 +304,10 @@ class FirebaseDictionaryAdminRepository implements DictionaryAdminRepository {
     String? excludeEntryId,
   }) async {
     final response = await _call('findDictionaryEntryMatches', {
-      if (headword != null && headword.trim().isNotEmpty) 'headword': headword.trim(),
-      if (submissionId != null && submissionId.isNotEmpty) 'submissionId': submissionId,
+      if (headword != null && headword.trim().isNotEmpty)
+        'headword': headword.trim(),
+      if (submissionId != null && submissionId.isNotEmpty)
+        'submissionId': submissionId,
       if (excludeEntryId != null && excludeEntryId.isNotEmpty)
         'excludeEntryId': excludeEntryId,
     });
@@ -410,11 +415,12 @@ class FirebaseDictionaryAdminRepository implements DictionaryAdminRepository {
   }
 }
 
-final dictionaryAdminRepositoryProvider =
-    Provider<DictionaryAdminRepository?>((ref) {
-      if (!ref.watch(firebaseReadyProvider)) return null;
-      return FirebaseDictionaryAdminRepository(FirebaseFunctions.instance);
-    });
+final dictionaryAdminRepositoryProvider = Provider<DictionaryAdminRepository?>((
+  ref,
+) {
+  if (!ref.watch(firebaseReadyProvider)) return null;
+  return FirebaseDictionaryAdminRepository(FirebaseFunctions.instance);
+});
 
 /// Whether this device may edit the published dictionary.
 ///

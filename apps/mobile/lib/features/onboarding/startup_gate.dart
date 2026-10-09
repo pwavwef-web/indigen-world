@@ -8,6 +8,7 @@ import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 import 'package:indigen_world_mobile/features/onboarding/notifications_primer.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -54,7 +55,6 @@ class _StartupGateState extends ConsumerState<StartupGate> {
     final preferences = await SharedPreferences.getInstance();
     final onboardingComplete = preferences.getBool(_onboardingKey) ?? false;
     final primerPending = await _needsPrimer();
-    await Future<void>.delayed(const Duration(milliseconds: 3100));
     if (!mounted) return;
     setState(() {
       _primerPending = primerPending;
@@ -115,8 +115,14 @@ class _LaunchScreenState extends State<_LaunchScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2850),
+      duration: AppMotion.emphasized,
     )..forward();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!motionAllowed(context)) _controller.value = 1;
   }
 
   @override
@@ -137,7 +143,7 @@ class _LaunchScreenState extends State<_LaunchScreen>
         ).value;
         final brandProgress = CurvedAnimation(
           parent: _controller,
-          curve: const Interval(0.22, 0.7, curve: Curves.easeOutBack),
+          curve: const Interval(0.22, 0.7, curve: AppMotion.arrive),
         ).value;
         final promiseProgress = CurvedAnimation(
           parent: _controller,
@@ -369,7 +375,11 @@ class _KasemSeal extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.language_rounded, color: context.brand.highlight, size: 34),
+              Icon(
+                Icons.language_rounded,
+                color: context.brand.highlight,
+                size: 34,
+              ),
               const SizedBox(height: 4),
               const Text(
                 'K A S E M',
@@ -502,8 +512,7 @@ class _KasenaHorizonPainter extends CustomPainter {
       ..close();
     canvas.drawPath(
       hill,
-      Paint()
-        ..color = ground.withValues(alpha: 0.38 * progress),
+      Paint()..color = ground.withValues(alpha: 0.38 * progress),
     );
 
     final pathPaint = Paint()

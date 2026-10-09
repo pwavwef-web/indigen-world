@@ -5,17 +5,25 @@
 // and the next word appears IN PLACE — no route change, no celebration, no
 // waiting. Each test below is one link in that chain.
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
+import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/contribute/contribution_received_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/word_queue_models.dart';
 import 'package:indigen_world_mobile/features/contribute/words/data/word_queue_repository.dart';
 import 'package:indigen_world_mobile/features/contribute/words/word_queue_screen.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fake_word_queue_api.dart';
+
+class _SyntheticUser extends Fake implements User {
+  @override
+  String get uid => 'synthetic-queue-owner';
+}
 
 Future<void> pumpQueue(
   WidgetTester tester,
@@ -36,7 +44,12 @@ Future<void> pumpQueue(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [wordQueueApiProvider.overrideWithValue(api)],
+      overrides: [
+        wordQueueApiProvider.overrideWithValue(api),
+        authStateProvider.overrideWith(
+          (ref) => Stream<User?>.value(_SyntheticUser()),
+        ),
+      ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -46,7 +59,8 @@ Future<void> pumpQueue(
     ),
   );
   await tester.pump();
-  await tester.pump(const Duration(milliseconds: 400));
+  await tester.pump(const Duration(milliseconds: 600));
+  await tester.pump();
 }
 
 /// Picks a word class from the searchable picker.
@@ -113,6 +127,7 @@ Future<void> answer(WidgetTester tester, String translation) async {
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   testWidgets('the first word arrives with everything needed to answer it', (
     tester,
   ) async {
@@ -371,7 +386,10 @@ void main() {
     final api = FakeWordQueueApi([batchOf(2)]);
     await pumpQueue(tester, api);
 
-    expect(find.text('Does that sentence show the plain word?'), findsOneWidget);
+    expect(
+      find.text('Does that sentence show the plain word?'),
+      findsOneWidget,
+    );
 
     // Answered without touching the control at all: the median word must cost
     // zero extra taps, or the queue grows a field per word and people stop.
@@ -725,6 +743,28 @@ void main() {
     expect(api.submissions.last.countedForm, '');
   });
 
+  testWidgets('a failed send retains the answer and stable retry ID', (
+    tester,
+  ) async {
+    final api = FakeWordQueueApi([
+      batchOf(3),
+    ], failSubmitWith: const WordQueueFailure('Synthetic network failure'));
+    await pumpQueue(tester, api);
+    await answer(tester, 'TEST ONLY ɛ ɔ ŋ');
+    expect(api.attempts, hasLength(1));
+    expect(find.text('TEST ONLY ɛ ɔ ŋ'), findsWidgets);
+    final first = api.attempts.single;
+    expect(first.requestId, isNotNull);
+    api.failSubmitWith = null;
+    await tester.tap(find.text('Send and take the next'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(api.submissions, hasLength(1));
+    expect(api.submissions.single.requestId, first.requestId);
+    expect(api.submissions.single.dialect, 'Navrongo');
+    expect(api.submissions.single.translations, first.translations);
+    expect(find.text('word-1'), findsOneWidget);
+  });
 
   testWidgets('no Firebase says so instead of looking like an empty queue', (
     tester,

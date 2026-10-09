@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart'
     show reelCountLabel;
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// Where the member stands with the creator of the reel in front of them.
 enum ReelFollowState {
@@ -187,7 +188,7 @@ class ReelRailButton extends StatelessWidget {
                     dimension: _target,
                     child: Center(
                       child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
+                        duration: motionOr(context, AppMotion.quick),
                         width: _disc,
                         height: _disc,
                         decoration: BoxDecoration(
@@ -202,7 +203,7 @@ class ReelRailButton extends StatelessWidget {
                         ),
                         child: AnimatedScale(
                           scale: active ? 1.08 : 1,
-                          duration: const Duration(milliseconds: 180),
+                          duration: motionOr(context, AppMotion.quick),
                           child: Icon(
                             active ? (activeIcon ?? icon) : icon,
                             size: 23,
@@ -375,7 +376,7 @@ class _ReelCreatorAvatarState extends State<ReelCreatorAvatar> {
                   child: Padding(
                     padding: const EdgeInsets.only(top: 3),
                     child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
+                      duration: motionOr(context, AppMotion.standard),
                       transitionBuilder: (child, animation) => ScaleTransition(
                         scale: animation,
                         child: FadeTransition(opacity: animation, child: child),

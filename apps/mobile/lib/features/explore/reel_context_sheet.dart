@@ -11,6 +11,7 @@ import 'package:indigen_world_mobile/features/kawuri/kawuri_lesson.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_service.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
 
 // ── Words the dictionary knows ──────────────────────────────────────────────
@@ -167,6 +168,10 @@ Future<void> showReelContextSheet(
   bool startExpanded = false,
 }) => showModalBottomSheet<void>(
   context: context,
+  sheetAnimationStyle: AnimationStyle(
+    duration: motionOr(context, AppMotion.standard),
+    reverseDuration: motionOr(context, AppMotion.quick),
+  ),
   isScrollControlled: true,
   useSafeArea: true,
   backgroundColor: Colors.transparent,
@@ -522,6 +527,10 @@ Future<void> showReelTranslationSheet(
   VoidCallback? onPronunciationPlay,
 }) => showModalBottomSheet<void>(
   context: context,
+  sheetAnimationStyle: AnimationStyle(
+    duration: motionOr(context, AppMotion.standard),
+    reverseDuration: motionOr(context, AppMotion.quick),
+  ),
   isScrollControlled: true,
   useSafeArea: true,
   backgroundColor: Colors.transparent,
@@ -803,7 +812,8 @@ class _ReelAiExplanationState extends ConsumerState<ReelAiExplanation> {
                   FilledButton.tonalIcon(
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (context) => KawuriLessonScreen(lesson: lesson),
+                        builder: (context) =>
+                            KawuriLessonScreen(lesson: lesson),
                       ),
                     ),
                     icon: const Icon(Icons.school_outlined, size: 18),

@@ -131,7 +131,7 @@ class FirebaseBootstrap {
       // rollback — a mistimed ask spends a quota slot that cannot be given
       // back — so it is turned on from the console once the rest is stable,
       // and can be turned off again without a release. See rating_service.dart.
-      'rating_prompt_enabled': false,
+      'rating_prompt_enabled': true,
       'rating_min_days': 7,
       'rating_min_active_days': 3,
       'rating_cooldown_days': 120,

@@ -187,10 +187,7 @@ void main() {
       // The end names the handle that was claimed, and says what was skipped
       // rather than congratulating in general.
       expect(find.text('You are in, @amansoh'), findsOneWidget);
-      expect(
-        find.text('Your number is still unverified'),
-        findsOneWidget,
-      );
+      expect(find.text('Your number is still unverified'), findsOneWidget);
     });
 
     testWidgets('never offers the member themselves to follow', (tester) async {
@@ -235,9 +232,7 @@ void main() {
       await _pump(tester, repository: FakeCommunityRepository());
 
       double progress() => tester
-          .widget<LinearProgressIndicator>(
-            find.byType(LinearProgressIndicator),
-          )
+          .widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator))
           .value!;
 
       expect(progress(), 0);

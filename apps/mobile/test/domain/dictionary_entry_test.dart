@@ -50,10 +50,7 @@ void main() {
     test('is the first of the list once there is one', () {
       expect(_severalMeanings.primaryTranslation, 'water');
       expect(_severalMeanings.hasSeveralTranslations, isTrue);
-      expect(_severalMeanings.furtherTranslations, [
-        'rain water',
-        'to drink',
-      ]);
+      expect(_severalMeanings.furtherTranslations, ['rain water', 'to drink']);
     });
   });
 
@@ -83,9 +80,7 @@ void main() {
       // whatever this returns must render nothing at all here.
       expect(_oneMeaning.exampleCredit, isNull);
       expect(
-        _oneMeaning
-            .copyWith(sentenceSource: 'unattributed')
-            .exampleCredit,
+        _oneMeaning.copyWith(sentenceSource: 'unattributed').exampleCredit,
         isNull,
       );
     });
@@ -114,10 +109,7 @@ void main() {
 
   group('splitTranslations', () {
     test('splits on commas, slashes and newlines', () {
-      expect(splitTranslations('water / rain water'), [
-        'water',
-        'rain water',
-      ]);
+      expect(splitTranslations('water / rain water'), ['water', 'rain water']);
       expect(splitTranslations('greeting, hello\nhi'), [
         'greeting',
         'hello',
@@ -138,9 +130,7 @@ void main() {
     });
 
     test('caps the count after de-duplication', () {
-      final many = splitTranslations(
-        'a, b, c, d, e, f, g, h, i, j, a, b',
-      );
+      final many = splitTranslations('a, b, c, d, e, f, g, h, i, j, a, b');
       expect(many, hasLength(kMaxTranslations));
       expect(many.first, 'a');
     });
@@ -180,27 +170,33 @@ void main() {
       expect(_oneMeaning.copyWith(partOfSpeech: 'Noun').indefinite, isNull);
     });
 
-    test('an entry with no headword gets no form rather than a bare particle', () {
-      // "mo" alone is not the indefinite of anything, and printing it would
-      // state something false on an entry whose data is simply missing.
-      expect(_oneMeaning.copyWith(headword: '').indefinite, isNull);
-      expect(_oneMeaning.copyWith(headword: '   ').indefinite, isNull);
-    });
+    test(
+      'an entry with no headword gets no form rather than a bare particle',
+      () {
+        // "mo" alone is not the indefinite of anything, and printing it would
+        // state something false on an entry whose data is simply missing.
+        expect(_oneMeaning.copyWith(headword: '').indefinite, isNull);
+        expect(_oneMeaning.copyWith(headword: '   ').indefinite, isNull);
+      },
+    );
 
-    test('collected forms are carried, and the indefinite is not among them', () {
-      final recorded = _oneMeaning.copyWith(
-        definiteForm: 'konkwolokam',
-        pluralForm: 'konkwoli',
-        countedForm: 'konkwoli balei',
-      );
-      expect(recorded.hasForms, isTrue);
-      expect(recorded.definiteForm, 'konkwolokam');
-      expect(recorded.pluralForm, 'konkwoli');
-      expect(recorded.countedForm, 'konkwoli balei');
-      // Still computed from the headword, never read from a stored field, so
-      // the two can never come to disagree.
-      expect(recorded.indefinite, isNull);
-    });
+    test(
+      'collected forms are carried, and the indefinite is not among them',
+      () {
+        final recorded = _oneMeaning.copyWith(
+          definiteForm: 'konkwolokam',
+          pluralForm: 'konkwoli',
+          countedForm: 'konkwoli balei',
+        );
+        expect(recorded.hasForms, isTrue);
+        expect(recorded.definiteForm, 'konkwolokam');
+        expect(recorded.pluralForm, 'konkwoli');
+        expect(recorded.countedForm, 'konkwoli balei');
+        // Still computed from the headword, never read from a stored field, so
+        // the two can never come to disagree.
+        expect(recorded.indefinite, isNull);
+      },
+    );
 
     test('a counted form on its own is collected morphology', () {
       // The half of the pair that is hardest to come by. A whole glossed
@@ -211,10 +207,13 @@ void main() {
       expect(counted.hasForms, isTrue);
     });
 
-    test('an unestablished noun class reads empty, which is not "no class"', () {
-      expect(_oneMeaning.nounClass, '');
-      expect(_oneMeaning.copyWith(nounClass: 'class-1').nounClass, 'class-1');
-    });
+    test(
+      'an unestablished noun class reads empty, which is not "no class"',
+      () {
+        expect(_oneMeaning.nounClass, '');
+        expect(_oneMeaning.copyWith(nounClass: 'class-1').nounClass, 'class-1');
+      },
+    );
   });
 
   test('an entry survives a JSON round trip with its new fields', () {
@@ -261,10 +260,14 @@ void main() {
       // assemble in their head from two places on the screen.
       expect(noun.nounForms.first.label, 'One');
       expect(noun.nounForms.first.form, 'bakeira');
-      expect(
-        noun.nounForms.map((row) => row.form).toList(),
-        ['bakeira', 'bakeira kam', 'bakeiru', 'bakeiru bam', 'bakeiru balei', 'o'],
-      );
+      expect(noun.nounForms.map((row) => row.form).toList(), [
+        'bakeira',
+        'bakeira kam',
+        'bakeiru',
+        'bakeiru bam',
+        'bakeiru balei',
+        'o',
+      ]);
     });
 
     test('a noun nobody has recorded a form for draws no table', () {

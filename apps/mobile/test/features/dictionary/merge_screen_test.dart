@@ -53,7 +53,12 @@ const _preview = MergePreview(
   targetHeadword: 'bu',
   sourceHeadword: 'bu',
   rows: <MergeRow>[
-    MergeRow(field: 'englishText', target: 'child', source: 'baby', conflict: true),
+    MergeRow(
+      field: 'englishText',
+      target: 'child',
+      source: 'baby',
+      conflict: true,
+    ),
     MergeRow(field: 'ipa', target: '', source: 'bu', conflict: false),
   ],
 );

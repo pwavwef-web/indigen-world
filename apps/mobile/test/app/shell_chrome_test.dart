@@ -72,6 +72,22 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
   }
 
+  testWidgets(
+    'inactive destinations keep state without ticking their animations',
+    (tester) async {
+      await pumpShell(tester);
+      final stack = tester.widget<IndexedStack>(
+        find.byType(IndexedStack).first,
+      );
+      final modes = stack.children.whereType<TickerMode>().toList();
+      expect(modes.length, stack.children.length);
+      expect(modes.where((mode) => mode.enabled).length, 1);
+      expect(modes[stack.index!].enabled, isTrue);
+      expect(tester.takeException(), isNull);
+      await tester.pump(const Duration(milliseconds: 500));
+    },
+  );
+
   testWidgets('the rail starts on screen', (tester) async {
     await pumpShell(tester);
     expect(find.byType(FrostedNavBar), findsOneWidget);

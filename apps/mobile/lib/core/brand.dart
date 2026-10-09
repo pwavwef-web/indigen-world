@@ -229,15 +229,15 @@ class BrandPalette extends ThemeExtension<BrandPalette> {
   /// controls drawn there by a page that is otherwise in daylight.
   final Color nightAccent;
 
+  bool get isBlack => background == const Color(0xFF000000);
+
   bool get isDark => brightness == Brightness.dark;
 
   /// The accent laid over [surface] as an opaque plate — a selected chip, a
   /// tinted tile. Opaque so it can sit on a gradient without the gradient
   /// showing through it.
-  Color get accentPlate => Color.alphaBlend(
-    accent.withValues(alpha: isDark ? 0.2 : 0.1),
-    surface,
-  );
+  Color get accentPlate =>
+      Color.alphaBlend(accent.withValues(alpha: isDark ? 0.2 : 0.1), surface);
 
   /// Picks between two values by brightness, for the handful of places where a
   /// whole token would be overkill.
@@ -623,14 +623,16 @@ abstract final class BrandGradients {
 
   /// The lit corner of [pageWash], for the rare caller that needs the colour
   /// on its own.
-  static Color pageWashTop(BrandPalette brand) => Color.alphaBlend(
-    // By day the lit corner is the sites' `--sand` band, the same pale blue
-    // their page ground glows toward in its top corner.
-    (brand.isDark ? Colors.white : BrandColors.sand).withValues(
-      alpha: brand.isDark ? 0.045 : 0.75,
-    ),
-    brand.background,
-  );
+  static Color pageWashTop(BrandPalette brand) => brand.isBlack
+      ? brand.background
+      : Color.alphaBlend(
+          // By day the lit corner is the sites' `--sand` band, the same pale blue
+          // their page ground glows toward in its top corner.
+          (brand.isDark ? Colors.white : BrandColors.sand).withValues(
+            alpha: brand.isDark ? 0.045 : 0.75,
+          ),
+          brand.background,
+        );
 }
 
 /// Elevation the brand actually uses. Shadows are tinted with the palette's

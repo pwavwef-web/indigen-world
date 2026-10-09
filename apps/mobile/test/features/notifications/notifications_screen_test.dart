@@ -63,6 +63,42 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
   }
 
+  test(
+    'notification routes retain supported targets and reject foreign links',
+    () {
+      IndigenNotification target(String route) => IndigenNotification(
+        id: 'route',
+        recipientId: 'me',
+        kind: NotificationKind.announcement,
+        title: 'Update',
+        route: route,
+      );
+      expect(
+        notificationDestination(target('/communities/kasem-circle')),
+        '/communities/kasem-circle',
+      );
+      expect(
+        notificationDestination(target('/post/reply?focus=reply')),
+        '/post/reply?focus=reply',
+      );
+      expect(notificationDestination(target('https://unknown.test')), isNull);
+      expect(notificationDestination(target('//unknown.test/post/x')), isNull);
+      expect(notificationDestination(target('/notifications')), isNull);
+      expect(notificationDestination(target('/missing-destination')), isNull);
+    },
+  );
+
+  testWidgets('duplicate notification ids render only once', (tester) async {
+    await pump(
+      tester,
+      feed: [
+        notification(id: 'same'),
+        notification(id: 'same'),
+      ],
+    );
+    expect(find.text('Amina liked your post'), findsOneWidget);
+  });
+
   testWidgets('groups rows under the day they happened', (tester) async {
     final now = DateTime.now();
     await pump(

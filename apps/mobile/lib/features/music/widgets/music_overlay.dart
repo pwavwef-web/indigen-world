@@ -8,6 +8,7 @@ import 'package:indigen_world_mobile/features/music/music_duck.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/features/music/widgets/music_player_dock.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// Puts the mini-player above every route, and makes room for it.
 ///
@@ -83,11 +84,11 @@ class MusicOverlay extends ConsumerWidget {
                   ignoring: underBigPlayer,
                   child: AnimatedOpacity(
                     opacity: underBigPlayer ? 0 : 1,
-                    duration: const Duration(milliseconds: 180),
+                    duration: motionOr(context, AppMotion.quick),
                     // Nothing hidden may tick: the bubble's equalizer stops
                     // while the big player covers it.
                     child: TickerMode(
-                      enabled: !underBigPlayer,
+                      enabled: !underBigPlayer && motionAllowed(context),
                       // The player's own Overlay. This widget sits above the
                       // Navigator, so the app's only Overlay (the Navigator's)
                       // is below the bar rather than above it, and every

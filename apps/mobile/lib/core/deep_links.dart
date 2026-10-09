@@ -38,7 +38,8 @@ const _claimedPrefixes = <String>{'post', 'communities'};
 /// following a link to `/about` wants the website, and an app that swallowed it
 /// would be taking over pages it has no version of.
 String? appRouteForLink(Uri uri) {
-  final isWebLink = (uri.scheme == 'https' || uri.scheme == 'http') &&
+  final isWebLink =
+      (uri.scheme == 'https' || uri.scheme == 'http') &&
       _webHosts.contains(uri.host.toLowerCase());
   // A custom-scheme link puts its first segment in the host: `indigen://post/1`
   // parses as host `post`, path `/1`.

@@ -173,10 +173,8 @@ class _SenseCard extends ConsumerWidget {
                     // definition into a message is the ordinary use of it.
                     child: SelectableText(
                       sense.definition,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: brand.ink,
-                        height: 1.32,
-                      ),
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(color: brand.ink, height: 1.32),
                     ),
                   ),
                 ),
@@ -324,11 +322,7 @@ class _SenseNote extends StatelessWidget {
                 const SizedBox(height: 2),
                 SelectableText(
                   body,
-                  style: TextStyle(
-                    color: brand.ink,
-                    fontSize: 14,
-                    height: 1.4,
-                  ),
+                  style: TextStyle(color: brand.ink, fontSize: 14, height: 1.4),
                 ),
               ],
             ),

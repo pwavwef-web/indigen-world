@@ -75,7 +75,9 @@ ProviderContainer _container(int published) {
             _published('published-$index'),
         ]),
       ),
-      followingIdsProvider.overrideWith((ref) => Stream.value(const <String>[])),
+      followingIdsProvider.overrideWith(
+        (ref) => Stream.value(const <String>[]),
+      ),
       exploreCommunityFeedProvider.overrideWithValue(
         const AsyncValue.data(<CommunityPost>[]),
       ),
@@ -91,7 +93,10 @@ ProviderContainer _container(int published) {
 /// Subscribes, so the stubbed streams are actually listened to, and lets the
 /// event loop turn until their values have propagated. See the note in
 /// explore_video_only_test.dart for why a bare read would hang.
-Future<void> _settle(ProviderContainer container, Provider<List<Reel>> of) async {
+Future<void> _settle(
+  ProviderContainer container,
+  Provider<List<Reel>> of,
+) async {
   container.listen(of, (_, _) {});
   for (var turn = 0; turn < 4; turn++) {
     await Future<void>.delayed(Duration.zero);
@@ -283,7 +288,9 @@ void main() {
       );
       // Walks the whole feed, which also walks the pass cache past its cap and
       // back — a pass dropped and rebuilt has to come back identical.
-      final walked = [for (var index = 0; index < feed.length; index++) feed[index]];
+      final walked = [
+        for (var index = 0; index < feed.length; index++) feed[index],
+      ];
       expect(walked.map((reel) => reel.title), feed.map((reel) => reel.title));
       expect(() => feed[feed.length], throwsRangeError);
       expect(() => feed[-1], throwsRangeError);

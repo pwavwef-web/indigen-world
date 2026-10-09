@@ -2,29 +2,63 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
+import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
+import 'package:indigen_world_mobile/features/music/music_controller.dart';
+import 'package:indigen_world_mobile/features/music/music_track.dart';
+import 'package:indigen_world_mobile/features/music/now_playing_screen.dart';
+import 'package:indigen_world_mobile/features/music/widgets/audio_artwork.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
 import 'package:indigen_world_mobile/features/subscriptions/membership_screen.dart';
+import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
 /// What is kept on this device, and how much of it there is.
 ///
-/// ── Why downloads survive a lapsed subscription ───────────────────────────
-/// Nothing here is deleted when somebody stops paying. The files are already on
-/// their phone, they were downloaded while the subscription was live, and
-/// reaching into a member's storage to take back songs they can still stream
-/// for nothing would be a punishment with no purpose. What lapses is the
-/// ability to add *more*: the limit drops to zero and the download button on a
-/// new track starts opening the paywall instead.
-class DownloadsScreen extends ConsumerWidget {
+/// Files remain device-local after expiry. Managed offline playback and new
+/// downloads require the current account's unexpired subscription benefits.
+class DownloadsScreen extends ConsumerStatefulWidget {
   const DownloadsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DownloadsScreen> createState() => _DownloadsScreenState();
+}
+
+class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
+    with WidgetsBindingObserver {
+  final _retrying = <String>{};
+  final _playing = <String>{};
+  final _failedPlayback = <String>{};
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(playableDownloadsProvider);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final brand = context.brand;
     final downloads = ref.watch(downloadsProvider);
+    final playable = ref.watch(playableDownloadsProvider);
+    final artwork =
+        ref.watch(downloadedArtworkProvider).asData?.value ??
+        const <String, String>{};
     final limit = ref.watch(downloadLimitProvider);
+    final allowed = ref.watch(downloadsAllowedProvider);
     final bytes = ref.watch(downloadsSizeProvider).asData?.value ?? 0;
     final rows = downloads.asData?.value ?? const <DownloadedTrackRecord>[];
 
@@ -43,17 +77,28 @@ class DownloadsScreen extends ConsumerWidget {
       body: SafeArea(
         child: downloads.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => const Padding(
-            padding: EdgeInsets.all(24),
+          error: (error, _) => Padding(
+            padding: const EdgeInsets.all(24),
             child: GlassEmptyState(
               icon: Icons.error_outline_rounded,
               title: 'The offline list could not be read.',
+              action: TextButton(
+                onPressed: () => ref.invalidate(downloadsProvider),
+                child: const Text('Retry'),
+              ),
             ),
           ),
           data: (loaded) => ListView(
-            padding: const EdgeInsets.fromLTRB(18, 12, 18, 32),
+            padding: EdgeInsets.fromLTRB(18, 12, 18, 32 + musicInset(context)),
             children: [
               _Summary(count: loaded.length, limit: limit, bytes: bytes),
+              if (!allowed && loaded.isNotEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text(
+                    'Your files are kept on this device. Sign in with an active offline subscription to play them.',
+                  ),
+                ),
               const SizedBox(height: 16),
               if (loaded.isEmpty)
                 GlassEmptyState(
@@ -74,15 +119,125 @@ class DownloadsScreen extends ConsumerWidget {
                 for (final row in loaded)
                   _DownloadRow(
                     row: row,
-                    onRemove: () => ref
-                        .read(downloadsRepositoryProvider)
-                        .remove(row.trackId),
+                    artwork: artwork[row.trackId] ?? row.artworkUrl,
+                    allowed: allowed,
+                    playable:
+                        (playable.asData?.value.containsKey(row.trackId) ??
+                            false) &&
+                        !_failedPlayback.contains(row.trackId),
+                    checking:
+                        playable.isLoading ||
+                        _retrying.contains(row.trackId) ||
+                        _playing.contains(row.trackId),
+                    onPlay: () async {
+                      if (!_playing.add(row.trackId)) return;
+                      setState(() {});
+                      try {
+                        final controller = ref.read(
+                          musicControllerProvider.notifier,
+                        );
+                        await controller.playDownloads(
+                          loaded,
+                          trackId: row.trackId,
+                        );
+                        ref.invalidate(playableDownloadsProvider);
+                        if (!context.mounted) return;
+                        final error = ref.read(musicControllerProvider).error;
+                        if (error != null) {
+                          setState(() => _failedPlayback.add(row.trackId));
+                          showGlassToast(context, error);
+                          return;
+                        }
+                        await Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const NowPlayingScreen(),
+                          ),
+                        );
+                      } on Object {
+                        if (context.mounted) {
+                          setState(() => _failedPlayback.add(row.trackId));
+                          showGlassToast(
+                            context,
+                            'Could not play this file. Try downloading it again.',
+                          );
+                        }
+                      } finally {
+                        if (mounted) {
+                          setState(() => _playing.remove(row.trackId));
+                        }
+                      }
+                    },
+                    onRetry: () => _retry(context, ref, row),
+                    onRemove: () => _remove(row.trackId),
                   ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _retry(
+    BuildContext context,
+    WidgetRef ref,
+    DownloadedTrackRecord row,
+  ) async {
+    if (!_retrying.add(row.trackId)) return;
+    setState(() {});
+    try {
+      final limit = ref.read(downloadLimitProvider);
+      if (limit <= 0 || !ref.read(downloadsAllowedProvider)) {
+        await _openPaywall(context);
+        return;
+      }
+      final error = await ref
+          .read(downloadsRepositoryProvider)
+          .download(
+            MusicTrack(
+              id: row.trackId,
+              title: row.title,
+              url: row.sourceUrl,
+              album: row.album,
+              artist: row.artist,
+              artworkUrl: row.artworkUrl,
+            ),
+            kind:
+                CollectionKind.values
+                    .where((kind) => kind.name == row.kind)
+                    .firstOrNull ??
+                CollectionKind.music,
+            limit: limit,
+            force: true,
+          );
+      ref.invalidate(playableDownloadsProvider);
+      if (error == null && mounted) {
+        setState(() => _failedPlayback.remove(row.trackId));
+      }
+      if (context.mounted) {
+        showGlassToast(context, error ?? 'Downloaded. Ready to play.');
+      }
+    } on Object {
+      if (context.mounted) {
+        showGlassToast(
+          context,
+          'Could not save this file. Check free storage and try again.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _retrying.remove(row.trackId));
+    }
+  }
+
+  Future<void> _remove(String trackId) async {
+    try {
+      await ref.read(downloadsRepositoryProvider).remove(trackId);
+      ref.invalidate(playableDownloadsProvider);
+      ref.invalidate(downloadedArtworkProvider);
+    } on Object {
+      if (mounted) {
+        showGlassToast(context, 'Could not remove this download. Try again.');
+      }
+    }
   }
 
   Future<void> _openPaywall(BuildContext context) => Navigator.of(context).push(
@@ -103,7 +258,15 @@ class DownloadsScreen extends ConsumerWidget {
       isDestructive: true,
     );
     if (confirmed != true) return;
-    await ref.read(downloadsRepositoryProvider).removeAll();
+    try {
+      await ref.read(downloadsRepositoryProvider).removeAll();
+      ref.invalidate(playableDownloadsProvider);
+      ref.invalidate(downloadedArtworkProvider);
+    } on Object {
+      if (context.mounted) {
+        showGlassToast(context, 'Could not remove every download. Try again.');
+      }
+    }
   }
 }
 
@@ -161,7 +324,22 @@ class _Summary extends StatelessWidget {
 }
 
 class _DownloadRow extends StatelessWidget {
-  const _DownloadRow({required this.row, required this.onRemove});
+  const _DownloadRow({
+    required this.row,
+    this.artwork,
+    required this.onRemove,
+    required this.playable,
+    required this.allowed,
+    required this.checking,
+    required this.onPlay,
+    required this.onRetry,
+  });
+  final String? artwork;
+  final bool playable;
+  final bool allowed;
+  final bool checking;
+  final VoidCallback onPlay;
+  final VoidCallback onRetry;
 
   final DownloadedTrackRecord row;
   final VoidCallback onRemove;
@@ -175,6 +353,35 @@ class _DownloadRow extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
         child: Row(
           children: [
+            IconButton(
+              tooltip: playable
+                  ? 'Play downloaded track'
+                  : 'Download missing or incomplete file again',
+              onPressed: checking || !allowed
+                  ? null
+                  : playable
+                  ? onPlay
+                  : onRetry,
+              icon: Icon(
+                checking
+                    ? Icons.hourglass_empty
+                    : playable
+                    ? Icons.play_arrow_rounded
+                    : Icons.refresh_rounded,
+              ),
+            ),
+            if (artwork != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: AudioArtwork(
+                  imageUrl: artwork!,
+                  width: 44,
+                  height: 44,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, _, _) =>
+                      const Icon(Icons.audio_file_outlined),
+                ),
+              ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,6 +392,11 @@ class _DownloadRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
+                  if (!playable && !checking)
+                    Text(
+                      'File unavailable · Download again',
+                      style: TextStyle(color: brand.danger, fontSize: 12),
+                    ),
                   const SizedBox(height: 3),
                   Text(
                     [
@@ -199,6 +411,12 @@ class _DownloadRow extends StatelessWidget {
                 ],
               ),
             ),
+            if (playable)
+              IconButton(
+                tooltip: 'Download again if playback fails',
+                onPressed: allowed && !checking ? onRetry : null,
+                icon: const Icon(Icons.refresh_rounded),
+              ),
             IconButton(
               tooltip: 'Remove',
               onPressed: onRemove,

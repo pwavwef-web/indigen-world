@@ -379,6 +379,9 @@ test('a post tagged with a public community needs a member behind it', async () 
 test('announcements are reserved; other categories are open', async () => {
   const member = db(env.authenticatedContext(MEMBER));
   await assertSucceeds(setDoc(doc(member, 'communityPosts/space-question'), post(MEMBER, { category: 'question' })));
+  for (const category of ['event', 'community_update']) {
+    await assertSucceeds(setDoc(doc(member, `communityPosts/space-${category}`), post(MEMBER, { category })));
+  }
   await assertFails(setDoc(doc(member, 'communityPosts/space-announce'), post(MEMBER, { category: 'announcement' })));
   await assertFails(setDoc(doc(member, 'communityPosts/space-bogus'), post(MEMBER, { category: 'gossip' })));
 

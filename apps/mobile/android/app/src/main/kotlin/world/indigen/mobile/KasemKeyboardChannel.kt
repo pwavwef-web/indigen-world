@@ -21,6 +21,7 @@ internal class KasemKeyboardChannel(private val activity: Activity) {
                             preferences.defaultLanguage =
                                 KeyboardLanguage.from(call.argument("value"))
                         "vibration" -> preferences.vibration = call.argument<Boolean>("value") ?: true
+                        "blackTheme" -> preferences.blackTheme = call.argument<Boolean>("value") ?: false
                         "sound" -> preferences.sound = call.argument<Boolean>("value") ?: false
                         else -> {
                             result.error("unknown_preference", "Unknown keyboard preference: $key", null)
@@ -43,9 +44,9 @@ internal class KasemKeyboardChannel(private val activity: Activity) {
     }
 
     private fun state(): Map<String, Any> = preferences.asMap(isEnabled()) + mapOf(
-        "selected" to (Settings.Secure.getString(
+        "selected" to (android.content.ComponentName.unflattenFromString(Settings.Secure.getString(
             activity.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD
-        ) == android.content.ComponentName(activity, KasemInputMethodService::class.java).flattenToShortString())
+        ) ?: "") == android.content.ComponentName(activity, KasemInputMethodService::class.java))
     )
 
     private fun isEnabled(): Boolean = inputMethodManager().enabledInputMethodList.any {

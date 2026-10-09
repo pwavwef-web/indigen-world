@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:audio_service/audio_service.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/music/widgets/audio_artwork.dart';
 
 /// The player, minimised: a round button with the artwork in it and the music
 /// moving over the top.
@@ -46,7 +46,7 @@ class MusicBubble extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           if (hasArt) ...[
-            CachedNetworkImage(
+            AudioArtwork(
               imageUrl: art,
               fit: BoxFit.cover,
               placeholder: (_, _) => ColoredBox(color: brand.surfaceMuted),

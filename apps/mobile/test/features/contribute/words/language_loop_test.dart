@@ -3,6 +3,7 @@
 // itself, Kawuri's lookups, the reviewer's choices and the member's view of
 // what their answer became.
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -74,6 +75,11 @@ class _FakeLookup implements QueueLookup {
   );
 }
 
+class _SyntheticUser extends Fake implements User {
+  @override
+  String get uid => 'synthetic-loop-owner';
+}
+
 class _Recorder extends LoopAnalytics {
   final events = <(LoopEvent, Map<String, Object>)>[];
 
@@ -136,8 +142,10 @@ void main() {
 
     test('a request says whether to open the form or the dictionary', () {
       expect(
-        QueueWordRequest.fromMap({'wordId': 'a', 'status': 'open'}, asked: 'x')
-            .state,
+        QueueWordRequest.fromMap({
+          'wordId': 'a',
+          'status': 'open',
+        }, asked: 'x').state,
         QueueWordState.open,
       );
       expect(
@@ -152,13 +160,32 @@ void main() {
   });
 
   group('the Explore prompt', () {
-    test('comes after a few reels, then rarely, and not too often a session', () {
-      expect(promptDue(moves: kPromptFirstAfterReels - 1, shown: 0, lastShownAt: null), isFalse);
-      expect(promptDue(moves: kPromptFirstAfterReels, shown: 0, lastShownAt: null), isTrue);
-      expect(promptDue(moves: 10, shown: 1, lastShownAt: 5), isFalse);
-      expect(promptDue(moves: 5 + kPromptEveryReels, shown: 1, lastShownAt: 5), isTrue);
-      expect(promptDue(moves: 200, shown: kPromptsPerSession, lastShownAt: 100), isFalse);
-    });
+    test(
+      'comes after a few reels, then rarely, and not too often a session',
+      () {
+        expect(
+          promptDue(
+            moves: kPromptFirstAfterReels - 1,
+            shown: 0,
+            lastShownAt: null,
+          ),
+          isFalse,
+        );
+        expect(
+          promptDue(moves: kPromptFirstAfterReels, shown: 0, lastShownAt: null),
+          isTrue,
+        );
+        expect(promptDue(moves: 10, shown: 1, lastShownAt: 5), isFalse);
+        expect(
+          promptDue(moves: 5 + kPromptEveryReels, shown: 1, lastShownAt: 5),
+          isTrue,
+        );
+        expect(
+          promptDue(moves: 200, shown: kPromptsPerSession, lastShownAt: 100),
+          isFalse,
+        );
+      },
+    );
 
     test('remembers what the member dismissed or answered', () async {
       final memory = QueuePromptMemory(await SharedPreferences.getInstance());
@@ -204,7 +231,10 @@ void main() {
       expect(find.text('HELP THE DICTIONARY'), findsOneWidget);
       expect(find.textContaining('water'), findsWidgets);
       expect(find.textContaining('Tatoeba #1234 by CK'), findsOneWidget);
-      expect(recorder.events.map((e) => e.$1), contains(LoopEvent.promptImpression));
+      expect(
+        recorder.events.map((e) => e.$1),
+        contains(LoopEvent.promptImpression),
+      );
 
       // Let the slide-in finish: it starts on the frame the word arrives.
       await tester.pump(const Duration(milliseconds: 400));
@@ -214,7 +244,10 @@ void main() {
       expect(find.byType(WordPromptCard), findsNothing);
       final memory = QueuePromptMemory(await SharedPreferences.getInstance());
       expect(memory.isSettled(_water.id), isTrue);
-      expect(recorder.events.map((e) => e.$1), contains(LoopEvent.promptDismiss));
+      expect(
+        recorder.events.map((e) => e.$1),
+        contains(LoopEvent.promptDismiss),
+      );
     });
   });
 
@@ -254,7 +287,14 @@ void main() {
         final container = ProviderContainer(
           overrides: [
             firebaseReadyProvider.overrideWithValue(true),
-            isSignedInProvider.overrideWith((ref) => ref.watch(_signedInProvider)),
+            authStateProvider.overrideWith(
+              (ref) => Stream<User?>.value(
+                ref.watch(_signedInProvider) ? _SyntheticUser() : null,
+              ),
+            ),
+            isSignedInProvider.overrideWith(
+              (ref) => ref.watch(_signedInProvider),
+            ),
             wordQueueApiProvider.overrideWithValue(api),
             queueLookupProvider.overrideWithValue(
               _FakeLookup(words: {_water.id: _water}),
@@ -320,54 +360,70 @@ void main() {
       },
     );
 
-    test('a draft sends its provenance and choices, and consent only when given', () {
-      const plain = WordTranslationDraft(
-        wordId: 'w',
-        translations: ['na'],
-        partOfSpeech: 'noun',
-        dialect: 'Paga',
-      );
-      expect(plain.toPayload()['origin'], 'queue');
-      expect(plain.toPayload()['credit'], 'name');
-      expect(plain.toPayload().containsKey('aiTraining'), isFalse);
-      expect(plain.toPayload().containsKey('reviseContributionId'), isFalse);
-      const chosen = WordTranslationDraft(
-        wordId: 'w',
-        translations: ['na'],
-        partOfSpeech: 'noun',
-        dialect: 'Paga',
-        origin: 'kawuri',
-        creditByName: false,
-        allowTraining: true,
-        reviseContributionId: 'c1',
-      );
-      final payload = chosen.toPayload();
-      expect(payload['origin'], 'kawuri');
-      expect(payload['credit'], 'anonymous');
-      expect(payload['aiTraining'], isTrue);
-      expect(payload['reviseContributionId'], 'c1');
-    });
+    test(
+      'a draft sends its provenance and choices, and consent only when given',
+      () {
+        const plain = WordTranslationDraft(
+          wordId: 'w',
+          translations: ['na'],
+          partOfSpeech: 'noun',
+          dialect: 'Paga',
+        );
+        expect(plain.toPayload()['origin'], 'queue');
+        expect(plain.toPayload()['credit'], 'name');
+        expect(plain.toPayload().containsKey('aiTraining'), isFalse);
+        expect(plain.toPayload().containsKey('reviseContributionId'), isFalse);
+        const chosen = WordTranslationDraft(
+          wordId: 'w',
+          translations: ['na'],
+          partOfSpeech: 'noun',
+          dialect: 'Paga',
+          origin: 'kawuri',
+          creditByName: false,
+          allowTraining: true,
+          reviseContributionId: 'c1',
+          requestId: 'stable-synthetic-key',
+          expectedRevision: 2,
+          publicationPermission: false,
+        );
+        final payload = chosen.toPayload();
+        expect(payload['origin'], 'kawuri');
+        expect(payload['credit'], 'anonymous');
+        expect(payload['aiTraining'], isTrue);
+        expect(payload['reviseContributionId'], 'c1');
+        expect(payload['requestId'], 'stable-synthetic-key');
+        expect(payload['expectedRevision'], 2);
+        expect(payload['publicationPermission'], false);
+      },
+    );
   });
 
   group('Kawuri', () {
-    test('verified entries become links and unverified words become offers', () {
-      final rows = kawuriLookupsFrom({
-        'verified': [
-          {'entryId': 'collection_1', 'kasem': 'na', 'english': 'water'},
-          {'entryId': '', 'kasem': 'x'},
-        ],
-        'unverified': [
-          {'term': 'goat', 'wordQueueId': 'goat-x', 'state': 'waiting-review'},
-          {'term': 'cow', 'wordQueueId': 'cow-x', 'state': 'translated'},
-        ],
-      });
-      expect(rows, hasLength(2));
-      expect(rows.first, containsPair('kind', 'verified'));
-      expect(rows.first, containsPair('entryId', 'collection_1'));
-      expect(rows.last, containsPair('kind', 'unverified'));
-      expect(rows.last, containsPair('term', 'goat'));
-      expect(kawuriLookupsFrom({}), isEmpty);
-    });
+    test(
+      'verified entries become links and unverified words become offers',
+      () {
+        final rows = kawuriLookupsFrom({
+          'verified': [
+            {'entryId': 'collection_1', 'kasem': 'na', 'english': 'water'},
+            {'entryId': '', 'kasem': 'x'},
+          ],
+          'unverified': [
+            {
+              'term': 'goat',
+              'wordQueueId': 'goat-x',
+              'state': 'waiting-review',
+            },
+            {'term': 'cow', 'wordQueueId': 'cow-x', 'state': 'translated'},
+          ],
+        });
+        expect(rows, hasLength(2));
+        expect(rows.first, containsPair('kind', 'verified'));
+        expect(rows.first, containsPair('entryId', 'collection_1'));
+        expect(rows.last, containsPair('kind', 'unverified'));
+        expect(rows.last, containsPair('term', 'goat'));
+        expect(kawuriLookupsFrom({}), isEmpty);
+      },
+    );
 
     test('a reel offers a lesson unless it is an advert', () {
       const published = Reel(
@@ -413,35 +469,49 @@ void main() {
         );
 
     test('a queue answer can be sent back for changes', () {
-      expect(answer().availableDecisions, contains(ReviewDecision.requestRevision));
+      expect(
+        answer().availableDecisions,
+        contains(ReviewDecision.requestRevision),
+      );
     });
 
     test('options the backend would refuse are refused here first', () {
       expect(AnswerTarget.training.problemFor(answer()), isNotNull);
-      expect(AnswerTarget.training.problemFor(answer(aiTraining: true)), isNull);
+      expect(
+        AnswerTarget.training.problemFor(answer(aiTraining: true)),
+        isNull,
+      );
       expect(AnswerTarget.example.problemFor(answer()), isNotNull);
       expect(
-        AnswerTarget.translationPair.problemFor(answer(kasemExample: 'na bam zura mo')),
+        AnswerTarget.translationPair.problemFor(
+          answer(kasemExample: 'na bam zura mo'),
+        ),
         isNull,
       );
       expect(AnswerTarget.headword.problemFor(answer()), isNull);
-      expect(AnswerTarget.fromWire('translation-pair'), AnswerTarget.translationPair);
+      expect(
+        AnswerTarget.fromWire('translation-pair'),
+        AnswerTarget.translationPair,
+      );
       expect(AnswerTarget.fromWire('nonsense'), AnswerTarget.headword);
     });
   });
 
   group('your submissions', () {
-    CollectionContributionRecord record(String status, {String publishedAs = '', int revisions = 0}) =>
-        CollectionContributionRecord(
-          id: 'c1',
-          kind: CollectionKind.dictionary,
-          title: 'water',
-          status: status,
-          publicationPermission: true,
-          wordQueueId: 'water-5ec6a4',
-          publishedAs: publishedAs,
-          revisionCount: revisions,
-        );
+    CollectionContributionRecord record(
+      String status, {
+      String publishedAs = '',
+      int revisions = 0,
+    }) => CollectionContributionRecord(
+      id: 'c1',
+      kind: CollectionKind.dictionary,
+      title: 'water',
+      status: status,
+      publicationPermission: true,
+      wordQueueId: 'water-5ec6a4',
+      publishedAs: publishedAs,
+      revisionCount: revisions,
+    );
 
     test('an answer sent back can be corrected', () {
       expect(record('needs_revision').canRevise, isTrue);
@@ -449,9 +519,20 @@ void main() {
     });
 
     test('the member is told what their answer became', () {
-      expect(queueAnswerOutcome(record('approved', publishedAs: 'expression')), 'Approved as an expression.');
-      expect(queueAnswerOutcome(record('published', publishedAs: 'translation-pair')), 'Approved as a translation pair.');
-      expect(queueAnswerOutcome(record('submitted', revisions: 1)), 'Corrected and back with the reviewers.');
+      expect(
+        queueAnswerOutcome(record('approved', publishedAs: 'expression')),
+        'Approved as an expression.',
+      );
+      expect(
+        queueAnswerOutcome(
+          record('published', publishedAs: 'translation-pair'),
+        ),
+        'Approved as a translation pair.',
+      );
+      expect(
+        queueAnswerOutcome(record('submitted', revisions: 1)),
+        'Corrected and back with the reviewers.',
+      );
       expect(queueAnswerOutcome(record('approved')), isNull);
     });
   });

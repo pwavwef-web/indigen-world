@@ -73,8 +73,12 @@ class ReviewCard {
 
   /// A word met for the first time today.
   static ReviewCard first({required bool knew, required DateTime now}) =>
-      const ReviewCard(box: 0, dueDay: '', lastDay: '', reviews: 0)
-          .answered(knew: knew, now: now);
+      const ReviewCard(
+        box: 0,
+        dueDay: '',
+        lastDay: '',
+        reviews: 0,
+      ).answered(knew: knew, now: now);
 
   Map<String, Object?> toJson() => {
     'box': box,
@@ -87,7 +91,10 @@ class ReviewCard {
     if (raw is! Map) return null;
     final due = raw['due'];
     final last = raw['last'];
-    if (due is! String || !isDayKey(due) || last is! String || !isDayKey(last)) {
+    if (due is! String ||
+        !isDayKey(due) ||
+        last is! String ||
+        !isDayKey(last)) {
       return null;
     }
     return ReviewCard(
@@ -381,7 +388,11 @@ class LearnProgress {
       return this;
     }
     final days = {
-      for (var offset = 0; offset < storedStreakDays && offset < keptDays; offset++)
+      for (
+        var offset = 0;
+        offset < storedStreakDays && offset < keptDays;
+        offset++
+      )
         dayKey(addDays(claim, -offset)),
     };
     return copyWith(activeDays: days);
@@ -737,7 +748,12 @@ class LearnProgressController extends AsyncNotifier<LearnProgress> {
       return false;
     }
     final next = current
-        .copyWith(practiceDays: {...current.practiceDays, kind: {...days, today}})
+        .copyWith(
+          practiceDays: {
+            ...current.practiceDays,
+            kind: {...days, today},
+          },
+        )
         .markActive();
     state = AsyncData(next);
     await _persist(next);

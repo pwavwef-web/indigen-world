@@ -49,7 +49,13 @@ void main() {
 
     test('the longest run is remembered', () {
       expect(
-        _days(['2026-08-01', '2026-08-02', '2026-08-03', '2026-08-04', '2026-09-16']).longestStreak,
+        _days([
+          '2026-08-01',
+          '2026-08-02',
+          '2026-08-03',
+          '2026-08-04',
+          '2026-09-16',
+        ]).longestStreak,
         4,
       );
     });
@@ -89,11 +95,28 @@ void main() {
     });
 
     test('the week runs Monday to Sunday and meets its goal on three days', () {
-      final progress = _days(['2026-09-13', '2026-09-14', '2026-09-15', '2026-09-16']);
-      expect(progress.week.map((day) => day.active), [true, true, true, false, false, false, false]);
+      final progress = _days([
+        '2026-09-13',
+        '2026-09-14',
+        '2026-09-15',
+        '2026-09-16',
+      ]);
+      expect(progress.week.map((day) => day.active), [
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+      ]);
       expect(progress.week[2].isToday, isTrue);
       expect(progress.week[3].isFuture, isTrue);
-      expect(progress.activeDaysThisWeek, 3, reason: 'Sunday the 13th was last week');
+      expect(
+        progress.activeDaysThisWeek,
+        3,
+        reason: 'Sunday the 13th was last week',
+      );
       expect(progress.weeklyGoalMet, isTrue);
     });
   });
@@ -118,8 +141,14 @@ void main() {
       );
       final merged = phone.merge(server);
       expect(merged.activeDays, {'2026-09-15', '2026-09-16'});
-      expect(merged.lessonSteps, {'b': 2}, reason: 'a finished lesson has no steps left');
-      expect(merged.reviewCards['w1']!.box, 1, reason: 'answered later on the phone');
+      expect(merged.lessonSteps, {
+        'b': 2,
+      }, reason: 'a finished lesson has no steps left');
+      expect(
+        merged.reviewCards['w1']!.box,
+        1,
+        reason: 'answered later on the phone',
+      );
       expect(merged.reviewCards.keys, containsAll(['w1', 'w2']));
     });
 
@@ -127,7 +156,9 @@ void main() {
       final old = dayKey(addDays(learnNow(), -LearnProgress.keptDays - 5));
       final progress = LearnProgress(
         activeDays: {old, '2026-09-16'},
-        practiceDays: {PracticeKind.speak: {old}},
+        practiceDays: {
+          PracticeKind.speak: {old},
+        },
       ).pruned();
       expect(progress.activeDays, {'2026-09-16'});
       expect(progress.practiceXp, LearnProgress.xpPerPracticeDay);
@@ -136,10 +167,16 @@ void main() {
     test('the calendar survives a round trip through JSON', () {
       const progress = LearnProgress(
         activeDays: {'2026-09-16'},
-        dayLessons: {'2026-09-16': {'a'}},
+        dayLessons: {
+          '2026-09-16': {'a'},
+        },
         lessonSteps: {'b': 2},
-        practiceDays: {PracticeKind.listen: {'2026-09-16'}},
-        reviewCards: {'w': ReviewCard(box: 2, dueDay: '2026-09-18', lastDay: '2026-09-16')},
+        practiceDays: {
+          PracticeKind.listen: {'2026-09-16'},
+        },
+        reviewCards: {
+          'w': ReviewCard(box: 2, dueDay: '2026-09-18', lastDay: '2026-09-16'),
+        },
       );
       final back = const LearnProgress().withCalendarJson(
         jsonDecode(jsonEncode(progress.calendarJson())) as Map<String, dynamic>,
@@ -172,7 +209,9 @@ void main() {
 
     Future<LearnProgressController> ready() async {
       container = ProviderContainer(
-        overrides: [authStateProvider.overrideWith((ref) => Stream.value(null))],
+        overrides: [
+          authStateProvider.overrideWith((ref) => Stream.value(null)),
+        ],
       );
       addTearDown(container.dispose);
       container.listen(learnProgressProvider, (_, _) {});
@@ -184,16 +223,19 @@ void main() {
 
     LearnProgress state() => container.read(learnProgressProvider).value!;
 
-    test('a lesson finished twice in a day counts once and pays once', () async {
-      SharedPreferences.setMockInitialValues({});
-      final controller = await ready();
-      await controller.completeLesson('a', xp: 15);
-      await controller.completeLesson('a', xp: 15);
-      expect(state().xp, 15);
-      expect(state().lessonsToday, 1);
-      expect(state().activeDays, {'2026-09-16'});
-      expect(state().streakDays, 1);
-    });
+    test(
+      'a lesson finished twice in a day counts once and pays once',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final controller = await ready();
+        await controller.completeLesson('a', xp: 15);
+        await controller.completeLesson('a', xp: 15);
+        expect(state().xp, 15);
+        expect(state().lessonsToday, 1);
+        expect(state().activeDays, {'2026-09-16'});
+        expect(state().streakDays, 1);
+      },
+    );
 
     test('practice pays once a day per kind, and marks the day', () async {
       SharedPreferences.setMockInitialValues({});

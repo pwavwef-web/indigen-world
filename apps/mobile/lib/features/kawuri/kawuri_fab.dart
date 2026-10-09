@@ -3,13 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_learning_context.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_screen.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// The floating Kawuri button.
 ///
 /// Lives on the Learn tab, where a question is most likely to come up mid-
-/// lesson. It arrives a beat after the screen settles rather than competing
-/// with it, then breathes gently so it stays findable without ever demanding
-/// attention.
+/// lesson. It uses the shared short entrance and remains still while reading.
 class KawuriFab extends StatefulWidget {
   const KawuriFab({this.learningContext, this.showLabel = false, super.key});
 
@@ -32,20 +31,20 @@ class _KawuriFabState extends State<KawuriFab> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _entry = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 720),
-    );
+    _entry = AnimationController(vsync: this, duration: AppMotion.emphasized);
     _breathe = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2200),
-    )..repeat(reverse: true);
+      value: 1,
+    );
 
-    // Let the lesson path draw first; an element that lands after everything
-    // else reads as an offer rather than as part of the furniture.
-    Future<void>.delayed(const Duration(milliseconds: 420), () {
-      if (mounted) _entry.forward();
-    });
+    _entry.forward();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!motionAllowed(context)) _entry.value = 1;
   }
 
   @override
@@ -59,11 +58,12 @@ class _KawuriFabState extends State<KawuriFab> with TickerProviderStateMixin {
     HapticFeedback.mediumImpact();
     Navigator.of(context).push(
       PageRouteBuilder<void>(
-        transitionDuration: const Duration(milliseconds: 380),
-        reverseTransitionDuration: const Duration(milliseconds: 260),
+        transitionDuration: AppMotion.emphasized,
+        reverseTransitionDuration: AppMotion.standard,
         pageBuilder: (context, animation, secondary) =>
             KawuriScreen(learningContext: widget.learningContext?.call()),
         transitionsBuilder: (context, animation, secondary, child) {
+          if (!motionAllowed(context)) return child;
           final curve = CurvedAnimation(
             parent: animation,
             curve: Curves.easeOutCubic,
@@ -71,7 +71,7 @@ class _KawuriFabState extends State<KawuriFab> with TickerProviderStateMixin {
           return FadeTransition(
             opacity: curve,
             child: ScaleTransition(
-              scale: Tween(begin: 0.88, end: 1.0).animate(curve),
+              scale: Tween(begin: 0.98, end: 1.0).animate(curve),
               child: child,
             ),
           );
@@ -82,7 +82,7 @@ class _KawuriFabState extends State<KawuriFab> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) => ScaleTransition(
-    scale: CurvedAnimation(parent: _entry, curve: Curves.elasticOut),
+    scale: CurvedAnimation(parent: _entry, curve: AppMotion.arrive),
     child: FadeTransition(
       opacity: CurvedAnimation(parent: _entry, curve: Curves.easeIn),
       child: widget.showLabel
@@ -99,10 +99,7 @@ class _KawuriFabState extends State<KawuriFab> with TickerProviderStateMixin {
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
                       shadows: [
-                        Shadow(
-                          color: context.brand.background,
-                          blurRadius: 6,
-                        ),
+                        Shadow(color: context.brand.background, blurRadius: 6),
                       ],
                     ),
                   ),
@@ -114,54 +111,51 @@ class _KawuriFabState extends State<KawuriFab> with TickerProviderStateMixin {
   );
 
   Widget _orb(BuildContext context) => Semantics(
-        button: true,
-        label: 'Ask Kawuri, the Indigen World guide',
-        excludeSemantics: true,
-        child: Tooltip(
-          message: 'Ask Kawuri',
-          child: GestureDetector(
-            onTap: _open,
-            child: AnimatedBuilder(
-              animation: _breathe,
-              builder: (context, child) => Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      context.brand.heroMid,
-                      context.brand.heroLit,
-                    ],
-                  ),
-                  border: Border.all(
-                    color: context.brand.highlight.withValues(
-                      alpha: 0.55 + 0.35 * _breathe.value,
-                    ),
-                    width: 1.4,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: context.brand.highlight.withValues(
-                        alpha: 0.22 + 0.18 * _breathe.value,
-                      ),
-                      blurRadius: 16 + 12 * _breathe.value,
-                      spreadRadius: 1 + 2 * _breathe.value,
-                    ),
-                    BoxShadow(
-                      color: context.brand.accent.withValues(alpha: 0.3),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: child,
+    button: true,
+    label: 'Ask Kawuri, the Indigen World guide',
+    excludeSemantics: true,
+    child: Tooltip(
+      message: 'Ask Kawuri',
+      child: GestureDetector(
+        onTap: _open,
+        child: AnimatedBuilder(
+          animation: _breathe,
+          builder: (context, child) => Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [context.brand.heroMid, context.brand.heroLit],
               ),
-              child: const Center(child: KawuriOrb(size: 40, glow: false)),
+              border: Border.all(
+                color: context.brand.highlight.withValues(
+                  alpha: 0.55 + 0.35 * _breathe.value,
+                ),
+                width: 1.4,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: context.brand.highlight.withValues(
+                    alpha: 0.22 + 0.18 * _breathe.value,
+                  ),
+                  blurRadius: 16 + 12 * _breathe.value,
+                  spreadRadius: 1 + 2 * _breathe.value,
+                ),
+                BoxShadow(
+                  color: context.brand.accent.withValues(alpha: 0.3),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
+            child: child,
           ),
+          child: const Center(child: KawuriOrb(size: 40, glow: false)),
         ),
-      );
+      ),
+    ),
+  );
 }

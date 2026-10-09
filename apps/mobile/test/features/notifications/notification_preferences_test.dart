@@ -41,10 +41,7 @@ void main() {
       // A future build writing a string where a bool belongs must cost that
       // one preference its answer, not the whole map.
       final preferences = NotificationPreferences.fromField(
-        const <String, dynamic>{
-          'followedPosts': 'off',
-          'threadReplies': false,
-        },
+        const <String, dynamic>{'followedPosts': 'off', 'threadReplies': false},
       );
       expect(preferences.isOn(NotificationPreference.followedPosts), isTrue);
       expect(preferences.isOn(NotificationPreference.threadReplies), isFalse);
@@ -91,10 +88,14 @@ void main() {
     test('the loudest fan-outs are offered first', () {
       // Somebody who came to this screen because their phone would not stop
       // should find the reason in the first two rows.
-      expect(NotificationPreference.values.first,
-          NotificationPreference.followedPosts);
-      expect(NotificationPreference.values[1],
-          NotificationPreference.threadReplies);
+      expect(
+        NotificationPreference.values.first,
+        NotificationPreference.followedPosts,
+      );
+      expect(
+        NotificationPreference.values[1],
+        NotificationPreference.threadReplies,
+      );
     });
 
     test('every switch says what it turns off, in words', () {

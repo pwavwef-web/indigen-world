@@ -13,7 +13,6 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/brand_theme_choice.dart';
 import 'package:indigen_world_mobile/core/brand_themes.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
-import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/core/theme_mode.dart';
 import 'package:indigen_world_mobile/features/ads/ad_consent.dart';
@@ -31,6 +30,7 @@ import 'package:indigen_world_mobile/features/notifications/data/notification_pr
 import 'package:indigen_world_mobile/features/notifications/notification_settings_screen.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
+import 'package:indigen_world_mobile/features/settings/contact_support_screen.dart';
 import 'package:indigen_world_mobile/features/settings/developer_options.dart';
 import 'package:indigen_world_mobile/features/settings/kasem_keyboard_screen.dart';
 import 'package:indigen_world_mobile/features/settings/licences_screen.dart';
@@ -287,6 +287,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
               SwitchListTile.adaptive(
+                key: const Key('settings-low-data'),
+                secondary: Icon(
+                  Icons.data_saver_on_outlined,
+                  color: context.brand.accent,
+                ),
+                title: const Text(
+                  'Low-data mode',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: const Text(
+                  'Stops feed video autoplay and neighbouring video preloads. Uses available image thumbnails; tap to open full media. Saved on this device.',
+                ),
+                value: ref.watch(lowDataModeProvider),
+                onChanged: (value) => unawaited(
+                  ref.read(lowDataModeProvider.notifier).set(value),
+                ),
+              ),
+              SwitchListTile.adaptive(
                 secondary: Icon(
                   Icons.play_circle_outline_rounded,
                   color: context.brand.accent,
@@ -415,7 +433,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               // button or question — see rating_service.dart.
               const SettingsRow(
                 icon: Icons.star_outline_rounded,
-                title: 'Rate Indigen World',
+                title: 'Rate on Google Play',
                 subtitle: 'Leave a review on Google Play',
                 onTap: openStoreListing,
               ),
@@ -624,70 +642,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _openSupport() async {
-    final uid = ref.read(currentUidProvider);
-    if (uid == null) {
-      _message('Sign in so the team can reply to the right account.');
-      return;
-    }
-    if (!ref.read(firebaseReadyProvider)) {
-      _message('You need a connection to reach support.');
-      return;
-    }
-
-    final controller = TextEditingController();
-    final sent = await showGlassPopup<bool>(
-      context: context,
-      title: 'Contact support',
-      subtitle:
-          'Describe what you need. The project team sees your account so '
-          'they can reply.',
-      builder: (popupContext) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            controller: controller,
-            autofocus: true,
-            minLines: 3,
-            maxLines: 6,
-            maxLength: 1200,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              hintText: 'What can we help with?',
-            ),
-          ),
-          const SizedBox(height: 8),
-          FilledButton(
-            onPressed: () {
-              if (controller.text.trim().isEmpty) return;
-              Navigator.pop(popupContext, true);
-            },
-            child: const Text('Send to the project team'),
-          ),
-        ],
-      ),
-    );
-
-    final message = controller.text.trim();
-    controller.dispose();
-    if (sent != true || message.isEmpty) return;
-
-    try {
-      await FirebaseFirestore.instance.collection('supportRequests').add({
-        'authUid': uid,
-        'status': 'open',
-        'message': message,
-        'source': 'mobile-settings',
-        'platform': Platform.operatingSystem,
-        'appVersion': ref.read(appVersionProvider).asData?.value ?? 'unknown',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-      if (mounted) _message('Sent. The team will get back to you.');
-    } on Object {
-      if (mounted) _message('Could not send your message. Try again.');
-    }
-  }
+  Future<void> _openSupport() => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const ContactSupportScreen()));
 
   Future<void> _confirmDeletion() async {
     final confirmed = await showGlassConfirm(

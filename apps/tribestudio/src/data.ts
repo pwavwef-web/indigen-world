@@ -78,8 +78,9 @@ export async function createEntry(
   uid: string,
   input: EntryInput,
   status: 'draft' | 'submitted',
+  requestId?: string,
 ): Promise<string> {
-  const ref = doc(collection(db, 'lexicalEntries'));
+  const ref = requestId ? doc(db, 'lexicalEntries', requestId) : doc(collection(db, 'lexicalEntries'));
   const batch = writeBatch(db);
   const consentId = input.consentGranted ? `consent-${ref.id}` : undefined;
   batch.set(ref, { id: ref.id, ...buildEntry(uid, input, status, consentId) });
@@ -99,7 +100,14 @@ export async function createEntry(
       lifecycle: { createdAt: now, updatedAt: now, version: 1 },
     });
   }
-  await batch.commit();
+  try { await batch.commit(); }
+  catch (error) {
+    const { getDoc } = await import('firebase/firestore');
+    const prior = await getDoc(ref);
+    if (!prior.exists() || prior.get('governance.contributor.id') !== uid) throw error;
+    const expected = buildEntry(uid, input, status, consentId);
+    if (['headword', 'partOfSpeech', 'senses', 'governance'].some(key => JSON.stringify(prior.get(key)) !== JSON.stringify(expected[key as keyof typeof expected]))) throw new Error('This saved request has different content. Open the existing entry before continuing.');
+  }
   return ref.id;
 }
 

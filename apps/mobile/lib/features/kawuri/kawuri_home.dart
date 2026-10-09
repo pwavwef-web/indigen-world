@@ -247,7 +247,10 @@ class KawuriHome extends StatelessWidget {
                 onPressed: onLibrary,
                 child: Text(
                   'See all',
-                  style: TextStyle(color: context.brand.nightAccent, fontFamily: 'Noto Sans'),
+                  style: TextStyle(
+                    color: context.brand.nightAccent,
+                    fontFamily: 'Noto Sans',
+                  ),
                 ),
               ),
             ],
@@ -329,7 +332,11 @@ class KawuriAccuracyNotice extends StatelessWidget {
     ),
     child: Row(
       children: [
-        Icon(Icons.menu_book_outlined, color: context.brand.highlight, size: 24),
+        Icon(
+          Icons.menu_book_outlined,
+          color: context.brand.highlight,
+          size: 24,
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
@@ -404,7 +411,10 @@ class KawuriComposer extends StatelessWidget {
                 icon: Icon(capabilityIcon(mode), size: 16),
                 label: Text(
                   '${mode.label} · ${kawuriUnavailableTag(mode, capabilities) ?? 'Options'}',
-                  style: TextStyle(fontSize: 12, color: context.brand.nightAccent),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.brand.nightAccent,
+                  ),
                 ),
               ),
             ),
@@ -426,7 +436,10 @@ class KawuriComposer extends StatelessWidget {
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 4,
+                vertical: 12,
+              ),
             ),
           ),
           Row(
@@ -618,7 +631,10 @@ class _RecentRow extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            Icon(kawuriCreationIcon(creation), color: context.brand.nightAccent),
+            Icon(
+              kawuriCreationIcon(creation),
+              color: context.brand.nightAccent,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

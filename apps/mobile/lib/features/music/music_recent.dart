@@ -86,10 +86,7 @@ final recentlyPlayedProvider =
 
 /// The recently played ids resolved against [items], in the order they were
 /// played and with anything no longer published quietly dropped.
-List<PublishedReel> resolveRecent(
-  List<String> ids,
-  List<PublishedReel> items,
-) {
+List<PublishedReel> resolveRecent(List<String> ids, List<PublishedReel> items) {
   final byId = {for (final item in items) item.id: item};
   return List.unmodifiable([for (final id in ids) ?byId[id]]);
 }

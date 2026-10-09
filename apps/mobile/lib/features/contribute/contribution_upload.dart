@@ -208,9 +208,7 @@ class ContributionUploader {
     if (file.size > ceiling) {
       throw ContributionUploadFailure(
         'That ${kind.label} is larger than ${ceiling ~/ (1024 * 1024)} MB. '
-        '${kind == ContributionMediaKind.image
-            ? 'Please choose a smaller picture, or crop it.'
-            : 'Please send a shorter or more compressed version.'}',
+        '${kind == ContributionMediaKind.image ? 'Please choose a smaller picture, or crop it.' : 'Please send a shorter or more compressed version.'}',
       );
     }
     return PickedContributionFile(

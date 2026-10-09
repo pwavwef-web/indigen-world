@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand_themes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,6 +36,17 @@ class BrandThemeChoiceController extends Notifier<String> {
   Future<void> choose(BrandTheme theme) async {
     if (state == theme.id) return;
     state = theme.id;
+    if (Platform.isAndroid) {
+      try {
+        await const MethodChannel('world.indigen.mobile/kasem_keyboard')
+            .invokeMethod<Object?>('setPreference', {
+              'key': 'blackTheme',
+              'value': theme.id == 'black',
+            });
+      } on Object {
+        /* App theme selection still works without the IME. */
+      }
+    }
     try {
       final preferences = await SharedPreferences.getInstance();
       await preferences.setString(brandThemePreferenceKey, theme.id);

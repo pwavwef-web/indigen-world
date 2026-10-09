@@ -1,7 +1,8 @@
 import 'dart:ui' show ImageFilter;
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/music/widgets/audio_artwork.dart';
 import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// Behind the now-playing screen: the song's own artwork, blurred into a
@@ -32,6 +33,9 @@ class NowPlayingBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (context.brand.isBlack) {
+      return ColoredBox(color: context.brand.background);
+    }
     final url = artworkUrl;
     final deep = Color.lerp(tint, Colors.black, 0.55)!;
     return Stack(
@@ -41,7 +45,7 @@ class NowPlayingBackdrop extends StatelessWidget {
         if (url != null && url.isNotEmpty)
           RepaintBoundary(
             child: AnimatedSwitcher(
-              duration: motionOr(context, const Duration(milliseconds: 700)),
+              duration: motionOr(context, AppMotion.standard),
               // Filling the screen, both the picture arriving and the one
               // leaving. The switcher's own stack is loose, and a loose
               // picture shrinks to its 64-pixel self: a small blurred box in
@@ -59,7 +63,7 @@ class NowPlayingBackdrop extends StatelessWidget {
                     sigmaY: 34,
                     tileMode: TileMode.mirror,
                   ),
-                  child: CachedNetworkImage(
+                  child: AudioArtwork(
                     imageUrl: url,
                     fit: BoxFit.cover,
                     memCacheWidth: 64,

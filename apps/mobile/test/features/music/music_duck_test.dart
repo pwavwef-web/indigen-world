@@ -60,7 +60,10 @@ void main() {
       final controller = container.read(musicControllerProvider.notifier);
 
       expect(await controller.duckForOtherAudio(), isTrue);
-      expect(container.read(musicControllerProvider).pausedForOtherAudio, isTrue);
+      expect(
+        container.read(musicControllerProvider).pausedForOtherAudio,
+        isTrue,
+      );
     });
 
     test('does nothing when nothing was playing', () async {
@@ -150,7 +153,10 @@ void main() {
       final focus = container.read(fullScreenMediaProvider.notifier);
       focus.enter();
       await tester.pump();
-      expect(container.read(musicControllerProvider).pausedForOtherAudio, isTrue);
+      expect(
+        container.read(musicControllerProvider).pausedForOtherAudio,
+        isTrue,
+      );
 
       // Down to zero, then straight back up before the delay elapses — which
       // is exactly what tapping a second pronunciation looks like.
@@ -161,7 +167,10 @@ void main() {
 
       // Still ducked: the resume was cancelled rather than firing into the
       // gap between two clips.
-      expect(container.read(musicControllerProvider).pausedForOtherAudio, isTrue);
+      expect(
+        container.read(musicControllerProvider).pausedForOtherAudio,
+        isTrue,
+      );
 
       // And released for real this time.
       focus.leave();

@@ -35,13 +35,16 @@ void main() {
       expect(foldedContains('bʋŋʋ', 'bunu'), isTrue);
     });
 
-    test('tone marks are stripped, because a learner cannot hear which one', () {
-      // Kasem is tonal and the marks are meaningful — which is exactly why
-      // they are dropped HERE and nowhere else. An archive that insists you
-      // get the tone right before it will show you the word is a quiz.
-      expect(foldForSearch('dɩ́'), 'di');
-      expect(foldForSearch('bà'), 'ba');
-    });
+    test(
+      'tone marks are stripped, because a learner cannot hear which one',
+      () {
+        // Kasem is tonal and the marks are meaningful — which is exactly why
+        // they are dropped HERE and nowhere else. An archive that insists you
+        // get the tone right before it will show you the word is a quiz.
+        expect(foldForSearch('dɩ́'), 'di');
+        expect(foldForSearch('bà'), 'ba');
+      },
+    );
 
     test('a query is folded the same way a headword is', () {
       // Both sides go through the same function, so somebody who CAN type the
@@ -69,9 +72,8 @@ void main() {
       // ŋ, ɔ, ɛ, ɩ or ʋ in a heap after z — several hundred entries where a
       // reader scrolling to find them never looks.
       final words = ['zebra', 'ŋɔ', 'ɛba', 'lagba', 'ade'];
-      final sorted = [...words]..sort(
-        (a, b) => collationKey(a).compareTo(collationKey(b)),
-      );
+      final sorted = [...words]
+        ..sort((a, b) => collationKey(a).compareTo(collationKey(b)));
       expect(sorted, ['ade', 'ɛba', 'lagba', 'ŋɔ', 'zebra']);
     });
 
@@ -93,9 +95,8 @@ void main() {
     test('inside a word too, so lagɩ files after lagi and before lagj', () {
       // The default sort put `lagɩ` after `lagz`, which is where nobody looks.
       final words = ['lagz', 'lagɩ', 'lagi', 'laga'];
-      final sorted = [...words]..sort(
-        (a, b) => collationKey(a).compareTo(collationKey(b)),
-      );
+      final sorted = [...words]
+        ..sort((a, b) => collationKey(a).compareTo(collationKey(b)));
       expect(sorted, ['laga', 'lagi', 'lagɩ', 'lagz']);
     });
 
@@ -139,11 +140,7 @@ void main() {
       // alphabetically — so the entry actually headed `ni` could sit fifty
       // rows below a word whose English gloss contains "permission".
       final exact = rank('ni', headword: 'ni')!;
-      final buried = rank(
-        'ni',
-        headword: 'kwara',
-        translations: ['opinion'],
-      )!;
+      final buried = rank('ni', headword: 'kwara', translations: ['opinion'])!;
       expect(exact, lessThan(buried));
     });
 
@@ -172,14 +169,21 @@ void main() {
       // more often than in the citation form a dictionary files it under.
       // Typing what they actually read returned nothing for a word the
       // archive holds.
-      expect(rank('bakeirisi', headword: 'bakeira', pluralForm: 'bakeirisi'),
-          isNotNull);
-      expect(rank('bakeira kom', headword: 'bakeira',
-          definiteForm: 'bakeira kom'), isNotNull);
+      expect(
+        rank('bakeirisi', headword: 'bakeira', pluralForm: 'bakeirisi'),
+        isNotNull,
+      );
+      expect(
+        rank('bakeira kom', headword: 'bakeira', definiteForm: 'bakeira kom'),
+        isNotNull,
+      );
     });
 
     test('a word that answers nothing ranks null', () {
-      expect(rank('elephant', headword: 'nia', translations: ['water']), isNull);
+      expect(
+        rank('elephant', headword: 'nia', translations: ['water']),
+        isNull,
+      );
     });
   });
 

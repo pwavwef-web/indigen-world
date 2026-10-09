@@ -22,10 +22,13 @@ class NotificationsRepository {
   CollectionReference<Map<String, dynamic>> get _notifications =>
       _firestore.collection('communityNotifications');
 
-  Stream<List<IndigenNotification>> watchFeed(String uid) => _notifications
+  Stream<List<IndigenNotification>> watchFeed(
+    String uid, {
+    int limit = feedLimit,
+  }) => _notifications
       .where('recipientId', isEqualTo: uid)
       .orderBy('createdAt', descending: true)
-      .limit(feedLimit)
+      .limit(limit)
       .snapshots()
       .map(
         (snapshot) => snapshot.docs
@@ -44,29 +47,26 @@ class NotificationsRepository {
       .snapshots()
       .map((snapshot) => snapshot.docs.length);
 
-  Future<void> markRead(String notificationId) async {
-    try {
-      await _notifications.doc(notificationId).update({'read': true});
-    } on FirebaseException {
-      // Marking read is cosmetic; a lost write costs the member nothing and the
-      // row will simply still look unread next time.
-    }
-  }
+  Future<void> markRead(String notificationId) =>
+      _notifications.doc(notificationId).update({'read': true});
 
   /// Marks everything currently unread as read, in batches of 400 (Firestore
   /// allows 500 writes per batch, leaving headroom).
   Future<void> markAllRead(String uid) async {
-    final snapshot = await _notifications
-        .where('recipientId', isEqualTo: uid)
-        .where('read', isEqualTo: false)
-        .limit(400)
-        .get();
-    if (snapshot.docs.isEmpty) return;
-    final batch = _firestore.batch();
-    for (final doc in snapshot.docs) {
-      batch.update(doc.reference, {'read': true});
+    while (true) {
+      final snapshot = await _notifications
+          .where('recipientId', isEqualTo: uid)
+          .where('read', isEqualTo: false)
+          .limit(400)
+          .get();
+      if (snapshot.docs.isEmpty) return;
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.update(doc.reference, {'read': true});
+      }
+      await batch.commit();
+      if (snapshot.docs.length < 400) return;
     }
-    await batch.commit();
   }
 
   /// Removes one notification owned by the signed-in recipient.

@@ -251,13 +251,13 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get communityPostCategory => 'Type de publication';
+  String get communityPostCategory => 'Tag';
 
   @override
-  String get postCategoryQuestion => 'Question';
+  String get postCategoryQuestion => 'Questions';
 
   @override
-  String get postCategoryLanguage => 'Langue';
+  String get postCategoryLanguage => 'Apprentissage des langues';
 
   @override
   String get postCategoryCulture => 'Culture';
@@ -266,7 +266,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get postCategoryMusic => 'Musique';
 
   @override
-  String get postCategoryStory => 'Récit';
+  String get postCategoryStory => 'Récits';
 
   @override
   String get postCategoryAnnouncement => 'Annonce';

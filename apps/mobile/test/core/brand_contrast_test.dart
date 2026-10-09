@@ -54,7 +54,10 @@ void main() {
   for (final theme in BrandThemes.all) {
     group(theme.name, () {
       test('each palette says which brightness it is', () {
-        expect(theme.light.brightness, Brightness.light);
+        expect(
+          theme.light.brightness,
+          theme.id == 'black' ? Brightness.dark : Brightness.light,
+        );
         expect(theme.dark.brightness, Brightness.dark);
       });
 

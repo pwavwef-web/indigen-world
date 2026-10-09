@@ -57,7 +57,9 @@ class KasemName {
     return KasemName(
       name: name.trim(),
       ascii: ascii,
-      meaning: data['meaning'] is String ? (data['meaning'] as String).trim() : '',
+      meaning: data['meaning'] is String
+          ? (data['meaning'] as String).trim()
+          : '',
       kind: switch (data['kind']) {
         'clan' => 'clan',
         'place' => 'place',
@@ -80,12 +82,38 @@ class KasemName {
 /// server and this agree on what a name folds to without either having to
 /// derive it.
 const _precomposed = <String, String>{
-  'à': 'a', 'á': 'a', 'â': 'a', 'ä': 'a', 'ã': 'a', 'å': 'a', 'ā': 'a',
-  'è': 'e', 'é': 'e', 'ê': 'e', 'ë': 'e', 'ē': 'e',
-  'ì': 'i', 'í': 'i', 'î': 'i', 'ï': 'i', 'ī': 'i',
-  'ò': 'o', 'ó': 'o', 'ô': 'o', 'ö': 'o', 'õ': 'o', 'ō': 'o',
-  'ù': 'u', 'ú': 'u', 'û': 'u', 'ü': 'u', 'ū': 'u',
-  'ñ': 'n', 'ç': 'c', 'ý': 'y', 'ÿ': 'y',
+  'à': 'a',
+  'á': 'a',
+  'â': 'a',
+  'ä': 'a',
+  'ã': 'a',
+  'å': 'a',
+  'ā': 'a',
+  'è': 'e',
+  'é': 'e',
+  'ê': 'e',
+  'ë': 'e',
+  'ē': 'e',
+  'ì': 'i',
+  'í': 'i',
+  'î': 'i',
+  'ï': 'i',
+  'ī': 'i',
+  'ò': 'o',
+  'ó': 'o',
+  'ô': 'o',
+  'ö': 'o',
+  'õ': 'o',
+  'ō': 'o',
+  'ù': 'u',
+  'ú': 'u',
+  'û': 'u',
+  'ü': 'u',
+  'ū': 'u',
+  'ñ': 'n',
+  'ç': 'c',
+  'ý': 'y',
+  'ÿ': 'y',
 };
 
 /// The ASCII a handle can hold, from a name written properly.
@@ -306,10 +334,7 @@ class KasemNameRequest {
       requesterHandle: requester is Map ? _string(requester['username']) : '',
       requesterName: requester is Map ? _string(requester['displayName']) : '',
       reviewNote: _string(data['reviewNote']),
-      handleOutcome: _string(
-        data['handleOutcome'],
-        fallback: 'not-requested',
-      ),
+      handleOutcome: _string(data['handleOutcome'], fallback: 'not-requested'),
       createdAt: createdAt is Timestamp ? createdAt.toDate() : null,
     );
   }
@@ -379,18 +404,17 @@ class KasemNameRequestsRepository {
 }
 
 /// Newest first, on the device.
-List<KasemNameRequest> _sorted(
-  QuerySnapshot<Map<String, dynamic>> snapshot,
-) {
-  final rows = snapshot.docs
-      .map(KasemNameRequest.fromDoc)
-      .whereType<KasemNameRequest>()
-      .toList(growable: true)
-    ..sort((left, right) {
-      final leftAt = left.createdAt ?? DateTime(1970);
-      final rightAt = right.createdAt ?? DateTime(1970);
-      return rightAt.compareTo(leftAt);
-    });
+List<KasemNameRequest> _sorted(QuerySnapshot<Map<String, dynamic>> snapshot) {
+  final rows =
+      snapshot.docs
+          .map(KasemNameRequest.fromDoc)
+          .whereType<KasemNameRequest>()
+          .toList(growable: true)
+        ..sort((left, right) {
+          final leftAt = left.createdAt ?? DateTime(1970);
+          final rightAt = right.createdAt ?? DateTime(1970);
+          return rightAt.compareTo(leftAt);
+        });
   return List<KasemNameRequest>.unmodifiable(rows);
 }
 

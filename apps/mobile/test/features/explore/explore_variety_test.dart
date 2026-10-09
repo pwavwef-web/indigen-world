@@ -96,10 +96,7 @@ void main() {
       final varied = variedByCreator([..._by('afi', 1), ..._by('nyaaba', 3)]);
 
       expect(_ids(varied), hasLength(4));
-      expect(
-        _creators(varied).where((id) => id == 'afi'),
-        hasLength(1),
-      );
+      expect(_creators(varied).where((id) => id == 'afi'), hasLength(1));
     });
 
     test('is the same arrangement every time it is built', () {
@@ -116,13 +113,10 @@ void main() {
       final before = variedByCreator(_by('afi', 5));
       final after = variedByCreator([..._by('afi', 5), ..._by('nyaaba', 5)]);
 
-      expect(
-        [
-          for (final reel in after)
-            if (reel.creatorId == 'afi') reel.id,
-        ],
-        _ids(before),
-      );
+      expect([
+        for (final reel in after)
+          if (reel.creatorId == 'afi') reel.id,
+      ], _ids(before));
     });
 
     test('a feed with nothing to rearrange is handed straight back', () {

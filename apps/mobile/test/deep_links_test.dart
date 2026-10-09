@@ -32,7 +32,10 @@ void main() {
     });
 
     test('a link carrying a tracking query', () {
-      expect(routeFor('https://indigenworld.com/post/abc?from=whatsapp'), '/post/abc');
+      expect(
+        routeFor('https://indigenworld.com/post/abc?from=whatsapp'),
+        '/post/abc',
+      );
     });
 
     test('the custom scheme the website falls back to', () {

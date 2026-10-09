@@ -41,7 +41,10 @@ void main() {
       // A sense IS its definition. An entry showing "2." with nothing after it
       // is worse than an entry with one sense.
       expect(EntrySense.fromJson(<String, Object?>{}), isNull);
-      expect(EntrySense.fromJson(<String, Object?>{'definition': '   '}), isNull);
+      expect(
+        EntrySense.fromJson(<String, Object?>{'definition': '   '}),
+        isNull,
+      );
       expect(EntrySense.fromJson('water'), isNull);
       expect(EntrySense.listFrom(null), isEmpty);
       expect(EntrySense.listFrom('water'), isEmpty);
@@ -71,21 +74,23 @@ void main() {
       expect(sense.examples[2].english, isNotEmpty);
     });
 
-    test('an unrecognised register or domain renders as nothing, not as itself',
-        () {
-      final sense = EntrySense.fromJson(<String, Object?>{
-        'definition': 'water',
-        'register': 'sarcastic',
-        'domain': 'cryptocurrency',
-      })!;
+    test(
+      'an unrecognised register or domain renders as nothing, not as itself',
+      () {
+        final sense = EntrySense.fromJson(<String, Object?>{
+          'definition': 'water',
+          'register': 'sarcastic',
+          'domain': 'cryptocurrency',
+        })!;
 
-      // The id survives on the record — somebody chose it — but a raw id in
-      // the italic label beside a meaning reads as a typo rather than as
-      // information, so the label is empty until this build knows the word.
-      expect(sense.register, 'sarcastic');
-      expect(sense.registerLabel, isEmpty);
-      expect(sense.domainLabel, isEmpty);
-    });
+        // The id survives on the record — somebody chose it — but a raw id in
+        // the italic label beside a meaning reads as a typo rather than as
+        // information, so the label is empty until this build knows the word.
+        expect(sense.register, 'sarcastic');
+        expect(sense.registerLabel, isEmpty);
+        expect(sense.domainLabel, isEmpty);
+      },
+    );
 
     test('a known register and domain get their reader-facing labels', () {
       final sense = EntrySense.fromJson(<String, Object?>{
@@ -135,7 +140,10 @@ void main() {
     });
 
     test('an entry with nothing to say has no senses at all', () {
-      expect(entry(translation: '', translations: const []).displaySenses, isEmpty);
+      expect(
+        entry(translation: '', translations: const []).displaySenses,
+        isEmpty,
+      );
     });
   });
 

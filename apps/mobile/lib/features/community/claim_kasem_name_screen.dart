@@ -241,7 +241,8 @@ class _ClaimKasemNameScreenState extends ConsumerState<ClaimKasemNameScreen> {
                 const SizedBox(height: 22),
                 FilledButton(
                   key: const Key('claim-handle-action'),
-                  onPressed: _busy || !carries || handle == widget.profile.username
+                  onPressed:
+                      _busy || !carries || handle == widget.profile.username
                       ? null
                       : _confirm,
                   style: FilledButton.styleFrom(minimumSize: const Size(0, 50)),

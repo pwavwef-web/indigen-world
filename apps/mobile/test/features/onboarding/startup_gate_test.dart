@@ -17,36 +17,30 @@ void main() {
   setUp(() => database = AppDatabase.forTesting(NativeDatabase.memory()));
   tearDown(() => database.close());
 
-  testWidgets('the launch frame tells viewers what Project Kassena does', (
-    tester,
-  ) async {
-    SharedPreferences.setMockInitialValues({});
-    await tester.binding.setSurfaceSize(const Size(430, 900));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          appDatabaseProvider.overrideWithValue(database),
-          firebaseReadyProvider.overrideWithValue(false),
-        ],
-        child: const IndigenWorldApp(),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 2200));
-
-    expect(find.text('PROJECT KASSENA'), findsOneWidget);
-    expect(find.text('Kasem lives here.'), findsOneWidget);
-    expect(
-      find.text('Learn the language. Carry the stories. Grow the community.'),
-      findsOneWidget,
-    );
-    expect(find.text('LANGUAGE'), findsOneWidget);
-    expect(find.text('STORIES'), findsOneWidget);
-    expect(find.text('COMMUNITY'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-    // Let the startup gate's minimum display timer complete before teardown.
-    await tester.pump(const Duration(milliseconds: 1200));
-  });
+  testWidgets(
+    'a ready returning member does not wait for a decorative launch timer',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'indigen_world_onboarding_complete_v1': true,
+      });
+      await tester.binding.setSurfaceSize(const Size(430, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(database),
+            firebaseReadyProvider.overrideWithValue(false),
+          ],
+          child: const IndigenWorldApp(),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byType(AppShell), findsOneWidget);
+      expect(find.byType(NotificationsPrimer), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   Future<void> launch(
     WidgetTester tester, {
@@ -65,7 +59,7 @@ void main() {
         child: const IndigenWorldApp(),
       ),
     );
-    // Past the launch animation the gate waits on.
+    // Allow preference loading and route motion to settle.
     await tester.pump(const Duration(milliseconds: 3300));
     await tester.pump(const Duration(milliseconds: 300));
   }
