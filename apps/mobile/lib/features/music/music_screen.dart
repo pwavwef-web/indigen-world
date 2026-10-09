@@ -63,7 +63,7 @@ class _MusicScreenState extends ConsumerState<MusicScreen>
   // the two rails move the same way.
   late final AnimationController _switch = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 320),
+    duration: AppMotion.standard,
   )..value = 1;
   late final Animation<double> _fade = Tween<double>(
     begin: 0.6,
@@ -198,13 +198,13 @@ class _MusicScreenState extends ConsumerState<MusicScreen>
               icon: Icons.home_outlined,
               selectedIcon: Icons.home_rounded,
               label: 'Home',
-              motion: NavIconMotion.bounce,
+              motion: NavIconMotion.none,
             ),
             const FrostedNavBarItem(
               icon: Icons.search_rounded,
               selectedIcon: Icons.manage_search_rounded,
               label: 'Search',
-              motion: NavIconMotion.turn,
+              motion: NavIconMotion.none,
             ),
             FrostedNavBarItem(
               icon: kind == CollectionKind.audiobooks
@@ -214,13 +214,13 @@ class _MusicScreenState extends ConsumerState<MusicScreen>
                   ? Icons.record_voice_over_rounded
                   : Icons.people_alt_rounded,
               label: people,
-              motion: NavIconMotion.pop,
+              motion: NavIconMotion.none,
             ),
             const FrostedNavBarItem(
               icon: Icons.library_music_outlined,
               selectedIcon: Icons.library_music_rounded,
               label: 'Library',
-              motion: NavIconMotion.flip,
+              motion: NavIconMotion.none,
             ),
           ],
         ),

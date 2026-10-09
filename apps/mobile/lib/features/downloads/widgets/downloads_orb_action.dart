@@ -39,8 +39,6 @@ class DownloadsOrbAction extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!ref.watch(downloadsAllowedProvider)) return const SizedBox.shrink();
-
     final brand = context.brand;
     // Read straight off the index rather than kept in state: the badge has to
     // fall to nothing the moment somebody clears the list on the screen this
@@ -92,7 +90,7 @@ class DownloadsOrbAction extends ConsumerWidget {
                       shape: BoxShape.circle,
                       color: onDark
                           ? Colors.black.withValues(alpha: 0.35)
-                          : Colors.white.withValues(alpha: 0.72),
+                          : brand.surface.withValues(alpha: 0.92),
                       border: Border.all(
                         color: onDark
                             ? Colors.white38

@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,6 +14,7 @@ import 'package:indigen_world_mobile/features/community/widgets/verified_badge.d
 import 'package:indigen_world_mobile/features/community/widgets/video_cover.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
 import 'package:indigen_world_mobile/features/subscriptions/widgets/supporter_badge.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:video_player/video_player.dart';
@@ -205,11 +205,7 @@ class _PostMediaViewState extends State<PostMediaView> {
       borderRadius: BorderRadius.circular(PostMediaView._radius),
       child: AspectRatio(
         aspectRatio: PostMediaView.gridAspect,
-        child: _MediaGrid(
-          media: media,
-          heroBase: _heroBase,
-          onOpen: _open,
-        ),
+        child: _MediaGrid(media: media, heroBase: _heroBase, onOpen: _open),
       ),
     );
   }
@@ -339,7 +335,8 @@ class _MediaTile extends StatelessWidget {
         : CachedNetworkImage(
             imageUrl: item.url,
             fit: BoxFit.cover,
-            placeholder: (context, url) => ColoredBox(color: context.brand.divider),
+            placeholder: (context, url) =>
+                ColoredBox(color: context.brand.divider),
             errorWidget: (context, url, error) => ColoredBox(
               color: context.brand.divider,
               child: Icon(
@@ -583,10 +580,11 @@ Future<void> openMediaViewer(
       actions: actions,
       author: author,
     ),
-    transitionsBuilder: (context, animation, secondary, child) => FadeTransition(
-      opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-      child: child,
-    ),
+    transitionsBuilder: (context, animation, secondary, child) =>
+        FadeTransition(
+          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+          child: child,
+        ),
   ),
 );
 
@@ -732,9 +730,8 @@ class _MediaViewerPageState extends ConsumerState<MediaViewerPage>
   void _appreciate() {
     final actions = widget.actions;
     if (actions == null) return;
-    final liked = ref.read(myLikesProvider).asData?.value.contains(
-          actions.postId,
-        ) ??
+    final liked =
+        ref.read(myLikesProvider).asData?.value.contains(actions.postId) ??
         false;
     HapticFeedback.mediumImpact();
     setState(() => _likeDelta = liked ? -1 : 1);
@@ -1168,7 +1165,7 @@ class _ViewerChromeState extends State<_ViewerChrome> {
       ignoring: !widget.visible,
       child: AnimatedOpacity(
         opacity: widget.visible ? 1 : 0,
-        duration: const Duration(milliseconds: 180),
+        duration: motionOr(context, AppMotion.quick),
         child: Stack(
           children: [
             // White chrome over an unknown photograph is a coin toss. The two

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:ui' show lerpDouble;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
@@ -22,6 +21,7 @@ import 'package:indigen_world_mobile/features/subscriptions/widgets/membership_h
 import 'package:indigen_world_mobile/features/subscriptions/widgets/supporter_badge.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -1201,7 +1201,7 @@ class _PeriodOption extends StatelessWidget {
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
+          duration: motionOr(context, AppMotion.standard),
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
           decoration: BoxDecoration(

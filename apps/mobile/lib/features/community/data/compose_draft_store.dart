@@ -1,6 +1,6 @@
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
+import 'package:indigen_world_mobile/features/community/data/post_category.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// What somebody was writing when Android took the app away.
@@ -40,6 +40,7 @@ class ComposeDraft {
     this.quoteToId,
     this.attachmentPaths = const <String>[],
     this.kasemConfirmed = false,
+    this.category,
   });
 
   final String text;
@@ -64,6 +65,7 @@ class ComposeDraft {
   final List<String> attachmentPaths;
 
   final bool kasemConfirmed;
+  final PostCategory? category;
 
   bool get isEmpty =>
       text.trim().isEmpty && attachmentPaths.isEmpty && quoteToId == null;
@@ -74,6 +76,7 @@ class ComposeDraft {
     'quoteToId': quoteToId,
     'attachmentPaths': attachmentPaths,
     'kasemConfirmed': kasemConfirmed,
+    'category': category?.wire,
   };
 
   static ComposeDraft? fromJson(Object? raw) {
@@ -89,6 +92,7 @@ class ComposeDraft {
             if (path is String && path.isNotEmpty) path,
       ],
       kasemConfirmed: raw['kasemConfirmed'] == true,
+      category: PostCategory.fromWire(raw['category']),
     );
   }
 }

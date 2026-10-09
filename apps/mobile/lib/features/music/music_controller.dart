@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/data/local/app_database.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
@@ -160,7 +160,8 @@ final musicControllerProvider =
     NotifierProvider<MusicController, MusicSessionState>(MusicController.new);
 
 class MusicController extends Notifier<MusicSessionState> {
-  static const _noPlayerMessage = 'The music player is unavailable on this '
+  static const _noPlayerMessage =
+      'The music player is unavailable on this '
       'device.';
 
   AppLifecycleListener? _lifecycle;
@@ -248,6 +249,47 @@ class MusicController extends Notifier<MusicSessionState> {
       ref
           .read(recentlyPlayedProvider.notifier)
           .record(plan.tracks[plan.startIndex].id),
+    );
+    await play();
+  }
+
+  /// A local-only queue built from the downloaded rows shown to the member.
+  /// Rechecks files on every play so removed downloads never fall back online.
+  Future<void> playDownloads(
+    List<DownloadedTrackRecord> rows, {
+    required String trackId,
+  }) async {
+    final local = await ref.read(downloadsRepositoryProvider).playableIndex();
+    final artwork = await ref.read(downloadsRepositoryProvider).artworkIndex();
+    final tracks = downloadedQueue(rows, local, artwork: artwork);
+    final index = tracks.indexWhere((track) => track.id == trackId);
+    if (index < 0) {
+      state = state.copyWith(
+        error: 'This file is unavailable. Download it again.',
+      );
+      return;
+    }
+    final handler = ref.read(musicAudioHandlerProvider);
+    if (handler == null) {
+      state = state.copyWith(error: _noPlayerMessage);
+      return;
+    }
+    final row = rows.firstWhere((row) => row.trackId == trackId);
+    final kind =
+        CollectionKind.values
+            .where((kind) => kind.name == row.kind)
+            .firstOrNull ??
+        CollectionKind.music;
+    state = state.copyWith(
+      queueKind: kind,
+      pausedForOtherAudio: false,
+      clearError: true,
+    );
+    ref.read(musicBarPlacementProvider.notifier).expand();
+    await handler.setPlaylist(
+      [for (final track in tracks) track.toMediaItem()],
+      initialIndex: index,
+      initialPosition: _resumePositionFor(trackId),
     );
     await play();
   }
@@ -381,11 +423,13 @@ class MusicController extends Notifier<MusicSessionState> {
   Future<void> cycleRepeat() async {
     final handler = ref.read(musicAudioHandlerProvider);
     if (handler == null) return;
-    await handler.setRepeatMode(switch (handler.playbackState.value.repeatMode) {
-      AudioServiceRepeatMode.none => AudioServiceRepeatMode.all,
-      AudioServiceRepeatMode.all => AudioServiceRepeatMode.one,
-      _ => AudioServiceRepeatMode.none,
-    });
+    await handler.setRepeatMode(
+      switch (handler.playbackState.value.repeatMode) {
+        AudioServiceRepeatMode.none => AudioServiceRepeatMode.all,
+        AudioServiceRepeatMode.all => AudioServiceRepeatMode.one,
+        _ => AudioServiceRepeatMode.none,
+      },
+    );
   }
 
   /// Records that the pause that just happened was the app's doing.
@@ -499,4 +543,26 @@ class MusicController extends Notifier<MusicSessionState> {
       // the state a first launch is in.
     }
   }
+}
+
+/// Keeps displayed order, metadata and stable ids; accepts only verified files.
+List<MusicTrack> downloadedQueue(
+  List<DownloadedTrackRecord> rows,
+  Map<String, String> local, {
+  Map<String, String> artwork = const {},
+}) {
+  final seen = <String>{};
+  return [
+    for (final row in rows)
+      if (seen.add(row.trackId) &&
+          Uri.tryParse(local[row.trackId] ?? '')?.scheme == 'file')
+        MusicTrack(
+          id: row.trackId,
+          title: row.title,
+          artist: row.artist,
+          album: row.album,
+          artworkUrl: artwork[row.trackId] ?? row.artworkUrl,
+          url: local[row.trackId]!,
+        ),
+  ];
 }

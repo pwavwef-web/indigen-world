@@ -232,13 +232,52 @@ async function loadGrammar(): Promise<GrammarRecord[]> {
  */
 export async function grammarContextFor(question: string): Promise<string> {
   const terms = grammarTerms(question);
-  if (terms.length === 0) return '';
+  const spellingQuestion = /\b(spell(?:ing)?|orthography|alphabet|vowels?|consonants?|tone|diacritics?|labiali[sz]ation|word division|hyphen|pronouns?|numerals?|counting)\b/i.test(question);
+  if (terms.length === 0 && !spellingQuestion) return '';
 
   try {
     const records = await loadGrammar();
+    if (spellingQuestion) {
+      const matched = matchSpellingRules(records, question);
+      if (matched.length) {
+        return `KASEM SPELLING REFERENCE — Source: Kasem Orthography, Kasem Language Committee, Bureau of Ghana Languages, 1997. These rules describe Ghana Kasem written spelling. IPA symbols in pronunciation descriptions are not additional written letters. Quote only the supplied rules and examples; preserve any stated source uncertainty.\n\n${matched.map(briefingBlock).join('\n\n')}`;
+      }
+    }
     return grammarBriefing(terms, matchGrammar(records, terms));
   } catch (error) {
     logger.warn('Grammar lookup failed; withholding unsupported claims', { errorType: error instanceof Error ? error.name : 'unknown' });
     return grammarBriefing(terms, []);
   }
+}
+
+export function matchSpellingRules(records: readonly GrammarRecord[], question: string): GrammarRecord[] {
+  const words = normaliseTerm(question);
+  const ordinaryWords = new Set(["the", "if", "you", "we", "will", "go", "went", "going", "don't", "won't", "shouldn't"]);
+  const matches = records.filter(record => record.id.startsWith('bgl97-') && record.triggers.some(trigger => {
+    const phrase = normaliseTerm(trigger);
+    if (ordinaryWords.has(phrase)) return false;
+    return (` ${words} `).includes(` ${phrase} `);
+  }));
+  return matches.slice(0, MAX_BRIEFING_RULES);
+}
+
+/** Prefer the most specific printed topic, e.g. future continuous before
+ * continuous. Ordinary words such as "you" cannot trigger a grammar answer. */
+export function matchBookGrammarRules(records: readonly GrammarRecord[], question: string): GrammarRecord[] {
+  const words = ` ${normaliseTerm(question).replace(/[^\p{L}\p{N}'’ -]/gu, ' ')} `;
+  const ordinary = new Set(['a', 'the', 'if', 'when', 'you', 'we', 'is', 'and', 'will', 'to', 'of', 'in', 'then', 'not']);
+  const bookRecords = records.filter(record => record.id.startsWith('gillbt83-'));
+  const matched = bookRecords
+    .map(record => ({ record, score: Math.max(0, ...record.triggers.map(trigger => {
+      const phrase = normaliseTerm(trigger);
+      return !ordinary.has(phrase) && words.includes(` ${phrase} `) ? phrase.length : 0;
+    })) }))
+    .filter(item => item.score > 0).sort((a,b) => b.score - a.score)
+    .slice(0, MAX_BRIEFING_RULES).map(item => item.record);
+  if (matched.length) return matched;
+  const overview = /\bpronouns?\b/i.test(question) ? ['personal-pronouns','impersonal-pronouns','strong-pronouns']
+    : /\bquestions?\b/i.test(question) ? ['yes-no','information-questions','useful-questions']
+    : /\b(?:verbs?|tenses?)\b/i.test(question) ? ['tense-aspect','particle-summary','verb-phrases']
+    : /\bnouns?\b/i.test(question) ? ['noun-classes','determiners','adjectives'] : [];
+  return overview.flatMap(key => bookRecords.filter(record => record.id === 'gillbt83-' + key));
 }

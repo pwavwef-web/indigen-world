@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -15,6 +14,7 @@ import 'package:indigen_world_mobile/features/explore/reel_caption_overlay.dart'
 import 'package:indigen_world_mobile/features/explore/reel_media.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:video_player/video_player.dart';
 
 /// Stage one of a new reel: get a video in, then shape how it plays.
@@ -943,7 +943,7 @@ class _PlayToggle extends StatelessWidget {
           child: Center(
             child: AnimatedOpacity(
               opacity: playing ? 0 : 1,
-              duration: const Duration(milliseconds: 180),
+              duration: motionOr(context, AppMotion.quick),
               child: Container(
                 width: 60,
                 height: 60,

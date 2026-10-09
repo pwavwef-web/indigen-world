@@ -28,11 +28,13 @@ import 'package:indigen_world_mobile/features/learn/practice/listen_practice_scr
 import 'package:indigen_world_mobile/features/learn/practice/practice_widgets.dart';
 import 'package:indigen_world_mobile/features/learn/practice/review_words_screen.dart';
 import 'package:indigen_world_mobile/features/learn/practice/speak_practice_screen.dart';
+import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/kassena_pattern.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:indigen_world_mobile/shared/profile_orb.dart';
 
 /// ─────────────────────────────────────────────────────────────────────────────
@@ -211,14 +213,14 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       unawaited(
         _scroll.animateTo(
           0,
-          duration: const Duration(milliseconds: 420),
+          duration: AppMotion.emphasized,
           curve: Curves.easeOutCubic,
         ),
       );
     });
 
     final chromeVisible = ref.watch(shellChromeVisibilityProvider);
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final reduceMotion = !motionAllowed(context);
     return Scaffold(
       backgroundColor: Colors.transparent,
       // Lifted clear of the shell's floating rail, and leaving with it: a
@@ -394,7 +396,7 @@ class _PinnedLearnHeader extends ConsumerWidget {
     final brand = context.brand;
     return ClipRect(
       child: AnimatedContainer(
-        duration: MediaQuery.disableAnimationsOf(context)
+        duration: !motionAllowed(context)
             ? Duration.zero
             : const Duration(milliseconds: 240),
         curve: Curves.easeOutCubic,
@@ -560,7 +562,10 @@ Future<void> openLearnLesson(
   );
   if (!context.mounted) return;
   // The ask is rationed inside; most of the time this does nothing at all.
-  await maybeRequestReview(online: ref.read(connectionBlockProvider) == null);
+  await maybeRequestReview(
+    online: ref.read(connectionBlockProvider) == null,
+    busy: ref.read(musicIsPlayingProvider),
+  );
 }
 
 /// The whole course: every unit, its lessons as the trail, and the units still
@@ -591,7 +596,7 @@ class _CourseOutlineScreenState extends ConsumerState<CourseOutlineScreen> {
           unawaited(
             Scrollable.ensureVisible(
               target,
-              duration: MediaQuery.disableAnimationsOf(context)
+              duration: !motionAllowed(context)
                   ? Duration.zero
                   : const Duration(milliseconds: 360),
               curve: Curves.easeOutCubic,
@@ -892,7 +897,7 @@ class _UnitBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
+      duration: motionOr(context, AppMotion.quick),
       height: kLearnUnitBannerHeight,
       padding: const EdgeInsets.fromLTRB(20, 0, 16, 0),
       decoration: BoxDecoration(
@@ -1265,7 +1270,7 @@ class _PathButtonState extends State<_PathButton> {
                 ),
               ),
               AnimatedPositioned(
-                duration: const Duration(milliseconds: 90),
+                duration: motionOr(context, AppMotion.quick),
                 curve: Curves.easeOut,
                 left: 0,
                 right: 0,
@@ -1337,7 +1342,7 @@ class _StartBubbleState extends State<_StartBubble>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (!motionAllowed(context)) {
       _bob.stop();
     } else if (!_bob.isAnimating) {
       _bob.repeat(reverse: true);
@@ -1431,9 +1436,7 @@ class _UnitChest extends StatelessWidget {
   Widget build(BuildContext context) {
     final brand = context.brand;
     final l10n = AppLocalizations.of(context);
-    final face = unlocked
-        ? brand.gold
-        : brand.border;
+    final face = unlocked ? brand.gold : brand.border;
     return Semantics(
       label: unlocked
           ? l10n.learnUnitCompleteSemantics(unit)
@@ -1499,7 +1502,7 @@ Future<bool?> showLessonBubble(
   barrierDismissible: true,
   barrierLabel: 'Close',
   barrierColor: Colors.black.withValues(alpha: 0.18),
-  transitionDuration: const Duration(milliseconds: 190),
+  transitionDuration: AppMotion.standard,
   pageBuilder: (dialogContext, animation, secondary) => _LessonBubbleLayer(
     anchor: anchor,
     lesson: lesson,
@@ -1509,7 +1512,7 @@ Future<bool?> showLessonBubble(
     unlocked: unlocked,
   ),
   transitionBuilder: (context, animation, secondary, child) {
-    final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutBack);
+    final curve = CurvedAnimation(parent: animation, curve: AppMotion.arrive);
     return FadeTransition(
       opacity: animation,
       child: ScaleTransition(
@@ -1917,7 +1920,7 @@ class _Medal extends StatelessWidget {
               ),
             ),
             Transform.scale(
-              scale: Curves.elasticOut.transform(
+              scale: AppMotion.arrive.transform(
                 (animation.value * 1.6).clamp(0.0, 1.0),
               ),
               child: child,
@@ -2255,7 +2258,7 @@ class _LessonScreenState extends State<_LessonScreen> {
                                 const SizedBox(height: 10),
                               ],
                             AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 220),
+                              duration: motionOr(context, AppMotion.standard),
                               child: !_checked
                                   ? const SizedBox(height: 2)
                                   : _LessonFeedback(
@@ -2633,7 +2636,7 @@ class _AnswerTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(17),
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: motionOr(context, AppMotion.quick),
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(17),
@@ -2743,7 +2746,7 @@ class _AnswerImageTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(17),
           onTap: onTap,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
+            duration: motionOr(context, AppMotion.quick),
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(17),

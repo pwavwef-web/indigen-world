@@ -14,6 +14,7 @@ import 'package:indigen_world_mobile/features/validate/submission_review_screen.
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// The queues a validator moves contributions between.
 const _queues = <(String, String, IconData)>[
@@ -583,7 +584,7 @@ class _DeskTabLabel extends StatelessWidget {
               // Spans the tab rather than a fixed 64 pixels, which only ever
               // looked right under a label of about that width.
               AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
+                duration: motionOr(context, AppMotion.quick),
                 curve: Curves.easeOut,
                 height: 3,
                 decoration: BoxDecoration(

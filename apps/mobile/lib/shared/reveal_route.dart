@@ -43,7 +43,8 @@ Widget buildRevealTransition({
   double originRadius = 16,
   Color? originColor,
 }) {
-  if (origin == null || origin.isEmpty || !motionAllowed(context)) {
+  if (!motionAllowed(context)) return child;
+  if (origin == null || origin.isEmpty) {
     return FadeTransition(opacity: animation, child: child);
   }
 
@@ -55,7 +56,7 @@ Widget buildRevealTransition({
     child: child,
     builder: (context, page) {
       final size = MediaQuery.sizeOf(context);
-      final t = Curves.easeInOutCubicEmphasized.transform(animation.value);
+      final t = AppMotion.arrive.transform(animation.value);
       final window = Rect.lerp(origin, Offset.zero & size, t)!;
       final radius = lerpDouble(originRadius, 0, t)!;
       // The content arrives after the window has started to open, and leaves
@@ -139,10 +140,10 @@ class RevealPageRoute<T> extends PageRoute<T> {
   bool get maintainState => true;
 
   @override
-  Duration get transitionDuration => const Duration(milliseconds: 460);
+  Duration get transitionDuration => AppMotion.emphasized;
 
   @override
-  Duration get reverseTransitionDuration => const Duration(milliseconds: 380);
+  Duration get reverseTransitionDuration => AppMotion.standard;
 
   @override
   Widget buildPage(

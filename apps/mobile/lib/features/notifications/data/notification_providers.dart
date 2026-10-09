@@ -24,7 +24,10 @@ final notificationFeedProvider = StreamProvider<List<IndigenNotification>>((
   if (repository == null || uid == null) {
     return Stream.value(const <IndigenNotification>[]);
   }
-  return repository.watchFeed(uid);
+  return repository.watchFeed(
+    uid,
+    limit: ref.watch(notificationWindowProvider),
+  );
 });
 
 /// Live unread count, used for the Community badge and the bell.
@@ -49,4 +52,18 @@ final notificationPreferencesProvider = StreamProvider<NotificationPreferences>(
     }
     return repository.watchPreferences(uid);
   },
+);
+
+class NotificationWindow extends Notifier<int> {
+  @override
+  int build() {
+    ref.watch(currentUidProvider);
+    return NotificationsRepository.feedLimit;
+  }
+
+  void grow() => state += NotificationsRepository.feedLimit;
+}
+
+final notificationWindowProvider = NotifierProvider<NotificationWindow, int>(
+  NotificationWindow.new,
 );

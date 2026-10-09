@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -9,6 +8,7 @@ import 'package:indigen_world_mobile/shared/glass_popup.dart'
     show kGlassPopupRadius;
 import 'package:indigen_world_mobile/shared/glass_surface.dart'
     show kGlassRadius;
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// The app in daylight, in the default theme.
 ThemeData buildIndigenTheme() =>
@@ -40,10 +40,10 @@ ThemeData buildIndigenThemeFor(Brightness brightness) =>
 /// surfaces that ask for the night half of the member's theme — every reel,
 /// Kawuri — rebuild on every frame of a video.
 ThemeData buildBrandTheme(BrandTheme theme, Brightness brightness) =>
-    _themeCache.putIfAbsent(
-      (theme.id, brightness),
-      () => _buildTheme(theme, theme.paletteFor(brightness)),
-    );
+    _themeCache.putIfAbsent((
+      theme.id,
+      brightness,
+    ), () => _buildTheme(theme, theme.paletteFor(brightness)));
 
 final _themeCache = <(String, Brightness), ThemeData>{};
 
@@ -419,8 +419,8 @@ ThemeData _buildTheme(BrandTheme theme, BrandPalette brand) {
     // it is what makes navigation feel considered instead of abrupt.
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: {
-        TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
-        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.android: AppPageTransitionsBuilder(),
+        TargetPlatform.iOS: AppPageTransitionsBuilder(),
       },
     ),
   );
@@ -433,3 +433,27 @@ Color _darkSlab(BrandPalette brand, {double? lift}) => Color.lerp(
   Colors.white,
   lift ?? (brand.isDark ? 0.1 : 0.06),
 )!;
+
+class AppPageTransitionsBuilder extends PageTransitionsBuilder {
+  const AppPageTransitionsBuilder();
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    if (!motionAllowed(context)) return child;
+    final progress = animation.drive(CurveTween(curve: AppMotion.arrive));
+    return FadeTransition(
+      opacity: progress,
+      child: SlideTransition(
+        position: progress.drive(
+          Tween(begin: const Offset(0.025, 0), end: Offset.zero),
+        ),
+        child: child,
+      ),
+    );
+  }
+}

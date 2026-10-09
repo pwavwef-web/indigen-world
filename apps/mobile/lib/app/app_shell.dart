@@ -10,7 +10,6 @@ import 'package:indigen_world_mobile/features/auth/restore_credentials.dart';
 import 'package:indigen_world_mobile/features/collection/collection_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
-import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/downloads/widgets/downloads_orb_action.dart';
 import 'package:indigen_world_mobile/features/explore/explore_screen.dart';
 import 'package:indigen_world_mobile/features/learn/learn_screen.dart';
@@ -22,6 +21,7 @@ import 'package:indigen_world_mobile/features/subscriptions/data/subscription_pr
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/connection_banner.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:indigen_world_mobile/shared/profile_orb.dart';
 
 /// Index of the Community destination in the rail.
@@ -87,7 +87,7 @@ class _AppShellState extends ConsumerState<AppShell>
         : _selectedIndex;
     _transitionController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 320),
+      duration: AppMotion.standard,
     )..value = 1;
     final curve = CurvedAnimation(
       parent: _transitionController,
@@ -169,7 +169,7 @@ class _AppShellState extends ConsumerState<AppShell>
     final chromeVisible = ref.watch(shellChromeVisibilityProvider);
     // The rail and the orb still leave and come back for somebody who has
     // asked the system for less motion; they just do not travel to do it.
-    final chromeDuration = MediaQuery.disableAnimationsOf(context)
+    final chromeDuration = !motionAllowed(context)
         ? Duration.zero
         : const Duration(milliseconds: 240);
     // Registering the device for push is a shell-level concern: it has to run
@@ -224,8 +224,7 @@ class _AppShellState extends ConsumerState<AppShell>
     // because a row that included it regardless would still reserve
     // `kShellOrbActionGap` of space for a control that never arrives.
     final orbActions = <Widget>[
-      if (_selectedIndex == _collectionIndex &&
-          ref.watch(downloadsAllowedProvider))
+      if (_selectedIndex == _collectionIndex)
         DownloadsOrbAction(onDark: onExplore),
     ];
 
@@ -237,26 +236,26 @@ class _AppShellState extends ConsumerState<AppShell>
         icon: Icons.play_circle_outline_rounded,
         selectedIcon: Icons.play_circle_fill_rounded,
         label: l10n.navExplore,
-        motion: NavIconMotion.spin,
+        motion: NavIconMotion.none,
       ),
       FrostedNavBarItem(
         icon: Icons.school_outlined,
         selectedIcon: Icons.school_rounded,
         label: l10n.navLearn,
-        motion: NavIconMotion.toss,
+        motion: NavIconMotion.none,
       ),
       FrostedNavBarItem(
         icon: Icons.forum_outlined,
         selectedIcon: Icons.forum_rounded,
         label: l10n.navCommunity,
         badgeCount: unread,
-        motion: NavIconMotion.pop,
+        motion: NavIconMotion.none,
       ),
       FrostedNavBarItem(
         icon: Icons.collections_bookmark_outlined,
         selectedIcon: Icons.collections_bookmark_rounded,
         label: l10n.navCollection,
-        motion: NavIconMotion.flip,
+        motion: NavIconMotion.none,
         // Where the music lives: a live meter on the door back to it, for as
         // long as something is playing, and nothing at all otherwise.
         badge: const MusicLiveBadge(),
@@ -265,7 +264,7 @@ class _AppShellState extends ConsumerState<AppShell>
         icon: Icons.add_circle_outline_rounded,
         selectedIcon: Icons.add_circle_rounded,
         label: l10n.navContribute,
-        motion: NavIconMotion.quarter,
+        motion: NavIconMotion.none,
       ),
     ];
 
@@ -294,7 +293,10 @@ class _AppShellState extends ConsumerState<AppShell>
                     index: _selectedIndex,
                     children: [
                       for (var index = 0; index < _destinationCount; index++)
-                        _screenAt(index),
+                        TickerMode(
+                          enabled: index == _selectedIndex,
+                          child: _screenAt(index),
+                        ),
                     ],
                   ),
                 ),
@@ -320,28 +322,39 @@ class _AppShellState extends ConsumerState<AppShell>
                 top: MediaQuery.paddingOf(context).top + 6,
                 right: kProfileOrbInset,
                 child: AnimatedSlide(
-                  offset: chromeVisible ? Offset.zero : const Offset(0, -1.6),
+                  offset: chromeVisible || onExplore
+                      ? Offset.zero
+                      : const Offset(0, -1.6),
                   duration: chromeDuration,
                   curve: Curves.easeOutCubic,
                   child: AnimatedOpacity(
-                    opacity: chromeVisible ? 1 : 0,
+                    opacity: chromeVisible
+                        ? 1
+                        : onExplore
+                        ? 0.72
+                        : 0,
                     duration: chromeDuration == Duration.zero
                         ? Duration.zero
                         : const Duration(milliseconds: 180),
                     child: IgnorePointer(
-                      ignoring: !chromeVisible,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        spacing: kShellOrbActionGap,
-                        children: [
-                          // Actions to the left, the orb hard against the
-                          // corner. The account control has been in that exact
-                          // spot since it stopped being a tab, and a shortcut
-                          // that only some tabs have must not be allowed to
-                          // shove it around.
-                          ...orbActions,
-                          ProfileOrb(onDark: onExplore),
-                        ],
+                      ignoring: !chromeVisible && !onExplore,
+                      child: Listener(
+                        onPointerDown: (_) => ref
+                            .read(shellChromeVisibilityProvider.notifier)
+                            .reveal(),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          spacing: kShellOrbActionGap,
+                          children: [
+                            // Actions to the left, the orb hard against the
+                            // corner. The account control has been in that exact
+                            // spot since it stopped being a tab, and a shortcut
+                            // that only some tabs have must not be allowed to
+                            // shove it around.
+                            ...orbActions,
+                            ProfileOrb(onDark: onExplore),
+                          ],
+                        ),
                       ),
                     ),
                   ),

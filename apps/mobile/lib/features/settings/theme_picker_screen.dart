@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +10,7 @@ import 'package:indigen_world_mobile/core/brand_themes.dart';
 import 'package:indigen_world_mobile/core/theme_mode.dart';
 import 'package:indigen_world_mobile/features/settings/settings_widgets.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// Every theme, each drawn as a small picture of the app in its own colours.
 ///
@@ -306,7 +306,7 @@ class _ThemeTile extends StatelessWidget {
           key: Key('theme-tile-${theme.id}'),
           onTap: onTap,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
+            duration: motionOr(context, AppMotion.quick),
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
@@ -350,7 +350,7 @@ class _ThemeTile extends StatelessWidget {
                         ),
                       ),
                       AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 180),
+                        duration: motionOr(context, AppMotion.quick),
                         child: selected
                             ? Icon(
                                 Icons.check_circle_rounded,

@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -17,6 +16,7 @@ import 'package:indigen_world_mobile/features/contribute/words/data/parts_of_spe
 import 'package:indigen_world_mobile/features/contribute/words/widgets/lexical_detail_fields.dart';
 import 'package:indigen_world_mobile/features/contribute/words/widgets/part_of_speech_picker.dart';
 import 'package:indigen_world_mobile/features/contribute/words/widgets/sense_fields.dart';
+import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/features/rating/rating_service.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
@@ -632,6 +632,7 @@ class _ContributionFormScreenState
     // Read while the widget is still alive: the receipt may take this route
     // off the stack, and a rating ask must not depend on a disposed ref.
     final online = ref.read(connectionBlockProvider) == null;
+    final reviewContainer = ProviderScope.containerOf(context);
     final navigator = Navigator.of(context);
     final done = await navigator.push<bool>(
       MaterialPageRoute<bool>(
@@ -657,7 +658,12 @@ class _ContributionFormScreenState
     // glad they installed this. The receipt has already been dismissed, so the
     // ask lands on a clear screen — and is rationed inside, so most of the time
     // it does nothing.
-    await maybeRequestReview(online: online);
+    if (done == true) {
+      await maybeRequestReview(
+        online: online,
+        busy: reviewContainer.read(musicIsPlayingProvider),
+      );
+    }
   }
 }
 

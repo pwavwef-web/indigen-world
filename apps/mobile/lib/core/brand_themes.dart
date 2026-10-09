@@ -10,8 +10,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 /// screen.
 ///
 /// ── Who may use which ────────────────────────────────────────────────────
-/// Two themes are free and always will be: the websites' blue, and the
-/// heritage green the app was first built in. The rest are a thank-you to the
+/// Blue, Heritage Green and Black are free. The rest are a thank-you to the
 /// members who carry the cost of this archive — Patron and Creator subscribers
 /// — and nothing else. A theme is paint. It never changes what anybody can
 /// read, hear or contribute, and a lapsed subscription only puts the app back
@@ -459,10 +458,54 @@ abstract final class BrandThemes {
     ),
   );
 
+  static const _blackPalette = BrandPalette(
+    brightness: Brightness.dark,
+    background: Color(0xFF000000),
+    surface: Color(0xFF101010),
+    surfaceMuted: Color(0xFF171717),
+    surfaceElevated: Color(0xFF202020),
+    bar: Color(0xFF000000),
+    border: Color(0xFF363636),
+    divider: Color(0xFF262626),
+    ink: Color(0xFFE9EDEB),
+    mutedInk: Color(0xFF98A29E),
+    faintInk: Color(0xFF6C7673),
+    accent: Color(0xFF56B693),
+    accentFill: Color(0xFF1C6B52),
+    onAccentFill: Color(0xFFFFFFFF),
+    accentSoft: Color(0x2456B693),
+    gold: Color(0xFFD3AB53),
+    terracotta: Color(0xFFCE7D60),
+    like: Color(0xFFDE7259),
+    repost: Color(0xFF56B693),
+    success: Color(0xFF56B693),
+    danger: Color(0xFFE0685F),
+    shadow: Color(0xFF000000),
+    glassFill: Color(0xFFFFFFFF),
+    glassEdge: Color(0xFFFFFFFF),
+    scrim: Color(0xB3000000),
+    highlight: Color(0xFFD89B1D),
+    heroDeep: Color(0xFF000000),
+    heroMid: Color(0xFF101010),
+    heroLit: Color(0xFF202020),
+    nightGround: Color(0xFF000000),
+    nightGlow: Color(0xFF171717),
+    nightAccent: Color(0xFF80F4CF),
+  );
+  static const black = BrandTheme(
+    id: 'black',
+    name: 'Black',
+    description: 'Pure black backgrounds with quiet dark surfaces.',
+    access: BrandThemeAccess.free,
+    light: _blackPalette,
+    dark: _blackPalette,
+  );
+
   /// Every theme, free first, in the order the picker shows them.
   static const all = <BrandTheme>[
     blue,
     green,
+    black,
     tiebele,
     kente,
     harmattan,

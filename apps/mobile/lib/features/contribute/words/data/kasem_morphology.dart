@@ -202,7 +202,7 @@ KasemNumeralSeries? numeralSeriesIn(String counted) {
 
 /// Splits on anything that is not a letter.
 ///
-/// The Unicode class matters: Kasem is written with ɩ ʋ ɛ ɔ ŋ, and an
+/// The Unicode class matters: historical entries contain ɩ ʋ ɛ ɔ ŋ, and an
 /// ASCII-only split would cut a word in half and then fail to recognise it.
 final _notLetters = RegExp(r'[^\p{L}]+', unicode: true);
 

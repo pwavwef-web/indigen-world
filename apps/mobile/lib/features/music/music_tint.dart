@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
-
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/music/widgets/audio_artwork.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// The colour a song is played in.
 ///
@@ -178,7 +178,7 @@ Future<Color?> extractArtworkTint(ImageProvider provider) async {
 /// wanted a colour can hand one in without either.
 final musicTintExtractorProvider = Provider<Future<Color?> Function(String)>(
   (ref) =>
-      (url) => extractArtworkTint(CachedNetworkImageProvider(url)),
+      (url) => extractArtworkTint(audioArtworkProvider(url)),
 );
 
 /// The tint for one artwork URL, worked out once and kept.
@@ -205,7 +205,7 @@ class AnimatedTint extends StatelessWidget {
   const AnimatedTint({
     required this.color,
     required this.builder,
-    this.duration = const Duration(milliseconds: 700),
+    this.duration = AppMotion.standard,
     super.key,
   });
 
@@ -216,9 +216,7 @@ class AnimatedTint extends StatelessWidget {
   @override
   Widget build(BuildContext context) => TweenAnimationBuilder<Color?>(
     tween: ColorTween(end: color),
-    duration: MediaQuery.disableAnimationsOf(context)
-        ? Duration.zero
-        : duration,
+    duration: motionOr(context, duration),
     curve: Curves.easeOut,
     builder: (context, value, _) => builder(context, value ?? color),
   );

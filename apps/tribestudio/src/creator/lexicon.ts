@@ -198,21 +198,8 @@ export function formGroupsFor(classes: string[]): Set<'noun' | 'verb' | 'agreeme
   return groups;
 }
 
-/**
- * The letters of Kasem that no keyboard on the contributor's desk produces.
- *
- * ── This palette is not a convenience ────────────────────────────────────
- * 785 of the 1200 published entries carry at least one of these characters —
- * ɩ in 640 headwords, ʋ in 195, ə in 177, ɔ in 156, ŋ in 115, ɛ in 9 (see
- * apps/mobile/lib/domain/kasem_orthography.dart, which counted them). A web
- * form with no way to type them is a form on which two thirds of the language
- * cannot be entered correctly, and the workaround a contributor reaches for is
- * to type the nearest ASCII letter — which silently files the word under the
- * wrong headword and makes it a different word from the one already in the
- * archive.
- *
- * The tone marks are here for the same reason and are used far more rarely.
- * They are combining characters and attach to the letter before them.
+/** Written Ghana Kasem letters and limited tone marks from BGL (1997).
+ * Historical IPA spellings remain searchable; they are not suggested here.
  */
 export const KASEM_CHARACTERS: readonly {
   char: string;
@@ -221,19 +208,12 @@ export const KASEM_CHARACTERS: readonly {
 }[] = [
   { char: 'ɛ', name: 'open e' },
   { char: 'Ɛ', name: 'open E' },
-  { char: 'ɩ', name: 'iota' },
-  { char: 'Ɩ', name: 'capital iota' },
   { char: 'ŋ', name: 'eng' },
   { char: 'Ŋ', name: 'capital eng' },
   { char: 'ɔ', name: 'open o' },
   { char: 'Ɔ', name: 'open O' },
-  { char: 'ʋ', name: 'v with hook' },
-  { char: 'Ʋ', name: 'capital v with hook' },
-  { char: 'ə', name: 'schwa' },
-  { char: 'ɣ', name: 'gamma' },
   { char: '́', name: 'high tone', combining: true },
   { char: '̀', name: 'low tone', combining: true },
-  { char: '̄', name: 'mid tone', combining: true },
 ];
 
 /**

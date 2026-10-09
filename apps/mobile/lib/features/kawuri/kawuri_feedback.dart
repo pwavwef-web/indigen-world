@@ -6,6 +6,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/firebase_ready.dart';
 import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/contribute/grammar/grammar_note_screen.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// Marking a Kawuri answer right or wrong, and — the part that matters —
 /// saying what it should have said instead.
@@ -210,6 +211,10 @@ class _KawuriFeedbackBarState extends ConsumerState<KawuriFeedbackBar> {
     HapticFeedback.selectionClick();
     final outcome = await showModalBottomSheet<_CorrectionOutcome>(
       context: context,
+      sheetAnimationStyle: AnimationStyle(
+        duration: motionOr(context, AppMotion.standard),
+        reverseDuration: motionOr(context, AppMotion.quick),
+      ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) =>

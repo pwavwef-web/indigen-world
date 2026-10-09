@@ -305,6 +305,8 @@ export function DictionaryPage() {
           <div>
             <p className="eyebrow">Collection · Dictionary</p>
             <h1>Words with a living context.</h1>
+            <a href="/spelling-guide.html">Kasem spelling rules and book examples</a>
+            <a href="/grammar-guide.html">Kasem grammar, sentences and word forms</a>
             <p>Search the community-published Kasem dictionary by Kasem, English, or dialect.</p><p><a className="button button--primary" href="https://kasem-dictionary.web.app/">Open Kasem web app</a></p>
             <p className="dictionary-page__role">
               Use the website for quick search and sharing. The mobile app carries the same

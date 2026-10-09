@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -21,6 +20,7 @@ import 'package:indigen_world_mobile/features/explore/create_reel/reel_story_sta
 import 'package:indigen_world_mobile/features/explore/create_reel/reel_ui.dart';
 import 'package:indigen_world_mobile/features/explore/explore_feed.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
 
 /// Make a reel and put it into Explore, in three stages: the media, what it
@@ -378,7 +378,9 @@ class _CreateReelScreenState extends ConsumerState<CreateReelScreen>
         ],
       ),
       body: DecoratedBox(
-        decoration: BoxDecoration(gradient: BrandGradients.night(context.brand)),
+        decoration: BoxDecoration(
+          gradient: BrandGradients.night(context.brand),
+        ),
         child: SafeArea(
           top: false,
           child: Align(
@@ -401,7 +403,7 @@ class _CreateReelScreenState extends ConsumerState<CreateReelScreen>
                       _StageStepper(editor: _editor),
                       Expanded(
                         child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 180),
+                          duration: motionOr(context, AppMotion.quick),
                           child: KeyedSubtree(
                             key: ValueKey(_editor.stage),
                             child: _stageBody(),

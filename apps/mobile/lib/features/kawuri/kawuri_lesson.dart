@@ -14,6 +14,7 @@ import 'package:indigen_world_mobile/features/kawuri/kawuri_service.dart';
 import 'package:indigen_world_mobile/features/profile/saved_words_sync.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// "Practise with Kawuri": a short lesson built from something verified.
 ///
@@ -109,13 +110,11 @@ class FirebaseKawuriLessonApi implements KawuriLessonApi {
           .call<Map<Object?, Object?>>({
             'lesson': lesson.toPayload(),
             'messages': [
-              for (final turn in turns.length > 16
-                  ? turns.sublist(turns.length - 16)
-                  : turns)
-                {
-                  'role': turn.fromKawuri ? 'model' : 'user',
-                  'text': turn.text,
-                },
+              for (final turn
+                  in turns.length > 16
+                      ? turns.sublist(turns.length - 16)
+                      : turns)
+                {'role': turn.fromKawuri ? 'model' : 'user', 'text': turn.text},
             ],
           });
       final data = result.data;
@@ -138,8 +137,7 @@ class FirebaseKawuriLessonApi implements KawuriLessonApi {
           error.message?.trim().isNotEmpty == true
               ? error.message!.trim()
               : 'That is no longer published, so there is no lesson for it.',
-        'resource-exhausted' =>
-          'You have used today’s Kawuri messages. The lesson will be here tomorrow.',
+        'resource-exhausted' => 'You have used today’s Kawuri messages. The lesson will be here tomorrow.',
         _ => 'The lesson did not load. Check your connection and try again.',
       });
     } on Object {
@@ -178,13 +176,15 @@ class _KawuriLessonScreenState extends ConsumerState<KawuriLessonScreen> {
   @override
   void initState() {
     super.initState();
-    ref.read(loopAnalyticsProvider).log(
-      LoopEvent.lessonStart,
-      parameters: loopParameters({
-        'lesson_kind': widget.lesson.kind,
-        'lesson_id': widget.lesson.id,
-      }),
-    );
+    ref
+        .read(loopAnalyticsProvider)
+        .log(
+          LoopEvent.lessonStart,
+          parameters: loopParameters({
+            'lesson_kind': widget.lesson.kind,
+            'lesson_id': widget.lesson.id,
+          }),
+        );
     WidgetsBinding.instance.addPostFrameCallback((_) => _send(kLessonOpening));
   }
 
@@ -209,19 +209,25 @@ class _KawuriLessonScreenState extends ConsumerState<KawuriLessonScreen> {
       if (!mounted) return;
       setState(() {
         _turns.add(
-          LessonTurn(fromKawuri: true, text: reply.text, lookups: reply.lookups),
+          LessonTurn(
+            fromKawuri: true,
+            text: reply.text,
+            lookups: reply.lookups,
+          ),
         );
         _complete = reply.complete;
       });
       if (reply.complete) {
-        ref.read(loopAnalyticsProvider).log(
-          LoopEvent.lessonComplete,
-          parameters: loopParameters({
-            'lesson_kind': widget.lesson.kind,
-            'lesson_id': widget.lesson.id,
-            'turns': _turns.where((turn) => !turn.fromKawuri).length,
-          }),
-        );
+        ref
+            .read(loopAnalyticsProvider)
+            .log(
+              LoopEvent.lessonComplete,
+              parameters: loopParameters({
+                'lesson_kind': widget.lesson.kind,
+                'lesson_id': widget.lesson.id,
+                'turns': _turns.where((turn) => !turn.fromKawuri).length,
+              }),
+            );
       }
     } on LessonFailure catch (failure) {
       if (!mounted) return;
@@ -240,7 +246,7 @@ class _KawuriLessonScreenState extends ConsumerState<KawuriLessonScreen> {
       unawaited(
         _scroll.animateTo(
           _scroll.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 240),
+          duration: AppMotion.standard,
           curve: Curves.easeOut,
         ),
       );
@@ -257,7 +263,9 @@ class _KawuriLessonScreenState extends ConsumerState<KawuriLessonScreen> {
   @override
   Widget build(BuildContext context) {
     final brand = context.brand;
-    final visible = _turns.where((turn) => turn.text != kLessonOpening).toList();
+    final visible = _turns
+        .where((turn) => turn.text != kLessonOpening)
+        .toList();
     return Scaffold(
       backgroundColor: brand.background,
       appBar: AppBar(title: const Text('Practise with Kawuri')),
@@ -446,7 +454,9 @@ class _NextSteps extends ConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        saved ? 'Saved to your words.' : 'Removed from saved words.',
+                        saved
+                            ? 'Saved to your words.'
+                            : 'Removed from saved words.',
                       ),
                     ),
                   );

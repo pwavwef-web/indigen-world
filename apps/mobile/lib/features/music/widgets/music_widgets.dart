@@ -1,6 +1,4 @@
 import 'dart:math' as math;
-
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -9,6 +7,7 @@ import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/music/music_library.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/features/music/music_tint.dart';
+import 'package:indigen_world_mobile/features/music/widgets/audio_artwork.dart';
 import 'package:indigen_world_mobile/features/music/widgets/music_bubble.dart';
 import 'package:indigen_world_mobile/shared/motion.dart';
 
@@ -104,7 +103,7 @@ class MusicArtwork extends StatelessWidget {
     final decode = (size * MediaQuery.devicePixelRatioOf(context)).round();
     final image = url == null || url!.isEmpty
         ? placeholder
-        : CachedNetworkImage(
+        : AudioArtwork(
             imageUrl: url!,
             fit: BoxFit.cover,
             width: size,

@@ -19,6 +19,7 @@ import 'package:indigen_world_mobile/features/dictionary/result_row.dart';
 import 'package:indigen_world_mobile/features/dictionary/topic_screen.dart';
 import 'package:indigen_world_mobile/features/settings/kasem_keyboard_toggle.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
+import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
 
 /// The dictionary, as three ways into the same lexicon.
@@ -103,22 +104,18 @@ class _DictionaryScreenState extends ConsumerState<DictionaryScreen> {
         children: [
           if (_tab == _Tab.lookUp)
             KasemKeyboardToggle(targets: {_searchController: _searchFocus}),
-          NavigationBar(
-            selectedIndex: _Tab.values.indexOf(_tab),
-            onDestinationSelected: (index) =>
-                setState(() => _tab = _Tab.values[index]),
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.search_rounded),
-                label: 'Look up',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.sort_by_alpha_rounded),
+          FrostedNavBar(
+            currentIndex: _Tab.values.indexOf(_tab),
+            onTap: (index) => setState(() => _tab = _Tab.values[index]),
+            items: const [
+              FrostedNavBarItem(icon: Icons.search_rounded, label: 'Look up'),
+              FrostedNavBarItem(
+                icon: Icons.sort_by_alpha_rounded,
                 label: 'Browse',
               ),
-              NavigationDestination(
-                icon: Icon(Icons.bookmark_border_rounded),
-                selectedIcon: Icon(Icons.bookmark_rounded),
+              FrostedNavBarItem(
+                icon: Icons.bookmark_border_rounded,
+                selectedIcon: Icons.bookmark_rounded,
                 label: 'Saved',
               ),
             ],
@@ -521,7 +518,7 @@ class _NoResults extends StatelessWidget {
         Text(
           narrowed
               ? 'The filters may be doing this rather than the spelling.'
-              : 'Tone marks and the letters ɛ ɩ ŋ ɔ ʋ are all optional — '
+              : 'Tone marks and the written letters ɛ ŋ ɔ are all optional — '
                     'typing what you can reach finds the word either way.',
           textAlign: TextAlign.center,
           style: TextStyle(color: brand.mutedInk, fontSize: 12.5, height: 1.45),

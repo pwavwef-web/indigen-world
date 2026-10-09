@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_models.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_media_repository.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
@@ -22,6 +22,10 @@ const kawuriVoiceEnglishOnly = 'Voice input currently supports English only.';
 Future<KawuriTranscript?> showKawuriVoiceInput(BuildContext context) =>
     showModalBottomSheet<KawuriTranscript>(
       context: context,
+      sheetAnimationStyle: AnimationStyle(
+        duration: motionOr(context, AppMotion.standard),
+        reverseDuration: motionOr(context, AppMotion.quick),
+      ),
       isScrollControlled: true,
       isDismissible: false,
       enableDrag: false,

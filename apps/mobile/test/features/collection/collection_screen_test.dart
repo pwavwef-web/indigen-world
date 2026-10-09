@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -172,7 +171,7 @@ void main() {
     await _pumpCollection(tester);
 
     expect(find.text('Kasem Collections'), findsOneWidget);
-    expect(find.byKey(const Key('collection-search-field')), findsOneWidget);
+    expect(find.byKey(const Key('collection-search-field')), findsNothing);
     for (final label in const ['All', 'Published', 'Open']) {
       expect(find.text(label), findsNothing);
     }
@@ -228,50 +227,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
   });
 
-  testWidgets('debounced search finds loaded category content and can reset', (
-    tester,
-  ) async {
-    await _pumpCollection(tester);
-
-    await tester.enterText(
-      find.byKey(const Key('collection-search-field')),
-      'rain',
-    );
-    await tester.pump(const Duration(milliseconds: 120));
-
-    expect(find.text('Dictionary'), findsOneWidget);
-
-    await tester.pump(const Duration(milliseconds: 220));
-
-    expect(find.text('Music'), findsOneWidget);
-    expect(find.text('Dictionary'), findsNothing);
-
-    await tester.enterText(
-      find.byKey(const Key('collection-search-field')),
-      'zzzz',
-    );
-    await tester.pump(const Duration(milliseconds: 320));
-
-    expect(find.text('No results for "zzzz"'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('collection-reset-filters')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 220));
-
-    expect(find.text('Music'), findsOneWidget);
-    expect(find.text('Dictionary'), findsOneWidget);
-  });
-
   testWidgets('literature genres find the portal and open its category tabs', (
     tester,
   ) async {
     await _pumpCollection(tester);
-    await tester.enterText(
-      find.byKey(const Key('collection-search-field')),
-      'cooking',
-    );
-    await tester.pump(const Duration(milliseconds: 320));
-    expect(find.text('Literature'), findsOneWidget);
-    expect(find.text('Music'), findsNothing);
+    await _show(tester, 'Literature');
     await tester.tap(find.text('Literature'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
@@ -297,39 +257,20 @@ void main() {
     expect(find.text('0 published'), findsOneWidget);
   });
 
-  testWidgets('keeps search and filter state after opening a category', (
+  testWidgets('returns to all collection portals after opening music', (
     tester,
   ) async {
     await _pumpCollection(tester);
-
-    await tester.enterText(
-      find.byKey(const Key('collection-search-field')),
-      'rain',
-    );
-    await tester.pump(const Duration(milliseconds: 320));
     await tester.tap(find.text('Music'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-
     expect(find.byType(MusicScreen), findsOneWidget);
     await tester.pageBack();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-
-    expect(find.byKey(const Key('collection-search-field')), findsOneWidget);
-    final search = tester.widget<TextField>(
-      find.byKey(const Key('collection-search-field')),
-    );
-    expect(search.controller?.text, 'rain');
+    expect(find.byKey(const Key('collection-search-field')), findsNothing);
     expect(find.text('Music'), findsOneWidget);
-    expect(find.text('Dictionary'), findsNothing);
-
-    await tester.enterText(
-      find.byKey(const Key('collection-search-field')),
-      'Audiobooks',
-    );
-    await tester.pump(const Duration(milliseconds: 320));
-    expect(find.text('Audiobooks', skipOffstage: true), findsNWidgets(2));
+    expect(find.text('Dictionary'), findsOneWidget);
   });
 
   testWidgets('shows polished skeletons while count streams load', (

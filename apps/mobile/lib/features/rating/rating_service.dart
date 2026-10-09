@@ -1,8 +1,11 @@
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_review/in_app_review.dart';
+import 'package:indigen_world_mobile/core/app_config.dart';
+import 'package:indigen_world_mobile/core/support_channels.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Asking somebody to rate Indigen World on Google Play.
 ///
@@ -44,7 +47,7 @@ const _activeDayMemory = 40;
 ///
 /// Held remotely because the rating prompt is the one feature here with no
 /// rollback: a badly timed ask spends a quota slot that cannot be given back,
-/// and waiting for a release to stop it is too slow. It ships disabled.
+/// and waiting for a release to stop it is too slow. The conservative defaults can be disabled remotely.
 @immutable
 class RatingRules {
   const RatingRules({
@@ -82,9 +85,9 @@ class RatingRules {
       final config = FirebaseRemoteConfig.instance;
       return RatingRules(
         enabled: config.getBool('rating_prompt_enabled'),
-        minDays: config.getInt('rating_min_days'),
-        minActiveDays: config.getInt('rating_min_active_days'),
-        cooldownDays: config.getInt('rating_cooldown_days'),
+        minDays: config.getInt('rating_min_days').clamp(7, 365),
+        minActiveDays: config.getInt('rating_min_active_days').clamp(3, 40),
+        cooldownDays: config.getInt('rating_cooldown_days').clamp(120, 730),
       );
     } on Object {
       return disabled;
@@ -230,7 +233,19 @@ Future<String> currentAppVersion() async {
 ///
 /// Silent throughout: there is no outcome to report, nothing for a member to
 /// act on, and a failure here must never disturb whatever they were doing.
-Future<void> maybeRequestReview({required bool online, DateTime? now}) async {
+bool _reviewInFlight = false;
+Future<void> maybeRequestReview({
+  required bool online,
+  bool busy = false,
+  DateTime? now,
+}) async {
+  if (_reviewInFlight ||
+      busy ||
+      defaultTargetPlatform != TargetPlatform.android ||
+      appEnvironment != AppEnvironment.production) {
+    return;
+  }
+  _reviewInFlight = true;
   try {
     final rules = RatingRules.fromRemoteConfig();
     if (!rules.enabled) return;
@@ -255,6 +270,8 @@ Future<void> maybeRequestReview({required bool online, DateTime? now}) async {
     await review.requestReview();
   } on Object catch (error) {
     debugPrint('Review prompt skipped (continuing): $error');
+  } finally {
+    _reviewInFlight = false;
   }
 }
 
@@ -265,7 +282,10 @@ Future<void> maybeRequestReview({required bool online, DateTime? now}) async {
 /// that triggers the in-app card is not.
 Future<void> openStoreListing() async {
   try {
-    await InAppReview.instance.openStoreListing();
+    await launchUrl(
+      SupportChannels.playListing,
+      mode: LaunchMode.externalApplication,
+    );
   } on Object catch (error) {
     debugPrint('Could not open the store listing (continuing): $error');
   }

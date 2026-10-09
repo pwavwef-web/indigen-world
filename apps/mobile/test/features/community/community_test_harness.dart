@@ -456,6 +456,7 @@ Widget communityHarness({
     communitySpaceRepositoryProvider.overrideWithValue(spaces),
   ],
   child: MaterialApp(
+    debugShowCheckedModeBanner: false,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     locale: locale,

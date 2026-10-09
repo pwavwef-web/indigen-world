@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// ─────────────────────────────────────────────────────────────────────────────
 /// FROSTED NAV BAR
@@ -190,15 +191,15 @@ class _FrostedNavBarState extends State<FrostedNavBar>
     _previousIndex = widget.currentIndex;
     _slideController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 350),
+      duration: AppMotion.standard,
     );
     _wiggleController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: AppMotion.standard,
     );
     _slideController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        _wiggleController.forward(from: 0);
+        // Selection motion is carried by the sliding indicator.
       }
     });
   }
@@ -208,7 +209,11 @@ class _FrostedNavBarState extends State<FrostedNavBar>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.currentIndex != widget.currentIndex && !_isDragging) {
       _previousIndex = oldWidget.currentIndex;
-      _slideController.forward(from: 0);
+      if (motionAllowed(context)) {
+        _slideController.forward(from: 0);
+      } else {
+        _slideController.value = 1;
+      }
       HapticFeedback.lightImpact();
     }
   }
@@ -296,7 +301,7 @@ class _FrostedNavBarState extends State<FrostedNavBar>
                       _dragOffset = 0;
                     });
                     if (newIndex != widget.currentIndex) widget.onTap(newIndex);
-                    _wiggleController.forward(from: 0);
+                    // Selection motion is carried by the sliding indicator.
                     HapticFeedback.lightImpact();
                   },
                   child: _GlassRail(
@@ -622,7 +627,7 @@ class _GlassNavItemState extends State<_GlassNavItem>
   /// The destination's signature movement, played once as it is selected.
   late final AnimationController _signature = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 520),
+    duration: AppMotion.emphasized,
   );
 
   @override
@@ -630,8 +635,8 @@ class _GlassNavItemState extends State<_GlassNavItem>
     super.initState();
     _tapController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 120),
-      reverseDuration: const Duration(milliseconds: 180),
+      duration: AppMotion.quick,
+      reverseDuration: AppMotion.quick,
     );
     _tapScale = Tween<double>(
       begin: 1,
@@ -645,7 +650,7 @@ class _GlassNavItemState extends State<_GlassNavItem>
     if (!oldWidget.isSelected &&
         widget.isSelected &&
         widget.item.motion != NavIconMotion.none &&
-        !MediaQuery.disableAnimationsOf(context)) {
+        motionAllowed(context)) {
       _signature.forward(from: 0);
     }
   }
@@ -678,7 +683,7 @@ class _GlassNavItemState extends State<_GlassNavItem>
           ..setEntry(3, 2, 0.004)
           ..rotateY(2 * pi * Curves.easeInOut.transform(t));
       case NavIconMotion.quarter:
-        return Matrix4.rotationZ(pi / 2 * Curves.easeOutBack.transform(t));
+        return Matrix4.rotationZ(pi / 2 * AppMotion.arrive.transform(t));
       case NavIconMotion.bounce:
         final hop = sin(pi * t * 2) * (1 - t);
         return Matrix4.translationValues(0, -7 * hop.abs(), 0);
@@ -692,8 +697,8 @@ class _GlassNavItemState extends State<_GlassNavItem>
     final color = widget.isSelected ? widget.accent : context.brand.mutedInk;
 
     final icon = AnimatedSwitcher(
-      duration: const Duration(milliseconds: 260),
-      switchInCurve: Curves.easeOutBack,
+      duration: motionOr(context, AppMotion.standard),
+      switchInCurve: AppMotion.arrive,
       switchOutCurve: Curves.easeIn,
       transitionBuilder: (child, animation) => FadeTransition(
         opacity: animation,
@@ -732,8 +737,8 @@ class _GlassNavItemState extends State<_GlassNavItem>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 AnimatedScale(
-                  duration: const Duration(milliseconds: 350),
-                  curve: Curves.easeOutBack,
+                  duration: motionOr(context, AppMotion.emphasized),
+                  curve: AppMotion.arrive,
                   scale: widget.isSelected ? 1.12 : 1,
                   child: Stack(
                     clipBehavior: Clip.none,
@@ -799,7 +804,7 @@ class _GlassNavItemState extends State<_GlassNavItem>
                 ),
                 const SizedBox(height: 4),
                 AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 260),
+                  duration: motionOr(context, AppMotion.standard),
                   curve: Curves.easeOut,
                   // The theme's family named outright rather than inherited:
                   // this rail also flies between routes as a hero, through

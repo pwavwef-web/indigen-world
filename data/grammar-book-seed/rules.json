@@ -1,0 +1,1497 @@
+[
+  {
+    "key": "alphabet",
+    "topic": "alphabet",
+    "chapter": 1,
+    "pages": "Chapter 1, DOCX blocks 125-174",
+    "title": "Written letters and sound symbols",
+    "summary": "The book gives seven written vowels a e ɛ i o ɔ u. Its notes say c and h occur together as ch, and n and y can form ny. ŋ can begin a word. Phonetic vowel symbols describe pronunciation rather than extra ordinary written letters. The consonant list contains apparent transcription/count errors; consult the orthography guide for keyboard spelling.",
+    "triggers": [
+      "alphabet",
+      "letters",
+      "consonants",
+      "vowels"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 1, DOCX blocks 125-174"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "vowel-harmony",
+    "topic": "vowel-harmony",
+    "chapter": 1,
+    "pages": "Chapter 1, DOCX blocks 135-142",
+    "title": "Vowel harmony and endings",
+    "summary": "Vowel sounds fall into open and close sets. An ending must agree with the stem's vowel set: the book contrasts pa plus e giving pae, and su plus i giving sui.",
+    "triggers": [
+      "vowel harmony",
+      "open vowels",
+      "close vowels",
+      "endings"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 1, DOCX blocks 135-142"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "length",
+    "topic": "length",
+    "chapter": 1,
+    "pages": "Chapter 1, DOCX blocks 143-152",
+    "title": "Long vowels and consonants",
+    "summary": "A double vowel marks vowel length. Some noun and adjective plurals have long consonants, especially in class D. Preserve these distinctions when looking up forms.",
+    "triggers": [
+      "long vowels",
+      "vowel length",
+      "long consonants"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 1, DOCX blocks 143-152"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "tone",
+    "topic": "tone",
+    "chapter": 1,
+    "pages": "Chapter 1, DOCX blocks 153-168",
+    "title": "Tone distinctions in this grammar",
+    "summary": "Tone is part of a word's pronunciation. This grammar describes low mid high and rising tones but usually leaves tone unwritten. It explicitly marks á plural you, ná if, bá will not and wó will to distinguish them from other words. This is a source-specific convention, not a general accent rule.",
+    "triggers": [
+      "tone",
+      "accents",
+      "diacritics"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 1, DOCX blocks 153-168"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "sound-notes",
+    "topic": "sound-notes",
+    "chapter": 1,
+    "pages": "Chapter 1, DOCX blocks 170-194",
+    "title": "Pronunciation and written forms",
+    "summary": "The notes discuss r between vowels, d at the beginning of simple words, and d inside words with distinct parts. They also explain that ei can represent different vowel sounds according to word position. Phonetic examples remain pronunciation evidence rather than keyboard suggestions.",
+    "triggers": [
+      "pronunciation",
+      "phonetic",
+      "ei",
+      "r and d"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 1, DOCX blocks 170-194"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "greetings",
+    "topic": "greetings",
+    "chapter": 2,
+    "pages": "Chapter 2, DOCX blocks 197-266",
+    "title": "Greetings and responses",
+    "summary": "Greetings depend on time of day, the number of listeners, situation, locality and preference. Exchanges can continue through several questions and responses. naa can accompany greetings wishes and exhortations. Use the printed dialogues as source examples, not universal responses.",
+    "triggers": [
+      "greetings",
+      "goodbye",
+      "good night",
+      "welcome"
+    ],
+    "examples": [
+      [
+        "De n lei",
+        "short greeting"
+      ],
+      [
+        "Ko gara",
+        "it is fine"
+      ],
+      [
+        "N na zaŋe to?",
+        "when you got up?"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 2, DOCX blocks 197-266"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "pronoun-pronunciation",
+    "topic": "pronoun-pronunciation",
+    "chapter": 2,
+    "pages": "Chapter 2, DOCX blocks 204-210",
+    "title": "Pronouncing the written pronoun n",
+    "summary": "The written singular you pronoun n is commonly pronounced m before p b or m, and n before k g or n. Its realization before w can vary. The spelling remains n in the book's examples.",
+    "triggers": [
+      "pronoun pronunciation",
+      "n before consonants"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 2, DOCX blocks 204-210"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "useful-questions",
+    "topic": "useful-questions",
+    "chapter": 2,
+    "pages": "Chapter 2, DOCX blocks 267-288",
+    "title": "Questions for learning Kasem",
+    "summary": "The book supplies questions about names origin meanings and what things are called or used for, along with requests to repeat and speak carefully. These are recorded complete expressions, not templates for generating new translations.",
+    "triggers": [
+      "useful questions",
+      "repeat",
+      "speak carefully"
+    ],
+    "examples": [
+      [
+        "Bɛ mo konto?",
+        "What is that?"
+      ],
+      [
+        "Ba bwoi konto we bɛ mo?",
+        "What do they call that?"
+      ],
+      [
+        "N ma konto n ke bɛ mo?",
+        "What do you use that for?"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 2, DOCX blocks 267-288"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "word-order",
+    "topic": "word-order",
+    "chapter": 3,
+    "pages": "Chapter 3, DOCX blocks 291-303",
+    "title": "Subject verb and object order",
+    "summary": "The ordinary order is subject then verb then object. A clause can have no object. A small group of verbs including bere show, pa give and ke do or make can take two objects.",
+    "triggers": [
+      "word order",
+      "subject verb object",
+      "two objects",
+      "SVO"
+    ],
+    "examples": [
+      [
+        "Ba mage debam",
+        "They beat us"
+      ],
+      [
+        "Ba mɔne",
+        "They laughed"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 3, DOCX blocks 291-303"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "adverbs",
+    "topic": "adverbs",
+    "chapter": 3,
+    "pages": "Chapter 3, DOCX blocks 304-325",
+    "title": "Adverbs time and place in clauses",
+    "summary": "Adverb time and place expressions normally follow the subject verb and object. When an adverb occurs with time or place material, the adverb comes first. The book says multiple adverb time and place phrases in one clause are unusual.",
+    "triggers": [
+      "adverbs",
+      "time and place",
+      "clause order"
+    ],
+    "examples": [
+      [
+        "Ba mage debam sɔŋɔ ne",
+        "They beat us in house"
+      ],
+      [
+        "O tu zem",
+        "He came today"
+      ],
+      [
+        "Ba mage debam lanyerane",
+        "They beat us well"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 3, DOCX blocks 304-325"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "descriptive",
+    "topic": "descriptive",
+    "chapter": 3,
+    "pages": "Chapter 3, DOCX blocks 326-345",
+    "title": "Descriptive clauses and strong forms",
+    "summary": "Descriptive verbs say what the subject is like. Some descriptive forms with n have a strong form with mm instead. The editable list has transcription damage, so use its clearly printed examples without inventing replacement forms.",
+    "triggers": [
+      "descriptive clauses",
+      "descriptive verbs",
+      "strong forms"
+    ],
+    "examples": [
+      [
+        "Ko dana lanyerana",
+        "It is very difficult"
+      ],
+      [
+        "swoona ywomma",
+        "beans are sweet"
+      ],
+      [
+        "kaane wom lana",
+        "The woman is beautiful"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 3, DOCX blocks 326-345"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "equative",
+    "topic": "equative",
+    "chapter": 3,
+    "pages": "Chapter 3, DOCX blocks 346-357",
+    "title": "Equative clauses with ye and dae",
+    "summary": "An equative clause relates a subject to a noun or adjective complement using ye. Its negative counterpart uses dae. This differs from describing a subject's location.",
+    "triggers": [
+      "equative",
+      "copula",
+      "ye",
+      "dae"
+    ],
+    "examples": [
+      [
+        "Noono wom ye babea",
+        "The man is brave"
+      ],
+      [
+        "Konto dae chega",
+        "That is not the truth"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 3, DOCX blocks 346-357"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "location",
+    "topic": "location",
+    "chapter": 3,
+    "pages": "Chapter 3, DOCX blocks 358-382",
+    "title": "Location with wo tere wora and tera",
+    "summary": "A location clause uses wo and a place expression; its negative is tere. wora combines wo and da and means be there; tera is its negative. Depending on context, being there can also refer to being around or still alive.",
+    "triggers": [
+      "location clauses",
+      "wo",
+      "tere",
+      "wora",
+      "tera"
+    ],
+    "examples": [
+      [
+        "O tere ywo",
+        "She is not here"
+      ],
+      [
+        "A kwo tera",
+        "My father is not there"
+      ],
+      [
+        "A kaane wora",
+        "My wife is there"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 3, DOCX blocks 358-382"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "no-verb",
+    "topic": "no-verb",
+    "chapter": 3,
+    "pages": "Chapter 3, DOCX blocks 383-409",
+    "title": "Clauses without a verb",
+    "summary": "Some clauses have a subject and complement without a verb. In the examples, mo follows the subject. These are a stated exception to the usual verb-containing clause patterns.",
+    "triggers": [
+      "verbless",
+      "no verb",
+      "complement"
+    ],
+    "examples": [
+      [
+        "Sen konto?",
+        "What is that?"
+      ],
+      [
+        "Chworo mo konto",
+        "that is a hen"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 3, DOCX blocks 383-409"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "focus-order",
+    "topic": "focus-order",
+    "chapter": 3,
+    "pages": "Chapter 3, DOCX blocks 410-434",
+    "title": "Fronting and emphasis with mo",
+    "summary": "An element can move to the beginning of a clause and be followed by mo, drawing attention to that element. This often answers a question. Question elements usually come first with mo. Some short time words can also occur between subject and verb.",
+    "triggers": [
+      "focus",
+      "emphasis",
+      "fronting",
+      "mo",
+      "change of order"
+    ],
+    "examples": [
+      [
+        "Diim mo a tua",
+        "Yesterday I came"
+      ],
+      [
+        "A diim tua",
+        "I yesterday came"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 3, DOCX blocks 410-434"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "personal-pronouns",
+    "topic": "personal-pronouns",
+    "chapter": 4,
+    "pages": "Chapter 4, DOCX blocks 448-467",
+    "title": "Weak personal pronouns",
+    "summary": "Personal pronouns have subject and object forms. Singular subject forms are a n o; corresponding object forms are ne m o. Plural forms include dé debam, á abam and ba ba. Short object pronouns can be closely joined to a verb with a hyphen, and their tones differ from subject forms.",
+    "triggers": [
+      "personal pronouns",
+      "subject pronouns",
+      "object pronouns",
+      "weak pronouns"
+    ],
+    "examples": [
+      [
+        "O bere - ne",
+        "He showed me"
+      ],
+      [
+        "Dé tɔge - ba",
+        "We followed them"
+      ],
+      [
+        "Ba bere debam",
+        "They showed us"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 4, DOCX blocks 448-467"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "impersonal-pronouns",
+    "topic": "impersonal-pronouns",
+    "chapter": 4,
+    "pages": "Chapter 4, DOCX blocks 468-479",
+    "title": "Pronouns agree with noun class",
+    "summary": "Impersonal pronouns vary by noun class and number. The tables retain each class's forms. The editable weak-pronoun table prints dé for class B singular while the noun-class table prints de; this discrepancy is preserved instead of silently resolved.",
+    "triggers": [
+      "impersonal pronouns",
+      "class pronouns",
+      "noun agreement"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 4, DOCX blocks 468-479"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "strong-pronouns",
+    "topic": "strong-pronouns",
+    "chapter": 4,
+    "pages": "Chapter 4, DOCX blocks 480-505",
+    "title": "Strong pronouns",
+    "summary": "Strong or emphatic pronouns have the same form for subject and object and do not change tone in that use. Personal forms include amo nmo omo or wonto, debam abam and bamo or banto. Modifiers can follow pronouns.",
+    "triggers": [
+      "strong pronouns",
+      "emphatic pronouns"
+    ],
+    "examples": [
+      [
+        "Amo bere ba konto",
+        "I showed them that"
+      ],
+      [
+        "Amo bere ba",
+        "I showed them"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 4, DOCX blocks 480-505"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "determiners",
+    "topic": "determiners",
+    "chapter": 4,
+    "pages": "Chapter 4, DOCX blocks 507-544",
+    "title": "Articles and other noun modifiers",
+    "summary": "The article follows the noun and agrees with its class and number. Demonstrative other some and certain forms also vary by class. The chart presents their order after the noun; not every modifier can occur together. This and other can sometimes precede the noun.",
+    "triggers": [
+      "articles",
+      "determiners",
+      "demonstratives",
+      "noun phrases"
+    ],
+    "examples": [
+      [
+        "sɔŋɔ kom",
+        "the house"
+      ],
+      [
+        "kaane wonto",
+        "that woman"
+      ],
+      [
+        "kaane wodwoni",
+        "a certain woman"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 4, DOCX blocks 507-544"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "numerals",
+    "topic": "numerals",
+    "chapter": 4,
+    "pages": "Chapter 4, DOCX blocks 546-562",
+    "title": "Numerals and modifiers in noun phrases",
+    "summary": "Numerals two through seven and larger numerals containing them vary with noun class. One is dedoa and can agree with the noun. Numerals combine with demonstratives articles and modifiers such as all many only and also.",
+    "triggers": [
+      "numerals",
+      "counting",
+      "number agreement",
+      "modifiers"
+    ],
+    "examples": [
+      [
+        "Kaana batɔ bam",
+        "the three women"
+      ],
+      [
+        "kaana banto tana",
+        "those four women"
+      ],
+      [
+        "Kaana batɔ yerane",
+        "only three women"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 4, DOCX blocks 546-562"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "relative",
+    "topic": "relative",
+    "chapter": 4,
+    "pages": "Chapter 4, DOCX blocks 565-583",
+    "title": "Relative clauses inside noun phrases",
+    "summary": "Relative clauses contain na and usually end in to. They may be linked to a noun by a class-agreeing who or which form such as wolo balo delo or yalo. The book also records relatives without that linker or final to.",
+    "triggers": [
+      "relative clauses",
+      "who and which",
+      "relative pronouns"
+    ],
+    "examples": [
+      [
+        "swoona yalo o na di to",
+        "the beans which he ate"
+      ],
+      [
+        "nɔɔno ma zege da",
+        "a man standing there"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 4, DOCX blocks 565-583"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "noun-joining",
+    "topic": "noun-joining",
+    "chapter": 4,
+    "pages": "Chapter 4, DOCX blocks 584-590",
+    "title": "Joining noun phrases with de",
+    "summary": "de joins nouns or noun phrases with the meaning and. dedaane is a longer form. Clause joining uses a different construction described in chapter six.",
+    "triggers": [
+      "joining nouns",
+      "noun conjunction",
+      "de"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 4, DOCX blocks 584-590"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "possession",
+    "topic": "possession",
+    "chapter": 4,
+    "pages": "Chapter 4, DOCX blocks 592-607",
+    "title": "Possession by phrase order",
+    "summary": "A possessing noun phrase or pronoun comes before the possessed noun phrase. Several noun phrases can be linked, but only the first can be a pronoun. The source illustrates nested possession.",
+    "triggers": [
+      "possession",
+      "possessive",
+      "whose"
+    ],
+    "examples": [
+      [
+        "kaane wom kwo",
+        "the women’s father"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 4, DOCX blocks 592-607"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "adjectives",
+    "topic": "adjectives",
+    "chapter": 4,
+    "pages": "Chapter 4, DOCX blocks 608-636",
+    "title": "Adjectives and noun agreement",
+    "summary": "Adjectives follow the noun. An accompanying article agrees with the adjective's class. Many nouns use shortened forms before an adjective; the adjective changes for number. Some adjectives can stand alone, and a few require na in that position.",
+    "triggers": [
+      "adjectives",
+      "adjective agreement",
+      "shortened nouns"
+    ],
+    "examples": [
+      [
+        "bu balana kam",
+        "the small child"
+      ],
+      [
+        "chwona kam",
+        "the path"
+      ],
+      [
+        "chwo-laao kom",
+        "the good path"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 4, DOCX blocks 608-636"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "place-time",
+    "topic": "place-time",
+    "chapter": 5,
+    "pages": "Chapter 5, DOCX blocks 643-669",
+    "title": "Place time and ne phrases",
+    "summary": "Place and time expressions can be single words, pairs of time words, noun phrases or phrases ending in ne. A position word can precede ne, including top back bottom mouth or side forms recorded in the source.",
+    "triggers": [
+      "place phrases",
+      "time phrases",
+      "locative",
+      "ne phrases"
+    ],
+    "examples": [
+      [
+        "Zem tetente",
+        "early this morning"
+      ],
+      [
+        "dɛ dedoa",
+        "one day"
+      ],
+      [
+        "yaga ne",
+        "at market"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 5, DOCX blocks 643-669"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "adverb-phrases",
+    "topic": "adverb-phrases",
+    "chapter": 5,
+    "pages": "Chapter 5, DOCX blocks 670-692",
+    "title": "Adverb phrases",
+    "summary": "Adverbs can be a single word or a longer expression. The book records well much twice often and happily, among others. Some time and adverb phrases at the beginning of a sentence can end in to.",
+    "triggers": [
+      "adverb phrases",
+      "often",
+      "twice"
+    ],
+    "examples": [
+      [
+        "Kuni dedɛ",
+        "often"
+      ],
+      [
+        "de wopwolo",
+        "happily"
+      ],
+      [
+        "Ko ja gaale",
+        "very much"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 5, DOCX blocks 670-692"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "verb-phrases",
+    "topic": "verb-phrases",
+    "chapter": 5,
+    "pages": "Chapter 5, DOCX blocks 693-701",
+    "title": "Verb phrases contain verbs and particles",
+    "summary": "A verb phrase can include a verb and words before it that express tense or other meanings. Chapter eight explains the particles and verb classes in detail.",
+    "triggers": [
+      "verb phrases",
+      "particles"
+    ],
+    "examples": [
+      [
+        "Dé daa ta wa vei",
+        "We haven’t yet gone again"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 5, DOCX blocks 693-701"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "chains",
+    "topic": "chains",
+    "chapter": 6,
+    "pages": "Chapter 6, DOCX blocks 706-768",
+    "title": "Clause chains",
+    "summary": "A clause chain repeats the first clause's subject as a weak pronoun in subsequent clauses. The first verb can show tense; following verbs usually stand without those tense words. Initial verbs can express adverbial meanings aspect ability or completion. Some adverbial constructions are exceptions.",
+    "triggers": [
+      "clause chains",
+      "serial verbs",
+      "consecutive clauses"
+    ],
+    "examples": [
+      [
+        "Bu wom duri o- vii",
+        "The child ran away"
+      ],
+      [
+        "Ba maŋe ba vo sɔŋɔ",
+        "they have already gone home"
+      ],
+      [
+        "A di ati",
+        "I have finished eating"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 6, DOCX blocks 706-768"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "chain-tone",
+    "topic": "chain-tone",
+    "chapter": 6,
+    "pages": "Chapter 6, DOCX blocks 730-768",
+    "title": "Tone in repeated chain subjects",
+    "summary": "Low-tone weak pronouns change to mid tone when repeated as subjects in ordinary clause chains; high-tone weak pronouns remain high. Chains expressing continuous action with wora are stated exceptions: their weak pronouns do not change tone.",
+    "triggers": [
+      "chain tone",
+      "repeated subjects"
+    ],
+    "examples": [
+      [
+        "Ba maŋe ba vo sɔŋɔ",
+        "they have already gone home"
+      ],
+      [
+        "A di ati",
+        "I have finished eating"
+      ],
+      [
+        "A bere a ba Sɛ",
+        "I will never agree"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 6, DOCX blocks 730-768"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "clause-joining",
+    "topic": "clause-joining",
+    "chapter": 6,
+    "pages": "Chapter 6, DOCX blocks 769-787",
+    "title": "Joining clauses with ye",
+    "summary": "ye joins clauses or clause chains. An English and does not always correspond to ye: a Kasem clause chain can express the sequence without it.",
+    "triggers": [
+      "joining clauses",
+      "clause conjunction",
+      "and clauses"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 6, DOCX blocks 769-787"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "conditional",
+    "topic": "conditional",
+    "chapter": 6,
+    "pages": "Chapter 6, DOCX blocks 788-824",
+    "title": "Conditional and when clauses",
+    "summary": "Conditional na follows the subject; the grammar distinguishes its tone from the na in past when clauses, which usually end in to. Conditional na can also refer to a when event that has not happened yet. The relevant verb uses a past form. These subordinate clauses precede the main clause.",
+    "triggers": [
+      "conditional",
+      "if clauses",
+      "when clauses"
+    ],
+    "examples": [
+      [
+        "A na vei sɔŋɔ to",
+        "When I went home"
+      ],
+      [
+        "Dé na vei sɔŋɔ to",
+        "When we went home"
+      ],
+      [
+        "Debam na jwoori dé yi sɔŋɔ to",
+        "when we got back home"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 6, DOCX blocks 788-824"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "purpose",
+    "topic": "purpose",
+    "chapter": 6,
+    "pages": "Chapter 6, DOCX blocks 825-841",
+    "title": "Purpose clauses with se",
+    "summary": "A purpose clause starts with se and follows the main clause. It can itself be a chain. Low-tone weak subjects following se change to mid tone in the described construction.",
+    "triggers": [
+      "purpose clauses",
+      "se",
+      "so that"
+    ],
+    "examples": [
+      [
+        "A vei sɔŋɔ, se a saŋe wodiu a di",
+        "I went home to cook some food to eat"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 6, DOCX blocks 825-841"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "result",
+    "topic": "result",
+    "chapter": 6,
+    "pages": "Chapter 6, DOCX blocks 842-850",
+    "title": "Result clauses with pa or pa se",
+    "summary": "A result clause begins with pa or pa se and follows the main clause. It can be a clause chain. The source examples distinguish this from purpose clauses.",
+    "triggers": [
+      "result clauses",
+      "pa se",
+      "consequence"
+    ],
+    "examples": [
+      [
+        "Ba mage debam, pa se dé duri dé vo sɔŋɔ",
+        "They beat us, and so we ran home"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 6, DOCX blocks 842-850"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "sentence-building",
+    "topic": "sentence-building",
+    "chapter": 6,
+    "pages": "Chapter 6, DOCX blocks 851-869",
+    "title": "Combining sentence parts",
+    "summary": "A sentence can place conditional or when material before the main clause and purpose or result material after it. Conditional clauses can be joined with ye; purpose clauses can follow one another without ye.",
+    "triggers": [
+      "sentence building",
+      "subordinate clauses"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 6, DOCX blocks 851-869"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "sequence",
+    "topic": "sequence",
+    "chapter": 6,
+    "pages": "Chapter 6, DOCX blocks 870-878",
+    "title": "Linking events with ma",
+    "summary": "ma follows the first subject in the main clause and signals what happened next. It is common in narratives and uses consecutive single-action forms.",
+    "triggers": [
+      "narrative",
+      "sequence",
+      "ma"
+    ],
+    "examples": [
+      [
+        "O ma vo sɔŋɔ",
+        "Then he went home"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 6, DOCX blocks 870-878"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "noun-classes",
+    "topic": "noun-classes",
+    "chapter": 7,
+    "pages": "Chapter 7, DOCX blocks 882-905",
+    "title": "Five noun classes",
+    "summary": "Nouns are grouped into classes A B C D E by their singular and plural pronouns and articles. Stems combine with suffixes; the book distinguishes consonant and vowel stems and describes class-specific changes. Class is not determined only by a noun's meaning.",
+    "triggers": [
+      "noun classes",
+      "noun morphology",
+      "stems",
+      "suffixes"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 7, DOCX blocks 882-905"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "class-a",
+    "topic": "class-a",
+    "chapter": 7,
+    "pages": "Chapter 7, DOCX blocks 907-926",
+    "title": "Noun class A",
+    "summary": "Class A uses o and ba, and articles wom and bam. Singular endings include o or u; plural endings include a and na. Many members denote people, but some people nouns belong to other classes.",
+    "triggers": [
+      "class A",
+      "people nouns"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 7, DOCX blocks 907-926"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "class-b",
+    "topic": "class-b",
+    "chapter": 7,
+    "pages": "Chapter 7, DOCX blocks 928-944",
+    "title": "Noun class B",
+    "summary": "Class B uses de and ya, and dem and yam. Its typical singular suffix is e or i and plural suffix is a. Vowel-stem nouns have additional source-listed forms.",
+    "triggers": [
+      "class B",
+      "noun class B"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 7, DOCX blocks 928-944"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "class-c",
+    "topic": "class-c",
+    "chapter": 7,
+    "pages": "Chapter 7, DOCX blocks 946-972",
+    "title": "Noun class C",
+    "summary": "Class C uses ka and se, and kam and sem. Its singular suffix is a. Plural formation depends on stem type; the source supplies r n l stems, g and ŋ stems, and vowel stems rather than one universal replacement.",
+    "triggers": [
+      "class C",
+      "noun class C"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 7, DOCX blocks 946-972"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "class-d",
+    "topic": "class-d",
+    "chapter": 7,
+    "pages": "Chapter 7, DOCX blocks 975-1000",
+    "title": "Noun class D",
+    "summary": "Class D uses ko and te, and kom and tem. Singular endings include u o ɔ; plural endings and stem changes can produce long vowels or consonants. The book notes dialect variation and exceptions, including g stems.",
+    "triggers": [
+      "class D",
+      "noun class D"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 7, DOCX blocks 975-1000"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "class-e",
+    "topic": "class-e",
+    "chapter": 7,
+    "pages": "Chapter 7, DOCX blocks 1003-1016",
+    "title": "Noun class E",
+    "summary": "Class E uses ko and de, and kom and dem. Singular endings include u o ɔ; plural endings include ne and ni, with other printed alternatives. Consult the paradigms for particular stems and dialect forms.",
+    "triggers": [
+      "class E",
+      "noun class E"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 7, DOCX blocks 1003-1016"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "mixed-classes",
+    "topic": "mixed-classes",
+    "chapter": 7,
+    "pages": "Chapter 7, DOCX blocks 1018-1032",
+    "title": "Mixed classes and plural-only nouns",
+    "summary": "Some nouns combine a singular from one class with a plural from another. Some people nouns use class A agreement with class B endings. Some liquid nouns are recorded only in plural forms. The paradigms retain these exceptions.",
+    "triggers": [
+      "mixed classes",
+      "plural only",
+      "irregular nouns"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 7, DOCX blocks 1018-1032"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "tense-aspect",
+    "topic": "tense-aspect",
+    "chapter": 8,
+    "pages": "Chapter 8, DOCX blocks 1034-1091",
+    "title": "Tense and kind of action",
+    "summary": "The book distinguishes past present and future, and single completed versus continuous action. Verbs belong to classes A B C D according to how their forms change. Most verbs are described as class A; particles are shared across classes.",
+    "triggers": [
+      "tense",
+      "aspect",
+      "perfective",
+      "imperfective",
+      "verb classes"
+    ],
+    "examples": [
+      [
+        "Dé toŋe",
+        "We worked"
+      ],
+      [
+        "Dé zaŋe wɛɛne",
+        "We stood up"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 8, DOCX blocks 1034-1091"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "single-past",
+    "topic": "single-past",
+    "chapter": 8,
+    "pages": "Chapter 8, DOCX blocks 1094-1156",
+    "title": "Past single action",
+    "summary": "Classes A and D generally use e or i; vowel stems can occur without an added ending. Classes B and C use a in the past, with changes before objects or after the negative wo. The printed paradigms list the actual forms.",
+    "triggers": [
+      "past tense",
+      "past single action",
+      "did not"
+    ],
+    "examples": [
+      [
+        "Dé jwoori",
+        "We returned"
+      ],
+      [
+        "Dé duri",
+        "We ran"
+      ],
+      [
+        "Dé dɔ",
+        "We slept"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 8, DOCX blocks 1094-1156"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "single-future",
+    "topic": "single-future",
+    "chapter": 8,
+    "pages": "Chapter 8, DOCX blocks 1157-1215",
+    "title": "Future single action",
+    "summary": "Future single action uses wó, or bá for its negative, with the source's ordinary unmarked variants also present. Classes A and D retain e or i forms; classes B and C use simpler forms, often losing a past g or n. The future form does not change before an object in this description.",
+    "triggers": [
+      "future tense",
+      "future single action",
+      "will not"
+    ],
+    "examples": [
+      [
+        "A ba saŋe",
+        "I will not cook"
+      ],
+      [
+        "O ba jwoori",
+        "He will not return"
+      ],
+      [
+        "Dé ba dɔ",
+        "We will not sleep"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 8, DOCX blocks 1157-1215"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "habitual",
+    "topic": "habitual",
+    "chapter": 8,
+    "pages": "Chapter 8, DOCX blocks 1216-1279",
+    "title": "Habitual continuous action",
+    "summary": "Continuous action can describe repeated habits or action still in progress. Habitual class A and C forms commonly use a; class B and D forms use e or i. Some a endings change before an object. The negative particle is ba. Optional negative bundles in the source must not be quoted as one exact translation.",
+    "triggers": [
+      "habitual",
+      "continuous action",
+      "habitual tense"
+    ],
+    "examples": [
+      [
+        "O maa beena",
+        "He is coming"
+      ],
+      [
+        "O zɔra",
+        "She sweeps"
+      ],
+      [
+        "O saŋa",
+        "She cooks"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 8, DOCX blocks 1216-1279"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "progressive",
+    "topic": "progressive",
+    "chapter": 8,
+    "pages": "Chapter 8, DOCX blocks 1280-1311",
+    "title": "Present action in progress",
+    "summary": "Many verbs use wora with a repeated subject and continuous-action form to describe action in progress. Other posture verbs can serve similarly. Motion verbs use maa instead; coming has different habitual and in-progress forms in the book.",
+    "triggers": [
+      "progressive",
+      "present continuous",
+      "action in progress",
+      "maa"
+    ],
+    "examples": [
+      [
+        "O tiga o doa",
+        "She is lying down, sleeping"
+      ],
+      [
+        "Dé maa vei sɔŋɔ",
+        "We are going home"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 8, DOCX blocks 1280-1311"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "future-continuous",
+    "topic": "future-continuous",
+    "chapter": 8,
+    "pages": "Chapter 8, DOCX blocks 1312-1366",
+    "title": "Future continuous action",
+    "summary": "Future particles combine with ta: wó ta for positive and bá ta for negative. Verb forms follow the continuous-action pattern, with relevant changes before an object. This section occurs twice in the editable source; the clearer duplicate supports the quoted examples.",
+    "triggers": [
+      "future continuous",
+      "future progressive",
+      "ta"
+    ],
+    "examples": [
+      [
+        "Dé ba ta doa",
+        "We will not be sleeping"
+      ],
+      [
+        "Dé ba ta di",
+        "We will not be eating"
+      ],
+      [
+        "Dé ba ta vara",
+        "We will not be farming"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 8, DOCX blocks 1312-1366"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "past-continuous",
+    "topic": "past-continuous",
+    "chapter": 8,
+    "pages": "Chapter 8, DOCX blocks 1368-1374",
+    "title": "Past continuous action",
+    "summary": "Past continuous or habitual action uses the continuous forms with time words or particles such as ya or déem to locate the action in the past. The source also records an earlier ongoing interpretation.",
+    "triggers": [
+      "past continuous",
+      "past habitual",
+      "used to"
+    ],
+    "examples": [
+      [
+        "A ya wora saŋa",
+        "I was cooking"
+      ],
+      [
+        "A déem ba via",
+        "I used not to go"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 8, DOCX blocks 1368-1374"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "consecutive",
+    "topic": "consecutive",
+    "chapter": 8,
+    "pages": "Chapter 8, DOCX blocks 1377-1411",
+    "title": "Consecutive single action",
+    "summary": "Consecutive forms express actions following one another. They use future single-action forms without future particles, including later links of clause chains and constructions after ma se pa or ye. Their endings do not change in the stated pattern.",
+    "triggers": [
+      "consecutive tense",
+      "consecutive verbs"
+    ],
+    "examples": [
+      [
+        "O vei o ga tɔnɔ o ti",
+        "He went and finished reading a book"
+      ],
+      [
+        "O bá vo o ga tɔnɔ o ti",
+        "He will not go and finish reading a book"
+      ],
+      [
+        "O ma vo o ga tɔnɔ",
+        "Then he went and read a book"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 8, DOCX blocks 1377-1411"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "commands",
+    "topic": "commands",
+    "chapter": 8,
+    "pages": "Chapter 8, DOCX blocks 1412-1462",
+    "title": "Commands and prohibitions",
+    "summary": "Single-action and continuous commands differ. Continuous commands use ta and can include n or the plural pronoun. Negative commands use yé; plural commands often add na. Most single-action commands use the simple or future form, with class C exceptions and explicitly listed irregular forms.",
+    "triggers": [
+      "commands",
+      "imperative",
+      "prohibitions",
+      "negative commands"
+    ],
+    "examples": [
+      [
+        "Zore!",
+        "Sweep!"
+      ],
+      [
+        "Ta n zɔra!",
+        "Be sweeping!"
+      ],
+      [
+        "Zɔre na!",
+        "Sweep"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 8, DOCX blocks 1412-1462"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "particle-summary",
+    "topic": "particle-summary",
+    "chapter": 8,
+    "pages": "Chapter 8, DOCX blocks 1463-1474",
+    "title": "Particle and verb-form summaries",
+    "summary": "The verb table organizes continuous past future and command forms by class, showing different pre-object forms in parentheses. The particle summary in the editable copy is damaged and is not used to manufacture missing cells. Clear prose and the complete verb table remain available.",
+    "triggers": [
+      "verb forms",
+      "verb table",
+      "particle summary"
+    ],
+    "examples": [],
+    "sourceRefs": [
+      "Chapter 8, DOCX blocks 1463-1474"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "small-words",
+    "topic": "small-words",
+    "chapter": 9,
+    "pages": "Chapter 9, DOCX blocks 1480-1549",
+    "title": "Small words before verbs",
+    "summary": "The book distinguishes ma for the next single event and maa for additional facts or motion in progress. It also discusses laam daa nam ya deem and doom for sequence repetition contrast and time. Their tone and context matter; they are not interchangeable English words.",
+    "triggers": [
+      "small words",
+      "preverbal particles",
+      "remote past",
+      "doom",
+      "deem"
+    ],
+    "examples": [
+      [
+        "O maa wora taa",
+        "And he was there for a long time"
+      ],
+      [
+        "O laam ma zaje ovo sɔŋɔ",
+        "Then he got up and went home"
+      ],
+      [
+        "O daa ba vo sɔŋɔ",
+        "He won’t go home again"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 9, DOCX blocks 1480-1549"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "attention",
+    "topic": "attention",
+    "chapter": 9,
+    "pages": "Chapter 9, DOCX blocks 1550-1564",
+    "title": "Commands attention and focus particles",
+    "summary": "na can follow plural commands; naa holds attention in greetings and instructions; mo draws attention to new information. These uses differ from conditional and question uses of similar written forms.",
+    "triggers": [
+      "attention particles",
+      "naa",
+      "focus particles",
+      "plural commands"
+    ],
+    "examples": [
+      [
+        "Zaye na!",
+        "Get up"
+      ],
+      [
+        "Dé vo se dé ba naa",
+        "Goodbye!"
+      ],
+      [
+        "Awea mo tua",
+        "It was Awea that came"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 9, DOCX blocks 1550-1564"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "yes-no",
+    "topic": "yes-no",
+    "chapter": 9,
+    "pages": "Chapter 9, DOCX blocks 1566-1579",
+    "title": "Yes or no questions",
+    "summary": "na can occur at the end of a yes or no question, often after mo. It can be omitted with lengthening and falling intonation. Printed question punctuation does not replace the pronunciation evidence.",
+    "triggers": [
+      "yes or no questions",
+      "question particle",
+      "polar questions"
+    ],
+    "examples": [
+      [
+        "Ko lana na?",
+        "Is it good?"
+      ],
+      [
+        "N vei yaga mo na?",
+        "Did you go to market?"
+      ],
+      [
+        "O viiri?",
+        "has he gone?"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 9, DOCX blocks 1566-1579"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  },
+  {
+    "key": "information-questions",
+    "topic": "information-questions",
+    "chapter": 9,
+    "pages": "Chapter 9, DOCX blocks 1581-1633",
+    "title": "Asking for information",
+    "summary": "The source lists where what who whose which when how many how and why expressions. Some question words or forms agree with noun class or number. Quote the complete printed questions; do not compose a new question from isolated entries.",
+    "triggers": [
+      "question words",
+      "information questions",
+      "where",
+      "why",
+      "how many"
+    ],
+    "examples": [
+      [
+        "O vei yei mo?",
+        "Where did he go?"
+      ],
+      [
+        "Tɔnɔ kom be?",
+        "Where is the book?"
+      ],
+      [
+        "N yere mo bɛ?",
+        "What is your name?"
+      ]
+    ],
+    "sourceRefs": [
+      "Chapter 9, DOCX blocks 1581-1633"
+    ],
+    "attribution": "P. L. Hewer, A Basic Grammar of Kasem, GILLBT. First printed 1983; supplied 2014 printing. Copyright GILLBT retained.",
+    "note": "Source-backed paraphrase. Consult the chapter reference for the printed tables, examples and transcription limitations."
+  }
+]

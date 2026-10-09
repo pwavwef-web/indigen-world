@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -147,6 +146,10 @@ void _openContributor(BuildContext context, ContributorScore score) =>
 void _showPointsInfo(BuildContext context) {
   showModalBottomSheet<void>(
     context: context,
+    sheetAnimationStyle: AnimationStyle(
+      duration: motionOr(context, AppMotion.standard),
+      reverseDuration: motionOr(context, AppMotion.quick),
+    ),
     showDragHandle: true,
     isScrollControlled: true,
     builder: (context) => SafeArea(

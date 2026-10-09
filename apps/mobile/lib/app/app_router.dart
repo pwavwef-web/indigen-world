@@ -22,6 +22,7 @@ import 'package:indigen_world_mobile/features/music/widgets/mini_player.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
 import 'package:indigen_world_mobile/features/onboarding/startup_gate.dart';
 import 'package:indigen_world_mobile/features/subscriptions/membership_screen.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:indigen_world_mobile/shared/reveal_route.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -124,8 +125,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => CustomTransitionPage<void>(
           key: state.pageKey,
           opaque: false,
-          transitionDuration: const Duration(milliseconds: 480),
-          reverseTransitionDuration: const Duration(milliseconds: 400),
+          transitionDuration: AppMotion.emphasized,
+          reverseTransitionDuration: AppMotion.standard,
           child: const NowPlayingScreen(),
           transitionsBuilder: (context, animation, secondary, child) =>
               buildRevealTransition(

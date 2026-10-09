@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,14 +13,36 @@ import 'package:indigen_world_mobile/core/theme_mode.dart';
 import 'package:indigen_world_mobile/features/music/widgets/music_overlay.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
-class IndigenWorldApp extends ConsumerWidget {
+class IndigenWorldApp extends ConsumerStatefulWidget {
   const IndigenWorldApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<IndigenWorldApp> createState() => _IndigenWorldAppState();
+}
+
+class _IndigenWorldAppState extends ConsumerState<IndigenWorldApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(
+          _syncKeyboardTheme(ref.read(activeBrandThemeProvider).id == 'black'),
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
     final themeMode = ref.watch(themeModeProvider);
     final brandTheme = ref.watch(activeBrandThemeProvider);
+    ref.listen(
+      activeBrandThemeProvider,
+      (_, theme) => unawaited(_syncKeyboardTheme(theme.id == 'black')),
+    );
+
     // Keeps the remembered answer in step with the real one, so the next
     // launch opens in the right theme before the entitlement has arrived.
     ref.listen<bool>(
@@ -71,5 +96,18 @@ class IndigenWorldApp extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+Future<void> _syncKeyboardTheme(bool black) async {
+  if (!Platform.isAndroid) return;
+  try {
+    await const MethodChannel('world.indigen.mobile/kasem_keyboard')
+        .invokeMethod<Object?>('setPreference', {
+          'key': 'blackTheme',
+          'value': black,
+        });
+  } on Object {
+    /* Keyboard setup is independent from app rendering. */
   }
 }

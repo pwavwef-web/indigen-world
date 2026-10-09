@@ -54,7 +54,8 @@ export const GUIDE: GuideSection[] = [
     points: [
       'Write the Kasem exactly as you would say it. Do not straighten it into English word order.',
       'Speak naturally. The archive is collecting the language as it is really used, not a formal register.',
-      'Use Kasem spelling consistently, including the special letters (ɛ, ə, ɣ, ɩ, ŋ, ɔ, ʋ). The character buttons in the editor insert them.',
+      'Read the spelling guide at /spelling-guide.html. Use Kasem spelling consistently, including the written letters (ɛ, ŋ, ɔ). Follow the BGL spelling guide; tone marks are limited to its specified distinctions. The character buttons in the editor insert them.',
+      'Read /grammar-guide.html for source sentences, noun classes, pronouns and verb forms from A Basic Grammar of Kasem. Check the recorded context and source limitations before using an example.',
       'If the assignment names a variety of Kasem — Navrongo, Paga or Chiana — use it. Otherwise tell reviewers which one you speak in your profile; “Other” and “Not sure” are both valid answers.',
       'Mark anything you are unsure of rather than guessing silently. An honest uncertainty is useful to reviewers.',
     ],

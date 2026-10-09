@@ -3,69 +3,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/features/settings/kasem_keyboard.dart';
 import 'package:indigen_world_mobile/features/settings/kasem_keyboard_screen.dart';
 import 'package:indigen_world_mobile/features/settings/kasem_keyboard_toggle.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('toggle stays above an open system keyboard', (tester) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetViewInsets);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          bottomNavigationBar: KasemKeyboardToggle(
-            platform: _Keyboard(enabled: true),
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
-    expect(
-      tester.getBottomLeft(find.byType(SwitchListTile)).dy,
-      lessThanOrEqualTo(tester.view.physicalSize.height - 300),
-    );
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('enabled keyboard opens picker and reflects actual selection', (
-    tester,
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+  Future<void> prompt(
+    WidgetTester tester,
+    _Keyboard platform,
+    FocusNode focus,
   ) async {
-    final platform = _Keyboard(enabled: true);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          bottomNavigationBar: KasemKeyboardToggle(platform: platform),
-        ),
-      ),
-    );
-    await tester.pump();
-    await tester.tap(find.byType(SwitchListTile));
-    await tester.pump();
-    expect(platform.pickers, 1);
-    // Dismissing the picker must not claim Kasem is selected.
-    expect(
-      tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
-      isFalse,
-    );
-    platform.selected = true;
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pump();
-    expect(
-      tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
-      isTrue,
-    );
-    await tester.tap(find.byType(SwitchListTile));
-    await tester.pump();
-    expect(platform.pickers, 2);
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('missing setup opens setup then returns to the original field', (
-    tester,
-  ) async {
-    final platform = _Keyboard(enabled: false);
-    final focus = FocusNode();
-    addTearDown(focus.dispose);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -78,16 +24,64 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.tap(find.byType(SwitchListTile));
+    focus.requestFocus();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+  }
+
+  testWidgets(
+    'only appears for focused text entry and hides on real Kasem selection',
+    (tester) async {
+      final focus = FocusNode();
+      final platform = _Keyboard(enabled: true);
+      await prompt(tester, platform, focus);
+      expect(find.text('Use Kasem keyboard'), findsOneWidget);
+      await tester.tap(find.text('Use Kasem keyboard'));
+      await tester.pump();
+      expect(platform.pickers, 1);
+      platform.selected = true;
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+      expect(find.text('Use Kasem keyboard'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      focus.dispose();
+    },
+  );
+  testWidgets('dismissal survives a new prompt instance and refocusing', (
+    tester,
+  ) async {
+    final focus = FocusNode();
+    final platform = _Keyboard(enabled: true);
+    await prompt(tester, platform, focus);
+    await tester.tap(find.byTooltip('Dismiss keyboard prompt'));
+    await tester.pump();
+    expect(find.text('Use Kasem keyboard'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await prompt(tester, platform, focus);
+    expect(find.text('Use Kasem keyboard'), findsNothing);
+    final preferences = await SharedPreferences.getInstance();
+    expect(
+      preferences.getBool('indigen_kasem_keyboard_prompt_dismissed_v1'),
+      isTrue,
+    );
+    await tester.pumpWidget(const SizedBox());
+    focus.dispose();
+  });
+  testWidgets('keyboard setup remains accessible from contextual prompt', (
+    tester,
+  ) async {
+    final focus = FocusNode();
+    final platform = _Keyboard(enabled: false);
+    await prompt(tester, platform, focus);
+    await tester.tap(find.text('Use Kasem keyboard'));
     await tester.pumpAndSettle();
     expect(find.byType(KasemKeyboardScreen), findsOneWidget);
-    expect(platform.pickers, 0);
     platform.enabled = true;
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(platform.pickers, 1);
-    expect(focus.hasFocus, isTrue);
     await tester.pumpWidget(const SizedBox());
+    focus.dispose();
   });
 }
 

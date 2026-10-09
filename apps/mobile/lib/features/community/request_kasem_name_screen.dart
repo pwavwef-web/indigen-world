@@ -174,7 +174,7 @@ class _RequestKasemNameScreenState
                         onChanged: (_) => setState(() => _error = null),
                         decoration: const InputDecoration(
                           labelText: 'The name, properly written',
-                          helperText: 'Diacritics and all — Awɛlɩmwɛ, Bɔŋɔ.',
+                          helperText: 'For example, Ajegedawe, Bɔŋɔ.',
                         ),
                       ),
                       const SizedBox(height: 14),
@@ -310,7 +310,7 @@ class _FoldPreview extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   handle.isEmpty
-                      ? 'ɛ ɔ ŋ ʋ ɩ ə cannot appear in a handle, so they are '
+                      ? 'ɛ ɔ ŋ and tone marks cannot appear in a handle, so they are '
                             'folded to the nearest letters that can.'
                       : 'Asked for with @$handle, which carries it.',
                   style: TextStyle(

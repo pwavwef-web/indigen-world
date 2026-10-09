@@ -32,7 +32,10 @@ import 'package:path_provider/path_provider.dart';
 /// plays for ninety seconds and then stops, on a phone with no network to
 /// recover from — which is exactly the situation somebody downloaded it for.
 class DownloadsRepository {
-  DownloadsRepository(this._database);
+  DownloadsRepository(this._database, {Future<Directory> Function()? directory})
+    : _directoryOverride = directory;
+
+  final Future<Directory> Function()? _directoryOverride;
 
   final AppDatabase _database;
 
@@ -64,13 +67,19 @@ class DownloadsRepository {
     required CollectionKind kind,
     required int limit,
     void Function(double progress)? onProgress,
+    bool force = false,
   }) async {
     if (limit <= 0) {
       return 'Offline listening is part of a subscription.';
     }
     final existing = await _database.getDownloads();
-    if (existing.any((row) => row.trackId == track.id)) return null;
-    if (existing.length >= limit) {
+    final previous = existing
+        .where((row) => row.trackId == track.id)
+        .firstOrNull;
+    if (!force && previous != null && await localUrl(previous) != null) {
+      return null;
+    }
+    if (previous == null && existing.length >= limit) {
       return 'You can keep $limit tracks offline. Remove one to make room.';
     }
 
@@ -109,6 +118,11 @@ class DownloadsRepository {
         await sink.close();
       }
 
+      if (written == 0 || (expected >= 0 && written != expected)) {
+        await _quietlyDelete(partial);
+        return 'That download did not finish. Try again.';
+      }
+
       // Only now is it a download. Before the rename it is a temporary file
       // with no row, which is precisely what the orphan sweep cleans up.
       await partial.rename(target.path);
@@ -127,6 +141,7 @@ class DownloadsRepository {
           downloadedAt: DateTime.now(),
         ),
       );
+      await _keepArtwork(track.artworkUrl, target);
       onProgress?.call(1);
       return null;
     } on Object catch (error) {
@@ -144,6 +159,7 @@ class DownloadsRepository {
     if (row == null) return;
     final directory = await _directory();
     await _quietlyDelete(File(p.join(directory.path, row.fileName)));
+    await _quietlyDelete(File(p.join(directory.path, "${row.fileName}.art")));
   }
 
   Future<void> removeAll() async {
@@ -156,22 +172,81 @@ class DownloadsRepository {
 
   /// Track id to a playable `file://` URL, for everything present on disk.
   ///
-  /// Rows whose file has vanished are dropped from the index as they are found
-  /// rather than reported: the system clears app storage under pressure without
-  /// telling anybody, and a queue entry pointing at a file that is not there
-  /// would fail mid-album with no explanation.
+  /// Missing or incomplete files are omitted, while their rows remain retryable.
   Future<Map<String, String>> playableIndex() async {
-    final directory = await _directory();
     final index = <String, String>{};
     for (final row in await _database.getDownloads()) {
-      final file = File(p.join(directory.path, row.fileName));
-      if (await file.exists()) {
-        index[row.trackId] = file.uri.toString();
-      } else {
-        await _database.deleteDownload(row.trackId);
-      }
+      final url = await localUrl(row);
+      if (url != null) index[row.trackId] = url;
     }
     return index;
+  }
+
+  /// Preserve unavailable rows so the member can retry them, rather than
+  /// silently switching to the network or losing their metadata.
+  Future<String?> localUrl(DownloadedTrackRecord row) async {
+    if (p.basename(row.fileName) != row.fileName ||
+        row.fileName.endsWith('.part') ||
+        row.sizeBytes <= 0) {
+      return null;
+    }
+    final directory = await _directory();
+    final file = File(p.join(directory.path, row.fileName));
+    try {
+      if (!await file.exists() || await file.length() != row.sizeBytes) {
+        return null;
+      }
+      return file.uri.toString();
+    } on FileSystemException {
+      return null;
+    }
+  }
+
+  Future<Map<String, String>> artworkIndex() async {
+    final directory = await _directory();
+    final result = <String, String>{};
+    for (final row in await _database.getDownloads()) {
+      if (p.basename(row.fileName) != row.fileName) {
+        continue;
+      }
+      final file = File(p.join(directory.path, '${row.fileName}.art'));
+      if (await file.exists() && await file.length() > 0) {
+        result[row.trackId] = file.uri.toString();
+      }
+    }
+    return result;
+  }
+
+  Future<void> _keepArtwork(String? url, File audio) async {
+    final uri = Uri.tryParse(url ?? '');
+    if (uri == null || !['https', 'http'].contains(uri.scheme)) return;
+    final file = File('${audio.path}.art');
+    final partial = File('${file.path}.part');
+    try {
+      final response =
+          await (await _httpClient
+                  .getUrl(uri)
+                  .timeout(const Duration(seconds: 10)))
+              .close()
+              .timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200 ||
+          response.headers.contentType?.primaryType != 'image' ||
+          response.contentLength > 5 * 1024 * 1024) {
+        return;
+      }
+      final bytes = <int>[];
+      await for (final chunk in response.timeout(const Duration(seconds: 10))) {
+        bytes.addAll(chunk);
+        if (bytes.length > 5 * 1024 * 1024) return;
+      }
+      if (bytes.isEmpty) return;
+      await partial.writeAsBytes(bytes, flush: true);
+      await partial.rename(file.path);
+    } on Object {
+      // Audio remains playable if optional artwork is unavailable.
+    } finally {
+      await _quietlyDelete(partial);
+    }
   }
 
   /// How much of the device this is using, in bytes.
@@ -189,7 +264,10 @@ class DownloadsRepository {
     final directory = await _directory();
     if (!await directory.exists()) return;
     final known = {
-      for (final row in await _database.getDownloads()) row.fileName,
+      for (final row in await _database.getDownloads()) ...[
+        row.fileName,
+        "${row.fileName}.art",
+      ],
     };
     await for (final entity in directory.list()) {
       if (entity is! File) continue;
@@ -200,6 +278,7 @@ class DownloadsRepository {
   }
 
   Future<Directory> _directory() async {
+    if (_directoryOverride != null) return _directoryOverride();
     final documents = await getApplicationDocumentsDirectory();
     final directory = Directory(p.join(documents.path, _folder));
     if (!await directory.exists()) await directory.create(recursive: true);

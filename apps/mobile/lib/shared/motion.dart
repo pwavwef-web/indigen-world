@@ -26,17 +26,17 @@ abstract final class AppMotion {
   static const quick = Duration(milliseconds: 150);
 
   /// A state changing in place: a colour, an icon, a dot.
-  static const standard = Duration(milliseconds: 280);
+  static const standard = Duration(milliseconds: 220);
 
   /// A screen or a shape changing: a page growing out of a card.
-  static const emphasized = Duration(milliseconds: 420);
+  static const emphasized = Duration(milliseconds: 300);
 
   /// For things arriving.
   static const arrive = Curves.easeOutCubic;
 
   /// For things *landing* — artwork, the play button, a rail icon. Never for
   /// something that is merely changing colour.
-  static const land = Curves.easeOutBack;
+  static const land = Curves.easeOutCubic;
 }
 
 /// Whether this member wants movement at all.
@@ -44,7 +44,8 @@ abstract final class AppMotion {
 /// Reads the platform's reduce-motion switch, which is what every other
 /// animated surface in the app already respects.
 bool motionAllowed(BuildContext context) =>
-    !MediaQuery.disableAnimationsOf(context);
+    !MediaQuery.disableAnimationsOf(context) &&
+    !MediaQuery.accessibleNavigationOf(context);
 
 /// A duration, or zero for somebody who asked for less motion.
 Duration motionOr(BuildContext context, Duration duration) =>
@@ -61,7 +62,7 @@ Duration motionOr(BuildContext context, Duration duration) =>
 class EntranceGate extends StatefulWidget {
   const EntranceGate({
     required this.child,
-    this.window = const Duration(milliseconds: 900),
+    this.window = AppMotion.standard,
     super.key,
   });
 
@@ -119,9 +120,8 @@ class _EntranceGateScope extends InheritedWidget {
 
 /// Fades a child in and lifts it a few pixels into place, once.
 ///
-/// [index] staggers a list: each item waits 40 ms more than the one before,
-/// capped at the eighth so the ninth row of a long list never waits for a
-/// queue of rows nobody can see.
+/// [index] is retained for existing callers; entrances share a short duration
+/// without delaying rows as a long list scrolls.
 class Entrance extends StatefulWidget {
   const Entrance({
     required this.child,
@@ -142,8 +142,8 @@ class Entrance extends StatefulWidget {
 
 class _EntranceState extends State<Entrance>
     with SingleTickerProviderStateMixin {
-  static const _step = Duration(milliseconds: 40);
-  static const _travel = Duration(milliseconds: 380);
+  static const _step = Duration.zero;
+  static const _travel = AppMotion.standard;
 
   AnimationController? _controller;
   CurvedAnimation? _progress;
@@ -177,7 +177,7 @@ class _EntranceState extends State<Entrance>
   @override
   Widget build(BuildContext context) {
     final progress = _progress;
-    if (progress == null) return widget.child;
+    if (progress == null || !motionAllowed(context)) return widget.child;
     return AnimatedBuilder(
       animation: progress,
       builder: (context, child) => Opacity(
@@ -215,7 +215,7 @@ class _PressScaleState extends State<PressScale>
   late final AnimationController _press = AnimationController(
     vsync: this,
     duration: AppMotion.quick,
-    reverseDuration: const Duration(milliseconds: 260),
+    reverseDuration: AppMotion.standard,
   );
 
   late final CurvedAnimation _curve = CurvedAnimation(

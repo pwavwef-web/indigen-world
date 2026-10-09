@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/gestures.dart' show kDoubleTapSlop, kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -35,6 +34,7 @@ import 'package:indigen_world_mobile/features/explore/reel_media.dart';
 import 'package:indigen_world_mobile/features/explore/reel_overflow_menu.dart';
 import 'package:indigen_world_mobile/features/explore/reel_rail.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:video_player/video_player.dart';
 
 /// One card in a vertical reel feed.
@@ -2326,7 +2326,7 @@ class _HeartBurstState extends State<_HeartBurst>
               tween: Tween(
                 begin: 0.4,
                 end: 1.18,
-              ).chain(CurveTween(curve: Curves.easeOutBack)),
+              ).chain(CurveTween(curve: AppMotion.arrive)),
               weight: 35,
             ),
             TweenSequenceItem(tween: Tween(begin: 1.18, end: 1), weight: 15),
@@ -2384,7 +2384,7 @@ class _ProgressDock extends StatelessWidget {
     if (chrome == null) return dock(bottomInset);
     return ValueListenableBuilder<bool>(
       valueListenable: chrome,
-      builder: (context, visible, _) => dock(visible ? bottomInset : 0),
+      builder: (context, visible, _) => dock(bottomInset),
     );
   }
 }
@@ -2639,7 +2639,7 @@ class _ReelProgressBarState extends State<ReelProgressBar> {
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 3),
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 140),
+                    duration: motionOr(context, AppMotion.quick),
                     // The track spans the card; only the gold part is how far
                     // through the clip it is.
                     width: double.infinity,

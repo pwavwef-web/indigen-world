@@ -114,7 +114,7 @@ void main() {
     await closeShell(tester);
   });
 
-  testWidgets('a member with no subscription is shown nothing at all', (
+  testWidgets('Downloads remains accessible without a current subscription', (
     tester,
   ) async {
     await pumpShell(tester, offlineListening: false);
@@ -122,7 +122,7 @@ void main() {
 
     // Not a padlock, not a greyed circle, not a control that opens the paywall.
     // The place to sell offline listening is the download button on a track.
-    expect(find.byType(DownloadsOrbAction), findsNothing);
+    expect(find.byType(DownloadsOrbAction), findsOneWidget);
     expect(find.byType(ProfileOrb), findsOneWidget);
     await closeShell(tester);
   });

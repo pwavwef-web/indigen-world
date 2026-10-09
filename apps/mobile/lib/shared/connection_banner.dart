@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// A small pill that appears only when something server-side is genuinely
 /// unreachable, and names which of the two possible reasons it is.
@@ -21,8 +22,8 @@ class ConnectionBanner extends ConsumerWidget {
 
     return IgnorePointer(
       child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 260),
-        switchInCurve: Curves.easeOutBack,
+        duration: motionOr(context, AppMotion.standard),
+        switchInCurve: AppMotion.arrive,
         switchOutCurve: Curves.easeIn,
         transitionBuilder: (child, animation) => FadeTransition(
           opacity: animation,

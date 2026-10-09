@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
@@ -11,6 +10,7 @@ import 'package:indigen_world_mobile/features/explore/reel_caption_overlay.dart'
 import 'package:indigen_world_mobile/features/explore/reel_media.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart'
     show reelInitials;
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:video_player/video_player.dart';
 
 /// The reel as an Explore card will draw it, before it is published.
@@ -195,7 +195,7 @@ class _PlayGlyph extends StatelessWidget {
         builder: (context, value, _) => IgnorePointer(
           child: AnimatedOpacity(
             opacity: value.isPlaying ? 0 : 1,
-            duration: const Duration(milliseconds: 160),
+            duration: motionOr(context, AppMotion.quick),
             child: const Icon(
               Icons.play_circle_fill_rounded,
               color: Colors.white,

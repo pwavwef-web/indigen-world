@@ -16,6 +16,10 @@ internal enum class KeyboardLanguage(val storedValue: String) {
 internal class KasemKeyboardPreferences(context: Context) {
     private val store = context.getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
 
+    var blackTheme: Boolean
+        get() = store.getBoolean("black_theme", false)
+        set(value) = store.edit().putBoolean("black_theme", value).apply()
+
     var defaultLanguage: KeyboardLanguage
         get() = KeyboardLanguage.from(store.getString(DEFAULT_LANGUAGE, null))
         set(value) = store.edit().putString(DEFAULT_LANGUAGE, value.storedValue).apply()

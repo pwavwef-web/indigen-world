@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart'
     show kFrostedNavBarReservedSpace;
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// ─────────────────────────────────────────────────────────────────────────────
 /// GLASS POPUPS
@@ -39,8 +40,8 @@ const double _kVerticalMargin = 24;
 /// inside it rather than pushing the card off the viewport.
 const double _kMaxHeightFraction = 0.78;
 
-const Duration _kEnter = Duration(milliseconds: 220);
-const Duration _kExit = Duration(milliseconds: 140);
+const Duration _kEnter = AppMotion.standard;
+const Duration _kExit = AppMotion.quick;
 const Duration _kToastLifetime = Duration(milliseconds: 3000);
 
 /// The card arrives in 220ms but should leave in about 140ms — dismissal
@@ -184,7 +185,7 @@ void showGlassToast(BuildContext context, String message, {IconData? icon}) {
     overlay,
     message: message,
     icon: icon,
-    reduceMotion: MediaQuery.disableAnimationsOf(context),
+    reduceMotion: !motionAllowed(context),
   );
 }
 
@@ -210,7 +211,7 @@ Future<T?> _showGlassCard<T>({
   bool scrollable = true,
   double maxWidth = 460,
 }) {
-  final reduceMotion = MediaQuery.disableAnimationsOf(context);
+  final reduceMotion = !motionAllowed(context);
   final localizations = MaterialLocalizations.of(context);
 
   return showGeneralDialog<T>(
@@ -282,7 +283,7 @@ class _GlassCard extends StatelessWidget {
     final hasHeader = title != null || subtitle != null;
 
     return AnimatedPadding(
-      duration: const Duration(milliseconds: 180),
+      duration: motionOr(context, AppMotion.quick),
       curve: Curves.easeOutCubic,
       padding: EdgeInsets.only(bottom: keyboard),
       child: Center(

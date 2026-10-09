@@ -59,3 +59,14 @@ final downloadsSizeProvider = FutureProvider<int>((ref) async {
   ref.watch(downloadsProvider);
   return ref.watch(downloadsRepositoryProvider).bytesUsed();
 });
+
+/// Resolves the displayed rows independently of any online collection.
+final playableDownloadsProvider = FutureProvider<Map<String, String>>((ref) {
+  ref.watch(downloadsProvider);
+  return ref.watch(downloadsRepositoryProvider).playableIndex();
+});
+
+final downloadedArtworkProvider = FutureProvider<Map<String, String>>((ref) {
+  ref.watch(downloadsProvider);
+  return ref.watch(downloadsRepositoryProvider).artworkIndex();
+});

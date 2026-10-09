@@ -23,6 +23,8 @@ import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/dictionary/dictionary_screen.dart';
 import 'package:indigen_world_mobile/features/settings/kasem_keyboard_toggle.dart';
+import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// A 720p phone in logical pixels — the device this app is built for.
 const _phone = Size(360, 640);
@@ -52,6 +54,7 @@ void main() {
     WidgetTester tester, {
     Set<String> saved = const <String>{},
   }) async {
+    SharedPreferences.setMockInitialValues({});
     tester.view.physicalSize = _phone;
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -101,7 +104,7 @@ void main() {
   ) async {
     await pumpDictionary(tester);
 
-    final bar = find.byType(NavigationBar);
+    final bar = find.byType(FrostedNavBar);
     final size = tester.getSize(bar);
     expect(size.width, _phone.width);
     expect(
@@ -122,7 +125,7 @@ void main() {
     await pumpDictionary(tester);
 
     // Nothing until a Kasem box has the cursor.
-    expect(find.text('Use Kasem keyboard'), findsOneWidget);
+    expect(find.text('Use Kasem keyboard'), findsNothing);
 
     await tester.tap(find.byType(TextField));
     await tester.pump();
@@ -136,14 +139,11 @@ void main() {
       reason: 'this measured 600 on a 600-pixel surface before the fix',
     );
     // And it did not push the nav rail off the phone, or take its place.
-    expect(find.byType(NavigationBar), findsOneWidget);
-    expect(
-      tester.getBottomLeft(find.byType(NavigationBar)).dy,
-      _phone.height,
-    );
+    expect(find.byType(FrostedNavBar), findsOneWidget);
+    expect(tester.getBottomLeft(find.byType(FrostedNavBar)).dy, _phone.height);
     expect(
       tester.getBottomLeft(find.byType(KasemKeyboardToggle)).dy,
-      lessThanOrEqualTo(tester.getTopLeft(find.byType(NavigationBar)).dy + 0.5),
+      lessThanOrEqualTo(tester.getTopLeft(find.byType(FrostedNavBar)).dy + 0.5),
       reason: 'the letters sit above the rail, not over it',
     );
     // The search box the letters type into is still on screen.

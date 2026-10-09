@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,7 +16,6 @@ import 'package:indigen_world_mobile/features/community/widgets/community_avatar
 import 'package:indigen_world_mobile/features/community/widgets/community_post_card.dart';
 import 'package:indigen_world_mobile/features/community/widgets/inline_video.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart';
-
 import 'community_test_harness.dart';
 
 void main() {
@@ -61,9 +59,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
   }
 
-  testWidgets('renders the daily prompt, composer and live feed', (
-    tester,
-  ) async {
+  testWidgets('renders one composer entry and live feed', (tester) async {
     final repository = FakeCommunityRepository(
       profiles: [amina, nyaaba],
       posts: [
@@ -81,8 +77,8 @@ void main() {
     await pumpFeed(tester, repository, profile: amina);
 
     // A compact prompt strip and the composer open the feed.
-    expect(find.text('Today in Kasem'), findsOneWidget);
-    expect(find.text('Share a word from home'), findsOneWidget);
+    expect(find.text('Today in Kasem'), findsNothing);
+    expect(find.text('Share a word from home'), findsNothing);
     expect(find.text('Make a post'), findsOneWidget);
     expect(find.byTooltip('Add a photo'), findsOneWidget);
     expect(find.byTooltip('Add a video'), findsOneWidget);
@@ -150,44 +146,92 @@ void main() {
     expect(find.byType(PeopleScreen), findsOneWidget);
   });
 
-  testWidgets('the prompt strip stays compact and opens a labelled composer', (
-    tester,
-  ) async {
+  testWidgets('Make a post opens a searchable tag picker', (tester) async {
     final repository = FakeCommunityRepository(
       profiles: [amina],
       posts: [fakePost()],
     );
     await pumpFeed(tester, repository, profile: amina);
-
-    // Roughly one list row: no more than a tenth of the first screen.
-    final strip = tester.getRect(
-      find.byKey(const Key('community-prompt-strip')),
-    );
-    final screen = tester.getRect(find.byType(CommunityScreen));
-    expect(strip.height, lessThanOrEqualTo(screen.height * 0.10));
-
-    await tester.tap(find.byKey(const Key('community-prompt-strip')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-
+    await tester.tap(find.text('Make a post'));
+    await tester.pumpAndSettle();
     expect(find.byType(ComposePostScreen), findsOneWidget);
-    expect(
-      tester
-          .widget<ChoiceChip>(
-            find.byKey(const ValueKey('post-category-language')),
-          )
-          .selected,
-      isTrue,
+    await tester.tap(find.text('Tag: Choose a tag'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Search tags'),
+      'event',
     );
-    expect(
-      find.text('Share a word from home, and what it means…'),
-      findsOneWidget,
+    await tester.pumpAndSettle();
+    expect(find.text('Events'), findsOneWidget);
+    expect(find.text('Announcements'), findsNothing);
+    await tester.tap(find.text('Events'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tag: Events'), findsOneWidget);
+    await tester.tap(find.text('Tag: Events'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Search tags'),
+      'zzz',
     );
-    // Only staff and moderators may announce.
-    expect(
-      find.byKey(const ValueKey('post-category-announcement')),
-      findsNothing,
+    await tester.pumpAndSettle();
+    expect(find.text('No matching tags'), findsOneWidget);
+    await tester.tap(find.byTooltip('Clear search'));
+    await tester.pumpAndSettle();
+    expect(find.text('Music'), findsOneWidget);
+    await tester.tap(find.text('Clear tag'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tag: Choose a tag'), findsOneWidget);
+  });
+
+  testWidgets('joined strip updates, filters and falls back after leaving', (
+    tester,
+  ) async {
+    final circle = fakeCommunity(name: 'Kasem Circle');
+    final other = fakeCommunity(id: 'stories', name: 'Stories from home');
+    const membership = CommunityMembership(
+      communityId: 'kasem-circle',
+      uid: 'amina-uid',
+      role: CommunityRole.member,
+      status: MembershipStatus.active,
     );
+    final spaces = FakeCommunitySpaceRepository(
+      communities: [circle, other],
+      memberships: [membership, membership],
+    );
+    final repository = FakeCommunityRepository(
+      profiles: [amina],
+      posts: [
+        fakePost(text: 'General feed'),
+        fakePost(
+          id: 'circle-post',
+          text: 'Circle feed',
+          community: circle.toPostStamp(),
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      communityHarness(
+        repository: repository,
+        profile: amina,
+        spaces: spaces,
+        child: const CommunityScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final tab = find.byKey(const ValueKey('feed-community-kasem-circle'));
+    expect(tab, findsOneWidget);
+    await tester.ensureVisible(tab);
+    await tester.tap(tab);
+    await tester.pumpAndSettle();
+    expect(find.text('Circle feed'), findsOneWidget);
+    expect(find.text('General feed'), findsNothing);
+    await spaces.join(space: other, uid: amina.uid);
+    await tester.pumpAndSettle();
+    expect(find.text('Stories from home'), findsOneWidget);
+    await spaces.leave(communityId: circle.id, membership: membership);
+    await tester.pumpAndSettle();
+    expect(tab, findsNothing);
+    expect(find.text('General feed'), findsOneWidget);
   });
 
   testWidgets('+ Communities opens the directory instead of filtering', (
@@ -233,7 +277,7 @@ void main() {
     );
     await pumpFeed(tester, repository, profile: amina);
 
-    expect(find.text('Question'), findsOneWidget);
+    expect(find.text('Questions'), findsOneWidget);
     expect(find.text('in Kasem Circle'), findsOneWidget);
     // The X-style byline is intact: name, handle and age on one line, and the
     // overflow menu beside it.

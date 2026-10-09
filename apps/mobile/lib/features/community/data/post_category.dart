@@ -11,6 +11,8 @@ enum PostCategory {
   culture('culture'),
   music('music'),
   story('story'),
+  event('event'),
+  update('community_update'),
 
   /// Reserved for staff on the main feed and for a community's moderators
   /// inside it. A label that says "this is official" has to be one somebody

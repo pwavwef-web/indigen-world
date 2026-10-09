@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +18,7 @@ import 'package:indigen_world_mobile/features/learn/learn_progress.dart';
 import 'package:indigen_world_mobile/features/learn/practice/learn_recorder.dart';
 import 'package:indigen_world_mobile/features/learn/practice/practice_decks.dart';
 import 'package:indigen_world_mobile/features/learn/practice/practice_widgets.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// Sends a Speak recording to `submitPronunciationRecording`.
 class PronunciationRecordingRepository {
@@ -100,7 +100,8 @@ class _SpeakPracticeScreenState extends ConsumerState<SpeakPracticeScreen> {
   DictionaryEntry? _resolveEntry(List<DictionaryEntry> entries) {
     if (_entry != null) return _entry;
     final daily = ref.read(dailyWordProvider)?.entry;
-    return _entry = widget.initialEntry ??
+    return _entry =
+        widget.initialEntry ??
         (daily != null && isPractisable(daily) ? daily : null) ??
         entries.where(isPractisable).firstOrNull;
   }
@@ -137,8 +138,7 @@ class _SpeakPracticeScreenState extends ConsumerState<SpeakPracticeScreen> {
     if (entry == null || take == null || _sending) return;
     if (repository == null || !ref.read(isOnlineProvider)) {
       setState(
-        () => _sendError =
-            'Sending needs a connection. Your take is kept while this screen is open.',
+        () => _sendError = 'Sending needs a connection. Your take is kept while this screen is open.',
       );
       return;
     }
@@ -176,7 +176,9 @@ class _SpeakPracticeScreenState extends ConsumerState<SpeakPracticeScreen> {
       }
     } on Object {
       if (mounted) {
-        setState(() => _sendError = 'The recording could not be sent. Try again.');
+        setState(
+          () => _sendError = 'The recording could not be sent. Try again.',
+        );
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -279,7 +281,11 @@ class _SpeakPracticeScreenState extends ConsumerState<SpeakPracticeScreen> {
           children: [
             Text(
               'Record the word, listen back, and send it to a reviewer. Kasem speech is not transcribed or scored automatically — a person listens.',
-              style: TextStyle(color: brand.mutedInk, fontSize: 13, height: 1.4),
+              style: TextStyle(
+                color: brand.mutedInk,
+                fontSize: 13,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 14),
             LearnRecorder(
@@ -300,7 +306,8 @@ class _SpeakPracticeScreenState extends ConsumerState<SpeakPracticeScreen> {
                 value: _publishConsent,
                 onChanged: _sending
                     ? null
-                    : (value) => setState(() => _publishConsent = value ?? false),
+                    : (value) =>
+                          setState(() => _publishConsent = value ?? false),
                 contentPadding: EdgeInsets.zero,
                 controlAffinity: ListTileControlAffinity.leading,
                 title: const Text(
@@ -345,7 +352,11 @@ class _SpeakPracticeScreenState extends ConsumerState<SpeakPracticeScreen> {
           children: [
             Text(
               'Say what “${entry.headword}” means, in English. Vertex AI transcribes it and Kawuri compares it with the dictionary. Automated feedback is experimental, and speech-to-text supports English only.',
-              style: TextStyle(color: brand.mutedInk, fontSize: 13, height: 1.4),
+              style: TextStyle(
+                color: brand.mutedInk,
+                fontSize: 13,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 14),
             if (!caps.speechToText)
@@ -409,6 +420,10 @@ Future<DictionaryEntry?> _pickWord(
   List<DictionaryEntry> entries,
 ) => showModalBottomSheet<DictionaryEntry>(
   context: context,
+  sheetAnimationStyle: AnimationStyle(
+    duration: motionOr(context, AppMotion.standard),
+    reverseDuration: motionOr(context, AppMotion.quick),
+  ),
   isScrollControlled: true,
   builder: (sheetContext) => _WordPicker(entries: entries),
 );
@@ -512,7 +527,10 @@ class _WordHeader extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                Text(entry.translation, style: TextStyle(color: brand.mutedInk)),
+                Text(
+                  entry.translation,
+                  style: TextStyle(color: brand.mutedInk),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   entry.audioUrl.isEmpty

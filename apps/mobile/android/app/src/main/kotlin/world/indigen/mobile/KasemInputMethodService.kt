@@ -152,10 +152,8 @@ class KasemInputMethodService : InputMethodService() {
         }
         if (::keyboardRoot.isInitialized) {
             val nowDark = isNightMode()
-            if (nowDark != dark) {
-                dark = nowDark
-                keyboardRoot.setBackgroundColor(palette().background)
-            }
+            dark = nowDark
+            keyboardRoot.setBackgroundColor(palette().background)
             drawKeyboard()
         }
     }
@@ -285,13 +283,15 @@ class KasemInputMethodService : InputMethodService() {
             addRow(KasemKeyboardLayout.extendedRow.map { letterKey(it) })
         }
 
-        KasemKeyboardLayout.letterRows.take(2).forEach { row ->
+        val rows = if (language == KeyboardLanguage.KASEM)
+            KasemKeyboardLayout.kasemRows else KasemKeyboardLayout.letterRows
+        rows.take(2).forEach { row ->
             addRow(row.map { letterKey(it) })
         }
 
         addRow(buildList {
             add(shiftKeyView())
-            addAll(KasemKeyboardLayout.letterRows[2].map { letterKey(it) })
+            addAll(rows[2].map { letterKey(it) })
             add(backspaceKey())
         })
 
@@ -697,7 +697,7 @@ class KasemInputMethodService : InputMethodService() {
         val mutedInk: Int,
     )
 
-    private fun palette(): Palette = if (dark) DARK else LIGHT
+    private fun palette(): Palette = if (preferences.blackTheme) BLACK else if (dark) DARK else LIGHT
 
     private companion object {
         const val DOUBLE_TAP_MS = 360L
@@ -708,6 +708,13 @@ class KasemInputMethodService : InputMethodService() {
         /** How fast a held backspace deletes. Slow enough to stop on a word. */
         const val REPEAT_INTERVAL_MS = 55L
 
+        val BLACK = Palette(
+            background = Color.BLACK, keySurface = Color.rgb(23, 23, 23),
+            keyPressed = Color.rgb(40, 40, 40), keyBorder = Color.rgb(54, 54, 54),
+            accent = Color.rgb(44, 102, 245), accentPressed = Color.rgb(36, 87, 214),
+            onAccent = Color.WHITE, ink = Color.rgb(240, 240, 240),
+            mutedInk = Color.rgb(170, 170, 170),
+        )
         val LIGHT = Palette(
             background = Color.rgb(244, 242, 236),
             keySurface = Color.WHITE,

@@ -1,5 +1,7 @@
 # Review: the Kasem Android keyboard
 
+**Historical review.** The current Ghana Kasem layout is governed by the 1997 BGL spelling book supplied on October 8, 2026; see [book import](kasem-orthography-book-import.md). The older frequency-based character recommendations below describe the earlier archive, not the current layout.
+
 *Reviewed 2026-09-07. Subject: commit `f3d27df`, "feat(mobile): add Kasem
 Android keyboard" (Anim Andy, 2026-09-06).*
 

@@ -29,6 +29,7 @@ import 'package:indigen_world_mobile/features/kawuri/kawuri_translation_card.dar
 import 'package:indigen_world_mobile/features/kawuri/kawuri_voice_input.dart';
 import 'package:indigen_world_mobile/features/subscriptions/membership_screen.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -88,7 +89,9 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
           final state = ref.read(kawuriControllerProvider);
           if (!state.isEmpty && !state.thinking) {
             unawaited(
-              ref.read(kawuriControllerProvider.notifier).startNewConversation(),
+              ref
+                  .read(kawuriControllerProvider.notifier)
+                  .startNewConversation(),
             );
           }
         });
@@ -154,7 +157,7 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
       if (!_scroll.hasClients) return;
       _scroll.animateTo(
         0,
-        duration: MediaQuery.disableAnimationsOf(context)
+        duration: !motionAllowed(context)
             ? Duration.zero
             : const Duration(milliseconds: 280),
         curve: Curves.easeOutCubic,
@@ -188,7 +191,11 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
             gradient: RadialGradient(
               radius: 1.35,
               center: const Alignment(0, -0.55),
-              colors: [context.brand.nightGlow, context.brand.nightGround, const Color(0xFF05080F)],
+              colors: [
+                context.brand.nightGlow,
+                context.brand.nightGround,
+                const Color(0xFF05080F),
+              ],
             ),
           ),
           child: Stack(
@@ -435,6 +442,10 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
   void _openTools() {
     showModalBottomSheet<void>(
       context: context,
+      sheetAnimationStyle: AnimationStyle(
+        duration: motionOr(context, AppMotion.standard),
+        reverseDuration: motionOr(context, AppMotion.quick),
+      ),
       isScrollControlled: true,
       builder: (context) => SafeArea(
         child: SizedBox(
@@ -518,6 +529,10 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
     );
     showModalBottomSheet<void>(
       context: context,
+      sheetAnimationStyle: AnimationStyle(
+        duration: motionOr(context, AppMotion.standard),
+        reverseDuration: motionOr(context, AppMotion.quick),
+      ),
       isScrollControlled: true,
       builder: (context) => StatefulBuilder(
         builder: (context, update) {
@@ -705,7 +720,7 @@ class _KawuriBar extends StatelessWidget {
                 ),
               ),
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
+                duration: motionOr(context, AppMotion.standard),
                 child: Text(
                   thinking ? 'Thinking…' : 'Ask · Create · Learn',
                   key: ValueKey(thinking),
@@ -831,7 +846,7 @@ class _KawuriOrbState extends State<KawuriOrb>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (!motionAllowed(context)) {
       _controller.stop();
     } else if (!_controller.isAnimating) {
       _controller.repeat();
@@ -1078,7 +1093,10 @@ class _MessageBubble extends StatelessWidget {
                       child: Text(
                         message.attachment!.name,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: context.brand.nightAccent, fontSize: 12),
+                        style: TextStyle(
+                          color: context.brand.nightAccent,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -1217,7 +1235,9 @@ class _MessageBubble extends StatelessWidget {
         bottomLeft: Radius.circular(20),
         bottomRight: Radius.circular(6),
       ),
-      border: Border.all(color: context.brand.highlight.withValues(alpha: 0.28)),
+      border: Border.all(
+        color: context.brand.highlight.withValues(alpha: 0.28),
+      ),
     ),
     child: Text(
       message.text,
@@ -1404,8 +1424,7 @@ class KawuriText extends StatelessWidget {
     );
   }
 
-  Widget _hanging(BuildContext context, String marker, String body) =>
-      Padding(
+  Widget _hanging(BuildContext context, String marker, String body) => Padding(
     padding: const EdgeInsets.only(bottom: 4),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1474,7 +1493,7 @@ class _ThinkingBubbleState extends State<_ThinkingBubble>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (!motionAllowed(context)) {
       _controller.stop();
     } else if (!_controller.isAnimating) {
       _controller.repeat();

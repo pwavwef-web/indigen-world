@@ -35,7 +35,7 @@ void main() {
     // The feed opens on the daily prompt and the composer. New voices is no
     // longer a rail above everything; with no posts to sit between, it is not
     // shown at all.
-    expect(find.text('Today in Kasem'), findsOneWidget);
+    expect(find.text('Today in Kasem'), findsNothing);
     expect(find.text('Make a post'), findsOneWidget);
     expect(find.text('New voices'), findsNothing);
 
@@ -81,7 +81,7 @@ void main() {
     expect(find.bySemanticsLabel('Search Explore'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('Today in Kasem'), findsOneWidget);
+    expect(find.text('Today in Kasem'), findsNothing);
     expect(find.byType(FrostedNavBar), findsOneWidget);
 
     await tester.tap(
@@ -148,11 +148,8 @@ void main() {
     // The tab's name, and nothing else. It was a headline plus a slogan, at a
     // volume no other tab in the shell shouts its own name at.
     expect(find.text('Kasem Collections'), findsOneWidget);
-    expect(
-      find.text('Preserving culture, one story at a time'),
-      findsNothing,
-    );
-    expect(find.byKey(const Key('collection-search-field')), findsOneWidget);
+    expect(find.text('Preserving culture, one story at a time'), findsNothing);
+    expect(find.byKey(const Key('collection-search-field')), findsNothing);
     final collectionScroll = find.descendant(
       of: find.byKey(const PageStorageKey('collection-overview-scroll')),
       matching: find.byType(Scrollable),
@@ -187,7 +184,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('Today in Kasem'), findsOneWidget);
+    expect(find.text('Today in Kasem'), findsNothing);
     expect(find.text('Make a post'), findsOneWidget);
     expect(find.text('For you'), findsWidgets);
     expect(find.text('Following'), findsWidgets);

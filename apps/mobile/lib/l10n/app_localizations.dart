@@ -503,19 +503,19 @@ abstract class AppLocalizations {
   /// No description provided for @communityPostCategory.
   ///
   /// In en, this message translates to:
-  /// **'Kind of post'**
+  /// **'Tag'**
   String get communityPostCategory;
 
   /// No description provided for @postCategoryQuestion.
   ///
   /// In en, this message translates to:
-  /// **'Question'**
+  /// **'Questions'**
   String get postCategoryQuestion;
 
   /// No description provided for @postCategoryLanguage.
   ///
   /// In en, this message translates to:
-  /// **'Language'**
+  /// **'Language Learning'**
   String get postCategoryLanguage;
 
   /// No description provided for @postCategoryCulture.
@@ -533,7 +533,7 @@ abstract class AppLocalizations {
   /// No description provided for @postCategoryStory.
   ///
   /// In en, this message translates to:
-  /// **'Story'**
+  /// **'Stories'**
   String get postCategoryStory;
 
   /// No description provided for @postCategoryAnnouncement.

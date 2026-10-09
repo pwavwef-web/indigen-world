@@ -9,9 +9,10 @@ import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/features/music/widgets/mini_player.dart';
 import 'package:indigen_world_mobile/features/music/widgets/music_bubble.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// How long the bar takes to fold into the bubble, and to come back.
-const Duration kMusicMorphDuration = Duration(milliseconds: 340);
+const Duration kMusicMorphDuration = AppMotion.standard;
 
 /// The player in whichever shape it is in, and the morph between them.
 ///
@@ -68,6 +69,14 @@ class _MusicPlayerDockState extends ConsumerState<MusicPlayerDock>
   Offset? _dragging;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!motionAllowed(context)) {
+      _morph.value = ref.read(musicBarPlacementProvider).collapsed ? 1 : 0;
+    }
+  }
+
+  @override
   void dispose() {
     _shape.dispose();
     _morph.dispose();
@@ -80,7 +89,13 @@ class _MusicPlayerDockState extends ConsumerState<MusicPlayerDock>
   Widget build(BuildContext context) {
     ref.listen<bool>(
       musicBarPlacementProvider.select((placement) => placement.collapsed),
-      (_, collapsed) => collapsed ? _morph.forward() : _morph.reverse(),
+      (_, collapsed) {
+        if (!motionAllowed(context)) {
+          _morph.value = collapsed ? 1 : 0;
+        } else {
+          collapsed ? _morph.forward() : _morph.reverse();
+        }
+      },
     );
 
     final item = ref.watch(musicMediaItemProvider).asData?.value;

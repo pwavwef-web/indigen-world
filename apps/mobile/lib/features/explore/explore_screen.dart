@@ -17,6 +17,7 @@ import 'package:indigen_world_mobile/features/explore/explore_word_prompt.dart';
 import 'package:indigen_world_mobile/features/explore/kept_reels_screen.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/explore/reel_view.dart';
+import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
 import 'package:indigen_world_mobile/shared/profile_orb.dart';
 
@@ -853,7 +854,7 @@ class _TopicChip extends StatelessWidget {
             height: 48,
             child: Center(
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
+                duration: motionOr(context, AppMotion.quick),
                 height: 32,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 alignment: Alignment.center,
