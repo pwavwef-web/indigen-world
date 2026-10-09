@@ -1,4 +1,4 @@
-# Ten shipping improvements — 2026-10-08
+# Ten shipping improvements — latest checkpoint 2026-10-09
 
 Branch: `codex/ten-shipping-improvements`; base `8e805e4` (`origin/main`).
 Isolated checkout: `C:/Users/DELL/Desktop/indigen-world-ten-shipping`.
@@ -7,23 +7,25 @@ reset, or copy those changes into this branch. No production mutations authorize
 
 | Task | Implementation locations | Checkpoint |
 | --- | --- | --- |
-| 1. Account-scoped drafts | Studio dictionary/expressions/campaign/knowledge editors; mobile contribution stores | Implemented in Studio, remaining mobile form audit |
-| 2. Review queue and evidence | `contributor/review/ReviewDesk.tsx`, review callables | In progress; acceptance checks pending |
-| 3. Contribution timeline/corrections | contributor ContributionsPage, expressions receipts | In progress; acceptance checks pending |
-| 4. Public reference search/sources | kasem-dictionary App, website DictionaryPage | In progress; acceptance checks pending |
-| 5. Bounded grounding candidate index | functions kawuri-grounding, knowledge resolver, emulator fixtures | In progress; acceptance checks pending |
-| 6. Ten progress CTA destinations | website progress registry, Studio route guards | In progress; acceptance checks pending |
-| 7. Downloads playback | mobile downloads repository/providers, music controller | In progress; acceptance checks pending |
-| 8. Low-data preference | mobile media_preferences, Settings, reels/community | In progress; acceptance checks pending |
-| 9. Console consistency/accessibility | shared tokens, edited contributor/review screens | In progress; acceptance checks pending |
-| 10. Regression runner/release handoff | scripts, synthetic emulator tests, release post | In progress; acceptance checks pending |
+| 1. Account-scoped drafts | Studio dictionary/expressions/campaign/knowledge/legacy lexical editors; mobile four forms | Implemented; earlier checks pass; final closing-save regression blocked by shared SDK lock |
+| 2. Review queue and evidence | `contributor/review/ReviewDesk.tsx`, review callables | Locally verified; actual Auth/Firestore browser and concurrency |
+| 3. Contribution timeline/corrections | contributor ContributionsPage, mobile word corrections, retry receipts | Locally verified; original revision metadata auditable |
+| 4. Public reference search/sources | kasem-dictionary App/source drawer and existing book destinations | Locally verified; both-book synthetic SDK browsing and restricted exclusion |
+| 5. Bounded grounding candidate index | functions kawuri candidate index, resolvers, backfill, fixtures | Locally verified; 4,105-source retrieval; rollout gated and not performed |
+| 6. Ten progress CTA destinations | website progress registry, offline panel, Studio route guards | Locally verified; ten category links, responsive animation and reduced motion |
+| 7. Downloads playback | mobile downloads repository/providers, main, music controller | Locally verified; device playback unavailable |
+| 8. Low-data preference | mobile media_preferences, Settings, reels/community | Locally verified; zero optional allocations and deliberate video failure path |
+| 9. Console consistency/accessibility | existing shared tokens, edited contributor/review/reference screens | Locally verified; three-width screenshots, focus, overflow and modal checks |
+| 10. Regression runner/release handoff | scripts, synthetic emulator tests, release post | Handoff ready; final mobile rerun blocked; baseline analyzer warnings and CI billing retained |
 
 Read: root AGENTS, CONTRIBUTING, SECURITY; product boundaries; contributor portal;
 progress pipelines; grounded answers; data safety/licensing; repository architecture;
 ADRs 0001/0002. No nested AGENTS found in tracked files.
 
 Environment: Node 24.12.0 (Functions requests Node 22); Java 25 installed;
-Flutter pin is 3.47.0. SDK availability/version needs verification.
+Flutter 3.47.0/Dart3.13.0 match the pin. See the final verification handoff for
+toolchain, device and CI limits. The sections below are historical checkpoints;
+`ten-improvements-verification.md` and checkpoint 5 are authoritative current status.
 GitHub Actions `37818505086` has no steps: annotation explicitly says account locked
 due to billing. Local checks remain required; this is not passing CI.
 
@@ -114,3 +116,61 @@ CI latest main run 37818504989 (8e805e4) has no executed steps and failure; bill
 blocker previously verified. Flutter3.47.0/Dart3.13.0 pinned match; no Android/iOS
 physical device, some Android SDK licenses unaccepted, no Visual Studio toolchain.
 Node24 host vs functions Node22 target remains a disclosed toolchain difference.
+
+## Checkpoint 5 — final review, 2026-10-09
+
+Implementation commits: d6a570b, ebe63cd, 6a7ef92, a635095, 2c1c35e.
+Authoritative detailed table, commands, rollout and boundaries:
+`docs/operations/ten-improvements-verification.md`.
+All ten requested areas have working changes. Original checkout still has 159
+pre-existing dirty paths, untouched. No push/PR/deploy/backfill/live writes.
+The unused managed worktree at `.codex/worktrees/ten-improvements/indigen-world`
+was verified clean at base 8e805e4 and queued for archival; the Desktop isolated
+worktree above is the review branch and must be retained.
+
+Passed: Studio, dictionary, website, admin/shared builds/types, 22 contracts,
+latest full functions helpers 655/655, shipping emulator21/21. Main browser and
+progress animation/layout suite pass; final reviewer+public reader browser exits0
+(real SDK requests, synthetic both-book records, stable URLs, restricted refusal,
+concurrent verdict/count/queue-position behaviour).
+Mobile focused78/78 passed before the final closing-save edge-case refinement.
+Final stable full Dart analysis using pinned SDK reports only three existing
+experimental audio warnings; targeted changed files have no issues. Intermediate
+Flutter analysis during edits included duplicated baseline warnings and test
+import-order info; that import was corrected and final Dart analysis verified it.
+
+Latest refinement serializes a closing draft's captured final edit after any
+in-flight save. Added fourth recovery test; expanded focused suite now has79 tests.
+Flutter test reruns waited more than15 minutes behind another project's shared SDK
+startup lock. Only our waiting processes31328/26608 and their children were stopped;
+the unrelated owner29672 was preserved. Sessions49366/74911 are now closed exit1,
+not passing. Do not stop the other project or bypass the cache lock. Nothing from
+this session is still waiting on Flutter; rerun when the SDK is available.
+Runner results/logs: ignored `.tooling/ten-shipping/results-mobile.json` and
+`flutter-focused.log`. Capture command:
+`SHIPPING_EVIDENCE_DIR=<absolute isolated .tooling/ten-shipping/screenshots>` then
+`flutter test --no-pub test/features/downloads/downloads_widget_test.dart` in mobile.
+After it passes copy `mobile-downloads-test.png` into the release images, inspect
+readable text/icons, add its caption/credits to the post and record/commit results. The
+unreadable earlier Ahem mobile image was excluded; the post has four actual web
+images, and12 width variants. Test uses existing
+app theme and SDK Roboto fallback, not a physical-device font claim.
+
+Reproduction: `npm run verify:ten-shipping -- --web --emulator --mobile --browser`.
+Prerequisites/exit codes in verification note. Baseline analysis warnings keep
+aggregate exit1; GitHub main37818504989 had no steps due account billing. Flutter
+pin3.47.0/Dart3.13.0 match; no handset attached, Android licenses partly missing,
+no Visual Studio Windows build toolchain. Node24 host versus Functions Node22.
+Google OAuth, deployed HTTPS/App Check and physical mobile runtime remain unverified.
+
+Release post with actual web captures is prepared under
+`apps/updates-blog/posts/2026-10-09-reliable-contribution-and-reference-workflows/`.
+No external publication/sharing. Candidate index is flag+readiness gated; follow
+`kawuri-candidate-rollout.md`; no production backfill. Legacy sentence family graph
+still safely withholds that source beyond4000 rows. Keep private retry receipts on
+rollback. Security follow-up remains key rotation after earlier diagnostic exposure;
+no key value in notes/Git, no usage, runner strips live credential environment.
+
+Local implementation/checkpoint work is preserved. Remaining work is the79-test
+focused mobile rerun and readable capture, followed by staging/device checks with
+their prerequisites. No live deployment, backfill, release or sharing is authorized.
