@@ -193,8 +193,10 @@ class _ContributionFormScreenState
     // that it is now typed into a different box.
     _senses.first.definition.text = widget.initialSource;
     _senses.first.definition.addListener(_syncTitleFromSenses);
+    final draftProviders = ProviderScope.containerOf(context, listen: false);
     _recovery = AccountDraftSession(
-      account: () => ref.read(authStateProvider).asData?.value?.uid ?? '',
+      account: () =>
+          draftProviders.read(authStateProvider).asData?.value?.uid ?? '',
       area:
           'collection:${_kind.name}:${widget.lexicalKind?.wire ?? 'word'}:${widget.relatedEntryId ?? 'new'}',
       snapshot: _recoverySnapshot,
@@ -308,7 +310,7 @@ class _ContributionFormScreenState
 
   @override
   void dispose() {
-    unawaited(_recovery.flush());
+    unawaited(_recovery.flush(closing: true));
     _recovery.dispose();
     _senses.first.definition.removeListener(_syncTitleFromSenses);
     _senses.dispose();
@@ -411,12 +413,19 @@ class _ContributionFormScreenState
                     onFormatChanged: (value) => setState(() => _format = value),
                     onPickFile: _pickFile,
                     onPronunciationRecorded: (recording) => setState(() {
-                      _file = recording; _uploadedMedia = null;
+                      _file = recording;
+                      _uploadedMedia = null;
                       _submitError = null;
                     }),
-                    onClearFile: () => setState(() { _file = null; _uploadedMedia = null; }),
+                    onClearFile: () => setState(() {
+                      _file = null;
+                      _uploadedMedia = null;
+                    }),
                     onPickCover: _pickCover,
-                    onClearCover: () => setState(() { _cover = null; _uploadedCover = null; }),
+                    onClearCover: () => setState(() {
+                      _cover = null;
+                      _uploadedCover = null;
+                    }),
                     onRightsChanged: (value) =>
                         setState(() => _rightsConfirmed = value),
                     onPublicationChanged: (value) =>
@@ -436,7 +445,7 @@ class _ContributionFormScreenState
                   ],
                   const SizedBox(height: 18),
                   FilledButton.icon(
-                    onPressed: _saving ? null : _submit,
+                    onPressed: _saving || !_recovery.canSubmit ? null : _submit,
                     icon: _saving
                         ? const SizedBox.square(
                             dimension: 20,
@@ -490,7 +499,8 @@ class _ContributionFormScreenState
       final picked = await const ContributionUploader().pick(kind);
       if (picked == null || !mounted) return;
       setState(() {
-        _file = picked; _uploadedMedia = null;
+        _file = picked;
+        _uploadedMedia = null;
         _submitError = null;
       });
     } on ContributionUploadFailure catch (failure) {
@@ -507,7 +517,8 @@ class _ContributionFormScreenState
       );
       if (picked == null || !mounted) return;
       setState(() {
-        _cover = picked; _uploadedCover = null;
+        _cover = picked;
+        _uploadedCover = null;
         _submitError = null;
       });
     } on ContributionUploadFailure catch (failure) {
@@ -544,7 +555,10 @@ class _ContributionFormScreenState
     if (!_recovery.canSubmit) return;
     FocusScope.of(context).unfocus();
     final isValid = _formKey.currentState?.validate() ?? false;
-    final needsFile = contributionRequiresUpload(_kind) && _file == null && _uploadedMedia == null;
+    final needsFile =
+        contributionRequiresUpload(_kind) &&
+        _file == null &&
+        _uploadedMedia == null;
     if (!isValid ||
         !_rightsConfirmed ||
         !_participantConsentConfirmed ||

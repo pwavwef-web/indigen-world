@@ -137,6 +137,20 @@ export function App() {
     const previousOverflow = document.body.style.overflow;
     const mobileLayout = window.matchMedia("(max-width: 700px)");
     document.body.style.overflow = "hidden";
+    const background = Array.from(document.querySelectorAll<HTMLElement>(".app-header, .browse-panel, .explore-panel, footer"));
+    const previousInert = background.map(node => node.inert);
+    background.forEach(node => { node.inert = true; });
+    const trapFocus = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const panel = document.querySelector<HTMLElement>(".definition-panel");
+      const controls = Array.from(panel?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], summary, input:not(:disabled), [tabindex="0"]') ?? []).filter(node => node.getClientRects().length > 0);
+      const first = controls[0], last = controls.at(-1);
+      if (!first || !last) return;
+      if ((event.shiftKey && (document.activeElement === first || !controls.includes(document.activeElement as HTMLElement))) || (!event.shiftKey && document.activeElement === last)) {
+        event.preventDefault(); (event.shiftKey ? last : first).focus();
+      }
+    };
+    document.addEventListener("keydown", trapFocus);
 
     const closeWhenLayoutChanges = (event: MediaQueryListEvent) => {
       if (!event.matches) setMobileDetail(false);
@@ -145,6 +159,8 @@ export function App() {
 
     return () => {
       document.body.style.overflow = previousOverflow;
+      background.forEach((node, index) => { node.inert = previousInert[index]; });
+      document.removeEventListener("keydown", trapFocus);
       mobileLayout.removeEventListener("change", closeWhenLayoutChanges);
       requestAnimationFrame(() => returnFocusRef.current?.focus({ preventScroll: true }));
     };

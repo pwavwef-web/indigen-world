@@ -256,8 +256,9 @@ class _KnowledgeRecordScreenState extends ConsumerState<KnowledgeRecordScreen> {
     _draft = _saved == null
         ? KnowledgeDraft.newRecord('${widget.area['id']}')
         : KnowledgeDraft.fromRecord(_saved!);
+    final draftProviders = ProviderScope.containerOf(context, listen: false);
     _recovery = AccountDraftSession(
-      account: () => ref.read(authStateProvider).asData?.value?.uid ?? '',
+      account: () => draftProviders.read(authStateProvider).asData?.value?.uid ?? '',
       area: 'knowledge:${widget.initialRecord?['id'] ?? widget.area['id']}',
       snapshot: () => {
         'record': _draft.data,
@@ -275,7 +276,7 @@ class _KnowledgeRecordScreenState extends ConsumerState<KnowledgeRecordScreen> {
 
   @override
   void dispose() {
-    unawaited(_recovery.flush());
+    unawaited(_recovery.flush(closing: true));
     _recovery.dispose();
     _player?.dispose();
     super.dispose();
@@ -1028,7 +1029,7 @@ class _KnowledgeRecordScreenState extends ConsumerState<KnowledgeRecordScreen> {
                   runSpacing: 12,
                   children: [
                     OutlinedButton(
-                      onPressed: _busy ? null : () => _save(false),
+                      onPressed: _busy || !_recovery.canSubmit ? null : () => _save(false),
                       child: const Text('Save draft'),
                     ),
                     if (_section < 4)
@@ -1040,7 +1041,7 @@ class _KnowledgeRecordScreenState extends ConsumerState<KnowledgeRecordScreen> {
                       ),
                     if (_section == 4)
                       FilledButton(
-                        onPressed: _busy ? null : () => _save(true),
+                        onPressed: _busy || !_recovery.canSubmit ? null : () => _save(true),
                         child: const Text('Send for review'),
                       ),
                   ],

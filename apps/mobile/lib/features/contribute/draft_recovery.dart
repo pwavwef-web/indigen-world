@@ -28,7 +28,7 @@ class AccountDraftSession {
   final VoidCallback changed;
   Timer? _timer;
   String _owner = '', _last = '';
-  bool _ready = false, _busy = false, _disabled = false, _disposed = false;
+  bool _ready = false, _busy = false, _disabled = false, _disposed = false, _closing = false;
   Map<String, dynamic>? recovery;
   String status = 'Checking draft recovery…';
   String get owner => _owner;
@@ -38,11 +38,12 @@ class AccountDraftSession {
   String get key =>
       'indigen:draft:v1:${Uri.encodeComponent(_owner)}:${Uri.encodeComponent(area)}';
   void _notify() {
-    if (!_disposed) changed();
+    if (!_disposed && !_closing) changed();
   }
 
-  Future<void> flush() async {
-    if (_busy || _disposed || _disabled || accountChanged) return;
+  Future<void> flush({bool closing = false}) async {
+    if (closing) _closing = true;
+    if ((_busy && !closing) || _disposed || _disabled || accountChanged) return;
     final uid = account();
     if (uid.isEmpty) {
       status = 'Sign in to keep a recovery copy for your account.';
@@ -52,6 +53,14 @@ class AccountDraftSession {
     final hasEdits = meaningful();
     final captured = hasEdits ? jsonDecode(jsonEncode(snapshot())) : null;
     final capturedVersion = version();
+    // Capture before controllers are disposed, then serialize behind any older
+    // write. Closing must retain edits made while that write was in flight.
+    if (closing) {
+      while (_busy) {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+      if (_disabled || account() != uid) return;
+    }
     _busy = true;
     try {
       if (_owner.isEmpty) _owner = uid;

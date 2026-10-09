@@ -86,7 +86,8 @@ class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
     super.initState();
     if (widget.initialData != null) _restore(widget.initialData!);
     if (widget.prefillData != null) _restore(widget.prefillData!);
-    _recovery = AccountDraftSession(account: () => ref.read(authStateProvider).asData?.value?.uid ?? '', area: 'evidence:${widget.initialData?['id'] ?? 'new'}', snapshot: _payload, meaningful: () => f('title').text.isNotEmpty || _examples.any((row) => row.values.any((field) => field.text.isNotEmpty)), version: () => '${widget.initialData?['revision'] ?? 0}', changed: () { if (mounted) setState(() {}); });
+    final draftProviders = ProviderScope.containerOf(context, listen: false);
+    _recovery = AccountDraftSession(account: () => draftProviders.read(authStateProvider).asData?.value?.uid ?? '', area: 'evidence:${widget.initialData?['id'] ?? 'new'}', snapshot: _payload, meaningful: () => f('title').text.isNotEmpty || _examples.any((row) => row.values.any((field) => field.text.isNotEmpty)), version: () => '${widget.initialData?['revision'] ?? 0}', changed: () { if (mounted) setState(() {}); });
   }
 
   void _restore(Map<String, dynamic> data) {
@@ -713,7 +714,7 @@ class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
             ],
           ),
           FilledButton(
-            onPressed: signedIn && !_busy ? _submit : null,
+            onPressed: signedIn && !_busy && _recovery.canSubmit ? _submit : null,
             child: Text(
               _busy
                   ? 'Saving…'
@@ -729,7 +730,7 @@ class _GrammarNoteScreenState extends ConsumerState<GrammarNoteScreen> {
 
   @override
   void dispose() {
-    unawaited(_recovery.flush()); _recovery.dispose();
+    unawaited(_recovery.flush(closing: true)); _recovery.dispose();
     for (final c in [..._fields.values, ..._examples.expand((e) => e.values)]) {
       c.dispose();
     }

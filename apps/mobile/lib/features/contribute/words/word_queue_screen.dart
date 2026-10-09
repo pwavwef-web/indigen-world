@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,7 +27,14 @@ import 'package:indigen_world_mobile/features/contribute/words/widgets/translati
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
-import 'package:uuid/uuid.dart';
+
+String _queueRequestId() {
+  final random = Random.secure();
+  return List.generate(
+    16,
+    (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+  ).join();
+}
 
 /// One word at a time, until the member has had enough.
 ///
@@ -125,7 +133,7 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   /// word.
   PickedContributionFile? _recording;
   UploadedContributionFile? _uploadedRecording;
-  String _requestId = const Uuid().v4();
+  String _requestId = _queueRequestId();
   String? _recoveryFocusWordId;
 
   /// Upload progress while a take is on its way, or null.
@@ -193,7 +201,7 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   /// answer to *boy*, and carrying it onto the next word would publish the
   /// wrong sound on a word nobody would think to check.
   void _clearAnswer() {
-    _requestId = const Uuid().v4();
+    _requestId = _queueRequestId();
     _uploadedRecording = null;
     _translations.clear();
     _kasemExample.clear();
@@ -213,8 +221,10 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
   @override
   void initState() {
     super.initState();
+    final draftProviders = ProviderScope.containerOf(context, listen: false);
     _recovery = AccountDraftSession(
-      account: () => ref.read(authStateProvider).asData?.value?.uid ?? '',
+      account: () =>
+          draftProviders.read(authStateProvider).asData?.value?.uid ?? '',
       area: 'word-queue',
       snapshot: () => {
         'wordId': _answeringWordId,
@@ -315,7 +325,7 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
 
   @override
   void dispose() {
-    unawaited(_recovery.flush());
+    unawaited(_recovery.flush(closing: true));
     _recovery.dispose();
     _translations.removeListener(_noteFormStart);
     _translations.dispose();
@@ -699,7 +709,7 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
           )
         else
           FilledButton.icon(
-            onPressed: state.sending ? null : _submit,
+            onPressed: state.sending || !_recovery.canSubmit ? null : _submit,
             icon: state.sending
                 ? const SizedBox.square(
                     dimension: 20,
@@ -755,7 +765,7 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
     _recoveryFocusWordId = wordId;
     _focusPending = true;
     setState(() {
-      _requestId = value['requestId'] as String? ?? const Uuid().v4();
+      _requestId = value['requestId'] as String? ?? _queueRequestId();
       _restoreUploadedRecording(value['uploadedRecording']);
       _translations.text = value['translations'] as String? ?? '';
       _kasemExample.text = value['example'] as String? ?? '';
@@ -849,7 +859,9 @@ class _WordQueueScreenState extends ConsumerState<WordQueueScreen> {
             origin: _originFor(wordId),
             creditByName: _creditByName,
             allowTraining: _allowTraining,
-            publicationPermission: revise == null ? true : widget.revision?.publicationPermission ?? false,
+            publicationPermission: revise == null
+                ? true
+                : widget.revision?.publicationPermission ?? false,
             reviseContributionId: revise,
             expectedRevision: revise != null
                 ? widget.revision?.revisionCount

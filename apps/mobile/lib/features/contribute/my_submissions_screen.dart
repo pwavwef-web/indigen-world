@@ -205,7 +205,8 @@ class _ContributionActivity extends ConsumerWidget {
                                         reviewerNote: item.reviewFeedback,
                                         revisionCount: item.revisionCount,
                                         details: item.queueDetails,
-                                        publicationPermission: item.publicationPermission,
+                                        publicationPermission:
+                                            item.publicationPermission,
                                       ),
                                     ),
                                   ),

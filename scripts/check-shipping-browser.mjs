@@ -12,7 +12,7 @@ const output=process.env.SHIPPING_EVIDENCE_DIR || resolve(import.meta.dirname,'.
 mkdirSync(output,{recursive:true});
 const browser=await chromium.launch({executablePath:chrome,headless:true});
 const errors=[];
-const capture=async(page,name)=>{await page.screenshot({path:resolve(output,name+'.png'),fullPage:true});};
+const capture=async(page,name)=>{await page.screenshot({path:resolve(output,name+'.png'),fullPage:!name.startsWith('draft-recovery') && !name.startsWith('reference-phone'),timeout:90_000});};
 const fits=async page=>assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'document must fit viewport');
 try {
  for(const [label,width,height] of [['phone',390,844],['tablet',768,1024],['desktop',1440,1000]]) {
@@ -39,10 +39,13 @@ try {
   await page.locator('.word-card').first().waitFor();
   if(width<701) await page.locator('.word-card').first().click();
   await page.locator('.source-note summary').click();
-  const link=page.getByRole('link',{name:'Open the book reference and its context'});
+  const link=page.getByRole('link',{name:'Open the book reference and its illustrations in context'});
   await link.waitFor();assert.match(await link.getAttribute('href'),/grammar-guide\.html#block-530/);
   await fits(page);await capture(page,'reference-'+label);
   if(width<701) {
+   assert.equal(await page.locator('.browse-panel').evaluate(node=>node.inert),true,'modal background is inert');
+   await page.locator('.definition-panel .knowledge-link').focus(); await page.keyboard.press('Tab');
+   assert.equal(await page.getByRole('button',{name:'← Results',exact:true}).evaluate(node=>node===document.activeElement),true,'Tab wraps within the source modal');
    await page.getByRole('button',{name:'← Results',exact:true}).click();
    assert.equal(await page.getByRole('dialog').count(),0);
   }
@@ -52,8 +55,14 @@ try {
  }
  const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
  await context.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
+ await context.addInitScript(()=>localStorage.setItem('iw_progress_vessel_view_mode','vertical'));
  const page=await context.newPage();
- await page.goto(website+'/progress');await page.locator('.floating-vessel').first().waitFor();
+ await page.goto(website+'/progress');
+ await page.locator('.progress-offline-contributions a').first().waitFor();
+ assert.equal(await page.locator('.progress-offline-contributions a').count(),10,'offline counts retain all contribution paths');
+ await page.getByRole('button',{name:'Options',exact:true}).click();
+ await page.getByRole('button',{name:'Preview sample targets',exact:true}).click();
+ await page.locator('.floating-vessel').first().waitFor();
  const routes=await page.locator('.floating-vessel-cta').evaluateAll(nodes=>[...new Set(nodes.map(node=>node.getAttribute('href')).filter(Boolean))]);
  assert.equal(routes.length,10,'every jar has its own configured destination');
  for(const href of routes) {

@@ -59,7 +59,8 @@ Future<void> pumpQueue(
     ),
   );
   await tester.pump();
-  await tester.pump(const Duration(milliseconds: 400));
+  await tester.pump(const Duration(milliseconds: 600));
+  await tester.pump();
 }
 
 /// Picks a word class from the searchable picker.

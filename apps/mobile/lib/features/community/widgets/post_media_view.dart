@@ -1006,7 +1006,7 @@ class _ViewerVideoState extends ConsumerState<_ViewerVideo> {
     );
     final window = widget.item.clipWindow;
     try {
-      await controller.initialize();
+      await controller.initialize().timeout(const Duration(seconds: 20));
       await controller.setLooping(true);
       await controller.setVolume(
         _silent || ref.read(videoMutedProvider) ? 0 : 1,
@@ -1014,8 +1014,15 @@ class _ViewerVideoState extends ConsumerState<_ViewerVideo> {
       if (window != null) await controller.seekTo(window.start);
       await controller.play();
     } on Object {
-      await controller.dispose();
       if (mounted) setState(() => _failed = true);
+      // Some native creation failures leave the plugin's creation completer
+      // pending. Surface the error immediately rather than awaiting cleanup.
+      unawaited(
+        controller
+            .dispose()
+            .timeout(const Duration(seconds: 2))
+            .catchError((Object _) {}),
+      );
       return;
     }
     if (!mounted) {

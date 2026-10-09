@@ -3,8 +3,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/downloads/downloads_screen.dart';
@@ -28,6 +30,22 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
+      // Widget tests use Ahem (blocks) by default. Evidence uses the real app
+      // palette with SDK Roboto as a readable test-only font fallback.
+      if (Platform.environment['SHIPPING_EVIDENCE_DIR'] != null) {
+        await tester.runAsync(() async {
+          final artifacts = File(Platform.resolvedExecutable).parent.parent.parent;
+          for (final font in [
+            ('Noto Sans', 'roboto-regular.ttf'),
+            ('MaterialIcons', 'materialicons-regular.otf'),
+          ]) {
+            final loader = FontLoader(font.$1);
+            loader.addFont(File('${artifacts.path}/material_fonts/${font.$2}')
+                .readAsBytes().then((bytes) => ByteData.sublistView(bytes)));
+            await loader.load();
+          }
+        });
+      }
       final boundary = GlobalKey();
       Future<void> show(bool allowed) async {
         await tester.pumpWidget(
@@ -43,6 +61,7 @@ void main() {
               downloadsSizeProvider.overrideWith((ref) async => 1024),
             ],
             child: MaterialApp(
+              theme: buildIndigenTheme(),
               home: RepaintBoundary(
                 key: boundary,
                 child: const DownloadsScreen(),
@@ -56,7 +75,13 @@ void main() {
       await show(true);
       expect(
         tester
-            .widget<IconButton>(find.byWidgetPredicate((widget) => widget is IconButton && widget.tooltip == 'Play downloaded track'))
+            .widget<IconButton>(
+              find.byWidgetPredicate(
+                (widget) =>
+                    widget is IconButton &&
+                    widget.tooltip == 'Play downloaded track',
+              ),
+            )
             .onPressed,
         isNotNull,
       );
@@ -67,20 +92,28 @@ void main() {
       expect(tester.takeException(), isNull);
       final directory = Platform.environment['SHIPPING_EVIDENCE_DIR'];
       if (directory != null) {
-        final render =
-            boundary.currentContext!.findRenderObject()!
-                as RenderRepaintBoundary;
-        final image = await render.toImage();
-        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-        await Directory(directory).create(recursive: true);
-        await File('$directory/mobile-downloads-test.png')
-            .writeAsBytes(bytes!.buffer.asUint8List());
-        image.dispose();
+        await tester.runAsync(() async {
+          final render =
+              boundary.currentContext!.findRenderObject()!
+                  as RenderRepaintBoundary;
+          final image = await render.toImage();
+          final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+          await Directory(directory).create(recursive: true);
+          await File('$directory/mobile-downloads-test.png')
+              .writeAsBytes(bytes!.buffer.asUint8List());
+          image.dispose();
+        });
       }
       await show(false);
       expect(
         tester
-            .widget<IconButton>(find.byWidgetPredicate((widget) => widget is IconButton && widget.tooltip == 'Play downloaded track'))
+            .widget<IconButton>(
+              find.byWidgetPredicate(
+                (widget) =>
+                    widget is IconButton &&
+                    widget.tooltip == 'Play downloaded track',
+              ),
+            )
             .onPressed,
         isNull,
       );

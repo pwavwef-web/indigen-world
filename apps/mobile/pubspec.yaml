@@ -59,6 +59,7 @@ dependencies:
   app_links: ^7.2.1
 
 dev_dependencies:
+  video_player_platform_interface: 6.9.0
   integration_test:
     sdk: flutter
   flutter_test:

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/data/local/app_database.dart';
+import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_repository.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_providers.dart';
 
@@ -53,7 +54,11 @@ final downloadLimitProvider = Provider<int>(
 
 /// Whether offline listening is available at all right now.
 final offlineEntitlementActiveProvider = StreamProvider<bool>((ref) {
-  final entitlement = ref.watch(entitlementProvider).asData?.value;
+  final uid = ref.watch(currentUidProvider);
+  final result = ref.watch(entitlementProvider);
+  final entitlement = uid == null || result.isLoading
+      ? null
+      : result.asData?.value;
   final controller = StreamController<bool>();
   controller.add(entitlement?.isActive ?? false);
   Timer? timer;

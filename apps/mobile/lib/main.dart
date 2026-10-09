@@ -129,9 +129,8 @@ Future<void> main() async {
           musicAudioHandlerProvider.overrideWith((ref) {
             final handler = audioHandler!;
             handler.canPlayOffline = () =>
-                (ref.read(entitlementProvider).asData?.value.isActive ??
-                    false) &&
-                ref.read(downloadLimitProvider) > 0;
+                ref.read(downloadsAllowedProvider) &&
+                (ref.read(entitlementProvider).asData?.value.isActive ?? false);
             ref.listen<bool>(downloadsAllowedProvider, (_, allowed) {
               if (!allowed &&
                   (handler.mediaItem.value?.extras?['url'] as String?)

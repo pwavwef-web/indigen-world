@@ -4,6 +4,7 @@ import { sourceReference, type SourceReference } from './sourceReference';
 import { belongsToCollection, COLLECTIONS, type CollectionKind } from "./collections";
 import {
   collection,
+  connectFirestoreEmulator,
   getFirestore,
   onSnapshot,
   query,
@@ -12,14 +13,18 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 
+const usingEmulators = import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === 'true';
 const app = initializeApp({
   apiKey: "AIzaSyDe9TAz3pl0tiNqpIZZ0EQxmPEgMtf6kRA",
   authDomain: "project-kassena-7e026.firebaseapp.com",
-  projectId: "project-kassena-7e026",
+  projectId: usingEmulators ? (import.meta.env.VITE_EMULATOR_PROJECT_ID || "demo-indigen-world") : "project-kassena-7e026",
   storageBucket: "project-kassena-7e026.firebasestorage.app",
   messagingSenderId: "111428711822",
   appId: "1:111428711822:web:4c3913f1d671a7b129a0df",
 });
+
+const db = getFirestore(app);
+if (usingEmulators) connectFirestoreEmulator(db, '127.0.0.1', Number(import.meta.env.VITE_FIRESTORE_EMULATOR_PORT || 8080));
 
 export interface DictionaryEntry {
   id: string;
@@ -106,7 +111,6 @@ export function subscribeToDictionary(
     onEntries(ILLUSTRATIONS.map(figure => ({ id: `grammarIllustrations:${figure.id}`, sourceCollection: 'grammarIllustrations', headword: figure.title, translation: figure.caption, partOfSpeech: 'Original source illustration', dialect: 'Not recorded', pronunciation: '', audioUrl: '', example: '', exampleTranslation: '', culturalNote: null, attribution: 'A Basic Grammar of Kasem · GILLBT', authenticationStatus: '', literalTranslation: '', usageContext: '', frenchTranslation: '', reference: sourceReference({importId:'gillbt-basic-grammar-1983-2014', sourceRefs:[`DOCX block ${figure.block}`]}), illustration: {url:figure.url,alt:figure.alt,caption:figure.caption} })));
     return () => {};
   }
-  const db = getFirestore(app);
   const base = [where(COLLECTIONS[kind].field, "==", kind === 'grammar' ? 'published' : kind === 'sentences' ? 'confirmed' : true)];
   const rows = new Map<string, DictionaryEntry[]>();
   const emit = () => onEntries([...rows.values()].flat()

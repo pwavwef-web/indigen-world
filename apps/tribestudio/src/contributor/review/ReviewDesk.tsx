@@ -77,6 +77,7 @@ function AuthorizedDesk() {
   const [deciding, setDeciding] = useState(false);
   const [pageSize, setPageSize] = useState(60);
   const [counts, setCounts] = useState<Record<string, number | null>>({});
+  const countSignature = rows.map(row => row.id).join('|');
   useEffect(() => {
     let active = true; setCounts({});
     void Promise.all(config.queues.map(async ([value]) => {
@@ -84,7 +85,7 @@ function AuthorizedDesk() {
       catch { return [value, null] as const; }
     })).then(values => { if (active) setCounts(Object.fromEntries(values)); });
     return () => { active = false; };
-  }, [config.collection, status, notice, attempt]);
+  }, [config.collection, status, notice, attempt, countSignature]);
   useEffect(() => { setPageSize(60); setRows([]); setSelected(null); setCategory(''); }, [desk, status]);
   useEffect(() => {
     setLoading(true); setError('');
@@ -143,7 +144,7 @@ function AuthorizedDesk() {
             {config.queues.map(([value, label]) => (
               <button key={value} type="button" className="ts-chip" aria-pressed={status === value} onClick={() => switchQueue(desk, value)}>
                 <span className="ts-dot" style={{ ['--dot' as string]: `var(--${STATUS_TONE[value] === 'success' ? 'success-dot' : STATUS_TONE[value] === 'warning' ? 'warning-dot' : STATUS_TONE[value] === 'danger' ? 'danger-dot' : 'c-blue'})` }} aria-hidden="true" />
-                {label} <span aria-label="records">{counts[value] ?? '—'}</span>
+                {label} <span aria-label="records" title="Server total; refreshed when this queue changes">{counts[value] ?? '—'}</span>
               </button>
             ))}
           </div>
