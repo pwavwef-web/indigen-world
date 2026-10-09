@@ -1,8 +1,29 @@
 # Production release 0.1.31+40 — 2026-10-09
 
-Status: all14 scoped Functions deployed and verified ACTIVE; all three Hosting
+Status: all 14 scoped Functions deployed and verified ACTIVE; all three Hosting
 sites deployed and their served HTML/entry JavaScript verified against local
-builds. Signed AAB preparation is still in progress.
+builds. Signed production AAB built and verified against the existing upload key.
+No Play upload, main merge, production backfill or Blogger publication occurred.
+
+## Verified Android artifact
+
+Build completed at 18:23 UTC; independent identity/signing verification completed
+at 18:41 UTC on 2026-10-09. Existing `npm run build:mobile-aab` exited 0.
+
+| Fact | Value |
+| --- | --- |
+| Version | 0.1.31, version code 40 |
+| Package | com.indigenworld.indigen |
+| Min / target SDK | 24 / 36 |
+| ABIs | arm64-v8a, armeabi-v7a, x86_64 |
+| Size | 102,614,567 bytes (97.9 MiB) |
+| SHA-256 | d912349da654ca7693341308de5bfb18dd9dade727ac1a0bf296691849ca4cab |
+| Signing | jarsigner verified; certificate matches existing upload keystore |
+| Certificate SHA-256 | 2796c47004b28bdfaca8ef1704fc4d97bedb11158d831a065edbacceddeaa23f |
+
+Canonical output: `apps/mobile/build/app/outputs/bundle/productionRelease/app-production-release.aab`.
+Versioned identical copy: `.tooling/ten-shipping/release/indigen-0.1.31+40.aab`.
+Both are ignored artifacts in the isolated Desktop worktree; neither was committed.
 
 The owner explicitly requested deployment, a version-code bump and a new release
 AAB. They then authorized deploying the reviewed branch without merging, as a
@@ -23,14 +44,15 @@ upload, Blogger publication, production source ingestion or backfill is authoriz
 - Pinned Flutter3.47.0/Dart3.13.0 has an isolated SDK checkout/cache under ignored
   `.tooling/ten-shipping/flutter-release-sdk` because another project's original
   SDK remains locked. A separate Gradle cache avoids the previously corrupt journal.
-- Final focused mobile79/79 pass, including in-flight closing-save regression.
+- Final focused mobile 79/79 pass, including in-flight closing-save regression.
   Flutter analysis retains exactly three existing experimental audio warnings.
 - The final Downloads capture test passed and its readable title/body/actions
   were inspected. The post contains this actual asset with test-font/synthetic
   fixture credits. Physical-device tests unavailable.
 - Functions rebuilt successfully. Existing 655 helper/21 emulator/browser results
   are in `ten-improvements-verification.md`. Required public sentence and reviewer
-  index definitions were found in live metadata; CLI did not report READY state.
+  index definitions were found in live metadata, and direct live API verification
+  confirmed READY before client deployment.
 
 ## Deployment scope and safeguards
 
@@ -45,10 +67,9 @@ the CLI's failure-policy confirmation is accepted only for these scoped targets.
 
 Earlier preflight attempts encountered intermittent Google API request failures at Pub/Sub
 identity generation, function listing and Secret Manager metadata. Direct authenticated
-checks confirmed Pub/Sub/Eventarc identities ready. Deployment completion still needs
-fresh live state verification. No permissions, TLS checks or release checks weakened.
-The Node22 SDK deployment completed successfully at 17:33 UTC. Live verification
-at 17:34 UTC found all14 ACTIVE with the same source hash
+checks confirmed Pub/Sub/Eventarc identities ready. No permissions, TLS checks or
+release checks weakened. Node 22 SDK deployment completed at 17:32 UTC. Live
+verification at 17:34 UTC found all 14 ACTIVE with the same source hash
 `616a26e17f7476fd4843e14d2f18bd9d6b62f0e3`, Node22 and candidate flag false.
 Reviewer and sentence indexes are READY. All three submission endpoints returned
 401 UNAUTHENTICATED without an account; no production records were created.
@@ -80,21 +101,24 @@ project/targets. `deploy-api.cjs` is a diagnostic SDK deployment with narrow err
 messages; do not dump credentials, `.env`, raw debug logs or live function payloads.
 `build.mjs` uses the isolated pinned SDK/JDK21 and existing `build:mobile-aab` script.
 
-Final session98719 completed: locked restoration0, analysis1 (same three baseline
-warnings), focused79/790, capture0. Current session67484 runs build-only.mjs for
-the signed bundle using the verified cache. Session16001 exited1 at the SQLite
-hook above. Sessions4963/61597 ended with the specific
-Android/predeploy failures above;31795 Functions deployment ended0. Other
-project's original SDK owner29672 must not be stopped. Shell PATH initially
-omits Flutter; use the isolated SDK bin and Android Studio JDK bin explicitly.
+Final session 98719 completed: locked restoration 0, analysis 1 (same three baseline
+warnings), focused 79/79 with exit 0, capture 0. Build session 67484 and independent
+artifact verification 84357 completed with exit 0. No release process remains active.
+Other projects' original SDK/processes were preserved. Ignore the superseded failed
+build/preflight sessions; their exact failures and repairs are documented above.
 
-After successful backend deployment, inspect all14 targets ACTIVE and smoke missing
-auth guards without creating records or invoking paid model calls; deploy Hosting,
-then compare served asset hashes with local files. After build, verify archive signing
-matches the existing upload key, package/version40, ABIs, size and SHA256; retain a
-versioned copy of the new AAB. Do not present a stale/debug-signed bundle as a release.
-Recapture/inspect mobile image, add image/caption/credits to the grouped release post,
-update verified deployment/artifact facts, commit handoff and leave branch clean.
+Repeat local checks with `npm run verify:ten-shipping -- --web --emulator --mobile --browser`.
+Prerequisites and per-step exit codes are in `ten-improvements-verification.md`.
+Repeat the AAB with `npm run build:mobile-aab`: pinned Flutter 3.47.0 on PATH,
+Android SDK/NDK from the existing project pins, JDK 21, ignored production Firebase,
+signing and AdMob configuration. Exit 0 confirms the build; nonzero is a failure.
+The existing script prints artifact identity/hash/signature facts. Also compare the
+public bundle certificate with the upload keystore before uploading to Play.
+
+Physical-device audio, real Google sign-in return and authorized production
+reviewer/App Check workflows remain unverified. The index reader is disabled pending
+the separately authorized dry run/backfill/readiness sequence. GitHub Actions billing
+blocked prior CI; unstarted jobs are not passing. AAB generation is not a Play release.
 
 Rollback: previous Hosting releases; compatible old Functions source while retaining
 private retry receipts. Candidate flag stays off and no source data is rewritten.

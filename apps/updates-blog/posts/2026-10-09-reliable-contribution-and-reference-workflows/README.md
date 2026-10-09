@@ -1,6 +1,6 @@
 # Reliable contributions, clearer sources and offline listening
 
-Status: **Prepared 2026-10-09. Web clients and compatible backend deployed and verified on Firebase. Mobile0.1.31+40 AAB is being prepared; no Play upload, Blogger publication or external sharing. Runtime limitations remain in the engineering handoff.**
+Status: **Prepared 2026-10-09. Web clients and compatible backend deployed and verified on Firebase. Mobile 0.1.31+40 production AAB built and verified against the existing upload key; no Play upload, Blogger publication or external sharing. Runtime limitations remain in the engineering handoff.**
 
 | Field | Value |
 | --- | --- |

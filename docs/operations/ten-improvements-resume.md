@@ -205,3 +205,24 @@ copy into post, update release docs with facts, commit handoff and leave clean.
 All helpers use the isolated pinned Flutter/JDK21/Gradle cache and sanitized env.
 No other project's SDK/process may be stopped. Main merge, Play upload, production
 backfill/readiness, Blogger publication/sharing remain outside this release scope.
+
+## Final release checkpoint — 2026-10-09, 18:41 UTC
+
+All requested deployment and AAB preparation completed. Build 67484 exited 0 at
+18:23 UTC; independent verification 84357 exited 0 at 18:41 UTC. Version 0.1.31+40,
+package com.indigenworld.indigen, min/target 24/36, all three expected ABIs,
+102,614,567 bytes. SHA256:
+`d912349da654ca7693341308de5bfb18dd9dade727ac1a0bf296691849ca4cab`.
+Jarsigner verifies; certificate matches the existing upload keystore.
+Canonical AAB is in mobile/build/app/outputs/bundle/productionRelease; an identical
+versioned copy is in .tooling/ten-shipping/release/indigen-0.1.31+40.aab.
+
+Final dependency restoration, 79 focused tests and readable Downloads capture
+passed. Analysis has exactly the same three baseline experimental audio warnings.
+Screenshot inspected and committed in af20200 with the release-post assets.
+No release process remains active; all former build/preflight attempts are closed.
+Functions and Hosting are verified live as recorded above. Candidate reader stays
+disabled, no production backfill or Play upload. Detailed final evidence is in
+release-0.1.31-40.md; repeatable checks/table in ten-improvements-verification.md.
+Remaining work requires physical device/authenticated runtime verification or
+separate authorization for the index/store/community publication rollout.
