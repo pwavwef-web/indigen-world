@@ -1,6 +1,6 @@
 # Clearer points, fairer rewards and flexible redemptions
 
-Status: **Implemented and verified locally on October 10, 2026. Not deployed. Not switched on. Blogger article unpublished.**
+Status: **Deployed October 10, 2026 from `f9443fd`. New redemptions are live at the proposed default rates. Quality-based awards and the assessment worker are deployed but not switched on. Blogger article unpublished.**
 
 - Title: Clearer points, fairer rewards and redemptions you choose
 - Labels: Contributors, TribeStudio, Rewards, Kasem, Training Data, Feature
@@ -26,11 +26,16 @@ Implemented in the repository (uncommitted):
   rollout switches, points ledger and audit history.
 - Firestore rules and five indexes.
 
-Not done: deployment of rules, indexes, functions, the worker and hosting; the
-production migration; granting the finance claim; Finance calibration of the
-proposed rates; a signed-in production check. There is no automated airtime or
-data provider — Finance tops up by hand. Mobile data needs real bundles entered by
-Finance. **Do not describe this as live until the release evidence below is filled in.**
+Live since October 10 (see evidence below): rules, indexes, 20 functions,
+TribeStudio, admin and the Python worker. Contributors now redeem through the new
+quote-and-confirm flow with the bonus bands; awards still follow the previous
+10-point rule (now recorded in the ledger) until Finance switches `awardMode` to
+assessed. Still pending: Finance review of the proposed rates, granting the finance
+permission (Finance decisions now require it), switching on the worker and assessed
+awards, the optional bulk ledger opening (accounts open on first use anyway), and a
+signed-in production check. There is no automated airtime or data provider — Finance
+tops up by hand — and mobile data needs real bundles entered by Finance. **Do not
+announce quality-based awards until they are switched on.**
 
 The rates, multipliers and category points are proposed calibration settings, not
 measured evidence or an approved budget. Update the article if Finance changes them.
@@ -78,13 +83,21 @@ Phone numbers are test numbers. Credit: Indigen World product interface.
 6. Publication and sharing remain with Chinedum. After publishing, paste the URL into
    `share.md` and record it here.
 
-## Release evidence to complete
+## Release evidence
 
-- Deployed commit, functions list and time: pending
-- Rules and indexes deployed: pending
-- Migration dry-run report reviewed and committed: pending
-- Finance claim granted to: pending
-- Worker deployed and switched on: pending
-- Award mode switched to assessed: pending
-- Signed-in production checks (contributor, validator, Finance): pending
-- Blogger publication date and article URL: pending
+- Commit: `f9443fd` on `main` (pushed October 10, 2026).
+- Pre-deploy production snapshot (read-only migration dry run, 11:37 UTC): 13
+  contributor accounts, 1,650 available points, lifetime 2,150 = sum of credit
+  records, 0 open legacy requests, 0 discrepancies.
+- Firestore rules released; five indexes deployed (one unrelated index exists in the
+  project but not in the file; it was not deleted).
+- Functions (explicit list, `--force`): 14 created, 6 updated; live count 199 → 213,
+  none removed. Every new callable answered an unauthenticated probe with its own
+  message ("Sign in is required." / "admin access is required.").
+- Hosting: `tribestudio` and `indigen-admin` released; tribestudio.indigenworld.com
+  and admin.indigenworld.com serve chunks containing the new UI (`ContributorPortal-CcZHEfku.js`, admin `index-KbUwJfMj.js`).
+- Python worker `run_assessment_job`: ACTIVE, GEN_2, python314, Firestore
+  `document.created` trigger, runtime service account with `roles/editor`,
+  `ASSESSMENT_KAWURI=vertex`. Not invoked until `assessmentWorker` is switched on.
+- Not yet: Finance rate review, finance permission granted, flags switched,
+  signed-in production checks, Blogger publication date and URL.

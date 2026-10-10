@@ -1,6 +1,6 @@
 # Sharing copy for Chinedum
 
-**Status: local development preview; deployment, Finance review and article publication pending.**
+**Status: deployed October 10; redemptions live at the proposed rates; quality-based awards not switched on yet; article publication pending.**
 
 Published article URL: **[PASTE PUBLISHED ARTICLE URL HERE]**
 
@@ -13,7 +13,7 @@ bonus on larger redemptions. Rates are still being reviewed.
 
 Read the preview: [PASTE PUBLISHED ARTICLE URL HERE]
 
-## Use only after deployment and Finance approval of the rates
+## Use only after Finance approves the rates and switches on quality-based awards
 
 Contributor points now reward useful, validator-checked Kasem data, and every award
 shows its calculation. Redeem any number of points from 300 — for example 900 points

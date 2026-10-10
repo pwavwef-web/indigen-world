@@ -1,10 +1,12 @@
 # Contributor points, assessments and redemptions
 
-Status (2026-10-10): implemented and verified locally (unit, emulator and
-browser checks below). **Not deployed.** Nothing here has been published or
-switched on in production. Every number in the default policies is a
-**proposed calibration setting**, not measured evidence of Kasem data quality
-and not a proven sustainable payout rate.
+Status (2026-10-10, 14:30 UTC): **deployed from `f9443fd`** — rules, indexes,
+20 functions, TribeStudio, admin and the Python worker. New redemptions are live at
+the proposed default rates. `awardMode` is still `legacy-flat` (the previous 10-point
+rule, now written to the ledger) and `assessmentWorker` is `off`. Every number in the
+default policies is a **proposed calibration setting**, not measured evidence of
+Kasem data quality and not a proven sustainable payout rate. Release evidence:
+`apps/updates-blog/posts/2026-10-10-points-and-rewards/README.md`.
 
 ## What changed
 
@@ -289,7 +291,8 @@ Functions emulator cannot load the bundle on Node 24).
 * Data bundles must be entered by Finance from a real channel before data is offered.
 * Defaults need calibration with reviewer-labelled samples and budget.
 * The finance claim must be granted to whoever decides redemptions.
-* Production deploy, migration, worker deployment (and Vertex AI User on its
-  runtime service account) and a signed-in production check are not done.
+* Deployed 2026-10-10. Not yet: the bulk ledger opening (`--commit`; accounts open
+  lazily on first use anyway), switching on the worker and assessed awards, and a
+  signed-in production check.
 * Only invited-portal expressions are rewardable; other categories exist in
   the policy but nothing routes them yet.
