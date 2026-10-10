@@ -24,6 +24,7 @@ import {
   type PayoutHistoryEvent,
   type VerificationStatus,
 } from './data';
+import { askText, confirmAction } from '../ui/dialogs';
 
 /**
  * The finance desk for contributor payout verification.
@@ -219,7 +220,12 @@ function VerificationDetail({ entry, name, statementCheck, onDone, onNotice }: {
   const submit = async () => {
     if (problem) return;
     const verb = decision === 'verify' ? 'verify' : decision === 'needs_action' ? 'mark as needing action' : 'reject';
-    if (!window.confirm(`${verb[0].toUpperCase()}${verb.slice(1)} ${name}’s ${entry.method === 'bank' ? 'bank account' : 'MoMo wallet'}? The contributor is notified and the decision is recorded in the audit log.`)) return;
+    if (!(await confirmAction({
+      title: `${verb[0].toUpperCase()}${verb.slice(1)} ${name}’s ${entry.method === 'bank' ? 'bank account' : 'MoMo wallet'}?`,
+      body: 'The contributor is notified and the decision is recorded in the audit log.',
+      confirmLabel: 'Record decision',
+      tone: decision === 'reject' ? 'danger' : 'primary',
+    }))) return;
     setBusy('decide'); setError('');
     try {
       await decidePayoutVerification({ contributorId: entry.profile.contributorId, method: entry.method, decision, reason: reason.trim(), nextStep: nextStep.trim(), version: section.version });
@@ -325,11 +331,15 @@ function PaymentRequests({ requests, nameFor, onReload, onNotice }: {
 }) {
   const [busy, setBusy] = useState('');
   const decide = async (request: ContributorPaymentRequest, action: 'approve' | 'reject' | 'paid') => {
-    const note = action === 'reject' ? window.prompt('Reason for rejecting this request') ?? ''
-      : window.prompt(action === 'paid' ? 'Optional payment note' : 'Optional approval note') ?? '';
-    if (action === 'reject' && !note.trim()) return;
-    const paymentReference = action === 'paid' ? window.prompt('Enter the bank or MoMo payment reference') ?? '' : '';
-    if (action === 'paid' && !paymentReference.trim()) return;
+    const amount = new Intl.NumberFormat(undefined, { style: 'currency', currency: request.currency }).format(request.amountMinor / 100);
+    const paymentReference = action === 'paid'
+      ? await askText({ title: `Record payment of ${amount}`, body: 'Enter the reference from the bank or MoMo transfer you made. Nothing is sent from here.', label: 'Payment reference', required: true, maxLength: 160, confirmLabel: 'Continue' })
+      : '';
+    if (paymentReference === null) return;
+    const note = await askText(action === 'reject'
+      ? { title: `Reject ${nameFor(request.contributorId)}’s request?`, label: 'Reason shown to the contributor', required: true, multiline: true, maxLength: 1000, confirmLabel: 'Reject request', tone: 'danger' }
+      : { title: action === 'paid' ? 'Add a payment note' : `Approve ${amount} for ${nameFor(request.contributorId)}?`, label: action === 'paid' ? 'Note (optional)' : 'Approval note (optional)', multiline: true, maxLength: 1000, confirmLabel: action === 'paid' ? 'Mark paid' : 'Approve' });
+    if (note === null) return;
     setBusy(request.id);
     try {
       await decideContributorPayment(request.id, action, note, paymentReference);

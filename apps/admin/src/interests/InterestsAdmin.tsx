@@ -1,3 +1,5 @@
+import { useSession } from '../session';
+import { confirmAction } from '../ui/dialogs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { isAdmin, type AdminRole } from '../creators/data';
 import {
@@ -264,8 +266,8 @@ function InterestDetailModal({
               <button
                 type="button"
                 className="btn-danger"
-                onClick={() => {
-                  if (window.confirm('Delete this submission permanently? This cannot be undone.')) {
+                onClick={async () => {
+                  if (await confirmAction({ title: 'Delete this submission permanently?', body: 'This cannot be undone.', confirmLabel: 'Delete', tone: 'danger' })) {
                     onDelete(submission.id);
                   }
                 }}
@@ -283,7 +285,8 @@ function InterestDetailModal({
   );
 }
 
-export function InterestsAdmin({ role }: { role: AdminRole }) {
+export function InterestsAdmin() {
+  const role: AdminRole = useSession().access.role;
   const [submissions, setSubmissions] = useState<PublicFormSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [formFilter, setFormFilter] = useState<'get-involved' | 'contact' | 'tester-reward-claim' | 'ALL'>('ALL');
@@ -375,9 +378,10 @@ export function InterestsAdmin({ role }: { role: AdminRole }) {
 
   const handleBatchStatus = async (newStatus: SubmissionStatus) => {
     if (selectedIds.size === 0) return;
-    const confirmed = window.confirm(
-      `Mark all ${selectedIds.size} selected submissions as "${newStatus}"?`
-    );
+    const confirmed = await confirmAction({
+      title: `Mark ${selectedIds.size} submissions as “${newStatus.replaceAll('_', ' ')}”?`,
+      confirmLabel: 'Update status',
+    });
     if (!confirmed) return;
 
     setBusyBatch(true);

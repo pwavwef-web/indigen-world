@@ -1,29 +1,41 @@
 import { ContributorIssuesAdmin } from './ContributorIssuesAdmin';
 import { SupportInbox } from './SupportInbox';
-import { ContributorPaymentsDesk } from './ContributorPaymentsDesk';
-import { ContributorRewardsDesk } from './ContributorRewardsDesk';
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import {
   Alert,
   DataTable,
-  PageHeader,
+  PageHeader as KitPageHeader,
   Panel,
-  SegmentedControl,
-  Spinner,
-  Stat,
-  StatGrid,
   StatusPill,
   toneForStatus,
   type DataColumn,
 } from '@indigen-world/console-ui';
-import { decideSubmission, useAdminAuth } from '../creators/data';
+import { Link, useRouter } from '../router';
+import { askText, confirmAction } from '../ui/dialogs';
+import { Icon } from '../ui/icons';
+import {
+  Avatar as AdminAvatar,
+  Badge,
+  Button,
+  Dialog,
+  EmptyState,
+  IconButton,
+  Notice,
+  PageHeader,
+  ProgressBar,
+  SearchField,
+  Segmented as AdminSegmented,
+  Select,
+  Skeleton as AdminSkeleton,
+  Toast,
+  cx,
+} from '../ui/primitives';
 import {
   assignContributorWork,
   prepareDailyTasks,
   cancelContributorInvite,
   fetchContributorAuditEntries,
   fetchContributorDirectory,
-  fetchContributorPayments,
   fetchContributorSubmissions,
   inviteContributorWithExpressions,
   resendContributorInvite,
@@ -35,7 +47,6 @@ import {
   type ContributorAuditEntry,
   type ContributorDirectoryRow,
   type ContributorPermissions,
-  type ContributorPayments,
   type ContributorProfileInput,
   type ContributorRole,
   type ContributorStatus,
@@ -44,7 +55,6 @@ import {
 } from './data';
 import './contributors.css';
 
-type View = 'directory' | 'assignments' | 'review' | 'payments' | 'issues' | 'rewards';
 type Modal =
   | { kind: 'profile'; contributor?: ContributorDirectoryRow }
   | { kind: 'assignment'; contributor: ContributorDirectoryRow }
@@ -77,14 +87,6 @@ function dateLabel(value: string, fallback = '—'): string {
 
 function initials(name: string): string {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'IW';
-}
-
-function Avatar({ contributor, large = false }: { contributor: ContributorDirectoryRow; large?: boolean }) {
-  return (
-    <span className={`contributor-avatar${large ? ' contributor-avatar--large' : ''}`} aria-hidden="true">
-      {contributor.photoUrl ? <img src={contributor.photoUrl} alt="" /> : initials(contributor.displayName)}
-    </span>
-  );
 }
 
 function ToggleList<T extends string>({
@@ -125,18 +127,9 @@ function ModalShell({ title, description, onClose, children, footer }: {
   footer?: ReactNode;
 }) {
   return (
-    <div className="contributor-modal-backdrop" onMouseDown={(event) => {
-      if (event.target === event.currentTarget) onClose();
-    }}>
-      <section className="contributor-modal" role="dialog" aria-modal="true" aria-labelledby="contributor-modal-title">
-        <header>
-          <div><h2 id="contributor-modal-title">{title}</h2>{description ? <p>{description}</p> : null}</div>
-          <button type="button" className="contributor-modal__close" onClick={onClose} aria-label="Close">×</button>
-        </header>
-        <div className="contributor-modal__body">{children}</div>
-        {footer ? <footer>{footer}</footer> : null}
-      </section>
-    </div>
+    <Dialog title={title} lede={description} onClose={onClose} footer={footer} size="lg" className="contributor-modal">
+      {children}
+    </Dialog>
   );
 }
 
@@ -360,33 +353,6 @@ function WorkProgress({ work }: { work: ContributorWork }) {
   return <div className="contributor-progress-cell"><span><strong>{work.submittedCount}</strong> / {work.itemCount} submitted</span><progress value={work.submittedCount} max={work.itemCount || 1} /><small>{work.verifiedCount} verified{work.revisionCount ? ` · ${work.revisionCount} need attention` : ''} · {complete}%</small></div>;
 }
 
-function ContributorDetail({ contributor, submissions, audits, onEdit, onAssign, onAccess, onResend, onCancel }: {
-  contributor: ContributorDirectoryRow;
-  submissions: ContributorSubmission[];
-  audits: ContributorAuditEntry[];
-  onEdit: () => void;
-  onAssign: () => void;
-  onAccess: () => void;
-  onResend: () => void;
-  onCancel: () => void;
-}) {
-  const history = submissions.filter((item) => item.contributorId === contributor.id);
-  const activity = audits.filter((item) => item.targetId === contributor.id).slice(0, 8);
-  return (
-    <div className="contributor-detail">
-      <section className="contributor-detail__identity"><Avatar contributor={contributor} large /><div><h3>{contributor.displayName}</h3><p>{contributor.biography || 'No public biography yet.'}</p><div className="contributor-chip-row">{contributor.expertise.map((item) => <span key={item}>{item}</span>)}</div></div><div className="contributor-detail__actions"><button type="button" onClick={onEdit}>Edit profile</button><button type="button" className="button--primary" onClick={onAssign}>{contributor.accountStatus === 'none' ? 'Invite & assign' : 'Assign expressions'}</button><button type="button" onClick={onAccess}>Access & visibility</button></div></section>
-      <div className="contributor-detail-grid">
-        <section><h4>Public profile</h4><dl><div><dt>Location</dt><dd>{contributor.location || '—'}</dd></div><div><dt>Website</dt><dd>{contributor.website ? <a href={contributor.website} target="_blank" rel="noreferrer">Open website ↗</a> : '—'}</dd></div><div><dt>Visibility</dt><dd><StatusPill tone={contributor.publicVisibility === 'public' ? 'success' : 'neutral'}>{contributor.publicVisibility}</StatusPill></dd></div></dl></section>
-        <section className="contributor-private-card"><h4>Private contact</h4><dl><div><dt>Email</dt><dd>{contributor.email || '—'}</dd></div><div><dt>Phone</dt><dd>{contributor.phone || '—'}</dd></div><div><dt>Internal notes</dt><dd>{contributor.notes || '—'}</dd></div></dl></section>
-        <section><h4>Roles & permissions</h4><div className="contributor-chip-row">{contributor.roles.length ? contributor.roles.map((role) => <span key={role}>{role}</span>) : <span>no roles</span>}</div><p className="muted">{(Object.keys(contributor.permissions) as (keyof ContributorPermissions)[]).filter((key) => contributor.permissions[key]).join(' · ') || 'No workspace permissions'}</p></section>
-        <section><h4>Invitation & account</h4><p><StatusPill tone={toneForStatus(contributor.invitation.status)}>{contributor.invitation.status.replace('_', ' ')}</StatusPill> <StatusPill tone={toneForStatus(contributor.accountStatus)}>{contributor.accountStatus}</StatusPill></p><p className="muted">Sent {dateLabel(contributor.invitation.sentAt)}{contributor.lastActiveAt ? ` · Last active ${dateLabel(contributor.lastActiveAt)}` : ''}</p>{contributor.invitation.sms && <p>SMS: {contributor.invitation.sms.status === 'accepted' ? 'Accepted by provider' : contributor.invitation.sms.status === 'failed' ? 'Failed — resend to retry' : 'Not confirmed'} · {contributor.invitation.sms.to}</p>}{contributor.invitation.status === 'pending' ? <div className="row-actions"><button type="button" onClick={onResend}>Resend invitation</button><button type="button" className="danger" onClick={onCancel}>Cancel invitation</button></div> : null}</section>
-      </div>
-      <section><h4>Contribution history</h4>{history.length ? <div className="contributor-history-list">{history.slice(0, 8).map((item) => <article key={item.id}><div><strong>{item.title}</strong><small>{dateLabel(item.createdAt)} · {item.alternatives.length} alternatives</small></div><StatusPill tone={toneForStatus(item.status)}>{item.status.replaceAll('_', ' ')}</StatusPill></article>)}</div> : <p className="muted">No submissions yet.</p>}</section>
-      <section><h4>Recent administrative activity</h4>{activity.length ? <ol className="contributor-activity">{activity.map((item) => <li key={item.id}><span>{item.action.replaceAll('.', ' / ')}</span><time>{dateLabel(item.occurredAt)}</time></li>)}</ol> : <p className="muted">No contributor-specific audit records in the latest activity window.</p>}</section>
-    </div>
-  );
-}
-
 function AssignmentsView({ rows, onAssign }: { rows: ContributorDirectoryRow[]; onAssign: (row: ContributorDirectoryRow) => void }) {
   const workRows = rows.flatMap((contributor) => contributor.works.map((work) => ({ contributor, work })));
   const columns: DataColumn<(typeof workRows)[number]>[] = [
@@ -397,151 +363,400 @@ function AssignmentsView({ rows, onAssign }: { rows: ContributorDirectoryRow[]; 
     { id: 'created', header: 'Assigned', cell: ({ work }) => dateLabel(work.createdAt), sort: ({ work }) => work.createdAt },
     { id: 'more', header: 'Next', align: 'end', cell: ({ contributor }) => <button type="button" className="button button--small" onClick={() => onAssign(contributor)}>Assign more</button> },
   ];
-  return <Panel><PageHeader kicker="Work allocation" title="Expression assignments" body="Deadlines, progress and review outcomes for every set of expressions assigned through the contributor portal." /><DataTable caption="Contributor assignments" columns={columns} rows={workRows} rowKey={({ contributor, work }) => `${contributor.id}-${work.id}`} searchable searchPlaceholder="Search assignments or contributors…" initialSort={{ columnId: 'created', direction: 'desc' }} empty={{ title: 'No assignments yet', body: 'Invite a contributor with their first expression set from the directory.' }} /></Panel>;
+  return <Panel><KitPageHeader kicker="Work allocation" title="Expression assignments" body="Deadlines, progress and review outcomes for every set of expressions assigned through the contributor portal." /><DataTable caption="Contributor assignments" columns={columns} rows={workRows} rowKey={({ contributor, work }) => `${contributor.id}-${work.id}`} searchable searchPlaceholder="Search assignments or contributors…" initialSort={{ columnId: 'created', direction: 'desc' }} empty={{ title: 'No assignments yet', body: 'Invite a contributor with their first expression set from the directory.' }} /></Panel>;
 }
 
-function ReviewView({ submissions, contributors, loading, onReload, onNotice }: {
+type ContributorView = 'directory' | 'invitations' | 'assignments' | 'history' | 'support';
+
+const VIEW_COPY: Record<ContributorView, { title: string; description: string }> = {
+  directory: { title: 'Contributors', description: 'Manage people, invitations and assignments.' },
+  invitations: { title: 'Invitations', description: 'Pending and cancelled invitations, with resend and cancel.' },
+  assignments: { title: 'Assignments', description: 'Expression work, deadlines and progress.' },
+  history: { title: 'Contribution history', description: 'Every contributor submission and its outcome.' },
+  support: { title: 'Support & issues', description: 'Help requests and reported issues from contributors.' },
+};
+
+function accountTone(contributor: ContributorDirectoryRow): 'success' | 'warning' | 'danger' | 'neutral' {
+  if (contributor.accountStatus === 'suspended' || contributor.accountStatus === 'deactivated') return 'danger';
+  if (contributor.invitation.status === 'pending') return 'neutral';
+  if (contributor.status === 'active' && contributor.accountStatus === 'active') return 'success';
+  return 'neutral';
+}
+
+function accountLabel(contributor: ContributorDirectoryRow): string {
+  if (contributor.accountStatus === 'suspended') return 'Suspended';
+  if (contributor.accountStatus === 'deactivated') return 'Deactivated';
+  if (contributor.invitation.status === 'pending') return 'Invited';
+  if (contributor.status === 'inactive') return 'Inactive';
+  if (contributor.accountStatus === 'active') return 'Active';
+  return 'Profile only';
+}
+
+function activeWorks(contributor: ContributorDirectoryRow): ContributorWork[] {
+  return contributor.works.filter((work) => work.submittedCount < work.itemCount);
+}
+
+function ProfilePanel({ contributor, submissions, audits, onClose, onEdit, onAssign, onAccess, onResend, onCancel }: {
+  contributor: ContributorDirectoryRow;
   submissions: ContributorSubmission[];
+  audits: ContributorAuditEntry[];
+  onClose: () => void;
+  onEdit: () => void;
+  onAssign: () => void;
+  onAccess: () => void;
+  onResend: () => void;
+  onCancel: () => void;
+}) {
+  const [tab, setTab] = useState<'profile' | 'history'>('profile');
+  const history = submissions.filter((item) => item.contributorId === contributor.id);
+  const activity = audits.filter((item) => item.targetId === contributor.id).slice(0, 8);
+  const current = activeWorks(contributor)[0] ?? contributor.works[0];
+  return (
+    <aside className="ad-detail ad-profile-panel" aria-labelledby="profile-title">
+      <div className="ad-detail__head">
+        <span />
+        <IconButton icon="close" label="Close profile" onClick={onClose} />
+      </div>
+      <div className="ad-profile-panel__who">
+        <AdminAvatar name={contributor.displayName} src={contributor.photoUrl} size="lg" />
+        <h2 id="profile-title">{contributor.displayName}</h2>
+        <p className="ts-muted">{contributor.roles.map((role) => role[0].toUpperCase() + role.slice(1)).join(', ') || 'Contributor'}</p>
+        <Badge tone={accountTone(contributor)} dot>{accountLabel(contributor)}</Badge>
+      </div>
+      <div className="ts-tabs" role="tablist" aria-label="Contributor details">
+        <button type="button" role="tab" className={cx('ts-tab', tab === 'profile' && 'is-active')} aria-selected={tab === 'profile'} onClick={() => setTab('profile')}>Profile</button>
+        <button type="button" role="tab" className={cx('ts-tab', tab === 'history' && 'is-active')} aria-selected={tab === 'history'} onClick={() => setTab('history')}>History</button>
+      </div>
+      {tab === 'profile' ? (
+        <>
+          <dl className="ad-kv">
+            <div><dt>Location</dt><dd>{contributor.location || '—'}</dd></div>
+            <div><dt>Assignments</dt><dd>{activeWorks(contributor).length} active</dd></div>
+            <div><dt>Contributions</dt><dd>{history.length} submitted</dd></div>
+            <div><dt>Last active</dt><dd>{dateLabel(contributor.lastActiveAt)}</dd></div>
+            <div><dt>Email</dt><dd>{contributor.email || '—'}</dd></div>
+            <div><dt>Phone</dt><dd>{contributor.phone || '—'}</dd></div>
+            <div><dt>Profile</dt><dd>{contributor.publicVisibility === 'public' ? 'Public' : 'Hidden'}</dd></div>
+            <div><dt>Permissions</dt><dd>{(Object.keys(contributor.permissions) as (keyof ContributorPermissions)[]).filter((key) => contributor.permissions[key]).join(', ') || 'None'}</dd></div>
+          </dl>
+          {contributor.biography ? <p className="ts-muted">{contributor.biography}</p> : null}
+          {current ? (
+            <div className="ad-detail__section">
+              <h3>Current assignment</h3>
+              <div className="ad-assignment-card">
+                <strong>{current.title}</strong>
+                <span className="ts-muted">{current.submittedCount} of {current.itemCount} submitted{current.deadline ? ` · due ${dateLabel(current.deadline)}` : ''}</span>
+                <ProgressBar value={current.submittedCount} max={current.itemCount || 1} label={`${current.title}: ${current.submittedCount} of ${current.itemCount} submitted`} small />
+              </div>
+            </div>
+          ) : null}
+          <div className="ad-detail__section">
+            <h3>Invitation</h3>
+            <p className="ts-muted">{contributor.invitation.status.replace('_', ' ')}{contributor.invitation.sentAt ? ` · sent ${dateLabel(contributor.invitation.sentAt)}` : ''}{contributor.invitation.sms ? ` · SMS ${contributor.invitation.sms.status === 'accepted' ? 'accepted by provider' : contributor.invitation.sms.status === 'failed' ? 'failed' : 'not confirmed'}` : ''}</p>
+            {contributor.invitation.status === 'pending' ? (
+              <div className="ad-detail__actions"><Button size="sm" onClick={onResend}>Resend invitation</Button><Button size="sm" variant="danger-ghost" onClick={onCancel}>Cancel invitation</Button></div>
+            ) : null}
+          </div>
+          <div className="ad-detail__actions ad-profile-panel__actions">
+            <Button variant="primary" block onClick={onAssign}>{contributor.accountStatus === 'none' || contributor.invitation.status === 'cancelled' ? 'Invite & assign' : 'Manage assignments'}</Button>
+            <Button block onClick={onEdit}>Edit profile</Button>
+            <Button block onClick={onAccess}>Access & visibility</Button>
+          </div>
+          <div className="ad-profile-panel__links">
+            <Link to={`/contributors/history?contributor=${encodeURIComponent(contributor.id)}`} className="ts-link">View contribution history</Link>
+            {contributor.authUid ? <Link to={`/finance/redemptions?contributor=${encodeURIComponent(contributor.authUid)}`} className="ts-link">Point redemptions in Finance</Link> : null}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="ad-detail__section">
+            <h3>Recent contributions</h3>
+            {history.length ? (
+              <ul className="ad-list">
+                {history.slice(0, 8).map((item) => (
+                  <li key={item.id}><span><strong>{item.title}</strong><small>{dateLabel(item.createdAt)}</small></span><StatusPill tone={toneForStatus(item.status)}>{item.status.replaceAll('_', ' ').toLowerCase()}</StatusPill></li>
+                ))}
+              </ul>
+            ) : <p className="ts-muted">No submissions yet.</p>}
+          </div>
+          <div className="ad-detail__section">
+            <h3>Administrative activity</h3>
+            {activity.length ? (
+              <ol className="ad-timeline">{activity.map((item) => <li key={item.id} className="is-done"><span>{item.action.replace(/^contributor\./, '').replaceAll('.', ' · ').replaceAll('_', ' ')}<time>{dateLabel(item.occurredAt)}</time></span></li>)}</ol>
+            ) : <p className="ts-muted">No contributor-specific records in the latest activity window.</p>}
+          </div>
+          <Link to={`/contributors/history?contributor=${encodeURIComponent(contributor.id)}`} className="ts-link">Open full contribution history</Link>
+        </>
+      )}
+    </aside>
+  );
+}
+
+function DirectoryView({ contributors, submissions, audits, loading, onModal, onResend, onCancel }: {
+  contributors: ContributorDirectoryRow[];
+  submissions: ContributorSubmission[];
+  audits: ContributorAuditEntry[];
+  loading: boolean;
+  onModal: (modal: Modal) => void;
+  onResend: (row: ContributorDirectoryRow) => void;
+  onCancel: (row: ContributorDirectoryRow) => void;
+}) {
+  const { params, setParams } = useRouter();
+  const [search, setSearch] = useState('');
+  const statusFilter = params.get('status') ?? 'ALL';
+  const roleFilter = params.get('role') ?? 'ALL';
+  const typeFilter = params.get('type') ?? 'ALL';
+  const selectedId = params.get('contributor');
+  const needle = search.trim().toLowerCase();
+  const rows = useMemo(() => contributors.filter((item) =>
+    (statusFilter === 'ALL' || item.status === statusFilter || item.accountStatus === statusFilter || item.invitation.status === statusFilter)
+    && (roleFilter === 'ALL' || item.roles.includes(roleFilter as ContributorRole))
+    && (typeFilter === 'ALL' || item.contributionTypes.includes(typeFilter as ContributionType))
+    && (!needle || [item.displayName, item.email, item.phone, item.location].some((value) => value?.toLowerCase().includes(needle))))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName)), [contributors, needle, roleFilter, statusFilter, typeFilter]);
+  const selected = contributors.find((item) => item.id === selectedId) ?? null;
+  const pendingInvites = contributors.filter((item) => item.invitation.status === 'pending').length;
+  const active = contributors.reduce((total, item) => total + activeWorks(item).length, 0);
+
+  return (
+    <>
+      <div className="ad-tiles">
+        <div className="ad-tile"><span className="ad-tile__icon" aria-hidden="true"><Icon name="users" /></span><span className="ad-tile__copy"><span className="ad-tile__value">{loading ? '—' : contributors.length}</span><span className="ad-tile__label">contributors</span></span><span /></div>
+        <Link to="/contributors/invitations" className="ad-tile"><span className="ad-tile__icon" aria-hidden="true"><Icon name="mail" /></span><span className="ad-tile__copy"><span className="ad-tile__value">{loading ? '—' : pendingInvites}</span><span className="ad-tile__label">invitations pending</span></span><Icon name="arrow" className="ad-tile__go" /></Link>
+        <Link to="/contributors/assignments" className="ad-tile"><span className="ad-tile__icon" aria-hidden="true"><Icon name="doc" /></span><span className="ad-tile__copy"><span className="ad-tile__value">{loading ? '—' : active}</span><span className="ad-tile__label">active assignments</span></span><Icon name="arrow" className="ad-tile__go" /></Link>
+      </div>
+      <div className={cx('ad-desk', !selected && 'ad-desk--single')}>
+        <section className="ad-card-box" aria-labelledby="directory-title">
+          <h2 id="directory-title" className="sr-only">Contributor directory</h2>
+          <div className="ad-card-box__head ad-toolbar">
+            <SearchField label="Search contributors" placeholder="Search contributors…" value={search} onChange={setSearch} />
+            <Select label="Status" value={statusFilter} onChange={(value) => setParams({ status: value === 'ALL' ? null : value })} options={[
+              { value: 'ALL', label: 'All statuses' }, { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }, { value: 'pending', label: 'Invited' }, { value: 'suspended', label: 'Suspended' }, { value: 'deactivated', label: 'Deactivated' },
+            ]} />
+            <Select label="Role" value={roleFilter} onChange={(value) => setParams({ role: value === 'ALL' ? null : value })} options={[{ value: 'ALL', label: 'All roles' }, ...ROLES.map((role) => ({ value: role.id, label: role.label }))]} />
+            <Select label="Contribution type" value={typeFilter} onChange={(value) => setParams({ type: value === 'ALL' ? null : value })} options={[{ value: 'ALL', label: 'All types' }, ...TYPES.map((type) => ({ value: type.id, label: type.label }))]} />
+          </div>
+          {loading && !contributors.length ? <div className="ad-card-box__body"><AdminSkeleton lines={6} label="Loading contributors" /></div> : rows.length ? (
+            <div className="ad-table-scroll">
+              <table className="ad-table" aria-labelledby="directory-title">
+                <thead><tr><th scope="col">Contributor</th><th scope="col">Status</th><th scope="col">Assignments</th><th scope="col">Last active</th><th scope="col"><span className="sr-only">Open</span></th></tr></thead>
+                <tbody>
+                  {rows.map((item) => (
+                    <tr key={item.id} aria-selected={item.id === selectedId} onClick={() => setParams({ contributor: item.id })}>
+                      <td>
+                        <button type="button" className="ad-row-button ad-person" aria-label={`Open ${item.displayName}’s profile`} onClick={(event) => { event.stopPropagation(); setParams({ contributor: item.id }); }}>
+                          <AdminAvatar name={item.displayName} src={item.photoUrl} />
+                          <span><strong>{item.displayName}</strong><small>{item.roles.map((role) => role[0].toUpperCase() + role.slice(1)).join(', ') || 'Contributor'}</small></span>
+                        </button>
+                      </td>
+                      <td><Badge tone={accountTone(item)} dot>{accountLabel(item)}</Badge></td>
+                      <td className="ad-table__num">{activeWorks(item).length} active</td>
+                      <td className="ad-table__num">{dateLabel(item.lastActiveAt)}</td>
+                      <td className="ad-table__end"><Icon name="chevron" className="ad-row-chevron" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : contributors.length ? (
+            <EmptyState title="No contributors match" body="Clear the filters or search for someone else." />
+          ) : (
+            <EmptyState title="No contributors yet" body="Add a profile, then invite them with their first assignment." />
+          )}
+        </section>
+        {selected ? (
+          <ProfilePanel
+            key={selected.id}
+            contributor={selected}
+            submissions={submissions}
+            audits={audits}
+            onClose={() => setParams({ contributor: null })}
+            onEdit={() => onModal({ kind: 'profile', contributor: selected })}
+            onAssign={() => onModal({ kind: 'assignment', contributor: selected })}
+            onAccess={() => onModal({ kind: 'access', contributor: selected })}
+            onResend={() => onResend(selected)}
+            onCancel={() => onCancel(selected)}
+          />
+        ) : null}
+      </div>
+    </>
+  );
+}
+
+function InvitationsView({ contributors, loading, onModal, onResend, onCancel }: {
   contributors: ContributorDirectoryRow[];
   loading: boolean;
-  onReload: () => Promise<void>;
-  onNotice: (message: string) => void;
+  onModal: (modal: Modal) => void;
+  onResend: (row: ContributorDirectoryRow) => void;
+  onCancel: (row: ContributorDirectoryRow) => void;
 }) {
-  const [scope, setScope] = useState<'awaiting' | 'all'>('awaiting');
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  const awaiting = ['SUBMITTED', 'RESUBMITTED', 'UNDER_REVIEW', 'APPROVED'];
-  const rows = scope === 'awaiting' ? submissions.filter((item) => awaiting.includes(item.status)) : submissions;
-  const nameFor = (id: string) => contributors.find((item) => item.id === id)?.displayName ?? id;
-  const decide = async (submission: ContributorSubmission, decision: string, needsFeedback: boolean) => {
-    const feedback = needsFeedback ? window.prompt('Feedback for the contributor: what should change before they resubmit?') ?? '' : '';
-    if (needsFeedback && !feedback.trim()) return;
-    if (!needsFeedback && !window.confirm(`${decision.replace('_', ' ')} “${submission.title}”?`)) return;
-    setBusy(submission.id);
-    try { await decideSubmission(submission.id, decision, feedback); onNotice(`“${submission.title}” updated.`); await onReload(); }
-    catch (reason) { onNotice(reason instanceof Error ? reason.message : 'The review decision failed.'); }
-    finally { setBusy(null); }
+  const [scope, setScope] = useState<'pending' | 'uninvited' | 'cancelled' | 'accepted'>('pending');
+  const groups = {
+    pending: contributors.filter((item) => item.invitation.status === 'pending'),
+    uninvited: contributors.filter((item) => item.invitation.status === 'not_invited' && item.accountStatus === 'none'),
+    cancelled: contributors.filter((item) => item.invitation.status === 'cancelled'),
+    accepted: contributors.filter((item) => item.invitation.status === 'accepted'),
   };
-  const columns: DataColumn<ContributorSubmission>[] = [
-    { id: 'expression', header: 'Expression', cell: (item) => <div className="contributor-primary"><strong>{item.title}</strong><small>{item.body || 'No translation'}</small></div>, sort: (item) => item.title, search: (item) => `${item.title} ${item.body} ${item.alternatives.join(' ')}` },
-    { id: 'contributor', header: 'Contributor', cell: (item) => nameFor(item.contributorId), sort: (item) => nameFor(item.contributorId), search: (item) => nameFor(item.contributorId) },
-    { id: 'consent', header: 'Permissions', cell: (item) => <div className="contributor-permission-pills"><StatusPill tone={item.publicationPermission ? 'success' : 'danger'}>publish {item.publicationPermission ? 'yes' : 'no'}</StatusPill><StatusPill tone={item.aiTraining ? 'violet' : 'neutral'}>AI {item.aiTraining ? 'yes' : 'no'}</StatusPill></div> },
-    { id: 'status', header: 'Status', cell: (item) => <StatusPill tone={toneForStatus(item.status)}>{item.status.replaceAll('_', ' ')}</StatusPill>, sort: (item) => item.status, search: (item) => item.status },
-    { id: 'submitted', header: 'Submitted', cell: (item) => dateLabel(item.createdAt), sort: (item) => item.createdAt },
-    { id: 'review', header: 'Review', align: 'end', cell: (item) => <button type="button" className="button button--small" onClick={() => setExpanded(expanded === item.id ? null : item.id)}>{expanded === item.id ? 'Close' : 'Open'}</button> },
-  ];
-  return <Panel><PageHeader kicker="Editorial review" title="Expression review" body="Approve translations, request a revision with feedback, or reject work. Every decision is recorded in the existing review audit trail." /><DataTable caption="Invited expression submissions" columns={columns} rows={rows} rowKey={(item) => item.id} loading={loading} searchable searchPlaceholder="Search English, Kasem or contributor…" initialSort={{ columnId: 'submitted', direction: 'desc' }} expandedId={expanded} filters={<SegmentedControl label="Review scope" value={scope} onChange={setScope} options={[{ id: 'awaiting', label: 'Awaiting review', count: submissions.filter((item) => awaiting.includes(item.status)).length }, { id: 'all', label: 'All history', count: submissions.length }]} />} empty={{ title: 'The expression review queue is clear', body: 'New contributor submissions appear here automatically.' }} renderDetail={(item) => <div className="contributor-review-detail"><div><span>English expression</span><strong>{item.title}</strong></div><div><span>Kasem translation</span><strong>{item.body}</strong></div>{item.alternatives.length ? <div><span>Other Kasem expressions</span><ul>{item.alternatives.map((alternative) => <li key={alternative}>{alternative}</li>)}</ul></div> : null}{item.usageContext ? <div><span>Contributor’s usage note</span><strong>{item.usageContext}</strong></div> : null}{item.feedback ? <Alert tone="info" title="Previous feedback">{item.feedback}</Alert> : null}<div className="row-actions">{!['APPROVED', 'PUBLISHED', 'ARCHIVED'].includes(item.status) ? <><button type="button" className="button--primary" disabled={busy === item.id} onClick={() => void decide(item, 'APPROVE', false)}>Approve</button><button type="button" className="danger" disabled={busy === item.id} onClick={() => void decide(item, 'REJECT', true)}>Return with feedback</button><small className="muted">Returned expressions reopen for the contributor to revise and resubmit.</small></> : item.status === 'APPROVED' ? <><button type="button" className="button--primary" disabled={busy === item.id} onClick={() => void decide(item, 'PUBLISH', false)}>Publish to Collection</button><button type="button" disabled={busy === item.id} onClick={() => void decide(item, 'ARCHIVE', false)}>Archive</button></> : item.status === 'PUBLISHED' ? <button type="button" className="danger" disabled={busy === item.id} onClick={() => void decide(item, 'UNPUBLISH', false)}>Unpublish</button> : null}</div></div>} /></Panel>;
+  const rows = groups[scope];
+  return (
+    <section className="ad-card-box" aria-labelledby="invites-title">
+      <div className="ad-card-box__head">
+        <h2 id="invites-title">Invitations</h2>
+        <AdminSegmented label="Invitation status" value={scope} onChange={setScope} options={[
+          { value: 'pending', label: 'Pending', count: groups.pending.length },
+          { value: 'uninvited', label: 'Not invited', count: groups.uninvited.length },
+          { value: 'cancelled', label: 'Cancelled', count: groups.cancelled.length },
+          { value: 'accepted', label: 'Accepted', count: groups.accepted.length },
+        ]} />
+      </div>
+      {loading && !contributors.length ? <div className="ad-card-box__body"><AdminSkeleton lines={4} /></div> : rows.length ? (
+        <div className="ad-table-scroll">
+          <table className="ad-table ad-table--static">
+            <thead><tr><th scope="col">Contributor</th><th scope="col">Sent</th><th scope="col">SMS</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+            <tbody>
+              {rows.map((item) => (
+                <tr key={item.id}>
+                  <td><Link to={`/contributors?contributor=${encodeURIComponent(item.id)}`} className="ad-person"><AdminAvatar name={item.displayName} src={item.photoUrl} size="sm" /><span><strong>{item.displayName}</strong><small>{item.email || item.phone || 'No contact details'}</small></span></Link></td>
+                  <td className="ad-table__num">{dateLabel(item.invitation.resentAt || item.invitation.sentAt)}{item.invitation.resendCount ? ` · resent ${item.invitation.resendCount}×` : ''}</td>
+                  <td>{item.invitation.sms ? <Badge tone={item.invitation.sms.status === 'accepted' ? 'success' : item.invitation.sms.status === 'failed' ? 'danger' : 'neutral'}>{item.invitation.sms.status === 'accepted' ? 'Accepted by provider' : item.invitation.sms.status === 'failed' ? 'Failed' : 'Not confirmed'}</Badge> : '—'}</td>
+                  <td className="ad-table__end">
+                    <div className="ad-detail__actions">
+                      {scope === 'pending' ? <><Button size="sm" onClick={() => onResend(item)}>Resend</Button><Button size="sm" variant="danger-ghost" onClick={() => onCancel(item)}>Cancel</Button></> : null}
+                      {scope === 'uninvited' || scope === 'cancelled' ? <Button size="sm" variant="primary" onClick={() => onModal({ kind: 'assignment', contributor: item })}>Invite & assign</Button> : null}
+                      {scope === 'accepted' ? <Button size="sm" onClick={() => onModal({ kind: 'assignment', contributor: item })}>Assign work</Button> : null}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : <EmptyState title={scope === 'pending' ? 'No invitations waiting' : 'Nobody here'} body={scope === 'uninvited' ? 'Every profile has an invitation or an account.' : undefined} />}
+    </section>
+  );
 }
 
+function HistoryView({ contributors, submissions, loading }: { contributors: ContributorDirectoryRow[]; submissions: ContributorSubmission[]; loading: boolean }) {
+  const { params, setParams } = useRouter();
+  const [search, setSearch] = useState('');
+  const contributor = params.get('contributor') ?? 'ALL';
+  const status = params.get('status') ?? 'ALL';
+  const nameFor = (id: string) => contributors.find((item) => item.id === id)?.displayName ?? id;
+  const needle = search.trim().toLowerCase();
+  const rows = submissions.filter((item) => (contributor === 'ALL' || item.contributorId === contributor)
+    && (status === 'ALL' || item.status === status)
+    && (!needle || [item.title, item.body, ...item.alternatives].some((value) => value.toLowerCase().includes(needle))));
+  const statuses = [...new Set(submissions.map((item) => item.status))].sort();
+  return (
+    <section className="ad-card-box" aria-labelledby="history-title">
+      <h2 id="history-title" className="sr-only">Contribution history</h2>
+      <div className="ad-card-box__head ad-toolbar">
+        <SearchField label="Search contributions" placeholder="Search English or Kasem…" value={search} onChange={setSearch} />
+        <Select label="Contributor" value={contributor} onChange={(value) => setParams({ contributor: value === 'ALL' ? null : value })} options={[{ value: 'ALL', label: 'All contributors' }, ...contributors.map((item) => ({ value: item.id, label: item.displayName }))]} />
+        <Select label="Status" value={status} onChange={(value) => setParams({ status: value === 'ALL' ? null : value })} options={[{ value: 'ALL', label: 'All outcomes' }, ...statuses.map((value) => ({ value, label: value.replaceAll('_', ' ').toLowerCase() }))]} />
+      </div>
+      <p className="ad-card-box__body ts-hint">The latest 400 contributor submissions. Decisions are made in the <Link to="/review" className="ts-link">Review Desk</Link>.</p>
+      {loading && !submissions.length ? <div className="ad-card-box__body"><AdminSkeleton lines={6} /></div> : rows.length ? (
+        <div className="ad-table-scroll">
+          <table className="ad-table ad-table--static">
+            <thead><tr><th scope="col">Expression</th><th scope="col">Contributor</th><th scope="col">Permissions</th><th scope="col">Outcome</th><th scope="col">Submitted</th><th scope="col">Reviewed</th></tr></thead>
+            <tbody>
+              {rows.map((item) => (
+                <tr key={item.id}>
+                  <td><div className="ad-table__primary"><strong>{item.title}</strong><small lang="xsm">{item.body || 'No translation'}</small>{item.feedback ? <small>Feedback: {item.feedback}</small> : null}</div></td>
+                  <td>{nameFor(item.contributorId)}</td>
+                  <td><div className="ad-summary-line"><Badge tone={item.publicationPermission ? 'success' : 'neutral'}>Publish {item.publicationPermission ? 'granted' : 'not granted'}</Badge><Badge tone={item.aiTraining ? 'violet' : 'neutral'}>AI {item.aiTraining ? 'granted' : 'not granted'}</Badge></div></td>
+                  <td><StatusPill tone={toneForStatus(item.status)}>{item.status.replaceAll('_', ' ').toLowerCase()}</StatusPill></td>
+                  <td className="ad-table__num">{dateLabel(item.createdAt)}</td>
+                  <td className="ad-table__num">{dateLabel(item.reviewedAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : <EmptyState title="No contributions match" body={submissions.length ? 'Clear the filters to see everything.' : 'Submissions appear here once contributors send their work.'} />}
+    </section>
+  );
+}
 
-export function ContributorsAdmin() {
-  const [view, setView] = useState<View>('directory');
+export function ContributorsAdmin({ view }: { view: ContributorView }) {
   const [contributors, setContributors] = useState<ContributorDirectoryRow[]>([]);
   const [submissions, setSubmissions] = useState<ContributorSubmission[]>([]);
   const [audits, setAudits] = useState<ContributorAuditEntry[]>([]);
-  const [payments, setPayments] = useState<ContributorPayments>({ statementCheck: 'off', profiles: [], requests: [] });
-  // Payout detail is finance-only (separation of duties); other admins never request it.
-  const adminAuth = useAdminAuth();
-  const canReviewPayments = adminAuth.finance || adminAuth.superAdmin || adminAuth.role === 'super_admin';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [expanded, setExpanded] = useState<string | null>(null);
   const [modal, setModal] = useState<Modal>(null);
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [roleFilter, setRoleFilter] = useState('ALL');
-  const [locationFilter, setLocationFilter] = useState('ALL');
-  const [typeFilter, setTypeFilter] = useState('ALL');
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const [directory, contributionHistory, auditHistory, paymentData] = await Promise.allSettled([
+      const [directory, contributionHistory, auditHistory] = await Promise.allSettled([
         fetchContributorDirectory(), fetchContributorSubmissions(), fetchContributorAuditEntries(),
-        canReviewPayments ? fetchContributorPayments() : Promise.resolve<ContributorPayments>({ statementCheck: 'off', profiles: [], requests: [] }),
       ]);
       if (directory.status === 'fulfilled') setContributors(directory.value);
       if (contributionHistory.status === 'fulfilled') setSubmissions(contributionHistory.value);
       if (auditHistory.status === 'fulfilled') setAudits(auditHistory.value);
-      if (paymentData.status === 'fulfilled') setPayments(paymentData.value);
       const failures = [
         ['Contributor directory', directory],
         ['Contribution history', contributionHistory],
         ['Audit history', auditHistory],
-        ['Payments', paymentData],
       ] as const;
       setError(failures.flatMap(([label, result]) => result.status === 'rejected'
         ? [`${label}: ${result.reason instanceof Error ? result.reason.message : 'Could not be loaded.'}`]
         : []).join(' '));
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Contributor data could not be loaded.');
     } finally { setLoading(false); }
-  }, [canReviewPayments]);
+  }, []);
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => {
-    if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(''), 4500);
-    return () => window.clearTimeout(timer);
-  }, [notice]);
-
-  const locations = useMemo(() => [...new Set(contributors.map((item) => item.location).filter(Boolean))].sort(), [contributors]);
-  const filtered = useMemo(() => contributors.filter((item) =>
-    (statusFilter === 'ALL' || item.status === statusFilter || item.accountStatus === statusFilter || item.invitation.status === statusFilter)
-    && (roleFilter === 'ALL' || item.roles.includes(roleFilter as ContributorRole))
-    && (locationFilter === 'ALL' || item.location === locationFilter)
-    && (typeFilter === 'ALL' || item.contributionTypes.includes(typeFilter as ContributionType))),
-  [contributors, locationFilter, roleFilter, statusFilter, typeFilter]);
-  const openReview = submissions.filter((item) => ['SUBMITTED', 'RESUBMITTED', 'UNDER_REVIEW', 'APPROVED'].includes(item.status)).length;
-  const works = contributors.reduce((total, item) => total + item.works.length, 0);
-  const pendingInvites = contributors.filter((item) => item.invitation.status === 'pending').length;
-  const openPayments = payments.requests.filter(item => ['submitted', 'approved'].includes(item.status)).length
-    + payments.profiles.filter(item => item.bank?.status === 'pending' || item.momo?.ownershipStatus === 'pending').length;
 
   const finishMutation = async (message: string) => { setModal(null); setNotice(message); await load(); };
   const showShare = async (contributor: ContributorDirectoryRow, result: AssignmentResult) => {
     await load(); setModal({ kind: 'share', contributor, result });
   };
   const resend = async (contributor: ContributorDirectoryRow) => {
+    if (!(await confirmAction({ title: `Resend ${contributor.displayName}’s invitation?`, body: 'A new SMS goes to the invited number. No new assignment is created.', confirmLabel: 'Resend invitation' }))) return;
     try {
       const result = await resendContributorInvite(contributor.id);
       await showShare(contributor, { contributorId: contributor.id, work: contributor.works[0]?.id ?? '', ...result });
     } catch (reason) { setNotice(reason instanceof Error ? reason.message : 'The invitation could not be resent.'); }
   };
   const cancel = async (contributor: ContributorDirectoryRow) => {
-    const reason = window.prompt('Why is this invitation being cancelled? This is recorded in the audit trail.') ?? '';
-    if (!reason.trim()) return;
-    if (!window.confirm(`Cancel ${contributor.displayName}’s pending invitation and revoke login access? Their profile and assigned work will be preserved.`)) return;
+    const reason = await askText({
+      title: `Cancel ${contributor.displayName}’s invitation?`,
+      body: 'Login access is revoked. Their profile and assigned work are preserved.',
+      label: 'Reason (recorded in the audit trail)',
+      required: true,
+      multiline: true,
+      maxLength: 1000,
+      confirmLabel: 'Cancel invitation',
+      tone: 'danger',
+    });
+    if (reason === null) return;
     try { await cancelContributorInvite(contributor.id, reason); await finishMutation('Invitation cancelled; profile and work preserved.'); }
     catch (cause) { setNotice(cause instanceof Error ? cause.message : 'The invitation could not be cancelled.'); }
   };
 
-  const columns: DataColumn<ContributorDirectoryRow>[] = [
-    { id: 'contributor', header: 'Contributor', width: '240px', cell: (item) => <div className="contributor-person"><Avatar contributor={item} /><span><strong>{item.displayName}</strong><small>{item.email || 'Profile only · no email'}</small></span></div>, sort: (item) => item.displayName, search: (item) => `${item.displayName} ${item.email} ${item.phone}` },
-    { id: 'standing', header: 'Standing', cell: (item) => <div className="contributor-status-stack"><StatusPill tone={toneForStatus(item.status)}>{item.status}</StatusPill><small>{item.publicVisibility} profile</small></div>, sort: (item) => item.status, search: (item) => `${item.status} ${item.publicVisibility} ${item.accountStatus}` },
-    { id: 'roles', header: 'Role & type', cell: (item) => <div className="contributor-primary"><strong>{item.roles.join(', ') || 'Unassigned'}</strong><small>{item.contributionTypes.join(', ') || 'No types'}</small></div>, sort: (item) => item.roles.join(' '), search: (item) => `${item.roles.join(' ')} ${item.contributionTypes.join(' ')}` },
-    { id: 'location', header: 'Location', cell: (item) => item.location || <span className="muted">Not recorded</span>, sort: (item) => item.location, search: (item) => item.location },
-    { id: 'work', header: 'Assignments', align: 'center', cell: (item) => <div className="contributor-work-count"><strong>{item.works.length}</strong><small>{item.works.reduce((sum, work) => sum + work.submittedCount, 0)} submitted</small></div>, sort: (item) => item.works.length },
-    { id: 'invitation', header: 'Account', cell: (item) => <div className="contributor-status-stack"><StatusPill tone={toneForStatus(item.invitation.status)}>{item.invitation.status.replace('_', ' ')}</StatusPill><small>{item.accountStatus}</small></div>, sort: (item) => item.invitation.status, search: (item) => `${item.invitation.status} ${item.accountStatus}` },
-    { id: 'actions', header: 'Actions', align: 'end', cell: (item) => <div className="row-actions"><button type="button" className="button button--small" aria-expanded={expanded === item.id} onClick={() => setExpanded(expanded === item.id ? null : item.id)}>{expanded === item.id ? 'Close' : 'Manage'}</button><button type="button" className="button button--small button--primary" onClick={() => setModal({ kind: 'assignment', contributor: item })}>{item.accountStatus === 'none' ? 'Invite' : 'Assign'}</button></div> },
-  ];
-
-  return <div className="contributors-admin">
-    {notice ? <div className="contributor-toast" role="status">{notice}</div> : null}
-    <Panel>
-      <PageHeader level="h1" kicker="People & editorial operations" title="Contributors" body="Manage contributor profiles, account access and expression assignments without separating the people from the work they have already done." actions={<><button type="button" onClick={() => void load()} disabled={loading}>{loading ? <><Spinner /> Refreshing</> : 'Refresh'}</button><button type="button" className="button--primary" onClick={() => setModal({ kind: 'profile' })}>Add contributor</button></>} />
-      <StatGrid><Stat label="Contributors" value={contributors.length} note={`${contributors.filter((item) => item.status === 'active').length} active`} tone="accent" /><Stat label="Pending invitations" value={pendingInvites} note="Activation not yet confirmed" tone={pendingInvites ? 'warning' : 'default'} /><Stat label="Expression assignments" value={works} note="Across all contributors" /><Stat label="Awaiting review" value={openReview} note="Submitted or approved" tone={openReview ? 'warning' : 'success'} /></StatGrid>
-      <SegmentedControl label="Contributor workspace" value={view} onChange={setView} options={[{ id: 'directory', label: 'Directory', count: contributors.length }, { id: 'assignments', label: 'Assignments', count: works }, { id: 'review', label: 'Review', count: openReview }, { id: 'payments', label: 'Payments', count: openPayments }, { id: 'rewards', label: 'Points & redemptions' }, { id: 'issues', label: 'Issues' }]} />
-    </Panel>
-    {error ? <Alert title="Some contributor data could not be loaded" action={<button type="button" onClick={() => void load()}>Try again</button>}>{error}</Alert> : null}
-    {view === 'directory' ? <Panel><DataTable caption="Contributor directory" columns={columns} rows={filtered} rowKey={(item) => item.id} loading={loading} searchable searchPlaceholder="Search name, email or phone…" initialSort={{ columnId: 'contributor', direction: 'asc' }} expandedId={expanded} filters={<><label className="filter"><span className="sr-only">Status</span><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="ALL">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="pending">Invitation pending</option><option value="suspended">Suspended</option><option value="deactivated">Deactivated</option></select></label><label className="filter"><span className="sr-only">Role</span><select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="ALL">All roles</option>{ROLES.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}</select></label><label className="filter"><span className="sr-only">Location</span><select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)}><option value="ALL">All locations</option>{locations.map((location) => <option key={location} value={location}>{location}</option>)}</select></label><label className="filter"><span className="sr-only">Contribution type</span><select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}><option value="ALL">All contribution types</option>{TYPES.map((type) => <option key={type.id} value={type.id}>{type.label}</option>)}</select></label></>} empty={{ title: 'No contributors match', body: 'Clear the filters or add a profile-only contributor.' }} renderDetail={(item) => <ContributorDetail contributor={item} submissions={submissions} audits={audits} onEdit={() => setModal({ kind: 'profile', contributor: item })} onAssign={() => setModal({ kind: 'assignment', contributor: item })} onAccess={() => setModal({ kind: 'access', contributor: item })} onResend={() => void resend(item)} onCancel={() => void cancel(item)} />} /></Panel> : null}
-    {view === 'assignments' ? <AssignmentsView rows={contributors} onAssign={(contributor) => setModal({ kind: 'assignment', contributor })} /> : null}
-    {view === 'review' ? <ReviewView submissions={submissions} contributors={contributors} loading={loading} onReload={async () => { setSubmissions(await fetchContributorSubmissions()); }} onNotice={setNotice} /> : null}
-    {view === 'issues' ? <><SupportInbox /><ContributorIssuesAdmin /></> : null}
-    {view === 'rewards' ? <ContributorRewardsDesk contributors={contributors} /> : null}
-    {view === 'payments' ? <ContributorPaymentsDesk payments={payments} contributors={contributors} loading={loading} canReview={canReviewPayments} onReload={async () => { setPayments(await fetchContributorPayments()); }} onNotice={setNotice} /> : null}
-    {modal?.kind === 'profile' ? <ProfileModal contributor={modal.contributor} onClose={() => setModal(null)} onSaved={(message) => void finishMutation(message)} /> : null}
-    {modal?.kind === 'assignment' ? <AssignmentModal contributor={modal.contributor} onClose={() => setModal(null)} onComplete={(result) => void showShare(modal.contributor, result)} /> : null}
-    {modal?.kind === 'access' ? <AccessModal contributor={modal.contributor} onClose={() => setModal(null)} onSaved={(message) => void finishMutation(message)} /> : null}
-    {modal?.kind === 'share' ? <ShareModal contributor={modal.contributor} result={modal.result} onClose={() => setModal(null)} /> : null}
-  </div>;
+  return (
+    <div className="ad-page contributors-admin">
+      <PageHeader
+        title={VIEW_COPY[view].title}
+        description={VIEW_COPY[view].description}
+        actions={view === 'support' ? undefined : <>
+          <Button icon="refresh" onClick={() => void load()} disabled={loading}>Refresh</Button>
+          <Button variant="primary" icon="plus" onClick={() => setModal({ kind: 'profile' })}>{view === 'invitations' ? 'Invite contributor' : 'Add contributor'}</Button>
+        </>}
+      />
+      {error ? <Notice tone="danger" title="Some contributor data could not be loaded" action={<Button size="sm" onClick={() => void load()}>Try again</Button>}>{error}</Notice> : null}
+      {view === 'directory' ? <DirectoryView contributors={contributors} submissions={submissions} audits={audits} loading={loading} onModal={setModal} onResend={(row) => void resend(row)} onCancel={(row) => void cancel(row)} /> : null}
+      {view === 'invitations' ? <InvitationsView contributors={contributors} loading={loading} onModal={setModal} onResend={(row) => void resend(row)} onCancel={(row) => void cancel(row)} /> : null}
+      {view === 'assignments' ? <AssignmentsView rows={contributors} onAssign={(contributor) => setModal({ kind: 'assignment', contributor })} /> : null}
+      {view === 'history' ? <HistoryView contributors={contributors} submissions={submissions} loading={loading} /> : null}
+      {view === 'support' ? <div className="ad-support"><SupportInbox /><ContributorIssuesAdmin /></div> : null}
+      {notice ? <Toast message={notice} tone="info" onDone={() => setNotice('')} /> : null}
+      {modal?.kind === 'profile' ? <ProfileModal contributor={modal.contributor} onClose={() => setModal(null)} onSaved={(message) => void finishMutation(message)} /> : null}
+      {modal?.kind === 'assignment' ? <AssignmentModal contributor={modal.contributor} onClose={() => setModal(null)} onComplete={(result) => void showShare(modal.contributor, result)} /> : null}
+      {modal?.kind === 'access' ? <AccessModal contributor={modal.contributor} onClose={() => setModal(null)} onSaved={(message) => void finishMutation(message)} /> : null}
+      {modal?.kind === 'share' ? <ShareModal contributor={modal.contributor} result={modal.result} onClose={() => setModal(null)} /> : null}
+    </div>
+  );
 }

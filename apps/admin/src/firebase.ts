@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
 import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
+import { connectStorageEmulator, getStorage } from 'firebase/storage';
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 
@@ -10,11 +11,14 @@ import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-ch
 // These values are public web-app identifiers, not secrets. Administrative
 // privilege is enforced by role claims, Firebase Security Rules and server-side
 // checks in Functions — never by the client.
+const emulated = import.meta.env.VITE_USE_EMULATORS === 'true';
+
 export const firebaseConfig = {
   apiKey: 'AIzaSyDe9TAz3pl0tiNqpIZZ0EQxmPEgMtf6kRA',
   authDomain: 'project-kassena-7e026.firebaseapp.com',
-  projectId: 'project-kassena-7e026',
-  storageBucket: 'project-kassena-7e026.firebasestorage.app',
+  // Local runs use a demo project, so nothing can ever reach production.
+  projectId: emulated ? 'demo-indigen-world' : 'project-kassena-7e026',
+  storageBucket: emulated ? 'demo-indigen-world.appspot.com' : 'project-kassena-7e026.firebasestorage.app',
   messagingSenderId: '111428711822',
   appId: '1:111428711822:web:1b032129debe268429a0df',
   measurementId: 'G-7ZG5CSSXYF',
@@ -24,9 +28,9 @@ export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app);
-/** True when the console is pointed at the local Firebase emulator suite.
- * Surfaced in the status rail so nobody mistakes emulator data for production. */
-export const usingEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
+export const storage = getStorage(app);
+/** True when the console is pointed at the local Firebase emulator suite. */
+export const usingEmulators = emulated;
 
 // Callable Functions (role assignment, application and submission decisions)
 // enforce App Check outside the emulator. Configure the same reCAPTCHA Enterprise
@@ -52,6 +56,7 @@ if (usingEmulators) {
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
   connectFirestoreEmulator(db, '127.0.0.1', 8080);
   connectFunctionsEmulator(functions, '127.0.0.1', 5001);
+  connectStorageEmulator(storage, '127.0.0.1', 9199);
 }
 
 // Analytics is only initialised in environments that support it (browser, not SSR).

@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Button } from '@indigen-world/web-ui';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Badge, Button, PageHeader, SearchField, Select, cx } from '../ui/primitives';
+import { Icon } from '../ui/icons';
+import { confirmAction } from '../ui/dialogs';
 import {
   APP_CATEGORIES,
   deleteHero,
@@ -58,8 +60,17 @@ import './collection.css';
 
 type Tab = 'heroes' | 'names' | 'apps' | 'audiobooks' | 'shop' | 'orders';
 
+const TAB_COPY: Record<Tab, { title: string; description: string }> = {
+  heroes: { title: 'Heroes', description: 'The people the Kassena remember, and their stories.' },
+  names: { title: 'Names', description: 'Kasem names and meanings a member’s handle can carry.' },
+  apps: { title: 'Apps', description: 'A directory of apps worth having.' },
+  audiobooks: { title: 'Audiobooks', description: 'Manage recordings, files and publication.' },
+  shop: { title: 'Shop', description: 'Things the project sells. Nothing is charged in the app.' },
+  orders: { title: 'Orders', description: 'Order requests from members, answered by hand.' },
+};
+
 /**
- * Everything the Collection tab shows beyond the archive itself.
+ * Everything the Collection shows beyond the archive itself.
  *
  * Heroes are the people the Kassena remember, and Names is the list a member's
  * handle can earn its kente ring from — both curated here because neither is
@@ -67,43 +78,13 @@ type Tab = 'heroes' | 'names' | 'apps' | 'audiobooks' | 'shop' | 'orders';
  * reason: a recording has a rights holder, a narrator and a licence behind it,
  * which is not something to take on trust from a phone form. Apps are links
  * out; Shop is the physical side. Neither takes money in the app: a member
- * sends an order request and somebody here answers it, which is what the Orders
- * tab is for.
+ * sends an order request and somebody here answers it, which is what Orders
+ * is for.
  */
-export function CollectionAdmin() {
-  const [tab, setTab] = useState<Tab>('heroes');
+export function CollectionAdmin({ tab }: { tab: Tab }) {
   return (
-    <div className="collection-admin">
-      <section className="panel">
-        <h2>Collection</h2>
-        <p className="panel__hint">
-          The people the Kassena remember, the names a handle can carry, a directory of apps worth
-          having, the library's own audiobooks, and a shop of things the project sells. Nothing here
-          is charged for in the app — a member sends a request and you reply.
-        </p>
-        <div className="seg-toggle">
-          {(
-            [
-              ['heroes', 'Heroes'],
-              ['names', 'Names'],
-              ['apps', 'Apps'],
-              ['audiobooks', 'Audiobooks'],
-              ['shop', 'Shop'],
-              ['orders', 'Orders'],
-            ] as [Tab, string][]
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              className={`seg${tab === id ? ' is-active' : ''}`}
-              onClick={() => setTab(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </section>
-
+    <div className="ad-page collection-admin">
+      <PageHeader title={TAB_COPY[tab].title} description={TAB_COPY[tab].description} />
       {tab === 'heroes' ? <HeroesPanel /> : null}
       {tab === 'names' ? <NamesPanel /> : null}
       {tab === 'apps' ? <AppsPanel /> : null}
@@ -161,7 +142,7 @@ function AppsPanel() {
         device. Unpublished entries are invisible to the app.
       </p>
       <div className="collection-actions">
-        <Button onClick={() => setEditing(emptyApp(nextOrder))}>New app</Button>
+        <Button variant="primary" onClick={() => setEditing(emptyApp(nextOrder))}>New app</Button>
         <Button variant="ghost" onClick={() => void load()} disabled={loading}>
           Refresh
         </Button>
@@ -202,7 +183,7 @@ function AppsPanel() {
                     <Button
                       variant="ghost"
                       onClick={async () => {
-                        if (!window.confirm(`Remove "${app.name}" from the directory?`)) return;
+                        if (!(await confirmAction({ title: `Remove “${app.name}” from the directory?`, confirmLabel: 'Remove', tone: 'danger' }))) return;
                         await deleteApp(app.id);
                         await load();
                       }}
@@ -307,7 +288,7 @@ function AppEditor({
       </div>
       <Problems problems={problems} error={error} />
       <div className="collection-actions">
-        <Button
+        <Button variant="primary"
           disabled={saving || problems.length > 0}
           onClick={async () => {
             setSaving(true);
@@ -345,11 +326,33 @@ function AppEditor({
  * unpublishing one of those here would strip it off the app while its
  * submission still said PUBLISHED, so those go back through review instead.
  */
+type BookFilter = 'all' | 'published' | 'draft' | 'removed';
+
+function bookState(book: LibraryAudiobook): Exclude<BookFilter, 'all'> {
+  return book.removed ? 'removed' : book.published ? 'published' : 'draft';
+}
+
+const BOOK_STATE: Record<Exclude<BookFilter, 'all'>, { label: string; tone: 'success' | 'neutral' | 'danger' }> = {
+  published: { label: 'Published', tone: 'success' },
+  draft: { label: 'Draft', tone: 'neutral' },
+  removed: { label: 'Taken down', tone: 'danger' },
+};
+
+/** The stored cover, or a deliberate placeholder when a record has none. */
+function Cover({ book }: { book: LibraryAudiobook }) {
+  const [failed, setFailed] = useState(false);
+  return book.coverUrl && !failed
+    ? <img className="ad-cover" src={book.coverUrl} alt="" loading="lazy" onError={() => setFailed(true)} />
+    : <span className="ad-cover ad-cover--empty" aria-hidden="true"><Icon name="headphones" /></span>;
+}
+
 function AudiobooksPanel() {
   const [books, setBooks] = useState<LibraryAudiobook[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<LibraryAudiobook | null>(null);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<BookFilter>('all');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -367,122 +370,131 @@ function AudiobooksPanel() {
     void load();
   }, [load]);
 
-  if (editing) {
-    return (
-      <AudiobookEditor
-        audiobook={editing}
-        onCancel={() => setEditing(null)}
-        onSaved={async () => {
-          setEditing(null);
-          await load();
-        }}
-      />
-    );
-  }
+  const needle = search.trim().toLowerCase();
+  const rows = useMemo(() => books.filter((book) => (filter === 'all' || bookState(book) === filter)
+    && (!needle || [book.title, book.author, book.narrator, book.dialect].some((value) => value?.toLowerCase().includes(needle)))), [books, filter, needle]);
+  const published = books.filter((book) => bookState(book) === 'published').length;
+  const drafts = books.filter((book) => bookState(book) === 'draft').length;
+  const tile = (icon: 'headphones' | 'check-circle' | 'doc', value: number, label: string, tone?: 'success') => (
+    <div className="ad-tile ad-tile--compact">
+      <span className={cx('ad-tile__icon', tone && `ad-tile__icon--${tone}`)} aria-hidden="true"><Icon name={icon} /></span>
+      <span className="ad-tile__copy"><span className="ad-tile__value">{loading ? '—' : value}</span><span className="ad-tile__label">{label}</span></span>
+      <span />
+    </div>
+  );
 
   return (
-    <section className="panel">
-      <h3>Audiobooks</h3>
-      <p className="panel__hint">
-        Recordings the project publishes itself: a narration, who wrote it, who read it and the
-        terms it is published under. Each one becomes a card in Collection &rarr; Audiobooks and
-        plays in the app's own player. Contributed recordings still arrive through review — those
-        are listed here but edited there.
-      </p>
-      <div className="collection-actions">
-        <Button onClick={() => setEditing(emptyAudiobook())}>New audiobook</Button>
-        <Button variant="ghost" onClick={() => void load()} disabled={loading}>
-          Refresh
-        </Button>
+    <div className="ad-page">
+      <div className="ad-tiles ad-tiles--with-action">
+        {tile('headphones', books.length, books.length === 1 ? 'title' : 'titles')}
+        {tile('check-circle', published, 'published', 'success')}
+        {tile('doc', drafts, drafts === 1 ? 'draft' : 'drafts')}
+        <div className="ad-tile-action">
+          <Button variant="primary" size="lg" icon="plus" disabled={Boolean(editing && !editing.id)} onClick={() => setEditing(emptyAudiobook())}>Add audiobook</Button>
+        </div>
       </div>
-      {error ? <p className="error-line">{error}</p> : null}
-      {loading ? <Loading label="Loading" /> : null}
-      {!loading && books.length === 0 ? <EmptyState title="Nothing recorded yet." /> : null}
-      {books.length > 0 ? (
-        <TableShell label="Books and audiobooks">
-          <table className="collection-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Format</th>
-                <th>Dialect</th>
-                <th>Source</th>
-                <th>Status</th>
-                <th aria-label="Actions" />
-              </tr>
-            </thead>
-            <tbody>
-              {books.map((book) => {
-                const ours = book.publicationRoute === 'admin';
-                return (
-                  <tr key={book.id}>
-                    <td>
-                      <strong>{book.title || 'Untitled'}</strong>
-                      <div className="muted">
-                        {[book.author, book.narrator === book.author ? '' : book.narrator]
-                          .filter(Boolean)
-                          .join(' · ') || '—'}
-                      </div>
-                      {book.audioUrl ? (
-                        <a
-                          className="collection-listen"
-                          href={book.audioUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Open the recording
-                        </a>
-                      ) : null}
-                    </td>
-                    <td>{book.category}</td>
-                    <td>{book.dialect}</td>
-                    <td>{ours ? 'Library' : 'Community review'}</td>
-                    <td>
-                      {book.removed ? (
-                        <span className="collection-status collection-status--draft">Taken down</span>
-                      ) : (
-                        <StatusPill published={book.published} />
-                      )}
-                    </td>
-                    <td className="collection-table__actions">
-                      <Button
-                        variant="ghost"
-                        disabled={!ours}
-                        title={ours ? undefined : 'Published through community review — edit it there.'}
-                        onClick={() => setEditing(book)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        disabled={!ours || !book.published}
-                        title={ours ? undefined : 'Published through community review — unpublish it there.'}
-                        onClick={async () => {
-                          if (!window.confirm(`Take "${book.title}" off the shelf?`)) return;
-                          try {
-                            await unpublishAudiobook(book.id);
-                          } catch (err) {
-                            setError(
-                              err instanceof Error ? err.message : 'Could not unpublish that record.',
-                            );
-                            // Deliberately not reloading: load() clears the error
-                            // it just set, and the row is unchanged anyway.
-                            return;
-                          }
-                          await load();
-                        }}
-                      >
-                        Unpublish
-                      </Button>
-                    </td>
+      <div className={cx('ad-desk ad-desk--editor', !editing && 'ad-desk--single')}>
+        <section className="ad-card-box" aria-labelledby="audiobooks-list">
+          <h2 id="audiobooks-list" className="sr-only">Audiobooks</h2>
+          <div className="ad-card-box__head ad-toolbar">
+            <SearchField label="Search audiobooks" placeholder="Search audiobooks…" value={search} onChange={setSearch} />
+            <Select label="Status" value={filter} onChange={(value) => setFilter(value as BookFilter)} options={[
+              { value: 'all', label: 'All statuses' }, { value: 'published', label: 'Published' }, { value: 'draft', label: 'Draft' }, { value: 'removed', label: 'Taken down' },
+            ]} />
+            <Button variant="ghost" icon="refresh" onClick={() => void load()} disabled={loading}>Refresh</Button>
+          </div>
+          {error ? <div className="ad-card-box__body"><p className="error-line" role="alert">{error}</p></div> : null}
+          {loading ? <div className="ad-card-box__body"><Loading label="Loading audiobooks" /></div> : null}
+          {!loading && books.length === 0 && !error ? <EmptyState title="No audiobooks yet." body="Add the first recording the project publishes itself." /> : null}
+          {!loading && books.length > 0 && rows.length === 0 ? <EmptyState title="No audiobooks match." body="Try another search or status." /> : null}
+          {rows.length > 0 ? (
+            <TableShell label="Audiobooks">
+              <table className={cx('collection-table ad-books', editing && 'is-compact')}>
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Narrator</th>
+                    <th>Dialect</th>
+                    <th>Status</th>
+                    <th>Published</th>
+                    <th aria-label="Actions" />
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </TableShell>
-      ) : null}
-    </section>
+                </thead>
+                <tbody>
+                  {rows.map((book) => {
+                    const ours = book.publicationRoute === 'admin';
+                    const state = BOOK_STATE[bookState(book)];
+                    return (
+                      <tr key={book.id} className={editing?.id === book.id ? 'is-selected' : undefined}>
+                        <td>
+                          <div className="ad-book">
+                            <Cover book={book} />
+                            <span>
+                              <strong>{book.title || 'Untitled'}</strong>
+                              <small className="muted">{book.author || '—'} · {book.category}</small>
+                              {book.audioUrl ? <a className="collection-listen" href={book.audioUrl} target="_blank" rel="noreferrer">Open the recording</a> : null}
+                            </span>
+                          </div>
+                        </td>
+                        <td>{book.narrator || '—'}</td>
+                        <td>{book.dialect || 'Not specified'}</td>
+                        <td><Badge tone={state.tone} dot>{state.label}</Badge>{ours ? null : <div className="muted tiny">Community review</div>}</td>
+                        <td>{book.publishedAt ? new Date(book.publishedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</td>
+                        <td className="collection-table__actions">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={!ours}
+                            title={ours ? undefined : 'Published through community review — edit it in the Review Desk.'}
+                            onClick={() => setEditing(book)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={!ours || !book.published}
+                            title={ours ? undefined : 'Published through community review — unpublish it in the Review Desk.'}
+                            onClick={async () => {
+                              if (!(await confirmAction({ title: `Take “${book.title}” off the shelf?`, body: 'It disappears from Collection → Audiobooks. The files and record are kept, and it can be published again.', confirmLabel: 'Unpublish', tone: 'danger' }))) return;
+                              try {
+                                await unpublishAudiobook(book.id);
+                              } catch (err) {
+                                setError(err instanceof Error ? err.message : 'Could not unpublish that record.');
+                                // Deliberately not reloading: load() clears the error
+                                // it just set, and the row is unchanged anyway.
+                                return;
+                              }
+                              await load();
+                            }}
+                          >
+                            Unpublish
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </TableShell>
+          ) : null}
+        </section>
+        {editing ? (
+          <div className="ad-collection-editor">
+            <AudiobookEditor
+              key={editing.id || 'new'}
+              audiobook={editing}
+              onCancel={() => setEditing(null)}
+              onSaved={async () => {
+                setEditing(null);
+                await load();
+              }}
+            />
+          </div>
+        ) : null}
+      </div>
+      <p className="ts-hint">Recordings the project publishes itself. Contributed recordings arrive through the Review Desk and are edited there.</p>
+    </div>
   );
 }
 
@@ -687,7 +699,7 @@ function AudiobookEditor({
       {notice ? <p className="notice-line">{notice}</p> : null}
       <Problems problems={problems} error={error} />
       <div className="collection-actions">
-        <Button
+        <Button variant="primary"
           disabled={saving || busy || restoring || problems.length > 0 || !audio}
           onClick={async () => {
             // Re-read rather than trusting the disabled prop: the button cannot
@@ -848,7 +860,7 @@ function ShopPanel() {
         Collection → Shop and send an order request; payment is arranged with them directly.
       </p>
       <div className="collection-actions">
-        <Button onClick={() => setEditing(emptyProduct(nextOrder))}>New product</Button>
+        <Button variant="primary" onClick={() => setEditing(emptyProduct(nextOrder))}>New product</Button>
         <Button variant="ghost" onClick={() => void load()} disabled={loading}>
           Refresh
         </Button>
@@ -891,7 +903,7 @@ function ShopPanel() {
                     <Button
                       variant="ghost"
                       onClick={async () => {
-                        if (!window.confirm(`Remove "${product.name}" from the shop?`)) return;
+                        if (!(await confirmAction({ title: `Remove “${product.name}” from the shop?`, confirmLabel: 'Remove', tone: 'danger' }))) return;
                         await deleteProduct(product.id);
                         await load();
                       }}
@@ -1013,7 +1025,7 @@ function ProductEditor({
       </div>
       <Problems problems={problems} error={error} />
       <div className="collection-actions">
-        <Button
+        <Button variant="primary"
           disabled={saving || problems.length > 0}
           onClick={async () => {
             setSaving(true);
@@ -1182,7 +1194,7 @@ function HeroesPanel() {
         Learn. Unpublished entries are invisible to the app.
       </p>
       <div className="collection-actions">
-        <Button onClick={() => setEditing(emptyHero(nextOrder))}>New hero</Button>
+        <Button variant="primary" onClick={() => setEditing(emptyHero(nextOrder))}>New hero</Button>
         <Button variant="ghost" onClick={() => void load()} disabled={loading}>
           Refresh
         </Button>
@@ -1223,7 +1235,7 @@ function HeroesPanel() {
                     <Button
                       variant="ghost"
                       onClick={async () => {
-                        if (!window.confirm(`Remove "${hero.name}" from the heroes?`)) return;
+                        if (!(await confirmAction({ title: `Remove “${hero.name}” from the heroes?`, confirmLabel: 'Remove', tone: 'danger' }))) return;
                         await deleteHero(hero.id);
                         await load();
                       }}
@@ -1347,7 +1359,7 @@ function HeroEditor({
       </div>
       <Problems problems={problems} error={error} />
       <div className="collection-actions">
-        <Button
+        <Button variant="primary"
           disabled={saving || problems.length > 0}
           onClick={async () => {
             setSaving(true);
@@ -1467,7 +1479,7 @@ function NamesPanel() {
         </div>
         <Problems problems={problems} error={error} />
         <div className="collection-actions">
-          <Button
+          <Button variant="primary"
             disabled={problems.length > 0}
             onClick={async () => {
               try {
@@ -1544,7 +1556,7 @@ function NamesPanel() {
           <Button
             variant="ghost"
             onClick={async () => {
-              if (!window.confirm(`Remove "${entry.name}" from the names?`)) return;
+              if (!(await confirmAction({ title: `Remove “${entry.name}” from the names?`, confirmLabel: 'Remove', tone: 'danger' }))) return;
               await deleteKasemName(entry.id);
               await load();
             }}
@@ -1576,7 +1588,7 @@ function NamesPanel() {
         pageSize={30}
         actions={
           <>
-            <Button onClick={() => setEditing(emptyName(nextOrder))}>New name</Button>
+            <Button variant="primary" onClick={() => setEditing(emptyName(nextOrder))}>New name</Button>
             <Button variant="ghost" onClick={() => void load()} disabled={loading}>Refresh</Button>
           </>
         }

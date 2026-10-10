@@ -1,3 +1,4 @@
+import { confirmAction } from '../ui/dialogs';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   createTeamSiteRequest,
@@ -469,7 +470,7 @@ export function TeamSiteRequestsAdmin() {
   useEffect(load, []);
 
   const handleDelete = useCallback(async (request: TeamSiteRequest) => {
-    if (!window.confirm('Delete this response permanently? This cannot be undone.')) return;
+    if (!(await confirmAction({ title: 'Delete this response permanently?', body: 'This cannot be undone.', confirmLabel: 'Delete', tone: 'danger' }))) return;
     setDeleting(true);
     try {
       await deleteTeamSiteRequest(request.id);

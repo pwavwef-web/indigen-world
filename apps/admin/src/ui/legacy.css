@@ -1,0 +1,736 @@
+/* ==========================================================================
+   Older screens, drawn in the TribeStudio language
+   --------------------------------------------------------------------------
+   Several workspaces (creators, learning, community, collection editors)
+   predate this design and keep their markup. Two things bring them in line
+   without rewriting them:
+
+   1. The variables their stylesheets were written against (--ad-*, --glass-*,
+      --lift-*, --mono …) are re-pointed at TribeStudio's semantic tokens, so
+      their colours, shadows and radii follow the shared palette — and its
+      contrast, text-size and colour-mode preferences — automatically.
+   2. The shared classes they use (panels, headers, tables, buttons, pills,
+      form rows) are drawn here once, inside `:where()` so they carry no
+      specificity and never outrank a `ts-*` component or a screen's own rule.
+   ========================================================================== */
+
+:root {
+  --ad-ink: var(--text);
+  --ad-ink-2: var(--text-2);
+  --ad-slate: var(--text-3);
+  --ad-slate-2: var(--text-3);
+  --ad-mist: var(--bg);
+  --ad-mist-2: var(--surface-sunken);
+  --ad-paper: var(--surface);
+  --ad-line: var(--border);
+  --ad-blue-50: var(--accent-softer);
+  --ad-blue-100: var(--accent-soft);
+  --ad-blue-200: var(--accent-line);
+  --ad-blue-300: var(--c-blue-soft);
+  --ad-blue-400: var(--c-blue);
+  --ad-blue: var(--accent);
+  --ad-blue-600: var(--accent);
+  --ad-blue-700: var(--accent-text);
+  --ad-blue-800: var(--accent-text);
+  --ad-blue-900: var(--c-navy-800);
+  --ad-cyan: var(--c-cyan);
+  --ad-green: var(--success);
+  --ad-green-surface: var(--success-surface);
+  --ad-amber: var(--warning);
+  --ad-amber-surface: var(--warning-surface);
+  --ad-red: var(--danger);
+  --ad-red-surface: var(--danger-surface);
+  --ad-violet: var(--violet);
+  --ad-violet-surface: var(--violet-surface);
+
+  --glass: var(--surface);
+  --glass-strong: var(--surface);
+  --glass-line: var(--border);
+  --glass-line-soft: var(--border-soft);
+  --glass-hi: 0 0 0 0 transparent;
+  --lift-1: var(--shadow-xs);
+  --lift-2: var(--shadow-card);
+  --lift-3: var(--shadow-glass);
+  --mono: var(--font-mono);
+  --r-md: var(--r-lg);
+  --r-pill: var(--r-full);
+  --motion-fast: var(--dur-1) ease;
+  --motion-normal: var(--dur-2) ease;
+  --control-h: 2.5rem;
+  --focus-ring: 0 0 0 3px var(--accent-ring);
+  --iw-muted: var(--text-3);
+  --iw-accent: var(--accent);
+  --muted: var(--text-3);
+
+  /* Names from the retired brand palette some screens still ask for. */
+  --indigo: var(--accent);
+  --indigo-deep: var(--text);
+  --gold: var(--accent);
+  --terracotta: var(--violet);
+}
+
+/* -- Surfaces and headings ------------------------------------------------------ */
+:where(.ad-main) :where(.panel, .iwx-surface) {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+:where(.ad-main) :where(.iwx-surface--flush) {
+  padding: 0;
+  overflow: hidden;
+}
+
+:where(.ad-main) :where(.iwx-surface--tint) {
+  background: var(--surface-sunken);
+}
+
+:where(.ad-main) :where(.panel, .iwx-surface) > :where(h1, h2, h3) {
+  font-size: var(--fs-xl);
+}
+
+:where(.ad-main) :where(h2) {
+  font-size: var(--fs-xl);
+}
+
+:where(.ad-main) :where(h3) {
+  font-size: var(--fs-lg);
+}
+
+:where(.ad-main) :where(h4) {
+  font-size: var(--fs-base);
+}
+
+:where(.ad-main) :where(.panel, .iwx-surface, .tab-head) p + p {
+  margin-top: var(--space-2);
+}
+
+:where(.ad-main) :where(.iwx-head) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+}
+
+:where(.ad-main) :where(.iwx-head__copy) {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+  flex: 1 1 22rem;
+}
+
+:where(.ad-main) :where(.iwx-kicker) {
+  color: var(--accent-text);
+  font-size: var(--fs-tiny);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:where(.ad-main) :where(.iwx-head) :where(h1) {
+  font-size: clamp(1.75rem, 1.3rem + 1.6vw, 2.6rem);
+  letter-spacing: -0.03em;
+}
+
+:where(.ad-main) :where(.iwx-head) :where(h2) {
+  font-size: var(--fs-2xl);
+}
+
+:where(.ad-main) :where(.iwx-head__body) {
+  max-width: 62ch;
+  color: var(--text-3);
+}
+
+:where(.ad-main) :where(.iwx-head__actions, .tab-head) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+:where(.ad-main) :where(.tab-head) {
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+:where(.ad-main) :where(.muted, .tiny.muted) {
+  color: var(--text-3);
+}
+
+:where(.ad-main) :where(.tiny, .small) {
+  font-size: var(--fs-xs);
+}
+
+:where(.ad-main) :where(.stack) {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: var(--space-3);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+:where(.ad-main) :where(.row) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+:where(.ad-main) :where(.row) > :where(input) {
+  flex: 1 1 14rem;
+  width: auto;
+}
+
+/* -- Controls ------------------------------------------------------------------------ */
+:where(.ad-main) :where(button:not([class*="ts-"], [class*="ad-"], [class*="dt__"], [class*="iwx-pal"], .iwx-copy, .iwx-bare, .iwx-seg__option, .iwx-tab)) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  justify-self: start;
+  transition: background-color var(--dur-2) ease, border-color var(--dur-2) ease, color var(--dur-2) ease, box-shadow var(--dur-2) ease, transform var(--dur-1) ease;
+}
+
+:where(.ad-main) :where(button:not([class*="ts-"], [class*="ad-"], [class*="dt__"], [class*="iwx-pal"], .iwx-copy, .iwx-bare, .iwx-seg__option, .iwx-tab)):hover:not(:disabled) {
+  border-color: var(--accent-line);
+  background: var(--accent-softer);
+  color: var(--accent-text);
+}
+
+:where(.ad-main) :where(button:not([class*="ts-"], [class*="ad-"], [class*="dt__"], [class*="iwx-pal"])):active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+:where(.ad-main) :where(button):disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+:where(.ad-main) :where(button.button--primary, button.primary, button.iwx-btn--primary, button.button--approve, button.button--publish, a.button.button--primary) {
+  border-color: transparent;
+  background: var(--accent);
+  box-shadow: var(--shadow-button);
+  color: #fff;
+}
+
+:where(.ad-main) :where(button.button--primary, button.primary, button.iwx-btn--primary, button.button--approve, button.button--publish):hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--accent-hover);
+  color: #fff;
+}
+
+:where(.ad-main) :where(button.danger, button.btn-danger, button.iwx-btn--danger) {
+  border-color: var(--danger-line);
+  background: var(--surface);
+  color: var(--danger);
+}
+
+:where(.ad-main) :where(button.danger, button.btn-danger, button.iwx-btn--danger):hover:not(:disabled) {
+  border-color: var(--danger);
+  background: var(--danger-surface);
+  color: var(--danger-strong);
+}
+
+:where(.ad-main) :where(button.button--small, button.iwx-btn--sm, .row-actions button) {
+  min-height: 2.1rem;
+  padding: 0 0.75rem;
+  font-size: var(--fs-xs);
+}
+
+:where(.ad-main) :where(a.button) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+:where(.ad-main) :where(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [class*="ts-"]), select:not([class*="ts-"]), textarea:not([class*="ts-"])) {
+  width: 100%;
+  max-width: 100%;
+  min-height: 2.6rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  transition: border-color var(--dur-2) ease, box-shadow var(--dur-2) ease;
+}
+
+:where(.ad-main) :where(select:not([class*="ts-"])) {
+  padding-right: 2.2rem;
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-3) 50%),
+    linear-gradient(135deg, var(--text-3) 50%, transparent 50%);
+  background-position: calc(100% - 1.05rem) center, calc(100% - 0.7rem) center;
+  background-size: 0.35rem 0.35rem;
+  background-repeat: no-repeat;
+}
+
+:where(.ad-main) :where(textarea:not([class*="ts-"])) {
+  min-height: 6rem;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+:where(.ad-main) :where(input:not([type="checkbox"], [type="radio"], [type="file"]), select, textarea):hover:not(:disabled, :focus) {
+  border-color: var(--accent-line);
+}
+
+:where(.ad-main) :where(input:not([type="checkbox"], [type="radio"], [type="file"]), select, textarea):focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+:where(.ad-main) :where(input[type="checkbox"], input[type="radio"]) {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--accent);
+}
+
+:where(.ad-main) :where(label.filter) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+:where(.ad-main) :where(label.filter) > :where(select, input:not([type="checkbox"])) {
+  width: auto;
+  min-width: 10rem;
+}
+
+:where(.ad-main) :where(.inline-check, label.checkbox) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--fs-sm);
+}
+
+:where(.ad-main) :where(.row-actions) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+:where(.ad-main) :where(.admin-form) {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--surface);
+}
+
+:where(.ad-main) :where(.admin-form label, .form-row label) {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+:where(.ad-main) :where(.form-row) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--space-3);
+}
+
+/* -- Console kit primitives (console-ui) ------------------------------------------------ */
+:where(.ad-main) :where(.iwx-toolbar) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+:where(.ad-main) :where(.iwx-toolbar__group) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+:where(.ad-main) :where(.iwx-seg) {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+}
+
+:where(.ad-main) :where(.iwx-seg__option, .subtab) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.2rem;
+  padding: 0 0.85rem;
+  border: 0;
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--text-3);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--dur-2) ease, color var(--dur-2) ease;
+}
+
+:where(.ad-main) :where(.iwx-seg__option, .subtab):hover {
+  color: var(--text);
+}
+
+:where(.ad-main) :where(.iwx-seg__option[aria-pressed="true"], .iwx-seg__option.is-active, .subtab.is-active) {
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+  color: var(--accent-text);
+}
+
+:where(.ad-main) :where(.iwx-seg__count) {
+  min-width: 1.4rem;
+  padding: 0 0.4rem;
+  border-radius: var(--r-full);
+  background: var(--neutral-surface);
+  color: var(--text-2);
+  font-size: var(--fs-tiny);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+:where(.ad-main) :where(.subtabs) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+}
+
+:where(.ad-main) :where(.iwx-stats, .metric-grid) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--space-3);
+}
+
+:where(.ad-main) :where(.iwx-stat, .metric) {
+  display: grid;
+  gap: 0.2rem;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+:where(.ad-main) :where(.iwx-stat__value, .metric__value) {
+  order: 2;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+:where(.ad-main) :where(.iwx-stat__label, .metric__label) {
+  order: 1;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+:where(.ad-main) :where(.iwx-stat__note) {
+  order: 3;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+:where(.ad-main) :where(.iwx-loading) {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+
+:where(.ad-main) :where(.kbd, kbd) {
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+}
+
+:where(.ad-main) :where(.iwx-id) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+}
+
+:where(.ad-main) :where(.iwx-copy) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  cursor: copy;
+}
+
+:where(.ad-main) :where(.iwx-copy__text) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* -- Tables ------------------------------------------------------------------------------- */
+:where(.ad-main) :where(.admin-table, .collection-table, .learning-table) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+:where(.ad-main) :where(.admin-table, .collection-table, .learning-table) :where(th) {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+:where(.ad-main) :where(.admin-table, .collection-table, .learning-table) :where(td) {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-soft);
+  vertical-align: middle;
+}
+
+:where(.ad-main) :where(.admin-table, .collection-table, .learning-table) :where(tbody tr:last-child td) {
+  border-bottom: 0;
+}
+
+:where(.ad-main) :where(.admin-table, .collection-table, .learning-table) :where(tbody tr:hover) {
+  background: var(--surface-hover);
+}
+
+:where(.ad-main) :where(.admin-table, .collection-table, .learning-table) :where(tr.is-selected, tr.is-expanded) {
+  background: var(--accent-softer);
+}
+
+:where(.ad-main) :where(.admin-table, .collection-table, .learning-table) :where(td select, td input:not([type="checkbox"])) {
+  min-height: 2.1rem;
+  min-width: 8rem;
+}
+
+:where(.ad-main) :where(.table-shell, .audit-table-wrap) {
+  contain: paint;
+}
+
+:where(.ad-main) :where(.table-shell) {
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--surface);
+}
+
+/* -- Pills -------------------------------------------------------------------------------- */
+:where(.ad-main) :where(.badge2, .route-badge, .chip, .collection-status, .learning-status, .status-badge, .report-status, .tag--planned) {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--neutral-line);
+  border-radius: var(--r-full);
+  background: var(--neutral-surface);
+  color: var(--neutral);
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+:where(.ad-main) :where(.badge2--info, .route-badge, .badge2.status-scheduled, .status-badge--contacted) {
+  border-color: var(--info-line);
+  background: var(--info-surface);
+  color: var(--info);
+}
+
+:where(.ad-main) :where(.chip--ok, .badge2.status-sent, .collection-status--live, .learning-status--live, .status-badge--resolved, .report-status--resolved, .route-badge--contributor, .route-badge--school) {
+  border-color: var(--success-line);
+  background: var(--success-surface);
+  color: var(--success);
+}
+
+:where(.ad-main) :where(.chip--bad, .badge2.status-failed, .status-badge--new, .report-status--open) {
+  border-color: var(--danger-line);
+  background: var(--danger-surface);
+  color: var(--danger);
+}
+
+:where(.ad-main) :where(.badge2.status-partial, .status-badge--in_progress, .report-status--reviewing, .route-badge--sponsor) {
+  border-color: var(--warning-line);
+  background: var(--warning-surface);
+  color: var(--warning);
+}
+
+:where(.ad-main) :where(.route-badge--researcher, .route-badge--validator) {
+  border-color: var(--violet-line);
+  background: var(--violet-surface);
+  color: var(--violet);
+}
+
+/* -- Notices and flashes -------------------------------------------------------------------- */
+:where(.ad-main) :where(.admin-flash, .notice--status) {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--success-line);
+  border-radius: var(--r-lg);
+  background: var(--success-surface);
+  color: var(--success-strong);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+:where(.ad-main) :where(.error-line, .dashboard-error) {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--danger-line);
+  border-radius: var(--r-lg);
+  background: var(--danger-surface);
+  color: var(--danger-strong);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+:where(.ad-main) :where(.notice, .notice-line, .panel__hint) {
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+
+/* -- Cards used by older screens --------------------------------------------------------------- */
+:where(.ad-main) :where(.interest-metric-card, .analytics-card, .export-card, .entity-card, .review-card, .collection-order, .collection-upload, .reported-post, .interest-detail-grid, .interest-note-box) {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: none;
+}
+
+:where(.ad-main) :where(.batch-toolbar, .interests-toolbar, .interest-status-updater) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-lg);
+  background: var(--accent-softer);
+}
+
+:where(.ad-main) :where(.batch-toolbar) {
+  position: sticky;
+  z-index: 12;
+  top: calc(var(--ad-topbar-h) + var(--space-2));
+}
+
+:where(.ad-main) :where(.batch-actions) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+:where(.ad-main) :where(.audit-heading, .audit-controls) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+:where(.ad-main) :where(.audit-table-wrap) {
+  overflow-x: auto;
+}
+
+:where(.ad-main) :where(.audit-json-box) {
+  padding: var(--space-3);
+  border-radius: var(--r-lg);
+  background: var(--c-navy-800);
+  color: #dbe6ff;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+:where(.ad-main) :where(.export-buttons-grid, .analytics-grid, .entity-grid) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: var(--space-3);
+}
+
+:where(.ad-main) :where(.export-card) {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+:where(.ad-main) :where(.export-controls-card, .export-settings-row) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+:where(.ad-main) :where(code) {
+  color: var(--text-2);
+}
+
+/* Older modal shells (team sites, form responses) */
+:where(.ad-main, body) :where(.modal-backdrop, .interest-modal-backdrop, .contributor-modal-backdrop) {
+  background: rgba(15, 24, 48, 0.45);
+}

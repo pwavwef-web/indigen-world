@@ -1,5 +1,6 @@
+import { confirmAction } from '../ui/dialogs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button } from '@indigen-world/web-ui';
+import { Button } from '../ui/primitives';
 import {
   listCommunityReports,
   REPORT_STATUSES,
@@ -154,7 +155,7 @@ export function ReportsAdmin() {
     status: 'active' | 'removed',
   ) => {
     const verb = status === 'removed' ? 'Remove' : 'Restore';
-    if (!window.confirm(`${verb} ${community.name} (communities/${community.id})?`)) return;
+    if (!(await confirmAction({ title: `${verb} ${community.name}?`, body: `communities/${community.id}`, confirmLabel: verb, tone: status === 'removed' ? 'danger' : 'primary' }))) return;
     setUpdatingId(report.id);
     setError(null);
     try {

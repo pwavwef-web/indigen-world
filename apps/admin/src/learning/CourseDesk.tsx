@@ -1,5 +1,6 @@
+import { confirmAction } from '../ui/dialogs';
 import { useCallback, useEffect, useState, type ChangeEvent } from 'react';
-import { Button } from '@indigen-world/web-ui';
+import { Button } from '../ui/primitives';
 import { Alert, EmptyState, Loading, StatusPill, TableShell, toneForStatus } from '@indigen-world/console-ui';
 import { auth } from '../firebase';
 import {
@@ -108,7 +109,7 @@ export function UnitsPanel() {
         ) : null}
         {error ? <p className="error-line">{error}</p> : null}
         <div className="learning-admin__actions">
-          <Button
+          <Button variant="primary"
             disabled={saving || problems.length > 0}
             onClick={async () => {
               setSaving(true);
@@ -144,7 +145,7 @@ export function UnitsPanel() {
         them together.
       </p>
       <div className="learning-admin__actions">
-        <Button onClick={() => setEditing(emptyUnit(nextOrder))}>New unit</Button>
+        <Button variant="primary" onClick={() => setEditing(emptyUnit(nextOrder))}>New unit</Button>
         <Button variant="ghost" onClick={() => void load()} disabled={loading}>
           Refresh
         </Button>
@@ -185,7 +186,7 @@ export function UnitsPanel() {
                     <Button
                       variant="ghost"
                       onClick={async () => {
-                        if (!window.confirm(`Delete unit "${unit.title}"? Its lessons stay, and are grouped under their unit number.`)) return;
+                        if (!(await confirmAction({ title: `Delete unit “${unit.title}”?`, body: 'Its lessons stay, grouped under their unit number.', confirmLabel: 'Delete unit', tone: 'danger' }))) return;
                         await deleteUnit(unit.id);
                         await load();
                       }}
@@ -374,7 +375,7 @@ export function IllustrationDesk({ canApprove }: { canApprove: boolean }) {
         </div>
         {error ? <p className="error-line">{error}</p> : null}
         <div className="learning-admin__actions">
-          <Button disabled={busy || !prompt.trim()} onClick={() => void generate()}>
+          <Button variant="primary" disabled={busy || !prompt.trim()} onClick={() => void generate()}>
             {busy ? 'Drawing… (up to a minute)' : editFrom ? 'Make the edit' : 'Generate draft'}
           </Button>
           <Button variant="ghost" onClick={() => void load()} disabled={loading}>
@@ -493,7 +494,7 @@ function IllustrationCard({
             ) : null}
             <input value={note} placeholder="Review note (required to reject)" onChange={(event) => setNote(event.target.value)} />
             <div className="learning-admin__actions">
-              <Button disabled={busy} onClick={() => void decide('approve')}>
+              <Button variant="primary" disabled={busy} onClick={() => void decide('approve')}>
                 {item.status === 'approved' ? 'Re-attach' : 'Approve'}
               </Button>
               <Button variant="ghost" disabled={busy || !note.trim()} onClick={() => void decide('reject')}>
@@ -604,7 +605,7 @@ function RecordingRow({ item, onChanged }: { item: PronunciationRecording; onCha
       {url ? <audio controls src={url} preload="none" /> : <span className="muted">Audio unavailable</span>}
       <input value={note} placeholder="Note (required to reject)" onChange={(event) => setNote(event.target.value)} />
       <div className="learning-admin__actions">
-        <Button disabled={busy} onClick={() => void decide('approve')}>
+        <Button variant="primary" disabled={busy} onClick={() => void decide('approve')}>
           Approve
         </Button>
         <Button variant="ghost" disabled={busy || !note.trim()} onClick={() => void decide('reject')}>

@@ -95,6 +95,24 @@
         "--strictPort"
       ],
       "port": 5197
+    },
+    {
+      "name": "admin-emulators",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "cross-env",
+        "VITE_USE_EMULATORS=true",
+        "npm",
+        "run",
+        "dev",
+        "--workspace",
+        "@indigen-world/admin",
+        "--",
+        "--port",
+        "5194",
+        "--strictPort"
+      ],
+      "port": 5194
     }
   ]
 }

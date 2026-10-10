@@ -2,18 +2,42 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#101c36" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f1830" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="robots" content="noindex, nofollow" />
     <meta
       name="description"
-      content="Indigen World Admin — the internal administration console for the Indigen World ecosystem."
+      content="Indigen World Administration — the internal workspace for the Indigen World team."
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Indigen World Admin</title>
+    <!--
+      Display preferences, before the first paint (src/ui/display.ts). The
+      console opens light unless someone chose otherwise, so a dark-mode choice
+      never flashes white and an "animations off" choice never sees motion.
+    -->
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var prefs = {};
+        try { prefs = JSON.parse(localStorage.getItem('indigen-admin.display') || '{}') || {}; } catch (error) { prefs = {}; }
+        var theme = prefs.theme === 'dark' || prefs.theme === 'system' ? prefs.theme : 'light';
+        var dark = theme === 'dark' || (theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        root.dataset.theme = theme;
+        root.dataset.themeResolved = dark ? 'dark' : 'light';
+        root.style.colorScheme = dark ? 'dark' : 'light';
+        if (prefs.fontScale === 'sm' || prefs.fontScale === 'lg') root.dataset.fontScale = prefs.fontScale;
+        if (prefs.contrast === true) root.dataset.contrast = 'high';
+        if (prefs.motion === 'on' || prefs.motion === 'off') root.dataset.motion = prefs.motion;
+      })();
+    </script>
+    <style>
+      html { background: #f6f7fb; }
+      html[data-theme-resolved="dark"] { background: #08111f; }
+    </style>
   </head>
   <body>
-    <a class="skip-link" href="#main-content">Skip to main content</a>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

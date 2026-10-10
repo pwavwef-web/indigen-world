@@ -6,7 +6,8 @@ workspace for contributors and content creators.
 
 ## Responsibilities
 
-- Role and access administration (assigning and auditing role claims)
+- Point redemptions and reward settings (Finance)
+- Role and access auditing
 - Contributor directory, profile, invitation and expression-assignment administration
 - Validation oversight across language cells (queues, escalations, quality)
 - Moderation of reported content against consent and cultural-permission policy
@@ -34,36 +35,54 @@ Privileged access must be backed by role claims, Firebase Security Rules and
 server-side checks in `services/functions` — never by client-side checks alone.
 The console is marked `noindex` and must not be publicly discoverable.
 
-## Console UI
+## Structure
 
-Every screen is built from one kit — [`@indigen-world/console-ui`](../../packages/console-ui),
-shared with the TribeStudio workspace — so a new screen inherits the console's
-behaviour instead of restating it:
+After sign-in the console opens on **Home**: a launcher of nine workspace
+cards, live queue counts and a "Needs attention" strip. Inside a workspace a
+sidebar holds *Back to home*, a section switcher and that section's tools.
+The map lives in [`src/routes.ts`](src/routes.ts) and each tool's screen in
+[`src/screens.tsx`](src/screens.tsx):
 
-| Piece | What it owns |
-|---|---|
-| `DataTable` | Sorting, search, paging, row selection, sticky headers, the empty state, and containment — the table scrolls inside `TableShell`, never the page |
-| `TableShell` | The one element allowed to scroll sideways; it reports its own overflow so the edge fade appears only when something is hidden |
-| `CommandPalette` | ⌘K / Ctrl-K navigation and privileged actions, ranked by subsequence match |
-| `primitives.tsx` | `Panel`, `PageHeader`, `Toolbar`, `Stat`, `StatusPill`, `EmptyState`, `Alert`, `Loading`, `CopyId`, `SegmentedControl` |
-| `kit.css` | The design system: glass surfaces on a blue-and-white ground, layered elevation, and one control baseline for every button, input and select |
+| Section | Tools | Access |
+|---|---|---|
+| Finance `/finance` | Overview · Point redemptions · Point settings · Payout records | admin (payouts: finance claim) |
+| Collections `/collections` | Heroes · Names · Apps · Audiobooks · Shop · Orders | admin |
+| Messaging `/messaging` | Compose · Contact groups · Campaign history · Test SMS | admin |
+| Creators `/creators` | Overview · Applications · Creator profiles · Members · Campaigns | validator |
+| Contributors `/contributors` | Directory · Invitations · Assignments · Contribution history · Support & issues | admin |
+| Review Desk `/review` | Pending · Approved · Published · Needs revision · Rejected · Archived | validator |
+| Learning `/learning` | Lessons · Units (admin) · Illustrations · Pronunciation | validator |
+| Community `/community` | Reports (admin) · Forms & claims · Team sites | validator |
+| Governance `/governance` | Audit trail · Exports · Configuration | admin |
 
-Three rules hold it together, and `npm test --workspace @indigen-world/admin`
-enforces them:
+Old addresses (`/reports`, `/audit`, `/collection`, `/interests`,
+`/team-sites`, `/exports`, `/contributors/rewards` …) redirect into this map.
+A path someone may not open says which permission it needs; an unknown path
+is an explicit 404. `/team-site-intake` stays public. Access here only decides
+what is shown — Security Rules and the callables enforce it.
 
-1. **Nothing widens the page.** Wide content scrolls or wraps inside its own
-   box. `styles.css` contains stray width with `overflow-x: clip` as a backstop,
-   but the fix belongs in the component.
-2. **One table.** `.data-table` and the legacy `.admin-table`,
-   `.collection-table` and `.learning-table` are all styled by the same rules,
-   so screens written before the kit still look like the rest of the console.
-3. **Controls are not restyled per screen.** The baseline in `kit.css` sits
-   inside `:where()`, so it carries zero specificity: it dresses controls
-   nobody has styled and loses to any rule that has an opinion. The shell's
-   own chrome keeps its look without the kit knowing those class names.
+**Finance owns staff management of point redemptions.** Contributors request
+airtime or data in TribeStudio; decisions here change the same
+`contributorRedemptions` records. Approving never sends anything; recording a
+delivery needs a reference and an explicit confirmation; rejecting needs a
+reason and returns the reserved points exactly once. Every decision carries the
+status the reviewer saw, so a stale screen is refused and reloaded.
 
-Keyboard: `⌘K` / `Ctrl-K` opens the palette, `/` focuses the rail's screen
-filter, and the row-density toggle above any table is remembered per browser.
+## Look and feel
+
+The console reuses TribeStudio's foundation directly — `tokens.css`,
+`base.css`, `motion.css`, `components.css`, `shell.css` and the icon set are
+imported from `apps/tribestudio/src/ui`, so both products share one palette,
+type pairing (Sora + Inter), controls and motion. Admin adds only layout
+(`src/ui/admin.css`, `src/ui/sections.css`) and a bridge that draws older
+screens' classes in the same language (`src/ui/legacy.css`). `src/ui/primitives.tsx`
+renders the studio's `ts-*` markup; `src/ui/dialogs.tsx` replaces browser
+prompts with accessible dialogs. Display preferences (colour mode, text size,
+contrast, animations) live in the profile menu; the console opens light.
+
+`npm test --workspace @indigen-world/admin` checks the section map, that every
+tool has a screen, the Finance and Review safeguards, that every table scrolls
+inside its own box, and the Kasem morphology mirror.
 
 ## Local development
 
@@ -71,6 +90,21 @@ filter, and the row-density toggle above any table is remembered per browser.
 npm run dev --workspace @indigen-world/admin
 npm run build:admin      # from the repo root
 ```
+
+To see signed-in screens without production, run the emulators, seed them and
+start the dev-only fixture callables (the Functions emulator cannot load on
+Node 24, so callables are answered from labelled sample data; backend
+behaviour is covered by `firebase/tests`):
+
+```bash
+npx firebase emulators:start --only auth,firestore,storage --project demo-indigen-world
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199 node apps/admin/scripts/dev/seed-admin-ui.mjs
+node apps/admin/scripts/dev/fixture-callables.mjs
+npx cross-env VITE_USE_EMULATORS=true npm run dev --workspace @indigen-world/admin
+```
+
+The seed creates `admin@admin.test` (admin + finance), `validator@admin.test`
+and `nobody@admin.test`; their shared local password is in the seed script.
 
 ## Deploy
 

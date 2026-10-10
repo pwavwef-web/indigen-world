@@ -1,5 +1,6 @@
 {
   "indexes": [
+    {"collectionGroup":"contributorRedemptions","queryScope":"COLLECTION","fields":[{"fieldPath":"kind","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"}]},
     {"collectionGroup": "knowledgeRecords", "queryScope": "COLLECTION", "fields": [{"fieldPath": "authorUid", "order": "ASCENDING"}, {"fieldPath": "schemaVersion", "order": "ASCENDING"}, {"fieldPath": "workflow", "order": "ASCENDING"}]},
     {"collectionGroup": "knowledgeRecords", "queryScope": "COLLECTION", "fields": [{"fieldPath": "authorUid", "order": "ASCENDING"}, {"fieldPath": "schemaVersion", "order": "ASCENDING"}, {"fieldPath": "submittedAt", "order": "ASCENDING"}]},
     {"collectionGroup":"communityRecommendationEvents","queryScope":"COLLECTION","fields":[{"fieldPath":"uid","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},

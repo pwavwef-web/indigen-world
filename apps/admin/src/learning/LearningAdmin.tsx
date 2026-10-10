@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
-import { Button } from '@indigen-world/web-ui';
+import { Button, PageHeader } from '../ui/primitives';
+import { useSession } from '../session';
+import { confirmAction } from '../ui/dialogs';
 import {
   deleteLesson,
   emptyLesson,
@@ -12,8 +14,8 @@ import {
   type LessonQuestion,
 } from './data';
 import { answerImageSlot, promptImageSlot, uploadLessonImage } from './imageUpload';
-import { Loading, SegmentedControl, TableShell } from '@indigen-world/console-ui';
-import { isAdmin, type AdminRole } from '../creators/data';
+import { Loading, TableShell } from '@indigen-world/console-ui';
+import { isAdmin } from '../creators/data';
 import { IllustrationDesk, PronunciationReviewPanel, UnitsPanel } from './CourseDesk';
 import './learning.css';
 
@@ -26,22 +28,18 @@ type LearningTab = 'lessons' | 'units' | 'illustrations' | 'recordings';
  * rather than a write — an editor can draft a picture or listen to a take, and
  * only an administrator can publish a picture into the course.
  */
-export function LearningWorkspace({ role }: { role: AdminRole }) {
-  const admin = isAdmin(role);
-  const [tab, setTab] = useState<LearningTab>(admin ? 'lessons' : 'illustrations');
-  const options = [
-    ...(admin
-      ? [
-          { id: 'lessons' as const, label: 'Lessons' },
-          { id: 'units' as const, label: 'Units' },
-        ]
-      : []),
-    { id: 'illustrations' as const, label: 'Illustrations' },
-    { id: 'recordings' as const, label: 'Pronunciations' },
-  ];
+const TAB_COPY: Record<LearningTab, { title: string; description: string }> = {
+  lessons: { title: 'Lessons', description: 'Write and publish lessons and their exercises.' },
+  units: { title: 'Units', description: 'The guided learning path, unit by unit.' },
+  illustrations: { title: 'Illustrations', description: 'Generate lesson artwork and approve it for the course.' },
+  recordings: { title: 'Pronunciation', description: 'Listen to recorded pronunciations and decide them.' },
+};
+
+export function LearningWorkspace({ tab }: { tab: LearningTab }) {
+  const admin = isAdmin(useSession().access.role);
   return (
-    <div className="learning-admin">
-      <SegmentedControl label="Learning desks" options={options} value={tab} onChange={setTab} />
+    <div className="ad-page learning-admin">
+      <PageHeader title={TAB_COPY[tab].title} description={TAB_COPY[tab].description} />
       {tab === 'lessons' && admin ? <LearningAdmin /> : null}
       {tab === 'units' && admin ? <UnitsPanel /> : null}
       {tab === 'illustrations' ? <IllustrationDesk canApprove={admin} /> : null}
@@ -118,7 +116,7 @@ export function LearningAdmin() {
           anybody their ticks.
         </p>
         <div className="learning-admin__actions">
-          <Button onClick={() => setEditing(emptyLesson(nextOrder))}>New lesson</Button>
+          <Button variant="primary" onClick={() => setEditing(emptyLesson(nextOrder))}>New lesson</Button>
           <Button variant="ghost" onClick={() => void load()} disabled={loading}>
             Refresh
           </Button>
@@ -182,12 +180,12 @@ export function LearningAdmin() {
                         <Button
                           variant="ghost"
                           onClick={async () => {
-                            if (
-                              !window.confirm(
-                                `Delete "${lesson.title}"? Members keep the XP they already earned, ` +
-                                  'but the lesson disappears from the path.',
-                              )
-                            ) {
+                            if (!(await confirmAction({
+                              title: `Delete “${lesson.title}”?`,
+                              body: 'Members keep the XP they already earned, but the lesson disappears from the path.',
+                              confirmLabel: 'Delete lesson',
+                              tone: 'danger',
+                            }))) {
                               return;
                             }
                             await deleteLesson(lesson.id);
@@ -380,7 +378,7 @@ function LessonEditor({
         ) : null}
         {error ? <p className="error-line">{error}</p> : null}
         <div className="learning-admin__actions">
-          <Button onClick={() => void save()} disabled={saving || problems.length > 0}>
+          <Button variant="primary" onClick={() => void save()} disabled={saving || problems.length > 0}>
             {saving ? 'Saving…' : 'Save lesson'}
           </Button>
           <Button variant="ghost" onClick={onCancel} disabled={saving}>

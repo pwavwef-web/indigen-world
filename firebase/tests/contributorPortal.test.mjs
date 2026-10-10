@@ -6,8 +6,8 @@ import { createHash } from 'node:crypto';
 import { HttpsError } from 'firebase-functions/v2/https';
 import { requireAuth, requireRole } from '../../services/functions/lib/auth.js';
 import { normalizeMsisdn } from '../../services/functions/lib/sms.js';
-import { guarded } from '../../services/functions/lib/contributor-common.js';
-import { rewardSettings } from '../../services/functions/lib/contributor-rewards.js';
+import { auditEntry, guarded } from '../../services/functions/lib/contributor-common.js';
+import { redemptionTransition, rewardSettings } from '../../services/functions/lib/contributor-rewards.js';
 import { COLLECTION_CAMPAIGN_ID, buildCollectionCampaignDocument, buildCollectionContributionReceipt,
   buildCollectionSubmissionDocument, parseCollectionContributionInput } from '../../services/functions/lib/collection-contributions.js';
 import { INVITED_SOURCE_DETAIL, buildExpressionReceipt, buildExpressionSubmissionDocument } from '../../services/functions/lib/expressions.js';
@@ -66,7 +66,7 @@ async function harness({ smsOk = true, configured = true } = {}) {
   const rewardCode = readFileSync(new URL('../../services/functions/lib/contributor-rewards.js', import.meta.url), 'utf8')
     .replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const)/g, '');
   Object.assign(api, runInNewContext(rewardCode + '\n;({redeemContributorPoints,decideContributorRedemption})', {
-    process, HttpsError, requireAuth, requireRole, normalizeMsisdn, getFirestore: () => db,
+    process, HttpsError, requireAuth, requireRole, normalizeMsisdn, auditEntry, console, getFirestore: () => db,
     onCall: (_options, fn) => fn, consumeRateLimit: async () => {},
   }));
   records.set('contributorAccounts/alice', { status: 'active', trainingAgreement: { version: 'contributor-training-v2', acceptedAt: '2026-10-02T00:00:00.000Z' } });
@@ -486,6 +486,53 @@ test('airtime and data redemption reserves points, validates destination, and re
   await h.decideContributorRedemption(adminThird('approve'));
   await h.decideContributorRedemption(adminThird('reject'));
   assert.equal(h.records.get('contributorAccounts/alice').rewardBalance, 300);
+});
+
+test('redemption decisions follow the only allowed transitions', () => {
+  assert.equal(redemptionTransition('submitted', 'approve'), 'approved');
+  assert.equal(redemptionTransition('submitted', 'reject'), 'rejected');
+  assert.equal(redemptionTransition('approved', 'reject'), 'rejected');
+  assert.equal(redemptionTransition('approved', 'fulfill'), 'fulfilled');
+  // Approval never counts as delivery, and both ends are final.
+  assert.equal(redemptionTransition('submitted', 'fulfill'), null);
+  assert.equal(redemptionTransition('approved', 'approve'), null);
+  for (const action of ['approve', 'reject', 'fulfill']) {
+    assert.equal(redemptionTransition('fulfilled', action), null);
+    assert.equal(redemptionTransition('rejected', action), null);
+  }
+});
+
+test('duplicate, stale and incomplete redemption decisions are refused and points return exactly once', async () => {
+  const h = await harness();
+  h.records.set('contributorAccounts/alice', { status: 'active', rewardBalance: 300, rewardLifetime: 300 });
+  const { requestId } = await h.redeemContributorPoints({ auth: { uid: 'alice' }, data: { points: 300, kind: 'airtime', network: 'MTN', phoneNumber: '0241234567' } });
+  const balance = () => h.records.get('contributorAccounts/alice').rewardBalance;
+  const status = () => h.records.get(`contributorRedemptions/${requestId}`).status;
+  const decide = (data, token = { role: 'admin' }) => h.decideContributorRedemption({ auth: { uid: 'admin', token }, data: { requestId, note: '', ...data } });
+  assert.equal(balance(), 0);
+  await assert.rejects(decide({ action: 'approve' }, { role: 'validator' }), { code: 'permission-denied' });
+  await assert.rejects(decide({ action: 'fulfill', paymentReference: 'REF-1' }), { code: 'failed-precondition' });
+  await assert.rejects(decide({ action: 'reject' }), { code: 'invalid-argument' });
+  // A reviewer deciding from a screen that still shows the request as approved.
+  await assert.rejects(decide({ action: 'approve', expectedStatus: 'approved' }), { code: 'aborted' });
+  assert.equal(status(), 'submitted');
+  const approved = await decide({ action: 'approve', expectedStatus: 'submitted' });
+  assert.equal(approved.status, 'approved');
+  assert.equal(status(), 'approved');
+  await assert.rejects(decide({ action: 'approve', expectedStatus: 'submitted' }), { code: 'aborted' });
+  await assert.rejects(decide({ action: 'approve' }), { code: 'failed-precondition' });
+  await assert.rejects(decide({ action: 'fulfill', expectedStatus: 'approved' }), { code: 'invalid-argument' });
+  const rejected = await decide({ action: 'reject', note: 'Number not reachable', expectedStatus: 'approved' });
+  assert.deepEqual({ ...rejected }, { requestId, status: 'rejected', pointsReturned: 300 });
+  assert.equal(balance(), 300);
+  await assert.rejects(decide({ action: 'reject', note: 'Again' }), { code: 'failed-precondition' });
+  assert.equal(balance(), 300, 'a repeated rejection never returns points twice');
+  const audits = [...h.records.entries()].filter(([path]) => path.startsWith('auditLogs/')).map(([, row]) => row);
+  assert.deepEqual(audits.map(row => row.action).sort(), ['contributor.redemption.approve', 'contributor.redemption.reject']);
+  const rejection = audits.find(row => row.action === 'contributor.redemption.reject');
+  assert.deepEqual({ ...rejection.target }, { collection: 'contributorRedemptions', id: requestId });
+  assert.equal(rejection.metadata.pointsReturned, 300);
+  assert.equal(typeof rejection.occurredAt, 'string');
 });
 
 test('contributors may redeem any whole-point amount from the minimum through their balance', async () => {

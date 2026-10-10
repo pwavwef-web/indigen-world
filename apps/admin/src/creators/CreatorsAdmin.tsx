@@ -11,9 +11,7 @@ import { auth } from '../firebase';
 import {
   createCampaign,
   decideApplication,
-  decideSubmission,
   fetchApplications,
-  fetchAuditLogs,
   fetchCampaigns,
   fetchConfig,
   fetchCreatorMemberships,
@@ -29,56 +27,61 @@ import {
   type CommunityMemberRow,
   type VerifiedKind,
 } from './data';
-import {
-  NOUN_FORM_SLOTS,
-  OTHER_FORM_SLOTS,
-  pronounCheck,
-} from './kasem-morphology';
 import { EmptyState, Loading, TableShell } from '@indigen-world/console-ui';
+import { useSession } from '../session';
+import { askText, confirmAction } from '../ui/dialogs';
+import { PageHeader, Toast } from '../ui/primitives';
 
-type Tab = 'overview' | 'applications' | 'creators' | 'members' | 'campaigns' | 'review' | 'config' | 'audit';
+type Tab = 'overview' | 'applications' | 'creators' | 'members' | 'campaigns';
 
-const TABS: [Tab, string][] = [
-  ['overview', 'Overview'],
-  ['applications', 'Applications'],
-  ['creators', 'Creators'],
-  ['members', 'Members'],
-  ['campaigns', 'Campaigns'],
-  ['review', 'Review Desk'],
-  ['config', 'Configuration'],
-  ['audit', 'Audit log'],
-];
+const TAB_COPY: Record<Tab, { title: string; description: string }> = {
+  overview: { title: 'Creators', description: 'Applications, profiles, members and campaigns.' },
+  applications: { title: 'Applications', description: 'Decide creator applications, one at a time or in a batch.' },
+  creators: { title: 'Creator profiles', description: 'Approved creators, with suspension, revocation and reactivation.' },
+  members: { title: 'Members', description: 'Community members and the verification marks staff grant.' },
+  campaigns: { title: 'Campaigns', description: 'Open, close and publish creator campaigns.' },
+};
 
-export function CreatorsAdmin({ role }: { role: AdminRole }) {
-  const [tab, setTab] = useState<Tab>('overview');
+export function CreatorsAdmin({ tab }: { tab: Tab }) {
+  const { access } = useSession();
+  const role = access.role;
   const [flash, setFlash] = useState<string | null>(null);
-  const notify = useCallback((msg: string) => {
-    setFlash(msg);
-    window.setTimeout(() => setFlash(null), 3500);
-  }, []);
+  const notify = useCallback((msg: string) => setFlash(msg), []);
 
   return (
-    <div className="creators-admin">
-      <nav className="subtabs">
-        {TABS.filter(([t]) => (t === 'config' || t === 'audit' ? isAdmin(role) : true)).map(([t, label]) => (
-          <button key={t} type="button" className={tab === t ? 'subtab is-active' : 'subtab'} onClick={() => setTab(t)}>
-            {label}
-          </button>
-        ))}
-      </nav>
-
-      {flash ? <div className="admin-flash">{flash}</div> : null}
-
-      {tab === 'overview' ? <OverviewTab /> : null}
-      {tab === 'applications' ? <ApplicationsTab role={role} notify={notify} /> : null}
-      {tab === 'creators' ? <CreatorsDirectoryTab role={role} notify={notify} /> : null}
-      {tab === 'members' ? <MembersTab role={role} notify={notify} /> : null}
-      {tab === 'campaigns' ? <CampaignsTab role={role} notify={notify} /> : null}
-      {tab === 'review' ? <ReviewTab notify={notify} /> : null}
-      {tab === 'config' && isAdmin(role) ? <ConfigTab notify={notify} /> : null}
-      {tab === 'audit' && isAdmin(role) ? <AuditTab /> : null}
+    <div className="ad-page creators-admin">
+      <PageHeader title={TAB_COPY[tab].title} description={TAB_COPY[tab].description} />
+      {flash ? <Toast message={flash} tone="info" onDone={() => setFlash(null)} /> : null}
+      <div className="panel">
+        {tab === 'overview' ? <OverviewTab /> : null}
+        {tab === 'applications' ? <ApplicationsTab role={role} notify={notify} /> : null}
+        {tab === 'creators' ? <CreatorsDirectoryTab role={role} notify={notify} /> : null}
+        {tab === 'members' ? <MembersTab role={role} notify={notify} /> : null}
+        {tab === 'campaigns' ? <CampaignsTab role={role} notify={notify} /> : null}
+      </div>
     </div>
   );
+}
+
+/** Governance → Configuration: dialects, categories and contact links for creators. */
+export function PlatformConfiguration() {
+  const [flash, setFlash] = useState<string | null>(null);
+  return (
+    <div className="ad-page creators-admin">
+      <PageHeader title="Configuration" description="Dialects, content categories and contact links used across the creator workspace." />
+      {flash ? <Toast message={flash} tone="info" onDone={() => setFlash(null)} /> : null}
+      <div className="panel"><ConfigTab notify={setFlash} /></div>
+    </div>
+  );
+}
+
+const DECISION_LABELS: Record<string, string> = {
+  APPROVE: 'Approve', WAITLIST: 'Waitlist', REQUEST_INFO: 'Request information from', REJECT: 'Reject',
+  RESTORE: 'Reactivate', SUSPEND: 'Suspend', REVOKE: 'Revoke',
+};
+
+function decisionLabel(decision: string): string {
+  return DECISION_LABELS[decision] ?? decision.toLowerCase();
 }
 
 // ---------------------------------------------------------------------------
@@ -117,7 +120,6 @@ function OverviewTab() {
 
   return (
     <div>
-      <h2>Creator overview</h2>
       <div className="metric-grid">
         {metrics.map(([label, value]) => (
           <div key={label} className="metric">
@@ -169,9 +171,10 @@ function ApplicationsTab({ role, notify }: { role: AdminRole; notify: (m: string
     if (!isAdmin(role)) { notify('Admin access required.'); return; }
     let reason = '';
     if (needReason) {
-      reason = window.prompt(`Reason for ${decision}?`) ?? '';
-      if (!reason.trim()) return;
-    } else if (!window.confirm(`${decision} this application?`)) {
+      const answer = await askText({ title: `${decisionLabel(decision)} ${String(app.snapshot?.displayName ?? 'this application')}?`, label: 'Reason shown to the applicant', required: true, multiline: true, maxLength: 1000, confirmLabel: decisionLabel(decision), tone: decision === 'REJECT' ? 'danger' : 'primary' });
+      if (answer === null) return;
+      reason = answer;
+    } else if (!(await confirmAction({ title: `${decisionLabel(decision)} this application?`, body: `${String(app.snapshot?.displayName ?? app.reference ?? '')} — the applicant is notified.`, confirmLabel: decisionLabel(decision) }))) {
       return;
     }
     setBusy(app.id);
@@ -189,7 +192,7 @@ function ApplicationsTab({ role, notify }: { role: AdminRole; notify: (m: string
   const runBatchAction = async (decision: string) => {
     if (!isAdmin(role)) { notify('Admin access required.'); return; }
     if (selectedIds.size === 0) return;
-    const confirmed = window.confirm(`Apply ${decision} to all ${selectedIds.size} selected applications?`);
+    const confirmed = await confirmAction({ title: `${decisionLabel(decision)} ${selectedIds.size} applications?`, body: 'Each applicant is notified. Batch decisions are recorded one by one in the audit trail.', confirmLabel: `${decisionLabel(decision)} ${selectedIds.size}`, tone: decision === 'REJECT' ? 'danger' : 'primary' });
     if (!confirmed) return;
 
     setBusy('batch');
@@ -212,7 +215,7 @@ function ApplicationsTab({ role, notify }: { role: AdminRole; notify: (m: string
     <div>
       <div className="tab-head">
         <div>
-          <h2>Creator applications &amp; Intake</h2>
+          <h2 className="sr-only">Applications</h2>
           <p className="tiny muted">Select multiple applications for batch review and approval.</p>
         </div>
         <label className="filter">
@@ -339,7 +342,7 @@ function MembersTab({ role, notify }: { role: AdminRole; notify: (m: string) => 
   const grant = async (row: CommunityMemberRow, kind: VerifiedKind) => {
     if (!isAdmin(role)) { notify('Admin access required.'); return; }
     if (!auth.currentUser) { notify('Sign in again.'); return; }
-    if (kind === 'project' && !window.confirm(`Mark @${row.username} as the project itself?`)) return;
+    if (kind === 'project' && !(await confirmAction({ title: `Mark @${row.username} as the project itself?`, body: 'Project accounts show the mark without a verified phone number.', confirmLabel: 'Mark as project' }))) return;
     setBusy(row.uid);
     try {
       await setMemberVerifiedKind(row.uid, kind);
@@ -353,8 +356,7 @@ function MembersTab({ role, notify }: { role: AdminRole; notify: (m: string) => 
   };
 
   return (
-    <section className="panel">
-      <h2>Members</h2>
+    <section>
       <p className="muted">
         A mark is granted here; the phone number behind it is not. Only the project&rsquo;s own accounts
         show a mark without one — everybody else&rsquo;s waits until they have verified a number.
@@ -439,9 +441,10 @@ function CreatorsDirectoryTab({ role, notify }: { role: AdminRole; notify: (m: s
     if (!isAdmin(role)) { notify('Admin access required.'); return; }
     let reason = '';
     if (needReason) {
-      reason = window.prompt(`Reason for ${decision}?`) ?? '';
-      if (!reason.trim()) return;
-    } else if (!window.confirm(`${decision} ${membership.userId}?`)) {
+      const answer = await askText({ title: `${decisionLabel(decision)} this creator?`, body: membership.userId, label: 'Reason', required: true, multiline: true, maxLength: 1000, confirmLabel: decisionLabel(decision), tone: 'danger' });
+      if (answer === null) return;
+      reason = answer;
+    } else if (!(await confirmAction({ title: `${decisionLabel(decision)} this creator?`, body: membership.userId, confirmLabel: decisionLabel(decision) }))) {
       return;
     }
     setBusy(membership.userId);
@@ -459,7 +462,7 @@ function CreatorsDirectoryTab({ role, notify }: { role: AdminRole; notify: (m: s
   return (
     <div>
       <div className="tab-head">
-        <h2>Creator directory</h2>
+        <h2 className="sr-only">Creator directory</h2>
       </div>
       {loading ? <Loading label="Loading creators" /> : rows.length === 0 ? <EmptyState title="No creator memberships yet." /> : (
         <TableShell label="Creator directory">
@@ -521,7 +524,7 @@ function CampaignsTab({ role, notify }: { role: AdminRole; notify: (m: string) =
   };
 
   const setStatus = async (c: Campaign, statusValue: string) => {
-    if (statusValue === 'SUBMISSIONS_OPEN' && !window.confirm(`Open submissions for "${c.title}"? Eligible creators will gain access immediately.`)) return;
+    if (statusValue === 'SUBMISSIONS_OPEN' && !(await confirmAction({ title: `Open submissions for “${c.title}”?`, body: 'Eligible creators gain access immediately.', confirmLabel: 'Open submissions' }))) return;
     try {
       await updateCampaign(c.id, { status: statusValue as Campaign['status'] });
       notify(`Status → ${statusValue}`);
@@ -543,7 +546,6 @@ function CampaignsTab({ role, notify }: { role: AdminRole; notify: (m: string) =
 
   return (
     <div>
-      <h2>Campaigns</h2>
       <p className="muted">Move a campaign to <strong>Submissions open</strong> to unlock the submission workflow — no redeploy required.</p>
       {loading ? <Loading label="Loading" /> : (
         <TableShell label="Campaigns">
@@ -585,340 +587,6 @@ function CampaignsTab({ role, notify }: { role: AdminRole; notify: (m: string) =
           <button type="button" className="primary" onClick={() => void create()}>Create draft</button>
         </section>
       ) : null}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-
-/**
- * The paradigm a contributor recorded, and what the determiner rule makes of it.
- *
- * ── Why the review desk shows the forms at all ───────────────────────────
- * It did not, until now. `forms` has been written to the canonical submission
- * since the advanced entry shipped and read by the publication projection, so
- * the paradigm was travelling all the way to a published dictionary entry
- * without ever passing in front of the person approving it. A reviewer was
- * approving a headword and a gloss, and inheriting a plural nobody had looked
- * at.
- *
- * ── And why the pronoun line is the one with an opinion ──────────────────
- * Because it is the only slot the archive can say anything about. A speaker
- * stated that the determiner decides the pronoun, so a definite form ending in
- * `kam` predicts `ka` — see `kasem-morphology.ts`. Every other slot is
- * unexaminable: nothing in this project knows what the plural of a word it has
- * never seen ought to be, and pretending otherwise is how invented grammar
- * gets published.
- *
- * `differs` is a question, never a verdict. The rule is eight rows old and the
- * contributor is a speaker, so the likelier correction runs the other way —
- * and the exception is the most valuable row the project can collect. Nothing
- * here disables a button.
- */
-function LexicalForms({ forms }: { forms?: Record<string, string> }) {
-  if (!forms) return null;
-  const answered = [...NOUN_FORM_SLOTS, ...OTHER_FORM_SLOTS].filter(
-    (slot) => (forms[slot.id] ?? '').trim().length > 0,
-  );
-  if (answered.length === 0) return null;
-
-  const check = pronounCheck(forms.definite, forms.pronoun);
-  const note =
-    check.status === 'differs'
-      ? `Said with “${check.article}”, so the rule expects “${check.expected}” — the contributor wrote “${check.given}”. Worth a look: either a slip, or an exception worth keeping.`
-      : check.status === 'absent'
-        ? `Said with “${check.article}”, so the pronoun would be “${check.expected}”. Not recorded — nothing to correct, only nothing to publish.`
-        : null;
-
-  return (
-    <div className="review-card__forms">
-      <dt>Forms recorded</dt>
-      <dd>
-        <ul className="review-forms">
-          {answered.map((slot) => (
-            <li key={slot.id}>
-              <span className="review-forms__label">{slot.label}</span>
-              <span className="review-forms__value">{forms[slot.id]}</span>
-              {slot.id === 'pronoun' && check.status === 'agrees' ? (
-                <span className="review-forms__ok" title={`Matches the determiner “${check.article}”`}>
-                  ✓ matches “{check.article}”
-                </span>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-        {note ? (
-          <p className={`review-forms__note review-forms__note--${check.status}`}>{note}</p>
-        ) : null}
-      </dd>
-    </div>
-  );
-}
-
-const EXPRESSION_KIND_LABELS: Record<string, string> = {
-  phrase: 'Everyday phrase or greeting',
-  idiom: 'Idiom',
-  proverb: 'Proverb or saying',
-};
-
-const EXPRESSION_SOURCE_LABELS: Record<string, string> = {
-  self: 'The contributor says it themselves',
-  family: 'A family member',
-  elder: 'An elder or knowledge holder',
-  community: 'Someone in their community',
-  written: 'A book or written source',
-  recording: 'A recording or broadcast',
-  'invited-speaker': 'Invited Kasem speaker',
-};
-
-/** Whether a queued submission is an everyday expression rather than a word or a work. */
-function isExpression(s: Submission): boolean {
-  return s.collectionKind === 'expressions' || Boolean(s.expression);
-}
-
-/**
- * The five things an expression was sent with, in the order a reviewer checks
- * them: the Kasem, what it means, when it is said, who it came from, and what
- * the contributor confirmed about sharing it.
- *
- * An approved expression publishes to `expressionEntries` as a whole phrase.
- * It never becomes a dictionary headword, so there is no word class, paradigm
- * or homograph for a reviewer to judge here — only whether the expression is
- * right, and whether it is safe to publish.
- */
-function ExpressionReview({ s }: { s: Submission }) {
-  const expression = s.expression;
-  const phrase = expression?.phrase ?? s.body ?? '';
-  const alternatives = expression?.alternatives ?? [];
-  const meaning = expression?.meaning ?? s.title;
-  const literal = expression?.literalTranslation ?? s.literalTranslation ?? '';
-  const context = expression?.context ?? s.usageContext ?? '';
-  const kind = expression?.kind ?? s.lexicalKind ?? 'phrase';
-  const source = expression?.source;
-  return (
-    <dl>
-      <div className="review-card__content"><dt>Expression (Kasem)</dt><dd lang="xsm"><strong>{phrase || '—'}</strong></dd></div>
-      {alternatives.length ? <div><dt>Other ways of saying it</dt><dd lang="xsm">{alternatives.join(' · ')}</dd></div> : null}
-      <div className="review-card__content"><dt>Meaning (English)</dt><dd>{meaning || '—'}</dd></div>
-      {literal ? <div><dt>Word for word</dt><dd>{literal}</dd></div> : null}
-      <div className="review-card__content"><dt>When it is used</dt><dd>{context || 'Not recorded'}</dd></div>
-      <div><dt>Kind</dt><dd>{EXPRESSION_KIND_LABELS[kind] ?? kind}</dd></div>
-      <div><dt>Dialect</dt><dd>{expression?.dialect ?? s.dialect ?? '—'}</dd></div>
-      <div className="review-card__content">
-        <dt>Learned from</dt>
-        <dd>
-          {source ? <>{EXPRESSION_SOURCE_LABELS[source.type] ?? source.type} — {source.detail}</> : (s.sourceReferences || '—')}
-          {source?.speakerName ? <div className="muted">Speaker named publicly: {source.speakerName}</div> : null}
-        </dd>
-      </div>
-      {expression?.consent ? (
-        <div className="review-card__content">
-          <dt>Contributor confirmed</dt>
-          <dd>
-            <div>“{expression.consent.source}”</div>
-            <div>“{expression.consent.everyday}”</div>
-          </dd>
-        </div>
-      ) : null}
-      {s.translationNotes ? <div><dt>Reviewer context</dt><dd>{s.translationNotes}</dd></div> : null}
-      {s.revisionOf ? <div><dt>Correction of</dt><dd>An earlier expression that was not accepted ({s.revisionOf})</dd></div> : null}
-      <div><dt>Publication permission</dt><dd>{s.permissions?.publication ? 'Granted' : 'No — archive if approved'}</dd></div>
-      <div><dt>AI training</dt><dd>{s.permissions?.aiTraining ? 'Granted' : 'Off'}</dd></div>
-    </dl>
-  );
-}
-
-/** A word-queue answer carries the queue word it answered. */
-type QueueAware = Submission & { wordQueueId?: string; moderation?: { publishAs?: string } };
-
-const isQueueAnswer = (s: Submission) => Boolean((s as QueueAware).wordQueueId);
-
-/** What a word-queue answer can become. Mirrors `PUBLISH_AS` in language-loop.ts. */
-const PUBLISH_AS_OPTIONS: { value: string; label: string }[] = [
-  { value: 'headword', label: 'A dictionary word' },
-  { value: 'variant', label: 'A regional variant' },
-  { value: 'expression', label: 'An expression' },
-  { value: 'example', label: 'An example sentence' },
-  { value: 'translation-pair', label: 'A translation pair' },
-  { value: 'training', label: 'Training material (not published)' },
-];
-
-function ReviewTab({ notify }: { notify: (m: string) => void }) {
-  const [rows, setRows] = useState<Submission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
-  // What each word-queue answer on screen becomes, as the reviewer chose it.
-  const [becomes, setBecomes] = useState<Record<string, string>>({});
-
-  const load = useCallback(() => {
-    setLoading(true);
-    void fetchReviewQueue().then((r) => { setRows(r); setLoading(false); }).catch(() => setLoading(false));
-  }, []);
-  useEffect(load, [load]);
-
-  const decide = async (s: Submission, decision: string, needFeedback: boolean) => {
-    let feedback = '';
-    const extras: { publishAs?: string; entryId?: string } = {};
-    if (isQueueAnswer(s) && (decision === 'APPROVE' || decision === 'PUBLISH')) {
-      const publishAs = becomes[s.id] ?? (s as QueueAware).moderation?.publishAs ?? 'headword';
-      extras.publishAs = publishAs;
-      if (publishAs === 'variant' || publishAs === 'example') {
-        const entryId = (window.prompt(
-          publishAs === 'variant'
-            ? 'Id of the dictionary entry this is a regional variant of (for example collection_abc123):'
-            : 'Id of the dictionary entry this example belongs to (optional):',
-        ) ?? '').trim();
-        if (publishAs === 'variant' && !entryId) return;
-        if (entryId) extras.entryId = entryId;
-      }
-    }
-    if (needFeedback) {
-      feedback = window.prompt(`Feedback for ${decision}?`) ?? '';
-      if (!feedback.trim()) return;
-    } else if (!window.confirm(`${decision} "${s.title}"${extras.publishAs ? ` as ${extras.publishAs}` : ''}?`)) {
-      return;
-    }
-    setBusy(s.id);
-    try {
-      await decideSubmission(s.id, decision, feedback, {}, extras);
-      notify(`Submission: ${decision}.`);
-      load();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Action failed.');
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const isCollectionContribution = (submission: Submission) =>
-    submission.collectionContribution?.collection === 'collectionContributions'
-    || Boolean(submission.collectionKind);
-
-  const contentDetails = (content: string, label: string) => {
-    const preview = content.length > 140 ? `${content.slice(0, 140).trimEnd()}…` : content;
-    return (
-      <details className="review-content-details">
-        <summary aria-label={`Open full ${label.toLowerCase()}`}>{preview}</summary>
-        <div className="review-content-details__full">{content}</div>
-      </details>
-    );
-  };
-
-  return (
-    <div>
-      <h2>Contributions</h2>
-      <p className="muted">Everyday expressions, invited expression translations, campaign submissions and mobile Collection contributions meet here. Approved work stays visible until it is published or archived, and published work can be unpublished here.</p>
-      <p className="muted">For an expression, check the Kasem, that the meaning matches, and that the context and source make sense. Reject with a reason the contributor can act on — they can correct it and send it again. A published expression appears on the website as an expression; it never becomes a dictionary word.</p>
-      {loading ? <Loading label="Loading" /> : rows.length === 0 ? <EmptyState title="The queue is empty." /> : (
-        <div className="review-cards">
-          {rows.map((s) => (
-            <article key={s.id} className="review-card">
-              <header>
-                <strong lang={isExpression(s) ? 'xsm' : undefined}>{isExpression(s) ? (s.expression?.phrase ?? s.body ?? s.title) : s.title}</strong>
-                <span>
-                  {s.collectionKind ? <span className="badge2 badge2--collection">{isExpression(s) ? 'expression' : s.collectionKind}</span> : null}
-                  <span className="badge2">{s.status}</span>
-                </span>
-              </header>
-              {isExpression(s) ? <ExpressionReview s={s} /> : <dl>
-                <div><dt>Category</dt><dd>{s.category || '—'}</dd></div>
-                {s.format ? <div><dt>Format</dt><dd>{s.format}</dd></div> : null}
-                <div><dt>Studio</dt><dd>{s.studioType || '—'}</dd></div>
-                <div><dt>Dialect</dt><dd>{s.dialect || '—'}</dd></div>
-                {s.body ? <div className="review-card__content"><dt>Body</dt><dd>{contentDetails(s.body, 'body')}</dd></div> : null}
-                {s.sourceReferences ? <div><dt>Source / attribution</dt><dd>{s.sourceReferences}</dd></div> : null}
-                {s.externalPostUrl ? (
-                  <div>
-                    <dt>Recording</dt>
-                    <dd><a href={s.externalPostUrl} target="_blank" rel="noreferrer">Open submitted link ↗</a></dd>
-                  </div>
-                ) : null}
-                {s.media?.storagePath ? (
-                  <div>
-                    <dt>Uploaded file</dt>
-                    <dd>
-                      {s.media.mediaType ?? 'file'} · {s.media.mimeType ?? 'unknown type'}
-                      <div className="muted">{s.media.storagePath}</div>
-                    </dd>
-                  </div>
-                ) : null}
-                {s.translationNotes ? <div><dt>Reviewer context</dt><dd>{s.translationNotes}</dd></div> : null}
-                <LexicalForms forms={s.forms} />
-                {s.translation?.translatedContent ? <div className="review-card__content"><dt>Translation</dt><dd>{contentDetails(s.translation.translatedContent, 'translation')}</dd></div> : null}
-                <div><dt>English summary</dt><dd>{s.englishSummary || '—'}</dd></div>
-                {/* Null means the form never put the question — a dictionary
-                    word has no participants — which is not the same as a
-                    declared "no" and must not read like one. */}
-                <div><dt>Minors</dt><dd>{s.disclosures?.involvesMinors == null ? 'Not asked' : s.disclosures.involvesMinors ? 'Yes' : 'No'}</dd></div>
-                <div><dt>Third-party material</dt><dd>{s.disclosures?.usesThirdPartyMaterial ? 'Yes' : 'No'}</dd></div>
-                <div><dt>Publication permission</dt><dd>{s.permissions?.publication ? 'Granted' : 'No'}</dd></div>
-                <div><dt>AI training</dt><dd>{s.permissions?.aiTraining ? 'Granted' : 'Off'}</dd></div>
-              </dl>}
-              <div className="row-actions">
-                {s.status === 'PUBLISHED' ? (
-                  <button
-                    type="button"
-                    className="danger"
-                    disabled={busy === s.id}
-                    onClick={() => void decide(s, 'UNPUBLISH', false)}
-                  >
-                    Unpublish
-                  </button>
-                ) : s.status !== 'APPROVED' ? (
-                  <>
-                    {isQueueAnswer(s) ? (
-                      <label className="review-becomes">
-                        Becomes{' '}
-                        <select
-                          value={becomes[s.id] ?? (s as QueueAware).moderation?.publishAs ?? 'headword'}
-                          onChange={(event) => setBecomes((current) => ({ ...current, [s.id]: event.target.value }))}
-                        >
-                          {PUBLISH_AS_OPTIONS.map((option) => (
-                            <option
-                              key={option.value}
-                              value={option.value}
-                              disabled={option.value === 'training' && s.permissions?.aiTraining !== true}
-                            >
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    ) : null}
-                    <button type="button" disabled={busy === s.id} onClick={() => void decide(s, 'APPROVE', false)}>Approve</button>
-                    {/* A word-queue answer can be corrected from its author's
-                        list of submissions; other Collection work cannot. */}
-                    {!isCollectionContribution(s) || isQueueAnswer(s) ? (
-                      <button type="button" disabled={busy === s.id} onClick={() => void decide(s, 'REQUEST_REVISION', true)}>Request revision</button>
-                    ) : null}
-                    <button type="button" className="danger" disabled={busy === s.id} onClick={() => void decide(s, 'REJECT', true)}>Reject</button>
-                  </>
-                ) : s.permissions?.publication === true ? (
-                  <button
-                    type="button"
-                    className="button--publish"
-                    disabled={busy === s.id}
-                    title="Publish this approved work"
-                    onClick={() => void decide(s, 'PUBLISH', false)}
-                  >
-                    {isExpression(s) ? 'Publish expression' : 'Publish to Collection'}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="button--archive"
-                    disabled={busy === s.id}
-                    title="Archive approved work that cannot be published without contributor permission"
-                    onClick={() => void decide(s, 'ARCHIVE', false)}
-                  >
-                    Archive
-                  </button>
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -972,44 +640,11 @@ function ConfigTab({ notify }: { notify: (m: string) => void }) {
 
   return (
     <div>
-      <h2>Configuration</h2>
       <label className="stack">WhatsApp Channel URL<input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} /></label>
       <label className="stack">Support email<input value={support} onChange={(e) => setSupport(e.target.value)} /></label>
       <label className="stack">Dialects (one <code>slug:Label</code> per line)<textarea rows={5} value={dialects} onChange={(e) => setDialects(e.target.value)} /></label>
       <label className="stack">Content categories (one <code>slug:Label</code> per line)<textarea rows={6} value={categories} onChange={(e) => setCategories(e.target.value)} /></label>
       <button type="button" className="primary" onClick={() => void save()}>Save configuration</button>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-
-function AuditTab() {
-  const [rows, setRows] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => { void fetchAuditLogs().then((r) => { setRows(r); setLoading(false); }); }, []);
-
-  if (loading) return <Loading label="Loading" />;
-  return (
-    <div>
-      <h2>Audit log</h2>
-      {rows.length === 0 ? <EmptyState title="No audit entries." /> : (
-        <TableShell label="Recent decisions">
-          <table className="admin-table">
-            <thead><tr><th>When</th><th>Action</th><th>Target</th><th>Outcome</th></tr></thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={i}>
-                  <td>{String(r.occurredAt ?? '').slice(0, 19).replace('T', ' ')}</td>
-                  <td>{String(r.action ?? '')}</td>
-                  <td>{(r.target as { collection?: string; id?: string })?.id ?? '—'}</td>
-                  <td>{String(r.outcome ?? '')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </TableShell>
-      )}
     </div>
   );
 }
