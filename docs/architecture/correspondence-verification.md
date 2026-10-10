@@ -1,14 +1,16 @@
 # Correspondence verification — October 10, 2026
 
-Repository implementation only. No deployment, external publication, real
-recipient email or physical print job was performed.
+Functions, private-data rules and Admin Hosting were deployed October 10, 2026.
+No external publication, real-recipient test email or physical print job was
+performed. See [the deployment record](../operations/correspondence-deployment-2026-10-10.md).
 
 - Functions build and Admin build/typecheck passed.
-- `test:correspondence`: 12 passing tests. Covers editable DOCX packages,
+- `test:correspondence`: 13 passing tests. Covers editable DOCX packages,
   searchable A4 PDF, four embedded font faces, Kasem, lists, page breaks,
   approved-signature/glyph validation, exact offline MIME attachment bytes,
   recipient-specific bulk letters, preparation failure/retry, concurrent claims,
-  integrity failures and uncertain-delivery duplicate prevention.
+  integrity failures, uncertain-delivery duplicate prevention and retention of
+  already-valid cloud font part names with complete relationship validation.
 - `test:correspondence:integration`: 6 passing Firestore-emulator tests covering
   admin permissions, private draft persistence, optimistic revisions, owner
   isolation, direct-access denial, incomplete drafts and failed send preservation.
@@ -31,11 +33,37 @@ recipient email or physical print job was performed.
   content, four embedded font parts, headers, footers, SVG artwork and no editing
   protection. PDFs preserve the tested Kasem characters in extracted text.
 
-Synthetic samples are in `output/correspondence/` (ignored by Git). Regenerate
-with the documented CLI. Release-post assets are actual local sample/composer
-screenshots, not evidence of a live release.
+Synthetic samples are in `output/correspondence/` (ignored by Git), refreshed
+with generator v2. All three DOCX samples open with an independent document
+parser and contain editable paragraphs and four embedded fonts.
 
-Deployment checks still needed: production service-account signing/bucket
-permissions, SMTP configuration and deployment of Functions, rules and Admin.
+Production verification:
+- All four Functions are ACTIVE on Node 22, with 512 MiB, timeout 120 seconds
+  and concurrency 1. Original provider values and secret bindings were retained;
+  the service account already had signing permission. No runtime service-account
+  IAM change was needed.
+- Both Admin domains serve the exact built HTML, entry JavaScript and composer
+  chunk, with the existing security headers. Unauthenticated callable access
+  returns HTTP 401 / UNAUTHENTICATED.
+- A signed-in administrator saved a clearly labelled synthetic draft and used
+  Print PDF to generate both cloud files. The UI returned its ready notice and
+  recorded separate immutable versions marked Generated, not sent.
+- The initial live Word inspection exposed a cloud-library font packaging
+  defect. `docx` is now pinned to the tested release and generator v2 preserves
+  valid filenames, validates every font relationship and leaves history intact.
+  The corrected cloud DOCX opens with an independent parser: 16 editable
+  paragraphs, four embedded fonts, resolved references, header/footer and Kasem.
+- The corrected cloud PDF is one searchable A4 page, preserves the supplied
+  Kasem characters and matches the SHA-256 shown in the portal. It was downloaded
+  from private storage, rendered and visually inspected. Browser automation
+  cannot reliably capture the native PDF viewer; the standalone render is used
+  for visual evidence. Final native Microsoft Word layout refresh remains the
+  limitation described above.
+
+Release-post images are an actual deployed composer screenshot and a rendered
+cloud-generated PDF, both using synthetic identities. Blogger remains unpublished.
+
 Provider-managed Firebase security emails require a custom sender connection;
 the staff assistant descriptor still needs an authorised assistant integration.
+SMTP acceptance and inbox delivery were intentionally not tested against real
+recipients; the existing provider configuration and offline MIME tests were used.

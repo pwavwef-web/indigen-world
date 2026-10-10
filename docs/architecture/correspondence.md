@@ -1,6 +1,8 @@
 # Heritage Frame correspondence
 
-Implementation prepared October 10, 2026. Deployment is not confirmed.
+Deployed October 10, 2026 to the existing Firebase project and Admin site.
+See [the deployment record](../operations/correspondence-deployment-2026-10-10.md)
+and [verification results](correspondence-verification.md).
 
 The Word generator uses the tested `docx` 9.5.1 release, pinned for cloud/local
 consistency. Generator v2 retains valid embedded-font part names, checks their
@@ -164,12 +166,17 @@ coverage is required. Existing provider-native security flows remain intact.
 
 ## Deployment and verification
 
-This repository implementation has not been deployed or externally published.
-Deploy Functions (including `correspondence`, `publicForms`, `onNotificationCreated`
-and `onSupportEmailCreated`), Firestore/Storage rules and Admin Hosting together,
-using existing production release safeguards and SMTP secret bindings. Ensure
-the Functions service account can sign private download links, read/write its
-private bucket and use the existing SMTP relay. Do not send live test messages.
+Functions (`correspondence`, `publicForms`, `onNotificationCreated` and
+`onSupportEmailCreated`), Firestore/Storage rules and Admin Hosting were deployed
+under the production-main safeguards. The existing SMTP settings, secret
+bindings, service account and signing permission were preserved. Authenticated
+private draft saving and cloud generation of both formats passed. No live test
+email, physical print job or Blogger publication was performed.
+
+Future deployments must include these four Functions when the shared SMTP or
+generation boundary changes. Rebuild Functions and Admin, retain provider secret
+bindings, and verify authorised private downloads. Generators use 512 MiB,
+120-second execution budgets and concurrency 1. Never send live test messages.
 
 ```powershell
 npm run test:correspondence

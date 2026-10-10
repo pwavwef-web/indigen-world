@@ -6,7 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
-- [2026-10-10: Heritage Frame letters and correspondence](2026-10-10-heritage-frame-correspondence/README.md) — existing Indigen World logo, reusable editable Word/searchable PDF letters, private drafts, print preparation and reviewed SMTP attachments. Implemented and locally verified; deployment and Blogger publication pending. Includes actual generated sample and labelled local composer screenshots.
+- [2026-10-10: Heritage Frame letters and correspondence](2026-10-10-heritage-frame-correspondence/README.md) — existing Indigen World logo, reusable editable Word/searchable PDF letters, private drafts, print preparation and reviewed SMTP attachments. Admin, four Functions and private-data rules deployed October 10; authorised cloud Word/PDF generation verified; Blogger unpublished. Includes actual deployed composer and rendered cloud PDF with synthetic identities.
 
 - [2026-10-10: Check Kasem spellings without leaving your contribution](2026-10-10-kasem-dictionary-assistance/README.md) — dictionary underlines, approved suggestions and reviewed word submissions across responsive contributor fields. Deployed and verified on both TribeStudio domains, with four active backend functions; Blogger unpublished. Includes desktop and mobile product previews with test fixtures.
 
