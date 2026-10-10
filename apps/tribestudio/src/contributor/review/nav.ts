@@ -3,6 +3,7 @@ import { DESKS, type Desk } from './model';
 
 const DESK_ICONS: Record<Desk, NavItem['icon']> = {
   contributions: 'contributions',
+  rewards: 'award',
   sentences: 'translation',
   adverts: 'image',
   names: 'users',
@@ -13,6 +14,7 @@ const DESK_SHORT: Partial<Record<Desk, string>> = { contributions: 'Content' };
 
 const DESK_HINTS: Record<Desk, string> = {
   contributions: 'Creator posts, dictionary words and expressions',
+  rewards: 'Training-data quality and contributor points',
   sentences: 'Example sentences and their variants',
   adverts: 'Advert campaigns before and while they run',
   names: 'Kasem name requests',

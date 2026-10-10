@@ -103,8 +103,8 @@ export function AttentionProvider({ access, children }: { access: StaffAccess; c
         // Exact totals come from the server's aggregates; without them the
         // loaded page is only a floor, so it is reported as unavailable.
         if (summary) {
-          set('redemptionsPending', { state: 'ready', value: summary.submitted.count });
-          set('redemptionsAwaitingDelivery', { state: 'ready', value: summary.approved.count });
+          set('redemptionsPending', { state: 'ready', value: summary.submitted?.count ?? 0 });
+          set('redemptionsAwaitingDelivery', { state: 'ready', value: (summary.approved?.count ?? 0) + (summary.needs_reconciliation?.count ?? 0) });
         } else if (!truncated) {
           set('redemptionsPending', { state: 'ready', value: requests.filter((row) => row.status === 'submitted').length });
           set('redemptionsAwaitingDelivery', { state: 'ready', value: requests.filter((row) => row.status === 'approved').length });

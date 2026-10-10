@@ -1,0 +1,16 @@
+{
+  "functions": [
+    {
+      "source": "services/assessment-worker",
+      "codebase": "assessment",
+      "runtime": "python314",
+      "ignore": ["venv", "tests", "examples", "__pycache__", ".env.example", "*.md"]
+    }
+  ],
+  "emulators": {
+    "functions": { "port": 5011 },
+    "hub": { "port": 4410 },
+    "logging": { "port": 4510 },
+    "ui": { "enabled": false }
+  }
+}

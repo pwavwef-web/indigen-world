@@ -1,0 +1,71 @@
+{
+  "submissionId": "sub-example-1",
+  "contributionKey": "key-example-1",
+  "contributorId": "contributor-example",
+  "category": "expressions",
+  "attempt": 1,
+  "input": {
+    "category": "expressions",
+    "kasemText": "[Kasem placeholder]",
+    "alternatives": [],
+    "englishMeaning": "Good morning (to an elder)",
+    "literalTranslation": "",
+    "context": "Said when greeting an elder at their home in the morning",
+    "dialect": "Ghana Kasem",
+    "sourceType": "invited-speaker",
+    "transcript": "",
+    "media": null,
+    "permissions": {
+      "aiTraining": true,
+      "publication": true,
+      "consentVersion": "contributor-training-v2"
+    }
+  },
+  "policy": {
+    "id": "award-v1-proposed",
+    "version": 1,
+    "categoryLabel": "Everyday expression",
+    "category": {
+      "enabled": true,
+      "label": "Everyday expression",
+      "basePoints": 20,
+      "minPoints": 20,
+      "maxPoints": 40,
+      "weights": {
+        "accuracy": 50,
+        "completeness": 25,
+        "technical": 10,
+        "metadata": 15
+      },
+      "requirements": {
+        "trainingPermission": true,
+        "audio": false,
+        "transcript": false,
+        "provenance": true
+      },
+      "duplicatePolicy": "text",
+      "effortUnit": null,
+      "note": "A short, accurate expression can earn the top band. Length is not scored."
+    },
+    "bands": [
+      {
+        "id": "standard",
+        "label": "Standard",
+        "minScore": 60,
+        "multiplierBps": 10000
+      },
+      {
+        "id": "strong",
+        "label": "Strong",
+        "minScore": 80,
+        "multiplierBps": 12500
+      },
+      {
+        "id": "exceptional",
+        "label": "Exceptional",
+        "minScore": 90,
+        "multiplierBps": 15000
+      }
+    ]
+  }
+}

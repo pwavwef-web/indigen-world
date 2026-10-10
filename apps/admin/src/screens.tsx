@@ -33,6 +33,8 @@ export const SCREENS: Record<`${SectionId}.${string}`, Screen> = {
   'finance.overview': named(finance, 'FinanceOverview'),
   'finance.redemptions': named(finance, 'RedemptionsDesk'),
   'finance.settings': named(finance, 'PointSettings'),
+  'finance.ledger': named(finance, 'PointsLedger'),
+  'finance.audit': named(finance, 'RewardAudit'),
   'finance.payouts': named(finance, 'PayoutRecords'),
 
   'collections.heroes': named(collections, 'CollectionAdmin', { tab: 'heroes' }),

@@ -90,3 +90,24 @@ test('payout details, pending codes and payment requests are server-only, even f
     await assertFails(setDoc(doc(env.authenticatedContext('gina').firestore(), path), { tampered: true }));
   }
 });
+
+test('points, awards, assessments, quotes and policies cannot be read or written by contributors', async () => {
+  const backendOnly = ['pointLedger/e1', 'contributorPointAccounts/alice', 'contributionAwards/k1', 'contributorRedemptions/r1',
+    'redemptionQuotes/q1', 'rewardPolicies/p1', 'rewardBudgets/2026-10', 'contributionAssessmentJobs/j1'];
+  await env.withSecurityRulesDisabled(async ctx => {
+    for (const path of backendOnly) await setDoc(doc(ctx.firestore(), path), { contributorId: 'alice', available: 10 });
+    await setDoc(doc(ctx.firestore(), 'contributionAssessments/a1'), { contributorId: 'alice', status: 'validator_review' });
+  });
+  const alice = env.authenticatedContext('alice').firestore();
+  const validator = env.authenticatedContext('val', { role: 'validator' }).firestore();
+  const admin = env.authenticatedContext('admin', { role: 'admin', finance: true }).firestore();
+  for (const path of backendOnly) {
+    await assertFails(getDoc(doc(alice, path)));
+    await assertFails(setDoc(doc(alice, path), { contributorId: 'alice', available: 999999 }));
+    await assertFails(setDoc(doc(admin, path), { available: 999999 }));
+  }
+  await assertFails(getDoc(doc(alice, 'contributionAssessments/a1')));
+  await assertSucceeds(getDoc(doc(validator, 'contributionAssessments/a1')));
+  await assertFails(setDoc(doc(validator, 'contributionAssessments/a1'), { status: 'awarded' }));
+  await assertFails(setDoc(doc(alice, 'contributorAccounts/alice'), { rewardBalance: 999999 }, { merge: true }));
+});

@@ -9,6 +9,7 @@ import { AppShell, Badge, Icon, PageHeader, Steps, type IconName } from '../../u
 import { fetchHeadwordMatches, type PublishedHeadword } from '../../creator/dictionary-data';
 import { DESKS, DECISION_LABELS, DIMENSIONS, TARGETS, decisionsFor, decisionRequest, safeUrl, targetProblem, type Desk, type ReviewRecord } from './model';
 import { reviewNav } from './nav';
+import { RewardAssessmentPanel } from './RewardAssessment';
 import './review.css';
 
 /** Only the authorized child mounts Firestore subscriptions. Direct URLs use the same guard. */
@@ -96,9 +97,9 @@ function AuthorizedDesk() {
       setRows(next); setLoading(false);
     }, reason => { setError(reason.message); setLoading(false); });
   }, [config.collection,status,attempt,pageSize,desk]);
-  const title = (row: ReviewRecord) => row.title || row.name || row.headline || row.examples?.[0]?.kasem || 'Untitled contribution';
-  const kind = (row: ReviewRecord) => row.collectionKind || row.studioType || row.origin || row.kind || row.format || config.label;
-  const filtered = rows.filter(row => (!category || kind(row) === category) && [title(row),row.body,row.translation,row.id].join(' ').toLocaleLowerCase().includes(needle.trim().toLocaleLowerCase()));
+  const title = (row: ReviewRecord) => row.title || row.name || row.headline || row.examples?.[0]?.kasem || row.content?.englishMeaning || 'Untitled contribution';
+  const kind = (row: ReviewRecord) => row.collectionKind || row.studioType || row.origin || row.kind || row.format || row.policy?.categoryLabel || config.label;
+  const filtered = rows.filter(row => (!category || kind(row) === category) && [title(row),row.body,row.translation,row.content?.kasemText,row.id].join(' ').toLocaleLowerCase().includes(needle.trim().toLocaleLowerCase()));
   const latest = rows.find(row => row.id === selected?.id);
   const stale = Boolean(selected && recordVersion(latest) !== recordVersion(selected));
   const switchQueue = (nextDesk: Desk, nextStatus: string) => { setNotice(''); navigate('/contributor/review?desk=' + nextDesk + '&status=' + nextStatus); };
@@ -222,10 +223,13 @@ function AuthorizedDesk() {
                     </div>
                   </div>
                 ) : null}
-                <ReviewDetail key={selected.id + ':' + recordVersion(selected)} desk={desk} item={selected} stale={stale} statusLabel={statusLabel(selected.status)} onDeciding={setDeciding} onSaved={message => {
+                {desk === 'rewards' ? <RewardAssessmentPanel key={selected.id + ':' + recordVersion(selected)} item={selected} stale={stale} statusLabel={statusLabel(selected.status)} onSaved={message => {
                   const position = filtered.findIndex(row => row.id === selected.id);
                   setNotice(message); setSelected(filtered[position + 1] ?? filtered[position - 1] ?? null); setDeciding(false);
-                }} />
+                }} /> : <ReviewDetail key={selected.id + ':' + recordVersion(selected)} desk={desk} item={selected} stale={stale} statusLabel={statusLabel(selected.status)} onDeciding={setDeciding} onSaved={message => {
+                  const position = filtered.findIndex(row => row.id === selected.id);
+                  setNotice(message); setSelected(filtered[position + 1] ?? filtered[position - 1] ?? null); setDeciding(false);
+                }} />}
               </div>
             ) : (
               <div className="ts-panel ts-panel--dashed rv-placeholder">

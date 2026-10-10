@@ -8,6 +8,10 @@
 //   node apps/admin/scripts/dev/fixture-callables.mjs
 //
 // Backend behaviour itself is covered by firebase/tests/contributorPortal.test.mjs.
+//
+// The point-redemption answers below predate the points ledger (October 2026).
+// For Finance screens use services/functions/scripts/dev/callable-bridge.mjs,
+// which serves the real compiled callables against the emulators.
 
 import { createServer } from 'node:http';
 import { redemptionTransition } from '../../../../services/functions/lib/contributor-rewards.js';

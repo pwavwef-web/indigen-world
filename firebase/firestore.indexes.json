@@ -1,6 +1,11 @@
 {
   "indexes": [
     {"collectionGroup":"contributorRedemptions","queryScope":"COLLECTION","fields":[{"fieldPath":"kind","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"}]},
+    {"collectionGroup":"contributorRedemptions","queryScope":"COLLECTION","fields":[{"fieldPath":"contributorId","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"}]},
+    {"collectionGroup":"contributionAssessments","queryScope":"COLLECTION","fields":[{"fieldPath":"contributorId","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+    {"collectionGroup":"contributionAssessmentJobs","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"createdAt","order":"ASCENDING"}]},
+    {"collectionGroup":"pointLedger","queryScope":"COLLECTION","fields":[{"fieldPath":"contributorId","order":"ASCENDING"},{"fieldPath":"sequence","order":"DESCENDING"}]},
+    {"collectionGroup":"auditLogs","queryScope":"COLLECTION","fields":[{"fieldPath":"domain","order":"ASCENDING"},{"fieldPath":"occurredAt","order":"DESCENDING"}]},
     {"collectionGroup": "knowledgeRecords", "queryScope": "COLLECTION", "fields": [{"fieldPath": "authorUid", "order": "ASCENDING"}, {"fieldPath": "schemaVersion", "order": "ASCENDING"}, {"fieldPath": "workflow", "order": "ASCENDING"}]},
     {"collectionGroup": "knowledgeRecords", "queryScope": "COLLECTION", "fields": [{"fieldPath": "authorUid", "order": "ASCENDING"}, {"fieldPath": "schemaVersion", "order": "ASCENDING"}, {"fieldPath": "submittedAt", "order": "ASCENDING"}]},
     {"collectionGroup":"communityRecommendationEvents","queryScope":"COLLECTION","fields":[{"fieldPath":"uid","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},

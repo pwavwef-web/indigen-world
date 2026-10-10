@@ -6,7 +6,7 @@ workspace for contributors and content creators.
 
 ## Responsibilities
 
-- Point redemptions and reward settings (Finance)
+- Points: redemptions, reward policies, ledger and audit history (Finance)
 - Role and access auditing
 - Contributor directory, profile, invitation and expression-assignment administration
 - Validation oversight across language cells (queues, escalations, quality)
@@ -45,7 +45,7 @@ The map lives in [`src/routes.ts`](src/routes.ts) and each tool's screen in
 
 | Section | Tools | Access |
 |---|---|---|
-| Finance `/finance` | Overview · Point redemptions · Point settings · Payout records | admin (payouts: finance claim) |
+| Finance `/finance` | Overview · Point redemptions · Reward policies · Points ledger · Audit history · Payout records | admin to view; finance claim to decide, change policies or adjust (payouts: finance claim) |
 | Collections `/collections` | Heroes · Names · Apps · Audiobooks · Shop · Orders | admin |
 | Messaging `/messaging` | Compose · Contact groups · Campaign history · Test SMS | admin |
 | Creators `/creators` | Overview · Applications · Creator profiles · Members · Campaigns | validator |
@@ -61,12 +61,15 @@ A path someone may not open says which permission it needs; an unknown path
 is an explicit 404. `/team-site-intake` stays public. Access here only decides
 what is shown — Security Rules and the callables enforce it.
 
-**Finance owns staff management of point redemptions.** Contributors request
-airtime or data in TribeStudio; decisions here change the same
-`contributorRedemptions` records. Approving never sends anything; recording a
-delivery needs a reference and an explicit confirmation; rejecting needs a
-reason and returns the reserved points exactly once. Every decision carries the
-status the reviewer saw, so a stale screen is refused and reloaded.
+**Finance owns money: rates, award policies, the points ledger and fulfilment.**
+Contributors request airtime or data in TribeStudio from a server quote; the
+points are reserved in the ledger. Approving never sends anything; recording a
+delivery needs a reference and an explicit confirmation; a definite failure
+needs a reason; an unclear outcome is held for reconciliation (points stay
+reserved); rejecting returns the reserved points exactly once. Every decision
+carries the status the reviewer saw, so a stale screen is refused and reloaded.
+Validators own linguistic judgement on TribeStudio's Rewards desk. Formulas and
+rollout: `docs/product/contributor-rewards.md`.
 
 ## Look and feel
 
@@ -102,6 +105,13 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:909
 node apps/admin/scripts/dev/fixture-callables.mjs
 npx cross-env VITE_USE_EMULATORS=true npm run dev --workspace @indigen-world/admin
 ```
+
+For Finance and the points system use the **real** callables instead of the
+fixtures (the fixtures predate the ledger and answer the old shapes):
+`npm run build:functions`, seed with
+`services/functions/scripts/dev/seed-rewards-ui.mjs`, and run
+`services/functions/scripts/dev/callable-bridge.mjs` on port 5001 (both need
+`FIRESTORE_EMULATOR_HOST` and `FIREBASE_AUTH_EMULATOR_HOST`).
 
 The seed creates `admin@admin.test` (admin + finance), `validator@admin.test`
 and `nobody@admin.test`; their shared local password is in the seed script.

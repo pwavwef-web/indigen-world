@@ -1,0 +1,16 @@
+/* Finance: policy editors and liability. Built on the console's card-box, table and detail rail. */
+.fin-grid { display: grid; gap: var(--space-5); }
+@media (min-width: 1100px) { .fin-grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); } }
+.fin-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--space-3); }
+.fin-num { max-width: 7rem; text-align: right; font-variant-numeric: tabular-nums; }
+.fin-fieldset { display: grid; gap: var(--space-2); margin: 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--r-lg); min-width: 0; }
+.fin-band { gap: var(--space-3); }
+.fin-bundle { display: grid; grid-template-columns: minmax(6rem, 1fr) 6.5rem minmax(8rem, 2fr) 6rem auto; gap: 0.5rem; align-items: center; }
+.fin-award td, .fin-bands td { vertical-align: middle; }
+.fin-award .fin-num { max-width: 4.5rem; }
+.fin-savebar { flex-wrap: wrap; align-items: center; }
+.fin-savebar .ts-error { flex-basis: 100%; margin: 0; }
+@media (max-width: 720px) {
+  .fin-bundle { grid-template-columns: 1fr 1fr; }
+}
+.fin-sub { display: block; color: var(--text-3); font-size: var(--fs-xs); font-weight: 400; }

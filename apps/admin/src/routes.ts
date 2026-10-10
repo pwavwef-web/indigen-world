@@ -77,12 +77,14 @@ export interface SectionDef {
 
 export const SECTIONS: SectionDef[] = [
   {
-    id: 'finance', label: 'Finance', description: 'Point redemptions, reward settings and payout records',
+    id: 'finance', label: 'Finance', description: 'Points, reward policies, redemptions and payout records',
     icon: 'coins', base: '/finance', access: 'admin',
     tools: [
       { id: 'overview', slug: '', label: 'Overview', icon: 'chart', hint: 'Redemption totals by status', access: 'admin' },
-      { id: 'redemptions', slug: 'redemptions', label: 'Point redemptions', icon: 'gift', hint: 'Approve, deliver or reject airtime and data requests', access: 'admin' },
-      { id: 'settings', slug: 'settings', label: 'Point settings', icon: 'settings', hint: 'Earning rate, daily cap and cedi value', access: 'admin' },
+      { id: 'redemptions', slug: 'redemptions', label: 'Point redemptions', icon: 'gift', hint: 'Approve, top up, reconcile or return airtime and data requests', access: 'admin' },
+      { id: 'settings', slug: 'settings', label: 'Reward policies', icon: 'settings', hint: 'Versioned award and redemption rates, rollout switches', access: 'admin' },
+      { id: 'ledger', slug: 'ledger', label: 'Points ledger', icon: 'list', hint: 'Every points movement and reasoned adjustments', access: 'admin' },
+      { id: 'audit', slug: 'audit', label: 'Audit history', icon: 'archive', hint: 'Policy, flag, decision and adjustment history', access: 'admin' },
       { id: 'payouts', slug: 'payouts', label: 'Payout records', icon: 'bank', hint: 'Payout verification and contributor payment requests', access: 'finance' },
     ],
   },

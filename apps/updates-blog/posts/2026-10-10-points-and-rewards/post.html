@@ -1,0 +1,90 @@
+<article>
+  <p><strong>Development preview — October 10, 2026.</strong> The new points and rewards system has been built and checked on a local test copy. It has not been deployed, and the rates below are proposed settings that our Finance team will review before anything goes live. Every screenshot shows labelled test accounts; the Kasem text in them is a placeholder.</p>
+
+  <p class="iw-lede">Contributor points are changing from one fixed amount for every approved submission to a clear, checked reward for useful language data — and you can now choose exactly how many points to redeem.</p>
+
+  <h2>Why we are changing points</h2>
+  <p>Until now, every approved expression earned the same 10 points, and redemptions came in one fixed size: 300 points for GH₵5 of airtime or data. That was simple, but it did not tell anyone why a contribution mattered, and it treated a carefully explained expression the same as a rushed one.</p>
+  <p>The new system rewards contributions that a fluent validator confirms as useful, high-quality training data. Each award shows its own calculation, so you can always see where your points came from.</p>
+
+  <figure>
+    <img src="images/contributor-rewards-desktop.png" alt="Contributor Points and rewards page with available, pending and reserved points, a list of recent awards with their calculations, an opened explanation reading 20 category points times 1.50 exceptional-quality multiplier equals 30 points, and a redeem card showing 900 points worth GH₵15.50" style="max-width:100%;height:auto;" />
+    <figcaption>The new Points &amp; rewards page in TribeStudio (local test account). Opening an award shows exactly why it earned its points.</figcaption>
+  </figure>
+
+  <h2>How a contribution earns points</h2>
+  <p>Each kind of contribution has a starting number of points. Everyday expressions start at 20. A validator then checks the contribution on four things: whether the Kasem and its meaning are accurate, whether it is complete (for example, saying when the expression is used), whether it is usable as data, and whether its source and permissions are recorded.</p>
+  <ul>
+    <li><strong>Standard</strong> (score 60–79): 20 × 1.00 = 20 points</li>
+    <li><strong>Strong</strong> (80–89): 20 × 1.25 = 25 points</li>
+    <li><strong>Exceptional</strong> (90–100): 20 × 1.50 = 30 points</li>
+  </ul>
+  <p>Below 60 there is no automatic award. Instead, the validator asks a question or explains what would make it more useful, and you can reply from the same page. A short expression can earn the top band: length, repetition and expensive recording equipment do not add points. If you edit a contribution, it is checked again — it is not paid twice.</p>
+
+  <figure>
+    <img src="images/contributor-awards-mobile.png" alt="Phone view of recent point awards: one under validator review with an estimate, one needing clarification, and three awarded at plus 20, plus 30 and plus 25 points, with an explanation for the plus 25 award" style="max-width:420px;width:100%;height:auto;" />
+    <figcaption>On a phone. Points still under review appear only as an estimate and cannot be spent until a validator confirms them.</figcaption>
+  </figure>
+
+  <div class="iw-note"><p><strong>Validators decide, not the computer.</strong> Automatic checks help validators by spotting spelling and encoding problems, possible duplicates and missing details. Kawuri can suggest things to check, but its suggestions are labelled and cannot verify Kasem on their own. If the checks or Kawuri are unavailable, a validator simply assesses the contribution directly. Accent, dialect and equipment are never reasons to lower a score.</p></div>
+
+  <h2>What validators see</h2>
+  <p>Validators get a new <strong>Rewards</strong> desk beside the existing review desks. It shows the original text exactly as submitted, the eligibility checks, the automatic findings with where each number came from, and a live preview of the award. A validator cannot assess their own work, and any decision that differs from the automatic recommendation needs a written reason, which is kept.</p>
+  <p>This is separate from publication. An expression can be accepted as training data without being published, and published without being accepted as training data.</p>
+
+  <figure>
+    <img src="images/validator-rewards-desk.png" alt="Validator Rewards review desk with a queue, the source contribution and its eligibility checks including a possible duplicate, automatic scores labelled as measured or from a trusted record, and a decision form previewing an exceptional award of 30 points" style="max-width:100%;height:auto;" />
+    <figcaption>The Rewards desk for validators (local test data). A possible duplicate is flagged for the validator, not rejected automatically.</figcaption>
+  </figure>
+
+  <h2>Redeem the number of points you choose</h2>
+  <p>You can now enter any whole number of points from 300 up to your available balance (at most 6,000 in one request) and see the value straight away. The base value stays the same as today: 300 points = GH₵5.00. Larger redemptions earn a small bonus, but only on the points in each higher band:</p>
+  <ul>
+    <li>Points 1–300: base value</li>
+    <li>Points 301–900: +5%</li>
+    <li>Points 901–1,800: +10%</li>
+    <li>Above 1,800: +15%</li>
+  </ul>
+  <p>So 300 points are worth GH₵5.00, 900 points GH₵15.50, 1,800 points GH₵32.00 and 3,000 points GH₵55.00. The bands start again with each redemption, so combining points into one larger request gives a slightly better rate. Splitting a request never pays more.</p>
+
+  <figure>
+    <img src="images/contributor-rewards-mobile.png" alt="Phone view of the redeem card with Airtime selected, 900 points entered, quick choices for 300, 900 and all available points, the network and recipient number, base value GH₵15.00, bonus GH₵0.50 and a total of GH₵15.50" style="max-width:420px;width:100%;height:auto;" />
+    <figcaption>The redeem card shows the base value, the bonus and what you receive before you continue.</figcaption>
+  </figure>
+
+  <p>When you choose <em>Review redemption</em>, our server calculates the exact amount and shows it for you to confirm. Your points are reserved at that moment. Our Finance team then sends the airtime by hand and records the reference, so delivery is not instant. If it cannot be delivered, your points come back. You can cancel a request until Finance approves it.</p>
+
+  <figure>
+    <img src="images/contributor-confirm-desktop.png" alt="Confirmation dialog for 900 points of MTN airtime showing base value GH₵15.00, bonus GH₵0.50, total GH₵15.50, points left after and a note that Finance tops up by hand" style="max-width:100%;height:auto;" />
+    <figcaption>You confirm the exact amount, valid for about 15 minutes, before anything is submitted.</figcaption>
+  </figure>
+
+  <div class="iw-warn"><p><strong>Points are not cash.</strong> They can be redeemed for airtime on MTN, Telecel and AT. Mobile data will appear only when Finance adds real bundles from the provider it uses. There is no cash or MoMo withdrawal.</p></div>
+
+  <h2>Behind the scenes: careful with every point</h2>
+  <p>Every change to a balance is now recorded as its own entry: awards, reserved points, delivered rewards, returned points and corrections. Nothing is edited or deleted; a correction is a new entry with a reason. Existing balances carry over exactly as they are today, and requests already in progress keep their original value.</p>
+  <p>If a top-up result is unclear, the points stay reserved until Finance confirms what happened. That way a late success can never be both paid and refunded.</p>
+
+  <figure>
+    <img src="images/finance-overview.png" alt="Admin Finance overview with pending, awaiting top-up and needs reconciliation counts, a reward liability card calculated from actual balances, and the reward system settings marked as proposed defaults" style="max-width:100%;height:auto;" />
+    <figcaption>Admin Finance shows what outstanding points could cost, calculated from actual balances (local test data).</figcaption>
+  </figure>
+
+  <figure>
+    <img src="images/finance-reconcile.png" alt="Point redemptions desk showing a request that needs reconciliation, with its agreed value, terms and history" style="max-width:100%;height:auto;" />
+    <figcaption>A request with an unclear outcome waits for reconciliation instead of being refunded straight away.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="images/finance-policies.png" alt="Reward policies editor with base points, bonus bands, minimum and maximum points and an example quotes table for 300, 900, 1,800, 3,000 and 6,000 points" style="max-width:100%;height:auto;" />
+    <figcaption>Finance can adjust the rates as a new version, preview the effect first, and must give a reason. Saving is refused if splitting a request could pay more.</figcaption>
+  </figure>
+
+  <h2>What happens next</h2>
+  <ol>
+    <li>Finance reviews the proposed rates and award settings.</li>
+    <li>The update is deployed, and existing balances move into the new ledger without any change to their value.</li>
+    <li>Validators start using the Rewards desk. Until then, approved expressions keep earning the current 10 points, and no contribution is ever paid twice when the new rule begins.</li>
+  </ol>
+  <p class="iw-tip">We will share another update when this is live. If something about your points looks wrong at any time, use <em>Request a review</em> on that award or <em>Report a problem</em> in the portal.</p>
+</article>

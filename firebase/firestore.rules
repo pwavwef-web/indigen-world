@@ -2388,6 +2388,50 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ---- Contributor points, assessments and redemptions -------------------
+    //
+    // Everything that moves or prices points is written only by the backend
+    // (contributor-rewards.ts, reward-assessment.ts, points-ledger.ts), inside
+    // transactions, so no client can write a balance, an award, a score, a
+    // policy, a quote or a fulfilment state. Contributors read their own
+    // balances, awards and requests through callables that return a projection.
+    //
+    // Validators read training-data assessments directly for the Rewards desk:
+    // the content is the same submission they already review, plus the
+    // automatic checks. They decide through decideRewardAssessment only.
+    match /contributionAssessments/{assessmentId} {
+      allow read: if isValidator();
+      allow write: if false;
+    }
+    match /contributionAssessmentJobs/{jobId} {
+      allow read, write: if false;
+    }
+    match /contributionAwards/{contributionKey} {
+      allow read, write: if false;
+    }
+    match /pointLedger/{entryId} {
+      allow read, write: if false;
+    }
+    match /contributorPointAccounts/{uid} {
+      allow read, write: if false;
+    }
+    match /contributorRedemptions/{requestId} {
+      allow read, write: if false;
+    }
+    match /redemptionQuotes/{quoteId} {
+      allow read, write: if false;
+    }
+    match /rewardPolicies/{policyId} {
+      allow read, write: if false;
+    }
+    match /rewardBudgets/{month} {
+      allow read, write: if false;
+    }
+    // Hashes of analysed recordings, so an identical file is flagged once.
+    match /contributionMediaDigests/{digest} {
+      allow read, write: if false;
+    }
+
     // ---- Default deny -------------------------------------------------------
     match /{document=**} {
       allow read, write: if false;

@@ -1,0 +1,1093 @@
+{
+ "policyId": "award-v1-proposed",
+ "policy": {
+  "categories": {
+   "expressions": {
+    "enabled": true,
+    "label": "Everyday expression",
+    "basePoints": 20,
+    "minPoints": 20,
+    "maxPoints": 40,
+    "weights": {
+     "accuracy": 50,
+     "completeness": 25,
+     "technical": 10,
+     "metadata": 15
+    },
+    "requirements": {
+     "trainingPermission": true,
+     "audio": false,
+     "transcript": false,
+     "provenance": true
+    },
+    "duplicatePolicy": "text",
+    "effortUnit": null,
+    "note": "A short, accurate expression can earn the top band. Length is not scored."
+   },
+   "dictionary": {
+    "enabled": false,
+    "label": "Dictionary word",
+    "basePoints": 15,
+    "minPoints": 15,
+    "maxPoints": 30,
+    "weights": {
+     "accuracy": 50,
+     "completeness": 25,
+     "technical": 10,
+     "metadata": 15
+    },
+    "requirements": {
+     "trainingPermission": true,
+     "audio": false,
+     "transcript": false,
+     "provenance": true
+    },
+    "duplicatePolicy": "text",
+    "effortUnit": null,
+    "note": "Not collected through the contributor portal yet."
+   },
+   "literature": {
+    "enabled": false,
+    "label": "Story or written piece (transcript)",
+    "basePoints": 30,
+    "minPoints": 30,
+    "maxPoints": 90,
+    "weights": {
+     "accuracy": 40,
+     "completeness": 30,
+     "technical": 10,
+     "metadata": 20
+    },
+    "requirements": {
+     "trainingPermission": true,
+     "audio": false,
+     "transcript": true,
+     "provenance": true
+    },
+    "duplicatePolicy": "text",
+    "effortUnit": {
+     "kind": "verifiedSourceSegments",
+     "unitSize": 5,
+     "pointsPerUnit": 5,
+     "maxUnits": 6
+    },
+    "note": "Sentences split from one source count as effort units on ONE award, capped — never as separate contributions."
+   },
+   "music": {
+    "enabled": false,
+    "label": "Song recording",
+    "basePoints": 30,
+    "minPoints": 30,
+    "maxPoints": 90,
+    "weights": {
+     "accuracy": 35,
+     "completeness": 20,
+     "technical": 30,
+     "metadata": 15
+    },
+    "requirements": {
+     "trainingPermission": true,
+     "audio": true,
+     "transcript": true,
+     "provenance": true
+    },
+    "duplicatePolicy": "speech",
+    "effortUnit": {
+     "kind": "verifiedAlignedAudioSeconds",
+     "unitSize": 30,
+     "pointsPerUnit": 5,
+     "maxUnits": 8
+    },
+    "note": "Not collected through the contributor portal yet."
+   },
+   "audiobooks": {
+    "enabled": false,
+    "label": "Aligned speech recording",
+    "basePoints": 40,
+    "minPoints": 40,
+    "maxPoints": 120,
+    "weights": {
+     "accuracy": 35,
+     "completeness": 25,
+     "technical": 25,
+     "metadata": 15
+    },
+    "requirements": {
+     "trainingPermission": true,
+     "audio": true,
+     "transcript": true,
+     "provenance": true
+    },
+    "duplicatePolicy": "speech",
+    "effortUnit": {
+     "kind": "verifiedAlignedAudioSeconds",
+     "unitSize": 30,
+     "pointsPerUnit": 5,
+     "maxUnits": 10
+    },
+    "note": "Effort counts verified aligned speech only; silence, padding and repeats are excluded."
+   },
+   "video": {
+    "enabled": false,
+    "label": "Video with captions",
+    "basePoints": 40,
+    "minPoints": 40,
+    "maxPoints": 120,
+    "weights": {
+     "accuracy": 35,
+     "completeness": 25,
+     "technical": 25,
+     "metadata": 15
+    },
+    "requirements": {
+     "trainingPermission": true,
+     "audio": true,
+     "transcript": true,
+     "provenance": true
+    },
+    "duplicatePolicy": "speech",
+    "effortUnit": {
+     "kind": "verifiedAlignedAudioSeconds",
+     "unitSize": 30,
+     "pointsPerUnit": 5,
+     "maxUnits": 10
+    },
+    "note": "Not collected through the contributor portal yet."
+   }
+  },
+  "bands": [
+   {
+    "id": "standard",
+    "label": "Standard",
+    "minScore": 60,
+    "multiplierBps": 10000
+   },
+   {
+    "id": "strong",
+    "label": "Strong",
+    "minScore": 80,
+    "multiplierBps": 12500
+   },
+   {
+    "id": "exceptional",
+    "label": "Exceptional",
+    "minScore": 90,
+    "multiplierBps": 15000
+   }
+  ],
+  "requireValidatorConfirmation": true,
+  "automatedSettlement": false
+ },
+ "cases": [
+  {
+   "category": "expressions",
+   "scores": {
+    "accuracy": 59,
+    "completeness": 59,
+    "technical": 59,
+    "metadata": 59
+   },
+   "effort": 0,
+   "band": null,
+   "points": 0,
+   "score": 59
+  },
+  {
+   "category": "expressions",
+   "scores": {
+    "accuracy": 60,
+    "completeness": 60,
+    "technical": 60,
+    "metadata": 60
+   },
+   "effort": 0,
+   "band": "standard",
+   "points": 20,
+   "score": 60
+  },
+  {
+   "category": "expressions",
+   "scores": {
+    "accuracy": 79,
+    "completeness": 80,
+    "technical": 90,
+    "metadata": 70
+   },
+   "effort": 0,
+   "band": "standard",
+   "points": 20,
+   "score": 79
+  },
+  {
+   "category": "expressions",
+   "scores": {
+    "accuracy": 80,
+    "completeness": 80,
+    "technical": 80,
+    "metadata": 80
+   },
+   "effort": 0,
+   "band": "strong",
+   "points": 25,
+   "score": 80
+  },
+  {
+   "category": "expressions",
+   "scores": {
+    "accuracy": 89,
+    "completeness": 95,
+    "technical": 95,
+    "metadata": 95
+   },
+   "effort": 0,
+   "band": "exceptional",
+   "points": 30,
+   "score": 92
+  },
+  {
+   "category": "expressions",
+   "scores": {
+    "accuracy": 90,
+    "completeness": 90,
+    "technical": 90,
+    "metadata": 90
+   },
+   "effort": 0,
+   "band": "exceptional",
+   "points": 30,
+   "score": 90
+  },
+  {
+   "category": "expressions",
+   "scores": {
+    "accuracy": 100,
+    "completeness": 100,
+    "technical": 100,
+    "metadata": 100
+   },
+   "effort": 0,
+   "band": "exceptional",
+   "points": 30,
+   "score": 100
+  },
+  {
+   "category": "expressions",
+   "scores": {
+    "accuracy": 70,
+    "completeness": 95,
+    "technical": null,
+    "metadata": null
+   },
+   "effort": 0,
+   "band": "standard",
+   "points": 20,
+   "score": 78.3
+  },
+  {
+   "category": "expressions",
+   "scores": {
+    "accuracy": 95,
+    "completeness": 92,
+    "technical": 90,
+    "metadata": 90
+   },
+   "effort": 0,
+   "band": "exceptional",
+   "points": 30,
+   "score": 93
+  },
+  {
+   "category": "expressions",
+   "scores": {
+    "accuracy": 40,
+    "completeness": 100,
+    "technical": 100,
+    "metadata": 100
+   },
+   "effort": 0,
+   "band": "standard",
+   "points": 20,
+   "score": 70
+  },
+  {
+   "category": "dictionary",
+   "scores": {
+    "accuracy": 59,
+    "completeness": 59,
+    "technical": 59,
+    "metadata": 59
+   },
+   "effort": 0,
+   "band": null,
+   "points": 0,
+   "score": 59
+  },
+  {
+   "category": "dictionary",
+   "scores": {
+    "accuracy": 60,
+    "completeness": 60,
+    "technical": 60,
+    "metadata": 60
+   },
+   "effort": 0,
+   "band": "standard",
+   "points": 15,
+   "score": 60
+  },
+  {
+   "category": "dictionary",
+   "scores": {
+    "accuracy": 79,
+    "completeness": 80,
+    "technical": 90,
+    "metadata": 70
+   },
+   "effort": 0,
+   "band": "standard",
+   "points": 15,
+   "score": 79
+  },
+  {
+   "category": "dictionary",
+   "scores": {
+    "accuracy": 80,
+    "completeness": 80,
+    "technical": 80,
+    "metadata": 80
+   },
+   "effort": 0,
+   "band": "strong",
+   "points": 19,
+   "score": 80
+  },
+  {
+   "category": "dictionary",
+   "scores": {
+    "accuracy": 89,
+    "completeness": 95,
+    "technical": 95,
+    "metadata": 95
+   },
+   "effort": 0,
+   "band": "exceptional",
+   "points": 23,
+   "score": 92
+  },
+  {
+   "category": "dictionary",
+   "scores": {
+    "accuracy": 90,
+    "completeness": 90,
+    "technical": 90,
+    "metadata": 90
+   },
+   "effort": 0,
+   "band": "exceptional",
+   "points": 23,
+   "score": 90
+  },
+  {
+   "category": "dictionary",
+   "scores": {
+    "accuracy": 100,
+    "completeness": 100,
+    "technical": 100,
+    "metadata": 100
+   },
+   "effort": 0,
+   "band": "exceptional",
+   "points": 23,
+   "score": 100
+  },
+  {
+   "category": "dictionary",
+   "scores": {
+    "accuracy": 70,
+    "completeness": 95,
+    "technical": null,
+    "metadata": null
+   },
+   "effort": 0,
+   "band": "standard",
+   "points": 15,
+   "score": 78.3
+  },
+  {
+   "category": "dictionary",
+   "scores": {
+    "accuracy": 95,
+    "completeness": 92,
+    "technical": 90,
+    "metadata": 90
+   },
+   "effort": 0,
+   "band": "exceptional",
+   "points": 23,
+   "score": 93
+  },
+  {
+   "category": "dictionary",
+   "scores": {
+    "accuracy": 40,
+    "completeness": 100,
+    "technical": 100,
+    "metadata": 100
+   },
+   "effort": 0,
+   "band": "standard",
+   "points": 15,
+   "score": 70
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 59,
+    "completeness": 59,
+    "technical": 59,
+    "metadata": 59
+   },
+   "effort": 0,
+   "band": null,
+   "points": 0,
+   "score": 59
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 59,
+    "completeness": 59,
+    "technical": 59,
+    "metadata": 59
+   },
+   "effort": 12,
+   "band": null,
+   "points": 0,
+   "score": 59
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 60,
+    "completeness": 60,
+    "technical": 60,
+    "metadata": 60
+   },
+   "effort": 0,
+   "band": "standard",
+   "points": 30,
+   "score": 60
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 60,
+    "completeness": 60,
+    "technical": 60,
+    "metadata": 60
+   },
+   "effort": 12,
+   "band": "standard",
+   "points": 40,
+   "score": 60
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 79,
+    "completeness": 80,
+    "technical": 90,
+    "metadata": 70
+   },
+   "effort": 0,
+   "band": "standard",
+   "points": 30,
+   "score": 78.6
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 79,
+    "completeness": 80,
+    "technical": 90,
+    "metadata": 70
+   },
+   "effort": 12,
+   "band": "standard",
+   "points": 40,
+   "score": 78.6
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 80,
+    "completeness": 80,
+    "technical": 80,
+    "metadata": 80
+   },
+   "effort": 0,
+   "band": "strong",
+   "points": 38,
+   "score": 80
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 80,
+    "completeness": 80,
+    "technical": 80,
+    "metadata": 80
+   },
+   "effort": 12,
+   "band": "strong",
+   "points": 50,
+   "score": 80
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 89,
+    "completeness": 95,
+    "technical": 95,
+    "metadata": 95
+   },
+   "effort": 0,
+   "band": "exceptional",
+   "points": 45,
+   "score": 92.6
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 89,
+    "completeness": 95,
+    "technical": 95,
+    "metadata": 95
+   },
+   "effort": 12,
+   "band": "exceptional",
+   "points": 60,
+   "score": 92.6
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 90,
+    "completeness": 90,
+    "technical": 90,
+    "metadata": 90
+   },
+   "effort": 0,
+   "band": "exceptional",
+   "points": 45,
+   "score": 90
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 90,
+    "completeness": 90,
+    "technical": 90,
+    "metadata": 90
+   },
+   "effort": 12,
+   "band": "exceptional",
+   "points": 60,
+   "score": 90
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 100,
+    "completeness": 100,
+    "technical": 100,
+    "metadata": 100
+   },
+   "effort": 0,
+   "band": "exceptional",
+   "points": 45,
+   "score": 100
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 100,
+    "completeness": 100,
+    "technical": 100,
+    "metadata": 100
+   },
+   "effort": 12,
+   "band": "exceptional",
+   "points": 60,
+   "score": 100
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 70,
+    "completeness": 95,
+    "technical": null,
+    "metadata": null
+   },
+   "effort": 0,
+   "band": "strong",
+   "points": 38,
+   "score": 80.7
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 70,
+    "completeness": 95,
+    "technical": null,
+    "metadata": null
+   },
+   "effort": 12,
+   "band": "strong",
+   "points": 50,
+   "score": 80.7
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 95,
+    "completeness": 92,
+    "technical": 90,
+    "metadata": 90
+   },
+   "effort": 0,
+   "band": "exceptional",
+   "points": 45,
+   "score": 92.6
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 95,
+    "completeness": 92,
+    "technical": 90,
+    "metadata": 90
+   },
+   "effort": 12,
+   "band": "exceptional",
+   "points": 60,
+   "score": 92.6
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 40,
+    "completeness": 100,
+    "technical": 100,
+    "metadata": 100
+   },
+   "effort": 0,
+   "band": "standard",
+   "points": 30,
+   "score": 76
+  },
+  {
+   "category": "literature",
+   "scores": {
+    "accuracy": 40,
+    "completeness": 100,
+    "technical": 100,
+    "metadata": 100
+   },
+   "effort": 12,
+   "band": "standard",
+   "points": 40,
+   "score": 76
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 59,
+    "completeness": 59,
+    "technical": 59,
+    "metadata": 59
+   },
+   "effort": 0,
+   "band": null,
+   "points": 0,
+   "score": 59
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 59,
+    "completeness": 59,
+    "technical": 59,
+    "metadata": 59
+   },
+   "effort": 95,
+   "band": null,
+   "points": 0,
+   "score": 59
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 59,
+    "completeness": 59,
+    "technical": 59,
+    "metadata": 59
+   },
+   "effort": 100000,
+   "band": null,
+   "points": 0,
+   "score": 59
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 60,
+    "completeness": 60,
+    "technical": 60,
+    "metadata": 60
+   },
+   "effort": 0,
+   "band": "standard",
+   "points": 40,
+   "score": 60
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 60,
+    "completeness": 60,
+    "technical": 60,
+    "metadata": 60
+   },
+   "effort": 95,
+   "band": "standard",
+   "points": 55,
+   "score": 60
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 60,
+    "completeness": 60,
+    "technical": 60,
+    "metadata": 60
+   },
+   "effort": 100000,
+   "band": "standard",
+   "points": 90,
+   "score": 60
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 79,
+    "completeness": 80,
+    "technical": 90,
+    "metadata": 70
+   },
+   "effort": 0,
+   "band": "strong",
+   "points": 50,
+   "score": 80.7
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 79,
+    "completeness": 80,
+    "technical": 90,
+    "metadata": 70
+   },
+   "effort": 95,
+   "band": "strong",
+   "points": 69,
+   "score": 80.7
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 79,
+    "completeness": 80,
+    "technical": 90,
+    "metadata": 70
+   },
+   "effort": 100000,
+   "band": "strong",
+   "points": 113,
+   "score": 80.7
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 80,
+    "completeness": 80,
+    "technical": 80,
+    "metadata": 80
+   },
+   "effort": 0,
+   "band": "strong",
+   "points": 50,
+   "score": 80
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 80,
+    "completeness": 80,
+    "technical": 80,
+    "metadata": 80
+   },
+   "effort": 95,
+   "band": "strong",
+   "points": 69,
+   "score": 80
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 80,
+    "completeness": 80,
+    "technical": 80,
+    "metadata": 80
+   },
+   "effort": 100000,
+   "band": "strong",
+   "points": 113,
+   "score": 80
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 89,
+    "completeness": 95,
+    "technical": 95,
+    "metadata": 95
+   },
+   "effort": 0,
+   "band": "exceptional",
+   "points": 60,
+   "score": 92.9
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 89,
+    "completeness": 95,
+    "technical": 95,
+    "metadata": 95
+   },
+   "effort": 95,
+   "band": "exceptional",
+   "points": 83,
+   "score": 92.9
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 89,
+    "completeness": 95,
+    "technical": 95,
+    "metadata": 95
+   },
+   "effort": 100000,
+   "band": "exceptional",
+   "points": 120,
+   "score": 92.9
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 90,
+    "completeness": 90,
+    "technical": 90,
+    "metadata": 90
+   },
+   "effort": 0,
+   "band": "exceptional",
+   "points": 60,
+   "score": 90
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 90,
+    "completeness": 90,
+    "technical": 90,
+    "metadata": 90
+   },
+   "effort": 95,
+   "band": "exceptional",
+   "points": 83,
+   "score": 90
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 90,
+    "completeness": 90,
+    "technical": 90,
+    "metadata": 90
+   },
+   "effort": 100000,
+   "band": "exceptional",
+   "points": 120,
+   "score": 90
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 100,
+    "completeness": 100,
+    "technical": 100,
+    "metadata": 100
+   },
+   "effort": 0,
+   "band": "exceptional",
+   "points": 60,
+   "score": 100
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 100,
+    "completeness": 100,
+    "technical": 100,
+    "metadata": 100
+   },
+   "effort": 95,
+   "band": "exceptional",
+   "points": 83,
+   "score": 100
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 100,
+    "completeness": 100,
+    "technical": 100,
+    "metadata": 100
+   },
+   "effort": 100000,
+   "band": "exceptional",
+   "points": 120,
+   "score": 100
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 70,
+    "completeness": 95,
+    "technical": null,
+    "metadata": null
+   },
+   "effort": 0,
+   "band": "strong",
+   "points": 50,
+   "score": 80.4
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 70,
+    "completeness": 95,
+    "technical": null,
+    "metadata": null
+   },
+   "effort": 95,
+   "band": "strong",
+   "points": 69,
+   "score": 80.4
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 70,
+    "completeness": 95,
+    "technical": null,
+    "metadata": null
+   },
+   "effort": 100000,
+   "band": "strong",
+   "points": 113,
+   "score": 80.4
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 95,
+    "completeness": 92,
+    "technical": 90,
+    "metadata": 90
+   },
+   "effort": 0,
+   "band": "exceptional",
+   "points": 60,
+   "score": 92.3
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 95,
+    "completeness": 92,
+    "technical": 90,
+    "metadata": 90
+   },
+   "effort": 95,
+   "band": "exceptional",
+   "points": 83,
+   "score": 92.3
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 95,
+    "completeness": 92,
+    "technical": 90,
+    "metadata": 90
+   },
+   "effort": 100000,
+   "band": "exceptional",
+   "points": 120,
+   "score": 92.3
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 40,
+    "completeness": 100,
+    "technical": 100,
+    "metadata": 100
+   },
+   "effort": 0,
+   "band": "standard",
+   "points": 40,
+   "score": 79
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 40,
+    "completeness": 100,
+    "technical": 100,
+    "metadata": 100
+   },
+   "effort": 95,
+   "band": "standard",
+   "points": 55,
+   "score": 79
+  },
+  {
+   "category": "audiobooks",
+   "scores": {
+    "accuracy": 40,
+    "completeness": 100,
+    "technical": 100,
+    "metadata": 100
+   },
+   "effort": 100000,
+   "band": "standard",
+   "points": 90,
+   "score": 79
+  }
+ ]
+}

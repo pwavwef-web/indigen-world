@@ -1,7 +1,8 @@
-export type Desk = 'contributions' | 'sentences' | 'adverts' | 'names';
+export type Desk = 'contributions' | 'rewards' | 'sentences' | 'adverts' | 'names';
 export type ReviewRecord = Record<string, any> & { id: string; status: string };
 export const DESKS: Record<Desk, { label: string; collection: string; queues: [string, string][] }> = {
   contributions: { label: 'Contributions', collection: 'submissions', queues: [['SUBMITTED', 'Waiting'], ['RESUBMITTED', 'Resubmitted'], ['APPROVED', 'Approved'], ['UNDER_REVIEW', 'Escalated'], ['PUBLISHED', 'Published'], ['NEEDS_REVISION', 'Needs revision'], ['REJECTED', 'Rejected']] },
+  rewards: { label: 'Rewards', collection: 'contributionAssessments', queues: [['validator_review', 'Waiting'], ['needs_clarification', 'Asked contributor'], ['queued', 'Automatic checks'], ['eligible', 'Confirmed'], ['awarded', 'Awarded'], ['ineligible', 'Not eligible']] },
   sentences: { label: 'Sentences', collection: 'grammarNotes', queues: [['submitted', 'Waiting'], ['confirmed', 'Confirmed'], ['disputed', 'Disagreements'], ['reviewed', 'Reviewed variants'], ['needs-permission', 'Needs permission'], ['withdrawn', 'Withdrawn'], ['rejected', 'Rejected']] },
   adverts: { label: 'Adverts', collection: 'adCampaigns', queues: [['IN_REVIEW', 'Waiting'], ['ACTIVE', 'Running'], ['PAUSED', 'Paused'], ['REJECTED', 'Rejected']] },
   names: { label: 'Names', collection: 'kasemNameRequests', queues: [['pending', 'Waiting'], ['approved', 'Added'], ['rejected', 'Rejected']] },
@@ -10,7 +11,7 @@ export const DECISION_LABELS: Record<string, string> = { APPROVE: 'Approve', REQ
 export function decisionsFor(desk: Desk, item: ReviewRecord): string[] {
   if (desk === 'names') return item.status === 'pending' ? ['approve', 'reject'] : [];
   if (desk === 'adverts') return ({ IN_REVIEW: ['APPROVE', 'REJECT'], ACTIVE: ['PAUSE', 'REJECT'], PAUSED: ['RESUME', 'REJECT'] } as Record<string, string[]>)[item.status] ?? [];
-  if (desk === 'sentences') return [];
+  if (desk === 'sentences' || desk === 'rewards') return [];
   if (['APPROVED', 'SCHEDULED'].includes(item.status)) return [...(item.permissions?.publication === true ? ['PUBLISH'] : []), 'REJECT'];
   if (!['SUBMITTED', 'RESUBMITTED', 'UNDER_REVIEW', 'NEEDS_REVISION'].includes(item.status)) return [];
   return ['APPROVE', ...(!item.collectionKind || item.wordQueueId ? ['REQUEST_REVISION'] : []), 'REJECT', 'ESCALATE_CULTURAL'];

@@ -102,7 +102,7 @@ export const NAV: SectionEntry[] = [
   { section: 'assignments', label: 'Assignments', short: 'Tasks', icon: 'assignments', group: 'Your work', dock: true, hint: 'Expressions assigned to you' },
   { section: 'contributions', label: 'My contributions', short: 'My work', icon: 'contributions', group: 'Your work', dock: true, hint: 'Drafts, submissions and review decisions' },
   { section: 'activity', label: 'Activity', short: 'Activity', icon: 'activity', group: 'Your work' },
-  { section: 'rewards', label: 'Recognition', short: 'Recognition', icon: 'award', group: 'Recognition', hint: 'Points history and airtime or data requests' },
+  { section: 'rewards', label: 'Points & rewards', short: 'Points', icon: 'award', group: 'Recognition', hint: 'Point awards, redemptions and their status' },
   { section: 'streak', label: 'Streak', short: 'Streak', icon: 'flame', group: 'Recognition' },
   { section: 'guide', label: 'Help & guide', short: 'Help', icon: 'guide', group: 'Help', dock: true },
   { section: 'kawuri', label: 'Kawuri assistance', short: 'Kawuri', icon: 'kawuri', group: 'Help', hint: 'Meaning and context help — never writes your Kasem' },

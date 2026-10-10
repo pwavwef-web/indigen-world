@@ -78,7 +78,8 @@
     "test:public-progress:integration": "npm run build:functions && firebase emulators:exec --config .public-progress-test.firebase.json --project demo-indigen-progress-tests --only firestore \"node --test firebase/tests/publicProgress.integration.test.mjs\"",
     "test:knowledge": "npm run build:functions && node scripts/test-knowledge.mjs",
     "test:kawuri-grounding": "npm run build:functions && node --test firebase/tests/kawuriGrounding.test.mjs firebase/tests/functionHelpers.test.mjs firebase/tests/kasemCorpus.test.mjs",
-    "test:kawuri-grounding:integration": "npm run build:functions && cross-env FUNCTIONS_DISCOVERY_TIMEOUT=120 firebase emulators:exec --project demo-indigen-world --only auth,firestore,storage,functions \"node --test --test-concurrency=1 firebase/tests/kawuriGrounding.integration.test.mjs\""
+    "test:kawuri-grounding:integration": "npm run build:functions && cross-env FUNCTIONS_DISCOVERY_TIMEOUT=120 firebase emulators:exec --project demo-indigen-world --only auth,firestore,storage,functions \"node --test --test-concurrency=1 firebase/tests/kawuriGrounding.integration.test.mjs\"",
+    "test:contributor-rewards": "npm run build:functions && node --test firebase/tests/rewardPolicy.test.mjs && firebase emulators:exec --project demo-indigen-world --only firestore \"node --test --test-concurrency=1 firebase/tests/contributorRewards.integration.test.mjs\""
   },
   "devDependencies": {
     "cross-env": "7.0.3",

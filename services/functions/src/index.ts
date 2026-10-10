@@ -34,8 +34,12 @@ export {
   rerunPayoutStatementCheck,
   decideContributorPaymentRequest,
 } from './contributor-payments.js';
-export { setContributorRewardSettings, getContributorRewards, redeemContributorPoints,
-  listContributorRewards, decideContributorRedemption } from './contributor-rewards.js';
+export { setContributorRewardSettings, getContributorRewards, quoteContributorRedemption, redeemContributorPoints,
+  cancelContributorRedemption, listContributorRewards, decideContributorRedemption, getRewardPolicies,
+  previewRewardPolicy, saveRewardPolicy, setRewardSystemFlags, getContributorPointsLedger,
+  adjustContributorPoints, listRewardAudit } from './contributor-rewards.js';
+export { onSubmissionForReward, onAssessmentJobWritten, sweepAssessmentJobs, decideRewardAssessment,
+  respondToRewardAssessment } from './reward-assessment.js';
 
 export { decideReview } from './validation.js';
 export { setUserRole } from './identity.js';

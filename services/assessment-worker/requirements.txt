@@ -1,0 +1,5 @@
+firebase-functions==0.4.3
+firebase-admin==6.9.0
+google-genai==1.24.0
+numpy>=2.3,<3
+imageio-ffmpeg==0.6.0

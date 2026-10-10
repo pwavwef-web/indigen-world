@@ -6,6 +6,8 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { requireAuth, requireRole } from './auth.js';
 import { guarded } from './contributor-common.js';
 import { rewardSettings } from './contributor-rewards.js';
+import { commitLedger, entryId, openLedger, post } from './points-ledger.js';
+import { loadRewardSystem } from './reward-system.js';
 import { consumeRateLimit } from './rate-limit.js';
 import { ARKESEL_API_KEY, isSmsConfigured, normalizeMsisdn, sendSmsToMsisdn } from './sms.js';
 import { COLLECTION_CAMPAIGN_ID, buildCollectionCampaignDocument } from './collection-contributions.js';
@@ -766,10 +768,20 @@ export const onContributorExpressionReviewed = onDocumentWritten(
       const approvalDate = typeof data.moderation?.decidedAt === 'string' && !Number.isNaN(Date.parse(data.moderation.decidedAt))
         ? new Date(data.moderation.decidedAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
       const dayRef = accountRef.collection('rewardDays').doc(approvalDate);
-      const [credit, account, day, rewards] = verified ? await Promise.all([
+      // Exactly one award path is live (settings/contributorRewardSystem.flags.awardMode).
+      // 'legacy-flat' pays the old flat amount here, on publication approval, into the
+      // points ledger; 'assessed' pays only on a validator-confirmed training-data
+      // assessment (reward-assessment.ts). Both key the award by the original item,
+      // and each refuses a contribution the other has already paid.
+      const system = await loadRewardSystem(db, tx);
+      const legacyFlat = system.flags.awardMode === 'legacy-flat';
+      const [credit, account, day, rewards, assessedAward] = verified && legacyFlat ? await Promise.all([
         tx.get(creditRef), tx.get(accountRef), tx.get(dayRef), tx.get(db.doc('settings/contributorRewards')),
-      ]) : [null, null, null, null];
-      if (verified && credit && !credit.exists && account?.exists) {
+        tx.get(db.doc(`contributionAwards/${firstSubmissionId}`)),
+      ]) : [null, null, null, null, null];
+      const session = verified && legacyFlat && credit && !credit.exists && !assessedAward?.exists && account?.exists
+        ? await openLedger(db, tx, portal.contributorId) : null;
+      if (session) {
         const settings = rewardSettings(rewards?.data() ?? {});
         const earned = Number(day?.get('points') ?? 0);
         const award = Math.max(0, Math.min(settings.pointsPerExpression, settings.dailyCap - earned));
@@ -778,15 +790,20 @@ export const onContributorExpressionReviewed = onDocumentWritten(
           day: approvalDate, points: award, source: 'approval', createdAt: now });
         if (award > 0) {
           tx.set(dayRef, { day: approvalDate, points: earned + award, updatedAt: now });
-          tx.update(accountRef, { rewardBalance: Number(account.get('rewardBalance') ?? 0) + award,
-            rewardLifetime: Number(account.get('rewardLifetime') ?? 0) + award });
+          post(session, { id: entryId('award', firstSubmissionId), type: 'award', points: award,
+            reason: 'Approved expression (previous flat rule).', actor: { kind: 'system', id: 'onContributorExpressionReviewed' },
+            refs: { submissionId: snap.id, contributionKey: firstSubmissionId, rule: 'legacy-flat' } });
         }
+        commitLedger(session);
       }
       tx.update(itemRef, {
         status: verified ? 'verified' : String(data.status).toLowerCase(), feedback: data.moderation?.feedback ?? '',
         reviewedAt: data.moderation?.decidedAt ?? null,
       });
       const training = db.doc(`contributorTrainingPairs/${snap.id}`);
+      // Under assessed awards the curated training pairs follow the validator's
+      // training-data decision, not publication; leave them to that workflow.
+      if (!legacyFlat) return;
       if (verified
         && data.permissions?.aiTraining === true && data.permissions?.publication === true) {
         tx.set(training, { id: snap.id, language: 'xsm', english: data.title, kasem: data.body,

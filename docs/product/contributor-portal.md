@@ -179,3 +179,11 @@ Still open after deployment:
 - Signed statement links need the runtime service account to hold Service Account Token Creator on itself. It does today; the emulator test confirms the call fails without it.
 
 Tests: `npm run test:contributor-portal` (backend unit tests and Studio workflow tests), `npm run test:contributor-e2e` (callables, triggers, rules and Storage against the emulators), `npm run test:rules` and `npm run test:storage-rules`.
+
+## Points and rewards upgrade — 2026-10-10
+
+The flat per-expression award and the fixed 300-point redemption were replaced
+by validator-confirmed training-data assessments, a versioned award policy, an
+append-only points ledger and quote-based redemptions with marginal bonus
+bands. Implemented and verified locally; not deployed. See
+[contributor-rewards.md](contributor-rewards.md).

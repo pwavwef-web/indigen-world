@@ -609,3 +609,28 @@
 .rv-source-summary .rv-evidence__value { margin: 0; white-space: pre-wrap; }
 .rv-queues .ts-toolbar__count { white-space: normal; }
 @media (max-width: 600px) { .rv-queues .ts-toolbar { align-items: stretch; } .rv-queues .ts-search { flex-basis: 100%; } }
+
+/* ---- Rewards desk: training-data assessment --------------------------- */
+.rwa { display: grid; gap: var(--space-4); }
+.rwa-kasem { font-family: var(--font-kasem, var(--font-body)); font-size: var(--fs-lg); }
+.rwa-list { margin: 0.2rem 0 0; padding-left: 1.1rem; display: grid; gap: 0.25rem; font-size: var(--fs-sm); }
+.rwa-responses { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--r); background: var(--surface-sunken); font-size: var(--fs-sm); }
+.rwa-responses p { margin: 0.2rem 0; }
+.rwa-gates { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; font-size: var(--fs-sm); }
+.rwa-gates li { display: flex; gap: 0.5rem; align-items: flex-start; }
+.rwa-gates .ts-icon { flex: none; width: 1rem; height: 1rem; margin-top: 0.15rem; }
+.rwa-gates .is-pass .ts-icon { color: var(--success); }
+.rwa-gates .is-fail .ts-icon { color: var(--danger); }
+.rwa-gates .is-needs-review .ts-icon { color: var(--warning); }
+.rwa-dims td { vertical-align: top; }
+.rwa-decide { display: grid; gap: var(--space-4); }
+.rwa-scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--space-3); }
+.rwa-scores .ts-label { font-size: var(--fs-xs); }
+.rwa-preview { display: grid; gap: 0.3rem; padding: var(--space-3) var(--space-4); border: 1px solid var(--accent-line); border-radius: var(--r-lg); background: var(--accent-softer); font-size: var(--fs-sm); }
+.rwa-preview strong { font-size: var(--fs-base); color: var(--accent-text); }
+.rwa-override { color: var(--warning-strong); }
+.rwa-dimlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; font-size: var(--fs-sm); }
+.rwa-dimlist li { display: grid; gap: 0.2rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--border-soft); }
+.rwa-dimlist__head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.rwa-dimlist__head > span:first-child { flex: 1 1 12rem; }
+.rwa-dimlist__head strong { font-variant-numeric: tabular-nums; min-width: 2ch; text-align: right; }

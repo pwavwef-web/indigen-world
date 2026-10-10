@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-10: Clearer points, fairer rewards and redemptions you choose](2026-10-10-points-and-rewards/README.md) — contributor points now come from validator-confirmed training-data assessments (category points × quality multiplier, with the calculation shown), flexible redemptions with marginal bonus bands (300 pts = GH₵5.00, 900 = GH₵15.50), an append-only points ledger, a Rewards desk for validators, Admin Finance policies/ledger/reconciliation, and a Kawuri-assisted Python assessment worker. Implemented and verified locally with real handlers on emulators; not deployed, rates pending Finance review, article unpublished. Includes actual screenshots of labelled test accounts.
+
 - [2026-10-10: A clearer way to learn and explore Kasem](2026-10-10-easier-kasem-discovery/README.md) — website deployed October 10 with a learning guide, dictionary filters and source comparisons, saved-word recovery and contextual feedback. Build, public asset comparisons and live desktop/mobile checks passed; Blogger publication pending. Includes actual product screenshots and an editorial/usability follow-up plan.
 
 - [2026-10-09: Indigen World 0.1.32: one release with the latest improvements](2026-10-09-consolidated-app-release/README.md) — consolidated Android build 41 with community, local listening, recovered drafts, Black appearance and Kasem reference improvements. See the release record for verified merge, bundle and GitHub status; Play rollout and Blogger publication are separate.
