@@ -143,7 +143,7 @@ export async function fetchMyDictionaryContributions(
  * example would make a well-documented word look bare in the queue. The entry
  * screen suppresses the duplicate at render time instead.
  */
-export async function submitDictionaryEntry(draft: EntryDraft): Promise<void> {
+export async function submitDictionaryEntry(draft: EntryDraft, spellingAssistance = false): Promise<void> {
   if (draft.culturalPermissionTier !== 'public') {
     throw new Error('This dictionary accepts public cultural material only. Do not submit community-only, restricted or sacred material.');
   }
@@ -160,6 +160,7 @@ export async function submitDictionaryEntry(draft: EntryDraft): Promise<void> {
 
   await call({
     requestId: draft.requestId,
+    ...(spellingAssistance ? { spellingAssistance: true } : {}),
     collectionKind: 'dictionary',
     culturalPermissionTier: draft.culturalPermissionTier,
     lexicalKind: 'word',

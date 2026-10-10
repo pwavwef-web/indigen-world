@@ -20,6 +20,9 @@
     "services/functions"
   ],
   "scripts": {
+    "test:kasem-spelling": "npm run build:functions && node --test firebase/tests/kasemSpelling.test.mjs apps/tribestudio/scripts/spelling.test.mjs",
+    "test:kasem-spelling:integration": "npm run build:functions && firebase emulators:exec --config .kasem-spelling-test.firebase.json --project demo-indigen-spelling-tests --only firestore \"node --test firebase/tests/kasemSpelling.integration.test.mjs\"",
+    "test:kasem-spelling:browser": "node apps/tribestudio/scripts/spelling-browser.test.mjs",
     "verify:ten-shipping": "node scripts/verify-ten-shipping.mjs",
     "dev:labs": "node scripts/labs-web.mjs",
     "emulators:labs": "npm run build:functions && node scripts/labs-emulators.mjs",

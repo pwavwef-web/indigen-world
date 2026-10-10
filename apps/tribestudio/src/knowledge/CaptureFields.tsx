@@ -1,5 +1,6 @@
 import { RELATION_TYPES, STRUCTURED_FIELDS, VALUE_STATES, type Representation, type ValueState } from '@indigen-world/contracts/knowledge';
 import type { RecordInput } from './data';
+import { KasemField } from '../spelling/KasemField';
 
 const labels: Record<string, string> = { senses: 'Lexical senses', examples: 'Ordered examples', dialogueTurns: 'Speaker turns', segments: 'Story segments', qaExamples: 'Instruction examples' };
 export function CaptureFields({ record, onChange }: { record: RecordInput; onChange: (record: RecordInput) => void }) {
@@ -14,7 +15,7 @@ export function CaptureFields({ record, onChange }: { record: RecordInput; onCha
     </section>
     {(STRUCTURED_FIELDS[record.datasetType] ?? []).map(key => <section className="kw-section" key={key}><h3>{labels[key]}</h3><p>Keep each original, translation and context together. Order is preserved. Speaker and translator references must be pseudonymous.</p>
       {(record.structured[key] ?? []).map((row, index) => <div className="kw-inset" key={row.id}><strong>{index + 1}. {labels[key]}</strong>
-        {(['original', 'english', 'french', 'context', 'translator', ...(key === 'dialogueTurns' ? ['speakerId'] : [])] as const).map(field => <label className="kw-field" key={field}><span>{field === 'speakerId' ? 'Speaker reference' : field === 'original' ? 'Original Kasem' : field}</span><textarea value={row[field as keyof Representation]} maxLength={field === 'context' ? 4000 : ['translator', 'speakerId'].includes(field) ? 100 : 12000} lang={field === 'original' ? 'xsm' : undefined} onChange={e => rowChange(key, index, { [field]: e.target.value })} /></label>)}
+        {(['original', 'english', 'french', 'context', 'translator', ...(key === 'dialogueTurns' ? ['speakerId'] : [])] as const).map(field => <label className="kw-field" key={field}><span>{field === 'speakerId' ? 'Speaker reference' : field === 'original' ? 'Original Kasem' : field}</span>{field === 'original' ? <KasemField value={row.original} maxLength={12000} onChange={e => rowChange(key, index, { original: e.target.value })} /> : <textarea value={row[field as keyof Representation]} maxLength={field === 'context' ? 4000 : ['translator', 'speakerId'].includes(field) ? 100 : 12000} onChange={e => rowChange(key, index, { [field]: e.target.value })} />}</label>)}
         <label className="kw-field"><span>Translation state</span><select value={row.translationState} onChange={e => rowChange(key, index, { translationState: e.target.value as ValueState })}>{VALUE_STATES.map(s => <option key={s} value={s}>{s.replaceAll('_', ' ')}</option>)}</select></label>
         <button type="button" onClick={() => change('structured', { ...record.structured, [key]: record.structured[key].filter((_, i) => i !== index) })}>Remove item {index + 1}</button>
       </div>)}

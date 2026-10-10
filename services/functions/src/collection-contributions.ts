@@ -2,6 +2,9 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { submissionRetry, checkSubmissionRetry } from './submission-retry.js';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { requireAuth } from './auth.js';
+import { createHash } from 'node:crypto';
+import { spellingKey, kasemTokens } from '@indigen-world/contracts/kasem-spelling';
+import { dictionarySubmissionStatus } from './kasem-spelling.js';
 import { consumeRateLimit } from './rate-limit.js';
 import {
   COLLECTION_KINDS,
@@ -649,6 +652,7 @@ export function buildCollectionContributionReceipt(
     corpusArea: corpusAreaFor(input),
     authenticationStatus: 'community',
     lexicalKind: input.lexicalKind,
+    ...(input.collectionKind === 'dictionary' && input.lexicalKind === 'word' ? { spellingKey: spellingKey(input.body) } : {}),
     title: input.title,
     body: input.body,
     translations: input.translations,
@@ -701,6 +705,10 @@ export const submitCollectionContribution = onCall(
     const uid = requireAuth(req);
     await consumeRateLimit('submitCollectionContribution', uid, 10);
     const input = parseCollectionContributionInput(req.data, uid);
+    const spellingAssist = req.data?.spellingAssistance === true && input.collectionKind === 'dictionary' && input.lexicalKind === 'word';
+    if (spellingAssist && (input.body.length > 100 || kasemTokens(input.body).length !== 1 || kasemTokens(input.body)[0].text !== input.body)) {
+      throw new HttpsError('invalid-argument', 'Spelling assistance submits one Kasem word at a time.');
+    }
     const db = getFirestore();
     const retry = submissionRetry(uid, 'collection', req.data?.requestId, input);
     const contributionRef = retry ? db.collection('collectionContributions').doc(retry.id) : db.collection('collectionContributions').doc();
@@ -710,8 +718,29 @@ export const submitCollectionContribution = onCall(
     const notificationRef = db.collection('notifications').doc();
     const now = nowIso();
 
+    // This optional entry point uses the same validation, documents, review,
+    // notifications and points triggers as every other dictionary contribution.
+    // A spelling lock also stops concurrent double-clicks with different IDs.
+    const spellingLock = spellingAssist ? db.collection('dictionarySpellingRequests').doc(
+      createHash('sha256').update(spellingKey(input.body)).digest('hex'),
+    ) : null;
+    const spellingStatus = spellingAssist ? await dictionarySubmissionStatus(uid, input.body) : 'available';
+
     await db.runTransaction(async (tx) => {
       if (retry && checkSubmissionRetry((await tx.get(contributionRef)).data(), uid, retry.hash)) return;
+      if (spellingStatus !== 'available') {
+        throw new HttpsError('already-exists', spellingStatus === 'approved'
+          ? 'This word is already in the approved dictionary.' : 'This word already has a submission awaiting review.');
+      }
+      if (spellingLock) {
+        const previous = (await tx.get(spellingLock)).get('contributionId');
+        if (typeof previous === 'string') {
+          const receipt = await tx.get(db.collection('collectionContributions').doc(previous));
+          if (['submitted', 'under_review', 'approved', 'pending', 'in_review'].includes(String(receipt.get('status')).toLowerCase())) {
+            throw new HttpsError('already-exists', 'This word already has a submission awaiting review.');
+          }
+        }
+      }
       const campaign = await tx.get(campaignRef);
       if (!campaign.exists) {
         tx.set(campaignRef, buildCollectionCampaignDocument(now));
@@ -723,6 +752,7 @@ export const submitCollectionContribution = onCall(
         uid,
         input,
       ), ...(retry ? { submissionRequestHash: retry.hash } : {}) });
+      if (spellingLock) tx.set(spellingLock, { contributionId: contributionRef.id });
       tx.set(submissionRef, buildCollectionSubmissionDocument(
         submissionRef.id,
         uid,

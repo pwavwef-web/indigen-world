@@ -22,6 +22,7 @@ const KIT = ['AppShell', 'Page', 'PageHeader', 'SectionHeader', 'Panel', 'Action
   'Facts', 'Avatar', 'MediaFrame', 'SaveState', 'Disclosure', 'Dialog', 'Button', 'ButtonLink', 'ButtonAnchor', 'IconButton',
   'BrandMark', 'CountUp', 'Reveal', 'AuthScreen', 'AuthFooter', 'AuthWaiting', 'GoogleButton', 'DisplayControl', 'Icon'];
 const KIT_MOCKS = {
+  KasemField: 'KasemField',
   ...Object.fromEntries(KIT.map((name) => [name, name])),
   cx: (...values) => values.filter(Boolean).join(' '),
   spotlight() {},
@@ -63,7 +64,7 @@ function hooks() {
   const cleanups = [];
   const context = { value: null };
   const api = {
-    React: { createElement: (type, props, ...children) => ({ type, props: { ...props, children } }) },
+    React: { createElement: (type, props, ...children) => ({ type: type === 'KasemField' ? props.as ?? 'textarea' : type, props: { ...props, children } }) },
     createContext: () => context,
     useContext: () => context.value,
     useState(initial) {

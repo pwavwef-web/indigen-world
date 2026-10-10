@@ -21,6 +21,7 @@ import { Field, Stepper, VoiceRecorder, WhatsAppCard } from '../components';
 import { RouteLoader } from '../../LoadingScreen';
 
 import { discoverySource } from '../discoverySource';
+import { KasemField } from '../../spelling/KasemField';
 
 const STEPS = ['Details', 'Media', 'Permissions', 'Review'];
 
@@ -599,7 +600,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
                 <div className="cr-group">
                   <h3 className="cr-group__title">The writing</h3>
                   <Field label="Story or article" htmlFor="body" hint="For oral histories, include original Kasem lines or structured paragraphs.">
-                    <textarea id="body" className="ts-textarea cr-body" rows={8} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write or paste your cultural story, folklore, or proverbs here…" />
+                    <KasemField enabled={primaryLanguage === 'xsm'} id="body" className="ts-textarea cr-body" rows={8} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write or paste your cultural story, folklore, or proverbs here…" />
                   </Field>
                   <Field label="Language or dialect notes" htmlFor="translationNotes">
                     <textarea id="translationNotes" className="ts-textarea" value={translationNotes} onChange={(e) => setTranslationNotes(e.target.value)} placeholder="Notes on tonal inflections, rare words, or community-specific idioms..." />
@@ -625,10 +626,10 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
                   </div>
                   <div className="field-row">
                     <Field label={`${sourceLanguage === 'xsm' ? 'Kasem' : 'English'} source text`} htmlFor="sourceContent">
-                      <textarea id="sourceContent" className="ts-textarea" rows={6} value={sourceContent} onChange={(e) => setSourceContent(e.target.value)} placeholder="Original sentences or oral transcription..." />
+                      <KasemField enabled={sourceLanguage === 'xsm'} id="sourceContent" className="ts-textarea" rows={6} value={sourceContent} onChange={(e) => setSourceContent(e.target.value)} placeholder="Original sentences or oral transcription..." />
                     </Field>
                     <Field label={`${targetLanguage === 'xsm' ? 'Kasem' : 'English'} translation`} htmlFor="translatedContent">
-                      <textarea id="translatedContent" className="ts-textarea" rows={6} value={translatedContent} onChange={(e) => setTranslatedContent(e.target.value)} placeholder="Accurate contextual translation..." />
+                      <KasemField enabled={targetLanguage === 'xsm'} id="translatedContent" className="ts-textarea" rows={6} value={translatedContent} onChange={(e) => setTranslatedContent(e.target.value)} placeholder="Accurate contextual translation..." />
                     </Field>
                   </div>
                   <Field label="Translator and cultural notes" htmlFor="translatorNotes">

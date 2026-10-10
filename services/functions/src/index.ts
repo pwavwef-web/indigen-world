@@ -217,3 +217,4 @@ export { releaseKnowledgeRecord, revokeKnowledgeRelease, resolveKnowledgeRecords
 
 export { configureKnowledgeGovernance } from './knowledge-governance.js';
 export { onDictionaryCandidate, onContributorCandidate, onKnowledgeCandidate, onSentenceCandidate, onGrammarCandidate, onExpressionCandidate, onEvidenceCandidate } from './kawuri-candidate-index.js';
+export { checkKasemSpelling, getKasemWordSubmissionStatus } from './kasem-spelling.js';

@@ -520,7 +520,7 @@ export function StudioVideoPage() {
                 <h2>Write your script</h2>
                 <p className="ts-muted">Type the Kasem words that will be spoken or guide the story. This does not need to be a previous submission.</p>
                 <Field label="Kasem script" htmlFor="video-script" hint="Up to 4,000 characters. Write it exactly as it should be spoken.">
-                  <textarea
+                  <KasemField
                     id="video-script"
                     rows={8}
                     maxLength={4000}
@@ -684,3 +684,4 @@ export function StudioVideoPage() {
     </div>
   );
 }
+import { KasemField } from '../../spelling/KasemField';

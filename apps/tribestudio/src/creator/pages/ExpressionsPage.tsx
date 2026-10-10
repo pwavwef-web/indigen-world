@@ -18,6 +18,7 @@ import { useAuth } from '../../auth';
 import { DraftRecovery, useRecovery } from '../../drafts/useRecovery';
 import { trackEvent } from '../../analytics';
 import { KasemPalette, insertIntoField } from '../KasemPalette';
+import { KasemField } from '../../spelling/KasemField';
 import {
   EVERYDAY_STATEMENT,
   EXPRESSION_DIALECTS,
@@ -248,7 +249,7 @@ function ExpressionEditor({ uid }: { uid: string }) {
                 <div className="ts-field">
                   <label className="ts-label" htmlFor="expr-phrase">The expression in Kasem <span className="ts-required" aria-hidden="true">*</span></label>
                   <KasemPalette onInsert={(char) => { if (phraseRef.current) insertIntoField(phraseRef.current, char); }} />
-                  <input
+                  <KasemField as="input"
                     id="expr-phrase"
                     ref={phraseRef}
                     className="ts-input cr-kasem-input"

@@ -10,6 +10,10 @@
   "main": "./index.mjs",
   "types": "./index.d.ts",
   "exports": {
+    "./kasem-spelling": {
+      "types": "./kasem-spelling.d.ts",
+      "default": "./kasem-spelling.mjs"
+    },
     "./labs": {
       "types": "./labs.d.ts",
       "default": "./labs.mjs"
@@ -32,6 +36,8 @@
     "./knowledge-catalog.json": "./knowledge-catalog.json"
   },
   "files": [
+    "kasem-spelling.mjs",
+    "kasem-spelling.d.ts",
     "labs.mjs",
     "labs.d.ts",
     "index.mjs",

@@ -6,6 +6,7 @@ import { functions } from '../firebase';
 import { contributionState, itemStatus, STATUS_META, type Item, type Status } from './model';
 import type { SaveAnswer } from './types';
 import { Icon } from '../ui/icons';
+import { KasemField } from '../spelling/KasemField';
 
 /**
  * The translation workspace: the expression list and the editor.
@@ -466,7 +467,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
 
       <label className="ts-field translation-field">
         <span className="ts-label">Kasem translation <span aria-hidden="true" className="ts-required">*</span></span>
-        <textarea
+        <KasemField
           className="ts-textarea cw-translation"
           lang="xsm"
           ref={(node) => { if (node && !activeField.current) activeField.current = node; }}
@@ -516,7 +517,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
             {alternativeValues.map((value, index) => (
               <label key={index} className="cw-alternative">
                 <span className="sr-only">Alternative {index + 1}</span>
-                <input className="ts-input ts-input--sm" lang="xsm" name="alternatives" data-alternative-index={index} maxLength={500} disabled={locked || busy || Boolean(recovery)} value={value} placeholder={`Another natural way to say it (${index + 1})`} onFocus={(event) => { activeField.current = event.currentTarget; }} onChange={(event) => updateAlternative(index, event.target.value)} />
+                <KasemField as="input" className="ts-input ts-input--sm" lang="xsm" name="alternatives" data-alternative-index={index} maxLength={500} disabled={locked || busy || Boolean(recovery)} value={value} placeholder={`Another natural way to say it (${index + 1})`} onFocus={(event) => { activeField.current = event.currentTarget; }} onChange={(event) => updateAlternative(index, event.target.value)} />
                 <button type="button" className="ts-btn ts-btn--ghost ts-btn--icon ts-btn--sm" aria-label={`Remove alternative ${index + 1}`} disabled={busy || locked} onClick={() => removeAlternative(index)}><Icon name="close" /></button>
               </label>
             ))}
