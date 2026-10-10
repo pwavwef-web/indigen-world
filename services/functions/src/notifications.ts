@@ -106,7 +106,7 @@ function smsText(title: string, body: string): string {
  * block the other or spin an infinite retry loop.
  */
 export const onNotificationCreated = onDocumentCreated(
-  { document: 'notifications/{notificationId}', region: 'us-central1', secrets: [SMTP_PASSWORD, ARKESEL_API_KEY] },
+  { document: 'notifications/{notificationId}', region: 'us-central1', timeoutSeconds:120, memory:'512MiB', concurrency:1, secrets: [SMTP_PASSWORD, ARKESEL_API_KEY] },
   async (event) => {
     const snap = event.data;
     if (!snap) return;
@@ -134,7 +134,7 @@ export const onNotificationCreated = onDocumentCreated(
             await snap.ref.update({ email: { status: 'skipped', reason: 'no-recipient-email', attemptedAt: nowIso() } });
           } else {
             const content = notificationEmail({ title, body, actionUrl: toAbsoluteUrl(data.link) });
-            const sent = await sendMail({ to, subject: content.subject, html: content.html, text: content.text });
+            const sent = await sendMail({ to, subject: content.subject, html: content.html, text: content.text, deliveryKey: `notification:${snap.id}` });
             await snap.ref.update({ email: { status: sent ? 'sent' : 'failed', to, attemptedAt: nowIso() } });
           }
         }

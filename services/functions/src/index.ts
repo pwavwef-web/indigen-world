@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase-admin/app';
 
 // Initialise the Admin SDK once for all functions in this codebase.
 initializeApp();
+export { correspondence } from './correspondence.js';
 export { getCommunityFeed, saveCommunityFeedPreferences, communityFeedFeedback, curateCommunityFeedPost,
   recordCommunityRecommendationEvent, indexCommunityFeedPost, updateCommunityFeedTrends } from './community-feed.js';
 export { labsApi } from './labs.js';

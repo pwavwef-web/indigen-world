@@ -130,3 +130,15 @@ Without that file the emulator runs normally and simply skips sending.
 `verifyTransport()` in `email.ts` authenticates against the relay without
 sending a message — useful for a one-off credential check or a future health
 endpoint.
+
+## Heritage Frame attachments
+
+All application SMTP paths now require a corresponding Heritage Frame PDF
+through `sendMailWithLetter`; `sendMail` retains its boolean best-effort facade.
+A complete formal letter may accompany a separate concise email introduction.
+Use stable delivery keys on source events, preserve recipient-specific content
+and never automatically resend SMTP outcomes marked sending or unknown. Private
+versioned documents and the admin composer are described in
+[Correspondence](correspondence.md). This implementation is not yet confirmed
+live. Firebase-managed security emails require a separate custom-sender
+integration to attach documents.

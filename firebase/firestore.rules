@@ -21,6 +21,9 @@ service cloud.firestore {
 
     // Labs: all writes go through the validated labsApi gateway, including
     // admin changes. Private drafts are owner-only, even for staff.
+    // Correspondence is exposed only by role-checked, owner-scoped callables.
+    match /correspondenceDrafts/{allPaths=**} { allow read, write: if false; }
+    match /_correspondenceDelivery/{allPaths=**} { allow read, write: if false; }
     match /labsExperiments/{id} { allow read: if true; allow write: if false; }
     match /labsUpdates/{id} { allow read: if true; allow write: if false; }
     match /labsDrafts/{id} { allow read: if isSignedIn() && resource.data.uid == request.auth.uid; allow write: if false; }

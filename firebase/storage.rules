@@ -386,6 +386,8 @@ service firebase.storage {
     }
 
     // ---- Default deny -------------------------------------------------------
+    // Private immutable letters: downloads go through the owner-checked callable.
+    match /correspondence/{allPaths=**} { allow read, write: if false; }
     match /{allPaths=**} {
       allow read, write: if false;
     }

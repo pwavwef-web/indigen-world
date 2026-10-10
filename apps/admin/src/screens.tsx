@@ -45,6 +45,7 @@ export const SCREENS: Record<`${SectionId}.${string}`, Screen> = {
   'collections.orders': named(collections, 'CollectionAdmin', { tab: 'orders' }),
 
   'messaging.compose': named(messaging, 'MessagingAdmin', { view: 'compose' }),
+  'messaging.correspondence': named(() => import('./messaging/CorrespondenceAdmin'), 'CorrespondenceAdmin'),
   'messaging.groups': named(messaging, 'MessagingAdmin', { view: 'groups' }),
   'messaging.history': named(messaging, 'MessagingAdmin', { view: 'history' }),
   'messaging.test': named(messaging, 'MessagingAdmin', { view: 'test' }),

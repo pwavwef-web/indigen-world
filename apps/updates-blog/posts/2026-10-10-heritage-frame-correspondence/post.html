@@ -1,0 +1,18 @@
+<article>
+  <p>Indigen World correspondence now has a reusable Heritage Frame design prepared in the repository. It brings the familiar Indigen World logo and wordmark to a clean white A4 page, with navy, cobalt and pale blue geometric artwork.</p>
+  <p><strong>Availability:</strong> this implementation is prepared for deployment and local review. A live release has not been confirmed.</p>
+  <figure><img src="images/heritage-frame-letter.png" alt="A sample Indigen World letter on white A4 paper with its logo, typographic wordmark, blue geometric right border and website footer"/><figcaption>Actual generated review sample with synthetic recipient and sender details. The letter text stays editable and searchable; the frame is vector artwork.</figcaption></figure>
+  <h2>One letter, two useful files</h2>
+  <p>Staff can prepare a letter once and download an editable Word document and a print-ready PDF. The same date, recipient details, subject, message and supplied sender identity are used in both. Longer letters can continue across pages, with the branding repeated and room kept clear for the text.</p>
+  <p>The workflow supports paragraphs, lists, emphasis and links. Its bundled font preserves Kasem characters, including ɛ, ɩ, ɔ, ʋ and ŋ. Unsupported characters produce a clear generation error instead of silently disappearing.</p>
+  <h2>A correspondence desk in Admin</h2>
+  <p>After deployment, administrators can open <strong>Messaging → Correspondence</strong>, enter their letter details and save a private draft. They can preview the letterhead, choose <strong>Download Word</strong> or <strong>Download PDF</strong>, and use <strong>Print PDF</strong> to prepare both files and open the PDF viewer. Preparing print files does not send email or start a physical print job.</p>
+  <figure><img src="images/correspondence-composer.png" alt="The Admin correspondence composer showing saved draft fields, a Heritage Frame preview and Word, PDF, print and email review controls"/><figcaption>Actual composer rendered with a clearly labelled local review fixture. These details are test data, and no message is delivered by this preview.</figcaption></figure>
+  <h2>Readable email with the reviewed letter attached</h2>
+  <p>Application email routes now prepare the corresponding Heritage Frame PDF before using the existing email provider. The email remains readable in its body. When staff supply a separate complete formal letter, they can write a concise email introduction and attach the full letter.</p>
+  <p>The correspondence desk asks staff to review the recipient, email body and generated PDF before sending. Every generated document has a version and hash, so an attachment already sent is not silently replaced by later edits. Recipient-specific messages receive their own letters.</p>
+  <h2>Private drafts and clear failures</h2>
+  <p>Drafts and files stay private. Only the authorised owner receives temporary download links. If document or attachment preparation fails, the email stops before sending and the draft remains available to retry. If the provider’s acceptance is uncertain, the system stops an automatic resend so the team can check the recorded message identifier.</p>
+  <p>No handwritten signature is added without an approved asset. Provider-managed Firebase authentication emails need a separate sender integration to support attachments. A separate staff correspondence assistant is not connected yet; an integration contract is prepared for the same authorised tools.</p>
+  <p>The local review includes one-page, multi-page and Kasem examples, offline attachment checks, retry checks and role/privacy tests. Deployment and Blogger publication remain separate release steps.</p>
+</article>

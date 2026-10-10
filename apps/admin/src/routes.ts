@@ -101,10 +101,11 @@ export const SECTIONS: SectionDef[] = [
     ],
   },
   {
-    id: 'messaging', label: 'Messaging', description: 'Announcements, contact groups and SMS history',
+    id: 'messaging', label: 'Messaging', description: 'Letters, announcements, contact groups and delivery history',
     icon: 'message', base: '/messaging', access: 'admin',
     tools: [
       { id: 'compose', slug: '', label: 'Compose', icon: 'message', hint: 'Write, review and send an announcement', access: 'admin' },
+      { id: 'correspondence', slug: 'correspondence', label: 'Correspondence', icon: 'mail', hint: 'Letters, Word and PDF downloads, and email', access: 'admin' },
       { id: 'groups', slug: 'groups', label: 'Contact groups', icon: 'users', hint: 'Saved recipient groups', access: 'admin' },
       { id: 'history', slug: 'history', label: 'Campaign history', icon: 'doc', hint: 'Sent and scheduled announcements', access: 'admin' },
       { id: 'test', slug: 'test', label: 'Test SMS', icon: 'flask', hint: 'Send one test message', access: 'admin' },

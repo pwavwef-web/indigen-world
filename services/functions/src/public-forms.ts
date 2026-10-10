@@ -45,7 +45,7 @@ function validEmail(value: string): boolean {
  * are server-written and remain covered by Firestore's default-deny rules.
  */
 export const publicForms = onRequest(
-  { cors: true, invoker: 'public', region: 'us-central1', timeoutSeconds: 15, secrets: [SMTP_PASSWORD] },
+  { cors: true, invoker: 'public', region: 'us-central1', timeoutSeconds: 120, memory: '512MiB', concurrency: 1, secrets: [SMTP_PASSWORD] },
   async (req, res) => {
     if (req.method !== 'POST') {
       res.set('Allow', 'POST').status(405).json({ error: 'method-not-allowed' });
@@ -109,7 +109,7 @@ export const publicForms = onRequest(
         // Welcome only genuinely new subscribers so re-subscribing never spams.
         if (isNewSubscriber) {
           const welcome = newsletterWelcome();
-          await sendMail({ to: subscriberEmail, subject: welcome.subject, html: welcome.html, text: welcome.text });
+          await sendMail({ to: subscriberEmail, deliveryKey: `newsletter:${subscriberRef.id}`, subject: welcome.subject, html: welcome.html, text: welcome.text });
         }
 
         // Duplicate subscriptions intentionally receive the same response so
@@ -141,8 +141,8 @@ export const publicForms = onRequest(
         const teamAlert = contactTeamAlert({ name, email: contactEmail, subject, message });
         const ack = contactAcknowledgement({ name, subject });
         await Promise.all([
-          sendMail({ to: teamInbox(), subject: teamAlert.subject, html: teamAlert.html, text: teamAlert.text, replyTo: contactEmail }),
-          sendMail({ to: contactEmail, subject: ack.subject, html: ack.html, text: ack.text }),
+          sendMail({ to: teamInbox(), deliveryKey: `form:${ref.id}:team`, subject: teamAlert.subject, html: teamAlert.html, text: teamAlert.text, replyTo: contactEmail }),
+          sendMail({ to: contactEmail, deliveryKey: `form:${ref.id}:ack`, subject: ack.subject, html: ack.html, text: ack.text }),
         ]);
 
         res.status(200).json({ accepted: true });
@@ -177,6 +177,7 @@ export const publicForms = onRequest(
         const sends = [
           sendMail({
             to: teamInbox(),
+            deliveryKey: `form:${ref.id}:team`,
             subject: teamAlert.subject,
             html: teamAlert.html,
             text: teamAlert.text,
@@ -185,7 +186,7 @@ export const publicForms = onRequest(
         ];
         if (contactIsEmail) {
           const ack = involvementAcknowledgement({ name, route });
-          sends.push(sendMail({ to: contact, subject: ack.subject, html: ack.html, text: ack.text }));
+          sends.push(sendMail({ to: contact, deliveryKey: `form:${ref.id}:ack`, subject: ack.subject, html: ack.html, text: ack.text }));
         }
         await Promise.all(sends);
 
@@ -262,8 +263,8 @@ export const publicForms = onRequest(
         const teamAlert = testerRewardTeamAlert({ certificateName, cardName, playEmail, contactEmail, country, recognitionChoice });
         const acknowledgement = testerRewardAcknowledgement({ name: certificateName });
         await Promise.all([
-          sendMail({ to: teamInbox(), subject: teamAlert.subject, html: teamAlert.html, text: teamAlert.text, replyTo: contactEmail }),
-          sendMail({ to: contactEmail, subject: acknowledgement.subject, html: acknowledgement.html, text: acknowledgement.text }),
+          sendMail({ to: teamInbox(), deliveryKey: `form:${ref.id}:team`, subject: teamAlert.subject, html: teamAlert.html, text: teamAlert.text, replyTo: contactEmail }),
+          sendMail({ to: contactEmail, deliveryKey: `form:${ref.id}:ack`, subject: acknowledgement.subject, html: acknowledgement.html, text: acknowledgement.text }),
         ]);
 
         res.status(200).json({ accepted: true });

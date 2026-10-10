@@ -195,14 +195,14 @@ export async function deliverSupportEmail(ref: DocumentReference, mailer = sendM
       await ticket.ref.update({ needsAttention: true, deliveryProblem: 'recovery_unavailable', updatedAt: timestamp() }); return;
     }
   } else subject = `Indigen World support · ${code}`;
-  const accepted = await mailer({ to: job.to, ...supportEmail({ subject, text, recoveryUrl }) });
+  const accepted = await mailer({ to: job.to, ...supportEmail({ subject, text, recoveryUrl }), deliveryKey: `support:${ref.id}` });
   const status = accepted ? 'accepted' : 'failed';
   await ref.update({ status, completedAt: timestamp() });
   if (job.messageId) await caseRef(job.caseId).collection('messages').doc(job.messageId).update({ delivery: status });
   if (!accepted) await caseRef(job.caseId).update({ needsAttention: true, deliveryProblem: 'email_failed', updatedAt: timestamp() });
 }
 
-export const onSupportEmailCreated = onDocumentCreated({ document: '_supportEmailOutbox/{job}', region: 'us-central1', secrets: [SMTP_PASSWORD], retry: true, maxInstances: 3 }, async event => {
+export const onSupportEmailCreated = onDocumentCreated({ document: '_supportEmailOutbox/{job}', region: 'us-central1', secrets: [SMTP_PASSWORD], retry: true, maxInstances: 3, timeoutSeconds:120, memory:'512MiB', concurrency:1 }, async event => {
   if (event.data) await deliverSupportEmail(event.data.ref);
 });
 

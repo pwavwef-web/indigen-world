@@ -1,0 +1,15 @@
+{
+  "name": "Indigen World staff correspondence",
+  "status": "integration-contract; no separate staff assistant is connected",
+  "endpoint": "Firebase callable correspondence",
+  "permissions": "Authenticated admin, existing App Check policy, owner-scoped private drafts",
+  "printLetter": {
+    "steps": ["save the supplied structured letter and optional email introduction", "print the saved revision", "return links.docx as Download Word and links.pdf as Download PDF"],
+    "sideEffects": "Private document generation only; no email or physical print job"
+  },
+  "sendLetter": {
+    "steps": ["save", "generate both formats", "present recipient, email body and exact PDF for human review", "send with id, version, revision and reviewed:true"],
+    "retryPolicy": "Reuse the reviewed version delivery key. Never automatically resend accepted, sending or unknown deliveries."
+  },
+  "contentPolicy": "Heritage Frame is the default. Preserve supplied message meaning and identities. Never invent addresses, signatures or commitments."
+}

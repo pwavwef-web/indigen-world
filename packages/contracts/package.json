@@ -33,7 +33,11 @@
       "types": "./knowledge.d.ts",
       "default": "./knowledge.mjs"
     },
-    "./knowledge-catalog.json": "./knowledge-catalog.json"
+    "./knowledge-catalog.json": "./knowledge-catalog.json",
+    "./correspondence": {
+      "types": "./correspondence.d.ts",
+      "default": "./correspondence.mjs"
+    }
   },
   "files": [
     "kasem-spelling.mjs",
@@ -48,7 +52,10 @@
     "examples",
     "knowledge.mjs",
     "knowledge.d.ts",
-    "knowledge-catalog.json"
+    "knowledge-catalog.json",
+    "correspondence.d.ts",
+    "correspondence.mjs",
+    "heritage-frame.mjs"
   ],
   "scripts": {
     "test": "node scripts/validate.mjs",
