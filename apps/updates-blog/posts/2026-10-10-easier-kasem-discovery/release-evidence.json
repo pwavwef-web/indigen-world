@@ -1,0 +1,135 @@
+{
+  "verifiedAt": "2026-10-10T05:16:01.069Z",
+  "deployedSourceCommit": "c151f43544e07327b21b2fad43a021deb1ba9598",
+  "sites": [
+    {
+      "origin": "https://indigenworld.com",
+      "pages": [
+        {
+          "route": "/learn",
+          "status": 200,
+          "url": "https://indigenworld.com/learn"
+        },
+        {
+          "route": "/dictionary",
+          "status": 200,
+          "url": "https://indigenworld.com/dictionary"
+        },
+        {
+          "route": "/contact",
+          "status": 200,
+          "url": "https://indigenworld.com/contact"
+        },
+        {
+          "route": "/sitemap.xml",
+          "status": 200,
+          "url": "https://indigenworld.com/sitemap.xml"
+        }
+      ],
+      "assets": [
+        {
+          "file": "ContactPage-ayS5brvK.js",
+          "bytes": 4784,
+          "sha256": "80bf06ba50b74217cae42f6d3a106f46f81b19b1fa4e0785c32f2bd512748def",
+          "matchesReleaseBuild": true
+        },
+        {
+          "file": "DictionaryPage-CvfGK9Z7.js",
+          "bytes": 18790,
+          "sha256": "2c1ef617b1f90e00158a0df3db84d917ff5895eeafe28b84802a8e2cced741d3",
+          "matchesReleaseBuild": true
+        },
+        {
+          "file": "index-BczJzdRB.css",
+          "bytes": 172359,
+          "sha256": "224541a480271c72438d71a6762455ddb79db29d97dfb942ef5f216c273dda5a",
+          "matchesReleaseBuild": true
+        },
+        {
+          "file": "index-kf9OmQrL.js",
+          "bytes": 207668,
+          "sha256": "00900fa9dd9e96c921a782fdf6d4b8e691465fa00527b4b8d045d103a2700c82",
+          "matchesReleaseBuild": true
+        },
+        {
+          "file": "LearnPage-CEcdRCPJ.js",
+          "bytes": 9765,
+          "sha256": "fde84ccb916f881424ed90bc43cdc28af5100be8266099eb0c24a5692f6e5456",
+          "matchesReleaseBuild": true
+        }
+      ]
+    },
+    {
+      "origin": "https://indigen-world.web.app",
+      "pages": [
+        {
+          "route": "/learn",
+          "status": 200,
+          "url": "https://indigen-world.web.app/learn"
+        },
+        {
+          "route": "/dictionary",
+          "status": 200,
+          "url": "https://indigen-world.web.app/dictionary"
+        },
+        {
+          "route": "/contact",
+          "status": 200,
+          "url": "https://indigen-world.web.app/contact"
+        },
+        {
+          "route": "/sitemap.xml",
+          "status": 200,
+          "url": "https://indigen-world.web.app/sitemap.xml"
+        }
+      ],
+      "assets": [
+        {
+          "file": "ContactPage-ayS5brvK.js",
+          "bytes": 4784,
+          "sha256": "80bf06ba50b74217cae42f6d3a106f46f81b19b1fa4e0785c32f2bd512748def",
+          "matchesReleaseBuild": true
+        },
+        {
+          "file": "DictionaryPage-CvfGK9Z7.js",
+          "bytes": 18790,
+          "sha256": "2c1ef617b1f90e00158a0df3db84d917ff5895eeafe28b84802a8e2cced741d3",
+          "matchesReleaseBuild": true
+        },
+        {
+          "file": "index-BczJzdRB.css",
+          "bytes": 172359,
+          "sha256": "224541a480271c72438d71a6762455ddb79db29d97dfb942ef5f216c273dda5a",
+          "matchesReleaseBuild": true
+        },
+        {
+          "file": "index-kf9OmQrL.js",
+          "bytes": 207668,
+          "sha256": "00900fa9dd9e96c921a782fdf6d4b8e691465fa00527b4b8d045d103a2700c82",
+          "matchesReleaseBuild": true
+        },
+        {
+          "file": "LearnPage-CEcdRCPJ.js",
+          "bytes": 9765,
+          "sha256": "fde84ccb916f881424ed90bc43cdc28af5100be8266099eb0c24a5692f6e5456",
+          "matchesReleaseBuild": true
+        }
+      ]
+    }
+  ],
+  "hosting": {
+    "project": "project-kassena-7e026",
+    "site": "indigen-world",
+    "version": "6fd4bc232c0ef287",
+    "releasedAt": "2026-10-10T05:11:29.105Z",
+    "target": "hosting:indigen-world"
+  },
+  "browserChecks": {
+    "origin": "https://indigenworld.com",
+    "desktop": "Learning guide/public expressions, recording filter, separate meaning/source records and saved view passed",
+    "mobile": "390px: saved list persisted after reload; dialog initial focus/width, copy entry link, last saved word removal/Escape focus recovery and feedback context passed",
+    "contactMessageSubmitted": false,
+    "errorLogs": [],
+    "liveScreenshot": "images/learning-guide-live.jpg"
+  }
+}

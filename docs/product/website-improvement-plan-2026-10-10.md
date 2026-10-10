@@ -1,7 +1,10 @@
 # Website improvement and research plan
 
-Prepared October 10, 2026. Implementation is local; deployment and real-user
-outcomes have not been verified. This plan follows the website competitive review.
+Prepared October 10, 2026. Website source commit
+`c151f43544e07327b21b2fad43a021deb1ba9598` was deployed to Firebase Hosting on
+October 10 at 05:11:29 UTC. Public assets and live desktop/mobile journeys were
+verified; real-user outcomes have not been measured. This plan follows the website
+competitive review.
 
 ## Implemented in this update
 
@@ -40,7 +43,9 @@ from an attribution or describe a published record as reviewed unless review is 
 
 1. **Support:** name an inbox owner and backup; tag website feedback separately from
    correction/takedown requests; review the queue weekly. Choose a response target
-   only after measuring staffing and current response times. Do not publish an SLA yet.
+   only after measuring staffing and current response times. Review the website's
+   existing five-working-day acknowledgement aim against actual staffing before
+   adding service guarantees.
 2. **Learning content:** assemble one short, reviewer-approved introductory lesson
    from existing eligible words and examples. Pilot it with learners before adding
    more lessons. Do not use the unused mock starter-kit component as language evidence.
@@ -99,13 +104,15 @@ to measure retention without a separate product/privacy decision.
 
 ## Release gate and follow-up
 
-Run the website check, inspect desktop/mobile flows, and review the prepared
+The website check and targeted desktop/mobile verification passed. Review the prepared
 [release post](../../apps/updates-blog/posts/2026-10-10-easier-kasem-discovery/README.md).
-Deployment should target the website only, using the repository's release process.
-After an authorised deployment, verify `/learn`, word filters, saved lists, a public
-entry link, source attribution and feedback prefill on the live hostname. Test actual
+The authorised release targeted only `hosting:indigen-world`, using the repository's
+release process. Live routes and five selected build assets matched on both public
+domains. Learning content, recording filters, saved-list reload, copied entry links,
+source attribution, mobile focus recovery and feedback prefill were checked on
+`indigenworld.com`; evidence is saved with the release post. Test actual
 message delivery with an explicitly agreed test recipient; local validation alone
-does not verify delivery. Record release evidence before publishing the Blogger post.
+does not verify delivery. Blogger publication remains with Chinedum.
 
 Within the first week after release, run the sessions and triage feedback. After
 four weeks, compare the baseline and repeat tasks, document remaining gaps, and
