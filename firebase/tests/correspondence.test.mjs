@@ -2,13 +2,24 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {PDFDocument} from 'pdf-lib';
 import JSZip from 'jszip';
-import {generateLetterFiles,letterVersion,sha256} from '../../services/functions/lib/correspondence-render.js';
+import {generateLetterFiles,letterVersion,sha256,normalizeEmbeddedFontParts} from '../../services/functions/lib/correspondence-render.js';
 import {deliverLetterEmail} from '../../services/functions/lib/correspondence-delivery.js';
 import {parseLetterBody,normalizeLetter} from '@indigen-world/contracts/correspondence';
 import {onePage,kasem,multiPage} from '../../services/functions/scripts/correspondence-fixtures.mjs';
 function memoryStore(){const records=new Map();return {records,archive:async(id,pdf)=>`private/${id}/${sha256(pdf)}.pdf`,claim:async(id,fingerprint)=>{const r=records.get(id);if(r&&(r.fingerprint!==fingerprint||r.status!=='preparation_failed'))return false;records.set(id,{status:'preparing',fingerprint});return true;},get:async id=>records.get(id),set:async(id,value)=>{records.set(id,{...records.get(id),...value});}};}
 const email={to:onePage.recipient.email,from:'Indigen World <hi@indigenworld.com>',subject:onePage.subject,text:'Please review the complete attached letter.',html:'<p>Please review the complete attached letter.</p>',letter:onePage,filename:'Review'};
 let pdf;
+test('Word font cleanup retains already-valid cloud names and resolves every relationship',async()=>{
+  const zip=new JSZip(),font=Buffer.from('synthetic font payload');
+  zip.file('word/fonts/font1.odttf',font);zip.file('word/fonts/Noto Sans.odttf',font);
+  zip.file('word/_rels/fontTable.xml.rels','<Relationships><Relationship Target="fonts/font1.odttf"/><Relationship Target="fonts/Noto Sans.odttf"/></Relationships>');
+  await normalizeEmbeddedFontParts(zip);
+  assert.deepEqual(await zip.file('word/fonts/font1.odttf').async('nodebuffer'),font);
+  assert.deepEqual(await zip.file('word/fonts/Noto_Sans.odttf').async('nodebuffer'),font);
+  const relationships=await zip.file('word/_rels/fontTable.xml.rels').async('string');
+  for(const [,target] of relationships.matchAll(/Target="([^"]+)"/g))assert.ok(zip.file('word/'+target));
+  zip.remove('word/fonts/font1.odttf');await assert.rejects(normalizeEmbeddedFontParts(zip),/font package is incomplete/);
+});
 test('one-page print request returns editable Word and searchable A4 PDF with embedded fonts',async()=>{
   const files=await generateLetterFiles(onePage);pdf=files.pdf;
   const doc=await PDFDocument.load(files.pdf);assert.equal(doc.getPageCount(),1);assert.ok(Math.abs(doc.getPage(0).getWidth()-595.276)<.1);assert.ok(Math.abs(doc.getPage(0).getHeight()-841.89)<.1);

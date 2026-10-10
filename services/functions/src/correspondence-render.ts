@@ -9,7 +9,7 @@ import { Document, Packer, Header, Footer, Paragraph, TextRun, ImageRun, Externa
 import { HERITAGE_FRAME as design, heritageSvg, normalizeLetter, letterFilename,
   type CorrespondenceLetter, type LetterRun, type LetterBlock } from '@indigen-world/contracts/correspondence';
 
-export const GENERATOR_VERSION = 'correspondence-v1';
+export const GENERATOR_VERSION = 'correspondence-v2';
 const mm = (n: number) => n * 72 / 25.4;
 const twip = (n: number) => Math.round(mm(n) * 20);
 const navy = rgb(20 / 255, 44 / 255, 80 / 255);
@@ -162,17 +162,27 @@ export async function renderLetterDocx(input: CorrespondenceLetter): Promise<Buf
   // docx 9 emits font part URIs containing spaces, which Word rejects as
   // corrupt. Give every embedded font a valid OPC part name and bind all four
   // typefaces to the same Noto Sans family instead of four unrelated families.
-  let relationships=await zip.file('word/_rels/fontTable.xml.rels')!.async('string');
-  for (const path of Object.keys(zip.files).filter(p=>p.endsWith('.odttf'))) {
-    const safe=path.replace(/ /g,'_');
-    zip.file(safe,await zip.file(path)!.async('nodebuffer'));zip.remove(path);
-    relationships=relationships.replaceAll(path.slice(5),safe.slice(5));
-  }
-  zip.file('word/_rels/fontTable.xml.rels',relationships);
+  await normalizeEmbeddedFontParts(zip);
   const table=await zip.file('word/fontTable.xml')!.async('string'),families=table.match(/<w:font w:name="[^"]+">[\s\S]*?<\/w:font>/g)!;
   const extra=families.slice(1).map((family,i)=>family.match(/<w:embedRegular[^>]*\/>/)![0].replace('embedRegular',['embedBold','embedItalic','embedBoldItalic'][i])).join('');
   zip.file('word/fontTable.xml',table.replace(/<w:font w:name="[^"]+">[\s\S]*?<\/w:font>/g,'').replace('</w:fonts>',families[0].replace('</w:font>',extra+'</w:font>')+'</w:fonts>'));
   return zip.generateAsync({type:'nodebuffer',compression:'DEFLATE'});
+}
+/** Keep valid OPC names intact; rename only parts containing spaces. */
+export async function normalizeEmbeddedFontParts(zip: JSZip) {
+  let relationships=await zip.file('word/_rels/fontTable.xml.rels')!.async('string');
+  for (const path of Object.keys(zip.files).filter(p=>p.endsWith('.odttf'))) {
+    const safe=path.replace(/ /g,'_');
+    if (safe !== path) {
+      zip.file(safe,await zip.file(path)!.async('nodebuffer'));
+      zip.remove(path);
+      relationships=relationships.replaceAll(path.slice(5),safe.slice(5));
+    }
+  }
+  for (const match of relationships.matchAll(/Target="([^"]+)"/g)) {
+    if (!zip.file(`word/${match[1]}`)) throw new Error('The Word font package is incomplete. Retry document generation.');
+  }
+  zip.file('word/_rels/fontTable.xml.rels',relationships);
 }
 export async function generateLetterFiles(letter: CorrespondenceLetter) {
   // Validate/render PDF first: if a font or signature is unavailable, neither format ships.

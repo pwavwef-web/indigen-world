@@ -2,6 +2,11 @@
 
 Implementation prepared October 10, 2026. Deployment is not confirmed.
 
+The Word generator uses the tested `docx` 9.5.1 release, pinned for cloud/local
+consistency. Generator v2 retains valid embedded-font part names, checks their
+relationships, and creates a new immutable version rather than replacing older
+documents.
+
 ## Staff workflow
 
 Open Admin → Messaging → Correspondence (`/messaging/correspondence`). Fill in
