@@ -1,0 +1,219 @@
+{
+  "verifiedAt": "2026-10-10T14:21:15.272Z",
+  "sourceCommit": "06dc5d15f45cf8c60e120bba327cec5966add032",
+  "backendSourceCommit": "40abb9965c81906ee546172e28593f113c49e2cd",
+  "hosting": [
+    {
+      "host": "https://tribestudio.indigenworld.com",
+      "contributorRoute": 200,
+      "assets": [
+        {
+          "path": "index.html",
+          "sha256": "a7a8150e8c2d6e528071d7a26b5edd0581af55559758130cee04b5f25dd0c10d",
+          "bytes": 8850
+        },
+        {
+          "path": "assets/ContributorPortal-DeAVRUcM.css",
+          "sha256": "554af36f33e50d1fdd4cea9b3dc52ff1950df055e89da9a61efbb63267a32bcf",
+          "bytes": 49344
+        },
+        {
+          "path": "assets/ContributorPortal-Dg8BiSil.js",
+          "sha256": "3a28c03b1aa0d934c73b574fa84b1e9b0ba115ca840c72338e32f6fa951415b3",
+          "bytes": 276837
+        },
+        {
+          "path": "assets/dictionary-data-DYuKBClM.js",
+          "sha256": "36527e23192b3358b3ed198af60bf312e9f7fa68454e8b8490d2331e96fc9ad6",
+          "bytes": 9071
+        },
+        {
+          "path": "assets/EditorPage-Bp32bZO1.css",
+          "sha256": "5d8e126471dc5ef1ec9029e9621001dc02760140079287c13c7faeb788a69264",
+          "bytes": 42995
+        },
+        {
+          "path": "assets/EditorPage-LvMH8pOT.js",
+          "sha256": "44f952ac8711087fc2a2b6e80a41c7ed0fa2345d925f9bf3f5f32eed48487604",
+          "bytes": 97296
+        },
+        {
+          "path": "assets/ExpressionsPage-Cy1Jc3t4.js",
+          "sha256": "c6b44ed4ed0fbf08cf222185c57a412aad627a7d52646f354c8406379b58ef06",
+          "bytes": 26500
+        },
+        {
+          "path": "assets/index-B40xG4sl.js",
+          "sha256": "fcdab13e37831f6507ae62d74000a546a2b29ad96e3ebe524568c11b59639f6a",
+          "bytes": 216616
+        },
+        {
+          "path": "assets/index-CXsFdOT8.css",
+          "sha256": "bce6123b74543af163f20ae55139bf46dc9cd597a2f74d4005fcaafa6d516f61",
+          "bytes": 182663
+        },
+        {
+          "path": "assets/KasemField-BnDeshDR.css",
+          "sha256": "8e6bce1ebdfa2d92189af25da3ac5d50b9f90a46d3148d0f85d7461d69a931cd",
+          "bytes": 2453
+        },
+        {
+          "path": "assets/KasemField-DkU_PJhh.js",
+          "sha256": "5e20a8407f4c09e09c601462f2849a85978a2932787f72ac176409545103f916",
+          "bytes": 13255
+        },
+        {
+          "path": "assets/KnowledgeWorkspace-CQWI07zM.css",
+          "sha256": "b758b2863e544973459577901ff12dd3b9d95b4ac1291d1ad8336f097c9c0ab2",
+          "bytes": 12013
+        },
+        {
+          "path": "assets/KnowledgeWorkspace-zc_83dfR.js",
+          "sha256": "b089454d13cd835f5f38bae90f290e48abb02e1b6abea006d5ce24112c30be09",
+          "bytes": 56519
+        },
+        {
+          "path": "assets/StudioVideoPage-BG5-nrng.js",
+          "sha256": "d030f454ffb5f9105e8fcc310ac068372f77ad975fc243be8a2b6f61289928f6",
+          "bytes": 21143
+        },
+        {
+          "path": "assets/SubmissionNewPage-Be_0Dt6b.js",
+          "sha256": "60d0e477510be6792426bf408dc2e075e5fc7e5cabff21b9178a3796b18ccb5f",
+          "bytes": 37751
+        }
+      ]
+    },
+    {
+      "host": "https://tribestudio.web.app",
+      "contributorRoute": 200,
+      "assets": [
+        {
+          "path": "index.html",
+          "sha256": "a7a8150e8c2d6e528071d7a26b5edd0581af55559758130cee04b5f25dd0c10d",
+          "bytes": 8850
+        },
+        {
+          "path": "assets/ContributorPortal-DeAVRUcM.css",
+          "sha256": "554af36f33e50d1fdd4cea9b3dc52ff1950df055e89da9a61efbb63267a32bcf",
+          "bytes": 49344
+        },
+        {
+          "path": "assets/ContributorPortal-Dg8BiSil.js",
+          "sha256": "3a28c03b1aa0d934c73b574fa84b1e9b0ba115ca840c72338e32f6fa951415b3",
+          "bytes": 276837
+        },
+        {
+          "path": "assets/dictionary-data-DYuKBClM.js",
+          "sha256": "36527e23192b3358b3ed198af60bf312e9f7fa68454e8b8490d2331e96fc9ad6",
+          "bytes": 9071
+        },
+        {
+          "path": "assets/EditorPage-Bp32bZO1.css",
+          "sha256": "5d8e126471dc5ef1ec9029e9621001dc02760140079287c13c7faeb788a69264",
+          "bytes": 42995
+        },
+        {
+          "path": "assets/EditorPage-LvMH8pOT.js",
+          "sha256": "44f952ac8711087fc2a2b6e80a41c7ed0fa2345d925f9bf3f5f32eed48487604",
+          "bytes": 97296
+        },
+        {
+          "path": "assets/ExpressionsPage-Cy1Jc3t4.js",
+          "sha256": "c6b44ed4ed0fbf08cf222185c57a412aad627a7d52646f354c8406379b58ef06",
+          "bytes": 26500
+        },
+        {
+          "path": "assets/index-B40xG4sl.js",
+          "sha256": "fcdab13e37831f6507ae62d74000a546a2b29ad96e3ebe524568c11b59639f6a",
+          "bytes": 216616
+        },
+        {
+          "path": "assets/index-CXsFdOT8.css",
+          "sha256": "bce6123b74543af163f20ae55139bf46dc9cd597a2f74d4005fcaafa6d516f61",
+          "bytes": 182663
+        },
+        {
+          "path": "assets/KasemField-BnDeshDR.css",
+          "sha256": "8e6bce1ebdfa2d92189af25da3ac5d50b9f90a46d3148d0f85d7461d69a931cd",
+          "bytes": 2453
+        },
+        {
+          "path": "assets/KasemField-DkU_PJhh.js",
+          "sha256": "5e20a8407f4c09e09c601462f2849a85978a2932787f72ac176409545103f916",
+          "bytes": 13255
+        },
+        {
+          "path": "assets/KnowledgeWorkspace-CQWI07zM.css",
+          "sha256": "b758b2863e544973459577901ff12dd3b9d95b4ac1291d1ad8336f097c9c0ab2",
+          "bytes": 12013
+        },
+        {
+          "path": "assets/KnowledgeWorkspace-zc_83dfR.js",
+          "sha256": "b089454d13cd835f5f38bae90f290e48abb02e1b6abea006d5ce24112c30be09",
+          "bytes": 56519
+        },
+        {
+          "path": "assets/StudioVideoPage-BG5-nrng.js",
+          "sha256": "d030f454ffb5f9105e8fcc310ac068372f77ad975fc243be8a2b6f61289928f6",
+          "bytes": 21143
+        },
+        {
+          "path": "assets/SubmissionNewPage-Be_0Dt6b.js",
+          "sha256": "60d0e477510be6792426bf408dc2e075e5fc7e5cabff21b9178a3796b18ccb5f",
+          "bytes": 37751
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "checkKasemSpelling",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-10T14:13:39.500759670Z",
+      "revision": "checkkasemspelling-00001-jay",
+      "runtime": "nodejs22",
+      "unauthenticatedStatus": 401
+    },
+    {
+      "name": "getKasemWordSubmissionStatus",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-10T14:13:39.203290918Z",
+      "revision": "getkasemwordsubmissionstatus-00001-zen",
+      "runtime": "nodejs22",
+      "unauthenticatedStatus": 401
+    },
+    {
+      "name": "submitCollectionContribution",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-10T14:13:38.198738501Z",
+      "revision": "submitcollectioncontribution-00027-cir",
+      "runtime": "nodejs22",
+      "unauthenticatedStatus": 401
+    },
+    {
+      "name": "submitWordTranslation",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-10T14:13:38.874019398Z",
+      "revision": "submitwordtranslation-00017-xiw",
+      "runtime": "nodejs22",
+      "unauthenticatedStatus": 401
+    }
+  ],
+  "legacyKeys": {
+    "scanned": 289,
+    "initialMissing": 155,
+    "finalMissing": 0
+  },
+  "tests": {
+    "studio": 76,
+    "focusedBackend": 118,
+    "emulatorHandlers": 3,
+    "chromiumDesktopAndMobile": "passed, mocked external I/O"
+  },
+  "productionDictionaryRead": {
+    "sampledEntries": 20,
+    "normalizationSamples": 10,
+    "note": "Read-only sample tested with the released matching rules. This does not replace an authenticated live end-to-end submission test."
+  }
+}

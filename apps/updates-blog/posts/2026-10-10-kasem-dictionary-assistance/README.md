@@ -1,6 +1,6 @@
 # Check Kasem spellings without leaving your contribution
 
-Status: **Implemented and verified locally. Production deployment pending. Blogger unpublished.**
+Status: **Deployed and verified on October 10, 2026. Blogger unpublished.**
 
 - Title: Check Kasem spellings without leaving your contribution
 - Labels: Kasem, Contributors, Dictionary, Accessibility, TribeStudio
@@ -25,8 +25,16 @@ No native Flutter app update or Play rollout is included. Browser attributes can
 - 118 focused backend tests passed, including Unicode matching, Kasem characters/tone, punctuation/case, original offsets, approved-only candidates, grapheme distance, selected-occurrence replacement and stale offsets, alongside existing review/queue workflows.
 - Lookup tests cover coalescing, batch bounds, cache expiry, partial replies and failures.
 - Chromium browser checks at 1366 px and 390 px cover click/tap, replacement, undo/redo, keyboard dismissal, word payload, parent text preservation, pending status, outages and composition. External calls are mocked; no actual contribution is sent.
-- Real Firestore emulator handlers verify auth, bounds, consent, approved duplicates, concurrent duplicates, canonical submissions, no immediate publication/points, retries, legacy status and newly approved words. The test process passed; Firebase CLI reported an unexpected error during emulator shutdown.
-- Production deployment evidence is recorded separately once verified.
+- All three real Firestore emulator tests passed, verifying auth, bounds, consent, approved duplicates, concurrent duplicates, canonical submissions, no immediate publication/points, retries, legacy status, derived-key migration and newly approved words.
+- Production evidence is saved in [release-evidence.json](release-evidence.json).
+
+## Confirmed deployment
+
+Backend commit `40abb9965c81906ee546172e28593f113c49e2cd` deployed `checkKasemSpelling`, `getKasemWordSubmissionStatus`, `submitCollectionContribution` and `submitWordTranslation`. The final frontend commit is `06dc5d15f45cf8c60e120bba327cec5966add032`. Firebase confirmed successful releases; control-plane checks confirm all four functions are ACTIVE with updated revisions, and public requests without sign-in return HTTP 401 / UNAUTHENTICATED.
+
+On both `https://tribestudio.indigenworld.com` and `https://tribestudio.web.app`, the contributor route returns HTTP 200 and 15 relevant HTML/JavaScript/CSS files match the clean production build byte-for-byte. Live sign-in pages render without JavaScript errors or horizontal overflow at 1366 px and 390 px. A read-only sample of 20 approved production entries was checked with the released comparison rules, including ten case/NFD normalization samples. This is not a signed-in production submission test.
+
+The legacy-key migration scanned 289 dictionary contributions and filled 155 missing derived keys. Its final dry run found zero keys to change. It did not change language text, review decisions, consent or points. The repository's documented Windows function-discovery issue was resolved by regenerating and checking the compiled manifest; a transient Hosting finalization failure was retried successfully. Existing source and predeploy checks remained in place.
 
 ## Images and credits
 

@@ -6,7 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
-- [2026-10-10: Check Kasem spellings without leaving your contribution](2026-10-10-kasem-dictionary-assistance/README.md) — dictionary underlines, approved suggestions and reviewed word submissions across responsive contributor fields. Local tests passed; deployment pending, Blogger unpublished. Includes desktop and mobile product previews with test fixtures.
+- [2026-10-10: Check Kasem spellings without leaving your contribution](2026-10-10-kasem-dictionary-assistance/README.md) — dictionary underlines, approved suggestions and reviewed word submissions across responsive contributor fields. Deployed and verified on both TribeStudio domains, with four active backend functions; Blogger unpublished. Includes desktop and mobile product previews with test fixtures.
 
 - [2026-10-10: Clearer points, fairer rewards and redemptions you choose](2026-10-10-points-and-rewards/README.md) — contributor points now come from validator-confirmed training-data assessments (category points × quality multiplier, with the calculation shown), flexible redemptions with marginal bonus bands (300 pts = GH₵5.00, 900 = GH₵15.50), an append-only points ledger, a Rewards desk for validators, Admin Finance policies/ledger/reconciliation, and a Kawuri-assisted Python assessment worker. Deployed October 10 (rules, indexes, 20 functions, TribeStudio, admin, Python worker); new redemptions live at the proposed default rates; quality-based awards and the worker not switched on yet; Finance review of rates and the finance permission pending; article unpublished. Includes actual screenshots of labelled test accounts.
 
