@@ -92,7 +92,8 @@ assert.match(dictionaryData, /where\("isPublished", "==", true\)/, "dictionary r
 assert.match(dictionaryPage, /SAVED_WORDS_KEY/, "dictionary saves words on the visitor's device");
 assert.match(dictionaryPage, /role=\{mobileOpen \? "dialog" : undefined\}/, "mobile dictionary details use dialog semantics");
 assert.match(dictionaryPage, /element\.inert = true/, "mobile dictionary details isolate background content");
-assert.match(dictionaryPage, /returnFocus\.focus\(\)/, "mobile dictionary details restore trigger focus");
+assert.match(dictionaryPage, /returnFocus\?\.isConnected\s*\?\s*returnFocus\s*:\s*document\.getElementById\("dictionary-results-heading"\)/, "mobile dictionary details restore trigger focus or a surviving results heading");
+assert.match(dictionaryPage, /target\?\.focus\(\{\s*preventScroll:\s*true\s*\}\)/, "mobile dictionary details restore focus without moving the results");
 assert.match(app, /PAGE_COMPONENTS\[path\]\s*\?\?\s*NotFoundPage/, "unknown routes render the 404 page");
 assert.match(notFound, /noindex:\s*true/, "the 404 route is excluded from indexing");
 assert.match(notFound, /aria-label="Error 404"/, "the 404 state has an explicit accessible error code");
