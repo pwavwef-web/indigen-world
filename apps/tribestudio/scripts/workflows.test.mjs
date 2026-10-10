@@ -436,6 +436,21 @@ test('translation field labels follow the selected source and target languages',
   tree = e.render();
   assert.equal(find(tree, (n) => n.type === 'field' && n.props.htmlFor === 'sourceContent').props.label, 'English source text');
   assert.equal(find(tree, (n) => n.type === 'field' && n.props.htmlFor === 'translatedContent').props.label, 'Kasem translation');
+  assert.equal(find(tree, n => n.props?.id === 'sourceContent').props.enabled, false);
+  assert.equal(find(tree, n => n.props?.id === 'translatedContent').props.enabled, true);
+  e.dispose();
+});
+
+test('Kasem image descriptions and captions follow the primary language without losing text', async () => {
+  const e = await editorHarness();
+  find(e.render(), n => n.type === 'button' && find(n, c => c.type === 'strong' && c.props.children.includes('Image / visual story'))).props.onClick();
+  let tree = e.render();
+  for (const id of ['t', 'desc', 'caption', 'altText']) assert.equal(find(tree, n => n.props?.id === id).props.enabled, true);
+  find(tree, n => n.props?.id === 'caption').props.onChange({ target: { value: 'Ɛ\u0301ŋɔ. TEST ONLY' } });
+  find(e.render(), n => n.props?.id === 'pl').props.onChange({ target: { value: 'en' } });
+  tree = e.render();
+  for (const id of ['t', 'desc', 'caption', 'altText']) assert.equal(find(tree, n => n.props?.id === id).props.enabled, false);
+  assert.equal(find(tree, n => n.props?.id === 'caption').props.value, 'Ɛ\u0301ŋɔ. TEST ONLY');
   e.dispose();
 });
 

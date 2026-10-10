@@ -572,7 +572,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
 
               <div className="cr-group">
                 <h3 className="cr-group__title">About the post</h3>
-                <Field label="Content title" htmlFor="t"><input id="t" className="ts-input" value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
+                <Field label="Content title" htmlFor="t"><KasemField as="input" enabled={primaryLanguage === 'xsm'} id="t" className="ts-input" value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
                 <div className="field-row">
                   <Field label="Category" htmlFor="cat">
                     <select id="cat" className="ts-select" value={category} onChange={(e) => setCategory(e.target.value)}>
@@ -593,7 +593,7 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
                     {dialects.map((d) => <option key={d.slug} value={d.slug}>{d.label}</option>)}
                   </select>
                 </Field>
-                <Field label="Short description" htmlFor="desc"><textarea id="desc" className="ts-textarea" value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
+                <Field label="Short description" htmlFor="desc"><KasemField enabled={primaryLanguage === 'xsm'} id="desc" className="ts-textarea" value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
               </div>
 
               {studioType === 'writing' ? (
@@ -641,10 +641,10 @@ function SubmissionEditor({ existing }: { existing: Submission | null }) {
                 <div className="cr-group">
                   <h3 className="cr-group__title">The image</h3>
                   <Field label="Caption" htmlFor="caption">
-                    <input id="caption" className="ts-input" value={caption} onChange={(e) => setCaption(e.target.value)} />
+                    <KasemField as="input" enabled={primaryLanguage === 'xsm'} id="caption" className="ts-input" value={caption} onChange={(e) => setCaption(e.target.value)} />
                   </Field>
                   <Field label="Alternative text" htmlFor="altText" hint="Required for accessibility. Describe what the image shows for people who cannot see it.">
-                    <textarea id="altText" className="ts-textarea" value={altText} onChange={(e) => setAltText(e.target.value)} />
+                    <KasemField enabled={primaryLanguage === 'xsm'} id="altText" className="ts-textarea" value={altText} onChange={(e) => setAltText(e.target.value)} />
                   </Field>
                 </div>
               ) : null}

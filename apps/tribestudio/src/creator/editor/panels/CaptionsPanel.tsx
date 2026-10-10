@@ -12,6 +12,7 @@ import {
   type EditorProject,
 } from '../model';
 import type { EditorApi } from '../useEditor';
+import { KasemField } from '../../../spelling/KasemField';
 
 /**
  * Captions and lyrics: timed to the real audio, then corrected by hand.
@@ -149,7 +150,7 @@ export function CaptionsPanel({ editor, projectId }: { editor: EditorApi; projec
         <select value={track.language} onChange={(e) => setTrack({ language: e.target.value })}>{LANGUAGES.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}</select>
       </label>
       <label className="ve-field"><span>The words (script or lyrics)</span>
-        <textarea rows={6} value={text} onChange={(e) => setText(e.target.value)} placeholder={track.language === 'xsm' ? 'Paste the Kasem words, one line per caption. They are timed to the audio as written.' : 'Paste the words, one line per caption — or leave empty to transcribe English or French.'} />
+        <KasemField enabled={track.language === 'xsm'} rows={6} value={text} onChange={(e) => setText(e.target.value)} placeholder={track.language === 'xsm' ? 'Paste the Kasem words, one line per caption. They are timed to the audio as written.' : 'Paste the words, one line per caption — or leave empty to transcribe English or French.'} />
       </label>
       <button type="button" className="ve-panel-button ve-panel-button--primary" disabled={busy || !source || (!text.trim() && !['en', 'fr'].includes(track.language))} onClick={() => void time()}>
         {busy ? 'Listening to the audio…' : text.trim() ? 'Time these words to the audio' : 'Transcribe and time'}
@@ -191,7 +192,7 @@ export function CaptionsPanel({ editor, projectId }: { editor: EditorApi; projec
             {track.cues.map((c) => (
               <li key={c.id} className={editor.selection?.kind === 'cue' && editor.selection.id === c.id ? 'is-selected' : ''}>
                 <button type="button" className="vx-cue-time" onClick={() => { editor.select({ kind: 'cue', id: c.id }); editor.seek(c.start); }}>{c.start.toFixed(1)}–{c.end.toFixed(1)}</button>
-                <input aria-label="Caption text" value={c.text} onChange={(e) => editor.commit(patchCue(c.id, { text: e.target.value }))} />
+                <KasemField as="input" enabled={track.language === 'xsm'} aria-label="Caption text" value={c.text} onChange={(e) => editor.commit(patchCue(c.id, { text: e.target.value }))} />
               </li>
             ))}
           </ol>

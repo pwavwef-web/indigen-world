@@ -11,7 +11,7 @@ Status: **Implemented and verified locally. Production deployment pending. Blogg
 
 ## Implementation and availability
 
-Shared native-input decoration covers assigned translations and alternatives, open expressions, knowledge originals/transcripts/structured originals, Kasem writing and source/target translations, and narration scripts. The public website directs contributors into these portals. Dedicated single-word forms are excluded. Repository documentation and language selectors verify the existing Kasem tag `xsm`.
+Shared native-input decoration covers assigned translations and alternatives, open expressions, knowledge originals/transcripts/structured originals, Kasem writing and source/target translations, post titles/descriptions, image captions/alt text, narration scripts and video captions/lyrics explicitly marked Kasem. The public website directs contributors into these portals. Dedicated single-word forms are excluded. Repository documentation and language selectors verify the existing Kasem tag `xsm`.
 
 The dictionary stays on the server: a paged snapshot cached for 60 seconds, capped at 25,000 entries. Incomplete scans cannot prove absence. Client requests coalesce across fields in batches of 80 after a 550 ms debounce. Up to 2,000 tokens are cached; missing results expire after 15 seconds, approved results after 60 seconds. Active fields refresh and unknown checks retry. Only approved entries and explicitly recorded forms are suggested. Native controls retain selection, paste, multiline input, composition and undo/redo. Browser `insertText` preserves editing transactions; unsupported browsers get manual replacement instructions.
 
@@ -21,7 +21,7 @@ No native Flutter app update or Play rollout is included. Browser attributes can
 
 ## Verification
 
-- Functions build and TribeStudio typecheck, validators, 75 tests and production build passed.
+- Functions build and TribeStudio typecheck, validators, 76 tests and production build passed.
 - 118 focused backend tests passed, including Unicode matching, Kasem characters/tone, punctuation/case, original offsets, approved-only candidates, grapheme distance, selected-occurrence replacement and stale offsets, alongside existing review/queue workflows.
 - Lookup tests cover coalescing, batch bounds, cache expiry, partial replies and failures.
 - Chromium browser checks at 1366 px and 390 px cover click/tap, replacement, undo/redo, keyboard dismissal, word payload, parent text preservation, pending status, outages and composition. External calls are mocked; no actual contribution is sent.
