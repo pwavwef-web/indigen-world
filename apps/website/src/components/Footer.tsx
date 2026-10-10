@@ -50,6 +50,7 @@ export function Footer() {
             <Link to="ecosystem">Ecosystem</Link>
             <Link to="project-kassena">Project Kassena</Link>
             <Link to="dictionary">Dictionary</Link>
+            <Link to="learn">Learn Kasem</Link>
             <Link to="contribute">Contribute</Link>
             <Link to="progress">Our Progress</Link>
             <Link to="labs">Labs</Link>

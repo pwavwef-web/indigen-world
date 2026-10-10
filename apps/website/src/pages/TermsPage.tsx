@@ -108,8 +108,9 @@ export function TermsPage() {
           </p>
 
           <p className="legal-disclaimer">
-            This page is a plain-language implementation summary, not final legal text. Approved
-            legal copy from the project manager will replace this before public launch.
+            This page is a plain-language summary of the current implementation. Final legal
+            review remains pending. Contact us if you need clarification before contributing or
+            reusing material.
           </p>
         </div>
       </section>

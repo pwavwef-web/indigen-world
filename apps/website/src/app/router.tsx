@@ -52,6 +52,7 @@ interface RouteContextValue {
   path: string;
   /** Path parameters for a dynamic route; empty for every static one. */
   params: Record<string, string>;
+  search: string;
   navigate: (to: string) => void;
 }
 
@@ -59,9 +60,10 @@ const RouteContext = createContext<RouteContextValue | null>(null);
 
 export function RouterProvider({ children }: { children: ReactNode }) {
   const [match, setMatch] = useState<RouteMatch>(currentMatch);
+  const [search, setSearch] = useState(window.location.search);
 
   useEffect(() => {
-    const handlePopState = () => setMatch(currentMatch());
+    const handlePopState = () => { setMatch(currentMatch()); setSearch(window.location.search); };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
@@ -75,18 +77,20 @@ export function RouterProvider({ children }: { children: ReactNode }) {
     }
 
     const nextUrl = new URL(href, window.location.origin);
-    if (nextUrl.pathname === window.location.pathname && nextUrl.hash === window.location.hash) {
+    if (nextUrl.pathname === window.location.pathname && nextUrl.search === window.location.search && nextUrl.hash === window.location.hash) {
       window.scrollTo({ top: 0, behavior: "auto" });
       return;
     }
 
     window.history.pushState({}, "", `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
     setMatch(matchRoute(nextUrl.pathname));
+    setSearch(nextUrl.search);
+    if (nextUrl.hash) scrollToTop();
   }, []);
 
   const value = useMemo(
-    () => ({ path: match.key, params: match.params, navigate }),
-    [match, navigate]
+    () => ({ path: match.key, params: match.params, search, navigate }),
+    [match, search, navigate]
   );
 
   return <RouteContext.Provider value={value}>{children}</RouteContext.Provider>;
@@ -139,7 +143,9 @@ export function Link({ to, children, ...anchorProps }: LinkProps) {
 
 export function scrollToTop(): void {
   if (window.location.hash) {
-    const target = document.getElementById(window.location.hash.slice(1));
+    let id = window.location.hash.slice(1);
+    try { id = decodeURIComponent(id); } catch { /* Preserve malformed fragments. */ }
+    const target = document.getElementById(id);
     if (target) {
       target.scrollIntoView();
       return;

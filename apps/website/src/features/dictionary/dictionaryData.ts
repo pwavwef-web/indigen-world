@@ -7,6 +7,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { websiteFirestore } from "../../lib/firebaseApp";
+import { isDictionaryWord } from "./discovery";
 
 export interface DictionaryEntry {
   id: string;
@@ -36,8 +37,7 @@ function firstText(data: DocumentData, keys: string[], fallback = ""): string {
 }
 
 function entryFromData(id: string, data: DocumentData): DictionaryEntry | null {
-  if (data.contentKind === 'expression' || data.collectionKind === 'expressions'
-    || ['phrase', 'idiom', 'proverb'].includes(data.lexicalKind)) return null;
+  if (!isDictionaryWord(data)) return null;
   const headword = firstText(data, ["kasemText", "headword", "kasem", "word"]);
   const translation = firstText(data, [
     "englishText",

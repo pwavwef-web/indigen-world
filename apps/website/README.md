@@ -50,6 +50,7 @@ client.
 - `/ecosystem` — product audiences, owners, status and boundaries
 - `/project-kassena` — Project Kassena, the Kasem/Kassena distinction, validation model and planned roadmap
 - `/dictionary` — searchable public Kasem dictionary with published entries and device-local saved words
+- `/learn` — a public learning guide linking words, recordings, saved lists, book references, expressions and the practice Lab
 - `/impact-governance` — permissions, cultural-data stewardship and labelled targets
 - `/get-involved` — contributor, validator, school, research, diaspora, sponsor and volunteer routes
 - `/contact` — privacy-aware general, publication, correction and takedown route
@@ -59,6 +60,23 @@ client.
 
 See the [human-readable website sitemap](../../docs/product/website-sitemap.md) for the page
 hierarchy, discovery paths, indexing policy and primary visitor journeys.
+
+### Dictionary discovery and feedback
+
+The word view groups matching spellings while retaining each source record and tone marks.
+Exact word or meaning matches precede partial matches. Visitors can combine a dialect/source
+label, recordings and saved-word filters. Saving is local to this browser; storage failures
+produce a session-only notice. Explicit sentence/expression classifications are excluded
+from this word view without modifying the underlying records.
+
+Entry links use `/dictionary?entry=ID`; `?q=water`, `?audio=1` and `?saved=1` initialise
+browsing views. Unavailable entry links show a notice. The learning guide and dictionary
+link to the existing contact form with a website-feedback subject and page context.
+No feedback is sent until the visitor submits the form.
+
+`dictionary_action` records only coarse actions (save, unsave, view_saved, filter_audio,
+play_audio) when the existing analytics gate is enabled. These events do not establish
+user satisfaction or retention. See the [improvement and research plan](../../docs/product/website-improvement-plan-2026-10-10.md).
 
 ## Updating content
 

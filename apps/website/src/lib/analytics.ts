@@ -15,6 +15,7 @@ export const ANALYTICS_EVENTS = {
   newsletterOptIn: "newsletter_opt_in",
   outboundProductLink: "outbound_product_link",
   languageProjectPageView: "language_project_page_view",
+  dictionaryAction: "dictionary_action",
 } as const;
 
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];

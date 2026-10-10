@@ -35,6 +35,9 @@ export const PAGE_COMPONENTS: Record<string, LazyPage> = {
       default: DictionaryPage,
     }))
   ),
+  learn: lazy(() =>
+    withRouteLoadingTiming(import("./LearnPage")).then(({ LearnPage }) => ({ default: LearnPage }))
+  ),
   contribute: lazy(() =>
     withRouteLoadingTiming(import("./ContributePage")).then(({ ContributePage }) => ({
       default: ContributePage,

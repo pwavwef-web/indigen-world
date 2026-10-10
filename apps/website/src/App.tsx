@@ -15,8 +15,8 @@ export function App() {
 }
 
 function AnimatedApp() {
-  const { path, params } = useRoute();
-  useRevealOnScroll(`${path}:${Object.values(params).join(":")}`);
+  const { path, params, search } = useRoute();
+  useRevealOnScroll(`${path}:${Object.values(params).join(":")}:${search}`);
   const hasMounted = useRef(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
 
@@ -27,7 +27,7 @@ function AnimatedApp() {
     } else {
       hasMounted.current = true;
     }
-  }, [path]);
+  }, [path, search]);
 
   // Global accessibility keyboard shortcut listener ('?' for shortcuts modal)
   useEffect(() => {
@@ -51,9 +51,9 @@ function AnimatedApp() {
       <div className={immersive ? "site-shell site-shell--immersive" : "site-shell"}>
         {immersive ? null : <Header />}
         <main id="main-content" tabIndex={-1}>
-          <ErrorBoundary resetKey={path}>
+          <ErrorBoundary resetKey={`${path}:${search}`}>
             <Suspense fallback={<RouteLoader />}>
-              <PageComponent />
+              <PageComponent key={`${path}:${JSON.stringify(params)}:${search}`} />
             </Suspense>
           </ErrorBoundary>
         </main>

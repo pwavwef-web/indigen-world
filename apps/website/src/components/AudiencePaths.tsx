@@ -45,8 +45,8 @@ export function AudiencePaths() {
           <p className="today-path__needs">No account needed.</p>
           <div className="today-path__actions">
             <Button to="dictionary">Open the dictionary</Button>
-            <Button to="get-involved?route=mobile-app-waitlist" variant="secondary">
-              Join the app waitlist
+            <Button to="learn" variant="secondary">
+              Follow the learning guide
             </Button>
           </div>
         </article>

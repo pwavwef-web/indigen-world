@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-10: A clearer way to learn and explore Kasem](2026-10-10-easier-kasem-discovery/README.md) — local website update with a learning guide, dictionary filters and source comparisons, saved-word recovery and contextual feedback. Build and targeted browser checks passed; deployment and Blogger publication pending. Includes actual product screenshots and an editorial/usability follow-up plan.
+
 - [2026-10-09: Indigen World 0.1.32: one release with the latest improvements](2026-10-09-consolidated-app-release/README.md) — consolidated Android build 41 with community, local listening, recovered drafts, Black appearance and Kasem reference improvements. See the release record for verified merge, bundle and GitHub status; Play rollout and Blogger publication are separate.
 
 - [2026-10-09: Reliable contributions, clearer sources and offline listening](2026-10-09-reliable-contribution-and-reference-workflows/README.md) — review branch and local verification; not deployed or published. Account recovery, review evidence, source browsing, bounded grounding, ten category destinations, Downloads playback and low-data preference. Includes product screenshots with synthetic fixtures and existing public illustrations.

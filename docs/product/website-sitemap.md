@@ -9,6 +9,9 @@ Indigen World
 |
 +-- Home                         /
 |   +-- About                    /about
+|   +-- Learn Kasem              /learn
+|   |   +-- Words and recordings /dictionary
+|   |   +-- Book reference guides /spelling-guide.html, /grammar-guide.html
 |   +-- Ecosystem                /ecosystem
 |   |   +-- Project Kassena      /project-kassena
 |   |       +-- Kasem Dictionary /dictionary
@@ -34,6 +37,7 @@ Indigen World
 | --- | --- | --- | --- | --- |
 | Home | `/` | Introduce the mission, products and next steps | Brand link, header | Included |
 | About | `/about` | Explain the mission, principles and team | Header, footer | Included |
+| Learn Kasem | `/learn` | Connect word discovery, saved words, book guides, expressions and practice; explain availability | Header, footer, home learning path, dictionary, Project Kassena | Included |
 | Ecosystem | `/ecosystem` | Show the public products, programmes and infrastructure | Header, footer | Included |
 | Project Kassena | `/project-kassena` | Explain the flagship Kasem-language programme | Header, footer, ecosystem | Included |
 | Kasem Dictionary | `/dictionary` | Let visitors search and save published Kasem words | Header, footer, Project Kassena | Included |
@@ -49,7 +53,7 @@ Indigen World
 
 ## Primary journeys
 
-1. **Learn Kasem:** Home (hero or the Learn path) -> Kasem Dictionary. No account.
+1. **Learn Kasem:** Home or header -> Learn -> words with recordings, saved words, book guides and published expressions. Public reading needs no account; the practice Lab labels its own access requirements. The home hero still links directly to the dictionary.
 2. **Contribute Kasem:** Home (hero or the Contribute path) -> Contribute -> TribeStudio
    `/studio/expressions` (Google sign-in) -> "Your expressions" for the review status.
 3. **Understand the mission:** Home -> About -> Impact & Governance.

@@ -11,6 +11,9 @@ import {
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 
 import { createFromDiscovery, knowledgeFromDictionary } from "../content/creatorLinks";
+import { discoverWords, readSavedWordIds } from "../features/dictionary/discovery";
+import { ExperienceFeedback } from "../components/ExperienceFeedback";
+import { ANALYTICS_EVENTS, trackEvent } from "../lib/analytics";
 
 const route = ROUTES_BY_PATH.dictionary;
 const SAVED_WORDS_KEY = "indigen-world:saved-dictionary-entries";
@@ -18,8 +21,7 @@ const PAGE_SIZE = 60;
 
 function readSavedWords(): Set<string> {
   try {
-    const value = JSON.parse(window.localStorage.getItem(SAVED_WORDS_KEY) ?? "[]");
-    return new Set(Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);
+    return readSavedWordIds(window.localStorage, SAVED_WORDS_KEY);
   } catch {
     return new Set();
   }
@@ -31,15 +33,20 @@ function DictionaryDetail({
   mobileOpen,
   onClose,
   onToggleSaved,
+  saveMessage,
 }: {
   entry: DictionaryEntry | null;
   saved: boolean;
   mobileOpen: boolean;
   onClose: () => void;
   onToggleSaved: () => void;
+  saveMessage: string;
 }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
+  const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const [audioFailed, setAudioFailed] = useState(false);
+  useEffect(() => { setShareStatus("idle"); setAudioFailed(false); }, [entry?.id]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -50,7 +57,7 @@ function DictionaryDetail({
       : null;
     const backgroundElements = Array.from(
       document.querySelectorAll<HTMLElement>(
-        ".site-header, .dictionary-page__masthead, .dictionary-results, .site-footer"
+        ".skip-link, .site-header, .dictionary-page__masthead, .dictionary-results, .dictionary-next, .site-footer"
       )
     );
     const previousInert = backgroundElements.map((element) => [element, element.inert] as const);
@@ -121,7 +128,8 @@ function DictionaryDetail({
       });
       document.body.style.overflow = previousOverflow;
       window.requestAnimationFrame(() => {
-        if (returnFocus?.isConnected) returnFocus.focus();
+        const target = returnFocus?.isConnected ? returnFocus : document.getElementById("dictionary-results-heading");
+        target?.focus({ preventScroll: true });
       });
     };
   }, [mobileOpen, onClose]);
@@ -166,6 +174,7 @@ function DictionaryDetail({
             {saved ? "Saved" : "Save word"}
           </button>
         </div>
+        <p className="tiny dictionary-save-message" role="status">{saveMessage}</p>
 
         <p className="dictionary-detail__word-class">{entry.partOfSpeech}</p>
         <h2 id="dictionary-entry-heading">{entry.headword}</h2>
@@ -184,12 +193,15 @@ function DictionaryDetail({
             <Icon name="volume" size={22} />
             <div>
               <h3>Pronunciation</h3>
-              <p>{entry.pronunciation}</p>
+              <p>{entry.pronunciation === "Audio not available yet" ? "No written pronunciation guide yet" : entry.pronunciation}</p>
               {entry.audioUrl ? (
-                <audio controls preload="none" src={entry.audioUrl} aria-label={`Pronunciation of ${entry.headword}`} />
+                <audio key={entry.id} controls preload="none" src={entry.audioUrl} aria-label={`Pronunciation of ${entry.headword}`}
+                  onError={() => setAudioFailed(true)}
+                  onPlay={() => trackEvent(ANALYTICS_EVENTS.dictionaryAction, { action: "play_audio" })} />
               ) : (
                 <span className="dictionary-fact__note">No recording has been published yet.</span>
               )}
+              {audioFailed && <span className="dictionary-fact__note" role="status">This recording could not be loaded. Check your connection, or let us know through Suggest a correction below.</span>}
             </div>
           </section>
 
@@ -215,10 +227,21 @@ function DictionaryDetail({
           <section className="dictionary-fact">
             <Icon name="source" size={22} />
             <div>
-              <h3>Source and rights</h3>
+              <h3>Recorded source</h3>
               <p>{entry.attribution}</p>
+              <p className="dictionary-fact__translation"><Link to="impact-governance">Check cultural permissions before reusing material.</Link></p>
             </div>
           </section>
+        </div>
+
+        <div className="dictionary-share">
+          <button className="dictionary-save" type="button" onClick={async () => {
+            const url = `https://indigenworld.com/dictionary?entry=${encodeURIComponent(entry.id)}`;
+            try { await navigator.clipboard.writeText(url); setShareStatus("copied"); }
+            catch { setShareStatus("manual"); }
+          }}>Copy entry link</button>
+          <span className="tiny" role="status">{shareStatus === "copied" ? "Link copied." : shareStatus === "manual" ? "Copy the link below." : "Share this exact meaning and source."}</span>
+          {shareStatus === "manual" && <input aria-label="Entry link to copy" readOnly value={`https://indigenworld.com/dictionary?entry=${encodeURIComponent(entry.id)}`} onFocus={(event) => event.target.select()} />}
         </div>
 
         <Button
@@ -229,7 +252,7 @@ function DictionaryDetail({
           Suggest a correction
         </Button>
         <Button href={createFromDiscovery(`dictionary?entry=${encodeURIComponent(entry.id)}`)} external variant="secondary" className="dictionary-correction">Create a related story or lesson</Button>
-        <p className="tiny">Your source link follows you to TribeStudio. Corrections go to the review team.</p>
+        <p className="tiny">TribeStudio opens in a new tab and requires sign-in. Your source link follows you there. Corrections go to the review team.</p>
         <Button href={knowledgeFromDictionary(entry.id)} external variant="secondary" className="dictionary-correction">Contribute context or a pronunciation</Button>
         <p className="tiny">Open a knowledge record linked to this word, with your source, regional usage and permission choices.</p>
       </div>
@@ -243,7 +266,12 @@ export function DictionaryPage() {
   const [entries, setEntries] = useState<DictionaryEntry[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [retryKey, setRetryKey] = useState(0);
-  const [queryText, setQueryText] = useState("");
+  const [queryText, setQueryText] = useState(() => new URLSearchParams(window.location.search).get("q")?.slice(0, 200) ?? "");
+  const [dialect, setDialect] = useState("");
+  const [audioOnly, setAudioOnly] = useState(() => new URLSearchParams(window.location.search).get("audio") === "1");
+  const [savedOnly, setSavedOnly] = useState(() => new URLSearchParams(window.location.search).get("saved") === "1");
+  const [saveMessage, setSaveMessage] = useState("");
+  const [missingLinkedEntry, setMissingLinkedEntry] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(() => new URLSearchParams(window.location.search).get("entry"));
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const linkedEntry = useRef(new URLSearchParams(window.location.search).get("entry"));
@@ -262,39 +290,44 @@ export function DictionaryPage() {
   }, [retryKey]);
 
   useEffect(() => {
-    if (!selectedId && entries.length) setSelectedId(entries[0].id);
-  }, [entries, selectedId]);
+    if (!linkedEntry.current || status !== "ready") return;
+    if (entries.some((entry) => entry.id === linkedEntry.current)) setMobileDetailOpen(window.matchMedia("(max-width: 899px)").matches);
+    else setMissingLinkedEntry(true);
+    linkedEntry.current = null;
+  }, [entries, status]);
 
-  useEffect(() => {
-    if (linkedEntry.current && entries.some((entry) => entry.id === linkedEntry.current)) {
-      setMobileDetailOpen(window.matchMedia("(max-width: 899px)").matches);
-      linkedEntry.current = null;
-    }
-  }, [entries]);
+  useEffect(() => setVisibleLimit(PAGE_SIZE), [queryText, dialect, audioOnly, savedOnly]);
 
-  useEffect(() => setVisibleLimit(PAGE_SIZE), [queryText]);
-
-  const normalizedQuery = queryText.trim().toLocaleLowerCase();
-  const filteredEntries = useMemo(() => {
-    if (!normalizedQuery) return entries;
-    return entries.filter((entry) =>
-      [entry.headword, entry.translation, entry.dialect]
-        .some((value) => value.toLocaleLowerCase().includes(normalizedQuery))
-    );
-  }, [entries, normalizedQuery]);
-  const visibleEntries = filteredEntries.slice(0, visibleLimit);
-  const selectedEntry = filteredEntries.find((entry) => entry.id === selectedId) ?? null;
+  const groups = useMemo(() => discoverWords(entries, { query: queryText, dialect, audioOnly, savedOnly }, savedWords), [entries, queryText, dialect, audioOnly, savedOnly, savedWords]);
+  const resultCount = groups.reduce((total, group) => total + group.entries.length, 0);
+  const dialects = useMemo(() => [...new Set(entries.map((entry) => entry.dialect))].sort((a, b) => a.localeCompare(b)), [entries]);
+  const visibleGroups = groups.slice(0, visibleLimit);
+  const selectedEntry = entries.find((entry) => entry.id === selectedId) ?? null;
+  const hasFilters = Boolean(queryText || dialect || audioOnly || savedOnly);
+  const resetFilters = () => { setQueryText(""); setDialect(""); setAudioOnly(false); setSavedOnly(false); };
   const closeMobileDetail = useCallback(() => setMobileDetailOpen(false), []);
+  useEffect(() => {
+    if (status !== "ready" || mobileDetailOpen) return;
+    if (!groups.some((group) => group.entries.some((entry) => entry.id === selectedId))) {
+      setSelectedId(groups[0]?.entries[0]?.id ?? null);
+    }
+  }, [groups, status, mobileDetailOpen, selectedId]);
+  useEffect(() => setSaveMessage(""), [selectedId]);
 
   const toggleSaved = () => {
     if (!selectedEntry) return;
-    setSavedWords((current) => {
-      const next = new Set(current);
-      if (next.has(selectedEntry.id)) next.delete(selectedEntry.id);
-      else next.add(selectedEntry.id);
+    const next = new Set(savedWords);
+    const removing = next.has(selectedEntry.id);
+    if (removing) next.delete(selectedEntry.id);
+    else next.add(selectedEntry.id);
+    setSavedWords(next);
+    try {
       window.localStorage.setItem(SAVED_WORDS_KEY, JSON.stringify([...next]));
-      return next;
-    });
+      setSaveMessage(removing ? "Removed from saved words." : "Saved on this device. Find it in Saved words.");
+    } catch {
+      setSaveMessage("Browser storage is unavailable. Your saved list will last only while this page stays open.");
+    }
+    trackEvent(ANALYTICS_EVENTS.dictionaryAction, { action: removing ? "unsave" : "save" });
   };
 
   return (
@@ -305,16 +338,9 @@ export function DictionaryPage() {
           <div>
             <p className="eyebrow">Collection · Dictionary</p>
             <h1>Words with a living context.</h1>
-            <a href="/spelling-guide.html">Kasem spelling rules and book examples</a>
-            <a href="/grammar-guide.html">Kasem grammar, sentences and word forms</a>
-            <a href="https://www.venacula.com/?collection=sentences">Browse whole sentences with sources</a>
-            <a href="https://www.venacula.com/?collection=grammar">Search published grammar rules</a>
-            <a href="https://www.venacula.com/?collection=illustrations">Explore original book illustrations in context</a>
-            <p>Search the community-published Kasem dictionary by Kasem, English, or dialect.</p><p><a className="button button--primary" href="https://kasem-dictionary.web.app/">Open Kasem web app</a></p>
+            <p>Search published Kasem words, compare their recorded meanings, and keep a few to return to.</p>
             <p className="dictionary-page__role">
-              Use the website for quick search and sharing. The mobile app carries the same
-              reviewed entries into an offline-friendly learning experience. {" "}
-              <Link to="get-involved?route=mobile-app-waitlist">Join the mobile app waitlist</Link>.
+              No account needed. New to Kasem? <Link to="learn">Follow the learning guide</Link>.
             </p>
           </div>
 
@@ -339,12 +365,24 @@ export function DictionaryPage() {
 
       <div className="container dictionary-workspace">
         <section className="dictionary-results" aria-labelledby="dictionary-results-heading">
+          {missingLinkedEntry && <p className="dictionary-link-notice" role="status">The linked entry is not available in this public word collection. You can search other words below or <Link to="learn">explore the reference guides</Link>.</p>}
+          <div className="dictionary-filters">
+            <div className="dictionary-view" aria-label="Choose dictionary view">
+              <button type="button" aria-pressed={!savedOnly} onClick={() => setSavedOnly(false)}>All words</button>
+              <button type="button" aria-pressed={savedOnly} onClick={() => { setSavedOnly(true); trackEvent(ANALYTICS_EVENTS.dictionaryAction, { action: "view_saved" }); }}>Saved words</button>
+            </div>
+            <label className="dictionary-dialect">Dialect or source label<select value={dialect} onChange={(event) => setDialect(event.target.value)}><option value="">All dialects and sources</option>{dialects.map((value) => <option key={value}>{value}</option>)}</select></label>
+            <label className="dictionary-audio-filter"><input type="checkbox" checked={audioOnly} onChange={(event) => { setAudioOnly(event.target.checked); trackEvent(ANALYTICS_EVENTS.dictionaryAction, { action: "filter_audio" }); }} /> With a recording</label>
+            {hasFilters && <button className="dictionary-reset" type="button" onClick={resetFilters}>Reset filters</button>}
+            <p className="tiny">Saved words stay in this browser. Recordings and source details vary by entry.</p>
+          </div>
           <div className="dictionary-results__heading">
             <div>
               <p className="eyebrow">Published collection</p>
-              <h2 id="dictionary-results-heading">
-                {status === "ready" ? `${filteredEntries.length.toLocaleString()} ${filteredEntries.length === 1 ? "entry" : "entries"}` : "Dictionary entries"}
+              <h2 id="dictionary-results-heading" tabIndex={-1}>
+                {status === "ready" ? `${resultCount.toLocaleString()} ${resultCount === 1 ? "entry" : "entries"}` : "Dictionary entries"}
               </h2>
+              <p className="tiny" role="status">{status === "ready" && `${groups.length.toLocaleString()} ${groups.length === 1 ? "spelling" : "spellings"}${audioOnly ? " with recordings" : ""}${savedOnly ? " in your saved words" : ""}`}</p>
             </div>
             {savedWords.size > 0 && <span className="dictionary-saved-count"><Icon name="bookmark" size={15} /> {savedWords.size} saved</span>}
           </div>
@@ -364,18 +402,21 @@ export function DictionaryPage() {
             </div>
           )}
 
-          {status === "ready" && filteredEntries.length === 0 && (
+          {status === "ready" && resultCount === 0 && (
             <div className="dictionary-state">
               <Icon name="search" size={34} />
-              <h3>{normalizedQuery ? "No matching words" : "No entries have been published yet"}</h3>
-              <p>{normalizedQuery ? "Try a different Kasem word, English translation, or dialect." : "Published, community-reviewed entries will appear here."}</p>
-              {normalizedQuery && <button type="button" onClick={() => setQueryText("")}>Clear search</button>}
+              <h3>{savedOnly ? "No saved words match this view" : hasFilters ? "No matching words" : "No entries have been published yet"}</h3>
+              <p>{savedOnly ? "Open a word and choose Save word. You can also reset filters to find more entries." : hasFilters ? "Try a different spelling, a shorter English search, or turn off a filter. Tone marks can change a word's meaning." : "Published entries will appear here."}</p>
+              {hasFilters && <button type="button" onClick={resetFilters}>Reset filters</button>}
+              <Link to="contribute">Help add language and context</Link>
             </div>
           )}
 
-          {status === "ready" && visibleEntries.length > 0 && (
+          {status === "ready" && visibleGroups.length > 0 && (
             <div className="dictionary-entry-list">
-              {visibleEntries.map((entry) => (
+              {visibleGroups.map((group) => <div className="dictionary-word-group" key={group.key}>
+                {group.entries.length > 1 && <div className="dictionary-word-group__label"><strong>{group.entries[0].headword}</strong><span>{group.entries.length} records · compare meanings and sources</span></div>}
+                {group.entries.map((entry) => (
                 <button
                   key={entry.id}
                   className={`dictionary-entry-card${selectedId === entry.id ? " dictionary-entry-card--active" : ""}`}
@@ -393,13 +434,13 @@ export function DictionaryPage() {
                   <span className="dictionary-entry-card__copy">
                     <strong>{entry.headword}</strong>
                     <span>{entry.translation}</span>
-                    <small>{entry.partOfSpeech} · {entry.dialect}</small>
+                    <small>{entry.partOfSpeech} · {entry.dialect}{entry.audioUrl ? " · Audio" : ""}</small>
                   </span>
                   {savedWords.has(entry.id) && <Icon name="bookmark" size={17} />}
                   <Icon name="chevron" size={20} />
                 </button>
-              ))}
-              {visibleEntries.length < filteredEntries.length && (
+              ))}</div>)}
+              {visibleGroups.length < groups.length && (
                 <button className="dictionary-load-more" type="button" onClick={() => setVisibleLimit((value) => value + PAGE_SIZE)}>
                   Show more entries
                 </button>
@@ -414,7 +455,12 @@ export function DictionaryPage() {
           mobileOpen={mobileDetailOpen}
           onClose={closeMobileDetail}
           onToggleSaved={toggleSaved}
+          saveMessage={saveMessage}
         />
+      </div>
+      <div className="container dictionary-next">
+        <div><h2>Put a word in context.</h2><p>Whole expressions and sentences have their own collections. Learn how to read a source, find examples, and practise at your own pace.</p><Button to="learn" variant="secondary">Explore learning resources</Button></div>
+        <ExperienceFeedback page="dictionary" />
       </div>
     </section>
   );

@@ -64,13 +64,14 @@ export function ProjectKasenaPage() {
               ))}
             </ul>
             <p className="module-preview__note">
-              The website offers immediate dictionary search and sharing. The mobile app carries
-              the same reviewed entries into an offline-friendly learning and contribution
-              experience. Translation tooling remains in development.
+              The website offers immediate dictionary search, saved words and reference guides.
+              Public mobile access is listed through a waitlist; the app is being developed for
+              offline-friendly learning and contribution. Translation tooling remains in development.
             </p>
             <Button to="dictionary" variant="secondary" className="module-preview__button">
               Open the Kasem dictionary
             </Button>
+            <Button to="learn" variant="secondary">Find your next learning step</Button>
             <PageMotion placement="inline" />
           </div>
         </div>

@@ -11,6 +11,7 @@ const routes = [
   ["/ecosystem", "EcosystemPage.tsx"],
   ["/project-kassena", "ProjectKasenaPage.tsx"],
   ["/dictionary", "DictionaryPage.tsx"],
+  ["/learn", "LearnPage.tsx"],
   ["/contribute", "ContributePage.tsx"],
   ["/impact-governance", "ImpactGovernancePage.tsx"],
   ["/get-involved", "GetInvolvedPage.tsx"],

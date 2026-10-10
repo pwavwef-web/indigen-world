@@ -21,8 +21,8 @@ export function ContactPage() {
         <div className="container">
           <SectionHeading
             eyebrow="Contact Indigen World"
-            title="Questions, partnerships, corrections and takedown requests."
-            body="Choose the subject that best matches your request. We welcome general enquiries and partnership conversations, and we route publication, correction and takedown requests for review."
+            title="Questions, feedback and help with your next step."
+            body="Tell us what you were trying to do and what would help. Choose Website feedback for your experience, or Publication, correction or takedown request for a concern about a cultural record."
             light
             as="h1"
           />

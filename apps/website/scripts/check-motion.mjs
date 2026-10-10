@@ -12,7 +12,7 @@ const executablePath = process.env.CHROMIUM_EXECUTABLE || [
 ].find(file => fs.existsSync(file));
 const origin = process.env.MOTION_PREVIEW_URL || 'http://127.0.0.1:5174';
 const browser = await chromium.launch({ executablePath, headless: true });
-const routes = ['/', '/about', '/ecosystem', '/project-kassena', '/dictionary', '/contribute',
+const routes = ['/', '/about', '/ecosystem', '/project-kassena', '/dictionary', '/learn', '/contribute',
   '/impact-governance', '/get-involved', '/contact', '/privacy', '/terms', '/post', '/communities',
   '/ads/payment-complete', '/founding-tester-claim-7q4m9x2k', '/labs', '/labs/experiments',
   '/labs/kasem-practice', '/labs/cultural-story', '/labs/culture-quest', '/labs/word-trail', '/labs/activity',

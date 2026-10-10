@@ -25,14 +25,17 @@ const CORRECTION_SUBJECT = "Publication, correction or takedown request";
 function subjectFromLocation(): string {
   if (typeof window === "undefined") return "";
 
-  return new URLSearchParams(window.location.search).get("subject") ===
-    "publication-correction-takedown"
-    ? CORRECTION_SUBJECT
-    : "";
+  const subject = new URLSearchParams(window.location.search).get("subject");
+  if (subject === "website-feedback") return "Website feedback";
+  return subject === "publication-correction-takedown" ? CORRECTION_SUBJECT : "";
 }
 
 function correctionContext(): string {
   const query = new URLSearchParams(window.location.search);
+  if (query.get("subject") === "website-feedback") {
+    const page = query.get("page") === "dictionary" ? "dictionary" : "learn";
+    return `Page: https://indigenworld.com/${page}\n\nWhat I was trying to do:\n\nWhat helped or got in the way:\n\nMy experience (1 = difficult, 5 = easy):\n`;
+  }
   const entry = query.get("entry")?.slice(0, 200);
   if (query.get("subject") !== "publication-correction-takedown" || !entry) return "";
   const word = query.get("word")?.slice(0, 200) ?? "";
@@ -104,6 +107,7 @@ export function ContactForm() {
         <option>General question</option>
         <option>Partnership</option>
         <option>Press &amp; media</option>
+        <option>Website feedback</option>
         <option>{CORRECTION_SUBJECT}</option>
         <option>Something else</option>
       </FormField>

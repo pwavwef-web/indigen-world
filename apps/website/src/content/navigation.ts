@@ -36,6 +36,12 @@ export const ROUTES: AppRoute[] = [
       "The internet is growing, but too many cultures are being left behind. Learn about Indigen World's mission and the principles guiding how it builds.",
   },
   {
+    path: "learn",
+    navLabel: "Learn",
+    title: "Learn Kasem",
+    description: "Start learning Kasem with published words, recordings, saved vocabulary, source-based spelling and grammar guides, everyday expressions and experimental practice.",
+  },
+  {
     path: "ecosystem",
     navLabel: "Ecosystem",
     title: "Ecosystem",

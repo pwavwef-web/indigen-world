@@ -71,6 +71,14 @@ export function useDocumentMeta(
       page_title: title,
     });
 
+    // Lazy routes mount after the app shell tries to restore an anchor.
+    // Resolve it again now that the requested page's content exists.
+    if (window.location.hash) {
+      let id = window.location.hash.slice(1);
+      try { id = decodeURIComponent(id); } catch { /* Keep the literal fragment. */ }
+      document.getElementById(id)?.scrollIntoView();
+    }
+
     if (window.location.pathname === "/project-kassena") {
       trackEvent(ANALYTICS_EVENTS.languageProjectPageView, { project: "project_kassena" });
     }
