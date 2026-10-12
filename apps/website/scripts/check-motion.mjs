@@ -29,9 +29,8 @@ async function context(options = {}) {
 async function open(page, route) {
   await page.goto(origin + route, { waitUntil: 'domcontentloaded' });
   await page.locator('h1').first().waitFor({ state: 'attached' });
-  if (route === '/privacy') await page.locator('.privacy-hero__art img').waitFor();
-  else if (route === '/') await page.locator('.culture-hero__images img.is-active').waitFor();
-  else if (route !== '/beyond-the-reef') await page.locator('.page-motion__art svg').waitFor();
+  if (route === '/labs/admin') await page.locator('.page-motion__art svg').waitFor();
+  else await page.locator('.culture-hero__images img.is-active').waitFor();
   await page.waitForTimeout(800);
 }
 async function artwork(page) {
@@ -39,22 +38,17 @@ async function artwork(page) {
   return page.locator('.page-motion__art svg').first().evaluate(svg => svg.outerHTML);
 }
 async function checkBannerLayout(page, route, width) {
-  const banner = page.locator('.page-motion--banner');
+  const banner = page.locator('.culture-hero');
   if (!await banner.count()) return false;
-  const art = await banner.boundingBox();
-  const content = banner.locator('..').locator(':scope > .container');
-  const box = await content.boundingBox();
-  assert(art.x + art.width <= box.x + 1 || box.x + box.width <= art.x + 1 ||
-    art.y + art.height <= box.y + 1 || box.y + box.height <= art.y + 1,
-  `${route}: artwork overlaps the content column at ${width}px`);
-  const controls = content.locator('a, button, input, select, textarea');
-  for (const control of await controls.all()) {
-    if (await control.isVisible() && await control.isEnabled()) {
-      await control.click({ trial: true, timeout: 3000 });
-    }
+  const content = banner.locator('.culture-hero__content');
+  const footer = banner.locator('.culture-hero__footer');
+  const copy = await content.boundingBox(), controls = await footer.boundingBox();
+  assert(copy.y + copy.height <= controls.y + 1, route + ': credits do not overlap page content');
+  for (const control of await banner.locator('a, button, input').all()) {
+    if (await control.isVisible() && await control.isEnabled()) await control.click({ trial: true, timeout: 3000 });
   }
   const sizes = await page.evaluate(() => ({ content: document.documentElement.scrollWidth, viewport: innerWidth }));
-  assert(sizes.content <= sizes.viewport + 1, `${route}: horizontal overflow at ${width}px`);
+  assert(sizes.content <= sizes.viewport + 1, route + ': horizontal overflow at ' + width);
   return true;
 }
 async function checkKassenaLayout(page, width) {
@@ -89,8 +83,8 @@ try {
       if (route === '/project-kassena') await checkKassenaLayout(page, width);
       if (await checkBannerLayout(page, route, width)) bannerRoutes.add(route);
       if (route !== '/beyond-the-reef') {
-        assert.equal(await page.locator(route === '/' ? '.culture-hero' : route === '/privacy' ? '.privacy-hero' : '.page-motion').count(), 1, `${route}: exactly one page visual`);
-        const toggle = page.getByRole('button', { name: 'Pause animations', exact: false });
+        assert.equal(await page.locator(route === '/labs/admin' ? '.page-motion' : '.culture-hero').count(), 1, `${route}: exactly one page visual`);
+        const toggle = page.getByRole('button', { name: 'Pause animations', exact: false }).first();
         await toggle.scrollIntoViewIfNeeded();
         assert(await toggle.isVisible(), `${route}: accessible motion control`);
         await toggle.click({ trial: true, timeout: 3000 });
@@ -163,7 +157,7 @@ try {
     document.dispatchEvent(new Event('visibilitychange'));
   });
   await page.emulateMedia({ reducedMotion: 'reduce' }); await page.waitForTimeout(100);
-  assert.equal(await page.locator('.page-motion__toggle').count(), 0, 'Runtime reduced-motion change removes playback');
+  assert.equal(await page.locator('.culture-hero__pause').count(), 0, 'Runtime reduced-motion change removes playback');
   const reducedStill = await artwork(page); await page.waitForTimeout(240);
   assert.equal(await artwork(page), reducedStill, 'Reduced motion is static');
   assert.equal(await page.locator('h1').evaluate(el => getComputedStyle(el).animationName), 'none');
@@ -182,32 +176,13 @@ try {
   assert.deepEqual(motionRequests, [], 'Reduced-motion users do not download the Player chunk');
   await reducedContext.close();
 
-  const privacyContext = await context();
-  const privacyPage = await privacyContext.newPage();
-  await open(privacyPage, '/privacy');
-  await privacyPage.waitForFunction(() => document.querySelector('.privacy-hero video')?.currentTime > 0.1);
-  await privacyPage.getByRole('button', { name: 'Pause animations' }).click();
-  assert(await privacyPage.locator('.privacy-hero video').evaluate(video => video.paused), 'Privacy video shares pause control');
-  const privacyTime = await privacyPage.locator('.privacy-hero video').evaluate(video => video.currentTime);
-  await privacyPage.waitForTimeout(240);
-  assert(Math.abs(await privacyPage.locator('.privacy-hero video').evaluate(video => video.currentTime) - privacyTime) < 0.04, 'Privacy video stays paused');
-  await open(privacyPage, '/ecosystem');
-  await privacyPage.getByRole('button', { name: 'Resume animations' }).waitFor();
-  await open(privacyPage, '/privacy');
-  assert(await privacyPage.locator('.privacy-hero video').evaluate(video => video.paused), 'Privacy respects saved site preference');
-  await privacyPage.getByRole('button', { name: 'Resume animations' }).click();
-  await privacyPage.waitForFunction(() => document.querySelector('.privacy-hero video')?.paused === false);
-  await privacyPage.emulateMedia({ reducedMotion: 'reduce' });
-  await privacyPage.waitForFunction(() => !document.querySelector('.privacy-hero video'));
-  assert(await privacyPage.locator('.privacy-hero__art img').isVisible(), 'Privacy keeps its still under reduced motion');
-  await privacyContext.close();
-
   const fallbackContext = await context();
-  await fallbackContext.route('**/RemotionArtwork-*.js', route => route.abort());
+  await fallbackContext.route('**/images/culture/*.webp', route => route.abort());
   const fallbackPage = await fallbackContext.newPage();
-  await open(fallbackPage, '/contact');
-  assert(await fallbackPage.locator('h1').isVisible(), 'Text survives a failed animation download');
-  assert.equal(await fallbackPage.locator('.page-motion__art svg').count(), 1, 'Failed animation keeps static illustration');
+  await fallbackPage.goto(origin + '/contact');
+  await fallbackPage.locator('h1').waitFor();
+  assert(await fallbackPage.locator('h1').isVisible(), 'Text survives failed photograph downloads');
+  assert.equal(await fallbackPage.locator('.culture-hero__images img.is-active').count(), 0, 'Unavailable photographs keep the CSS fallback');
   await fallbackContext.close();
   console.log('Playback, pause/navigation/reload persistence, offscreen resume, tab visibility, reduced motion and download fallback passed.');
 } finally { await browser.close(); }

@@ -1,4 +1,4 @@
-import { PageMotion } from "../components/PageMotion";
+import { CultureHero } from "../components/HomeHero";
 /**
  * src/pages/AdsPaymentCompletePage.tsx
  *
@@ -61,8 +61,7 @@ export function AdsPaymentCompletePage() {
 
   return (
     <>
-      <section className="page-hero page-hero--legal">
-        <PageMotion />
+      <CultureHero>
         <div className="container">
           <SectionHeading
             eyebrow="Adverts"
@@ -71,7 +70,7 @@ export function AdsPaymentCompletePage() {
             as="h1"
           />
         </div>
-      </section>
+      </CultureHero>
 
       <section className="section section--white">
         <div className="container legal-copy" data-scroll-card>

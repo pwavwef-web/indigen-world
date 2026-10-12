@@ -2,23 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useSiteMotion } from '../features/motion/SiteMotion';
 
-const PHOTOS = [
-  { id: 'tiebele', title: 'Kassena architecture', place: 'Tiébélé, Burkina Faso',
-    alt: 'Decorated earthen buildings of the Kassena people in Tiébélé, Burkina Faso',
-    author: 'Alexander Leisser', source: 'Tiebele_village_in_Burkina_Faso_04.jpg', position: '58% 52%', width: 1600, height: 1061 },
-  { id: 'basket-weavers', title: 'Knowledge in the making', place: 'Bolgatanga, Ghana',
-    alt: 'Basket weavers at work in Bolgatanga in the Upper East Region of Ghana',
-    author: 'Vrinda Khushu', source: 'Basket_Weavers.jpg', position: '58% 50%', width: 1600, height: 900 },
-  { id: 'kente-weaving', title: 'Threads of tradition', place: 'Kente weaving, Ghana',
-    alt: 'A kente weaver working at a loom in Ghana',
-    author: 'Kwameghana (Bright Kwame Ayisi)', source: 'A_kente_weaver_busily_creating_a_design_in_a_loom.jpg', position: '65% 50%', width: 1280, height: 851 },
-  { id: 'baskets', title: 'Everyday craft, living culture', place: 'Northern Ghana',
-    alt: 'Handwoven baskets made in northern Ghana',
-    author: 'Hasslaebetch', source: 'Baskets_made_in_Northern_Ghana.jpg', position: '55% 50%', width: 1600, height: 1200 },
-] as const;
+import { CULTURE_PHOTOS as PHOTOS } from '../../public/culture-photos.js';
+
 
 /** The headline stays still while credited cultural photographs form a quiet loop. */
-export function HomeHero({ children }: { children: ReactNode }) {
+export function CultureHero({ children, variant = 'page', className = '', id = 'top' }: {
+  children: ReactNode; variant?: 'home' | 'page' | 'embedded'; className?: string; id?: string;
+}) {
   const { paused, reduced, toggle } = useSiteMotion();
   const [active, setActive] = useState(0);
   const [ready, setReady] = useState<number[]>([]);
@@ -64,7 +54,7 @@ export function HomeHero({ children }: { children: ReactNode }) {
     }
   };
 
-  return <section ref={root} className="culture-hero" id="top" aria-label="Welcome to Indigen World"
+  return <section ref={root} className={`culture-hero culture-hero--${variant} ${className}`} id={id} aria-label="Indigen World cultural photographs"
     data-playing={playing} data-active-slide={active}
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onFocusCapture={() => setFocused(true)}
@@ -106,4 +96,8 @@ export function HomeHero({ children }: { children: ReactNode }) {
     </div>
     <span className="sr-only" aria-live="polite">{announcement}</span>
   </section>;
+}
+
+export function HomeHero({ children }: { children: ReactNode }) {
+  return <CultureHero variant="home">{children}</CultureHero>;
 }

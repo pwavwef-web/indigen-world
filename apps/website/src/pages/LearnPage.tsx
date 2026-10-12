@@ -1,8 +1,8 @@
+import { CultureHero } from "../components/HomeHero";
 import { useEffect, useState } from "react";
 import { Link } from "../app/router";
 import { Button } from "../components/Button";
 import { ExperienceFeedback } from "../components/ExperienceFeedback";
-import { PageMotion } from "../components/PageMotion";
 import { SectionHeading } from "../components/SectionHeading";
 import { ROUTES_BY_PATH } from "../content/navigation";
 import { fetchPublishedExpressions, type PublishedExpression } from "../features/expressions/expressionData";
@@ -25,13 +25,12 @@ export function LearnPage() {
   }, [retry]);
 
   return <>
-    <section className="page-hero page-hero--kasena">
-      <PageMotion />
+    <CultureHero>
       <div className="container">
         <SectionHeading eyebrow="Learn & explore · Kasem" title="Start with a word. Stay for its story." body="Find a meaning, hear a recording where one is available, and discover how words are used. Start here without an account." light as="h1" />
         <div className="learn-actions"><Button to="dictionary">Find a word</Button><Button to="dictionary?saved=1" variant="secondary">Return to saved words</Button></div>
       </div>
-    </section>
+    </CultureHero>
 
     <section className="section section--white">
       <div className="container">

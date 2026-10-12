@@ -1,4 +1,5 @@
 import { PageMotion } from "../../components/PageMotion";
+import { CultureHero } from "../../components/HomeHero";
 import {
   useCallback,
   useEffect,
@@ -348,15 +349,14 @@ function Catalogue({ experiments }: { experiments: Experiment[] }) {
     );
   return (
     <>
-      <div className="labs-page-heading">
-        <PageMotion placement="inline" />
+      <CultureHero variant="embedded"><div className="culture-hero__copy">
         <p className="labs-eyebrow">THE EXPERIMENTS</p>
         <h1>Find your next small discovery.</h1>
         <p>
           Focused experiments. Try what interests you and tell us what you
           learn.
         </p>
-      </div>
+      </div></CultureHero>
       <div className="labs-filters">
         <Field label="Search experiments">
           <input
@@ -441,8 +441,7 @@ function ExperimentShell({
       <Link className="labs-back" to="/labs/experiments">
         ← All experiments
       </Link>
-      <div className="labs-detail-heading">
-        <PageMotion placement="inline" />
+      <CultureHero variant="embedded"><div className="culture-hero__copy">
         <div>
           <p className="labs-eyebrow">
             {experiment.category.toUpperCase()} /{" "}
@@ -452,7 +451,7 @@ function ExperimentShell({
           <p>{experiment.purpose}</p>
         </div>
         <span className="labs-tag">v{experiment.version}</span>
-      </div>
+      </div></CultureHero>
       <div className="labs-workspace-layout">
         <section className="labs-panel labs-workspace">
           <h2>
@@ -670,7 +669,7 @@ export function LabsPage() {
         )}
         {path === "labs" ? (
           <>
-            <section className="labs-hero">
+            <CultureHero variant="embedded"><div className="culture-hero__copy">
               <div>
                 <p className="labs-eyebrow">
                   <span className="labs-live-dot" /> INDIGEN WORLD LABS
@@ -691,10 +690,7 @@ export function LabsPage() {
                   Made for the curious. Built with the community.
                 </p>
               </div>
-              <div className="labs-hero-art labs-hero-art--motion">
-                <PageMotion placement="art" />
-              </div>
-            </section>
+            </div></CultureHero>
             <section>
               <div className="labs-section-heading">
                 <div>
@@ -752,14 +748,12 @@ export function LabsPage() {
           user ? (
             <Activity key={user.uid} />
           ) : (
-            <div className="labs-empty">
-              <PageMotion placement="inline" />
-              <h1>My activity</h1>
+            <CultureHero variant="embedded"><div className="culture-hero__copy"><h1>My activity</h1>
               <p>
                 Sign in above to reopen your private drafts, practice sessions
                 and feedback.
               </p>
-            </div>
+            </div></CultureHero>
           )
         ) : path === "labs/updates" ? (
           <Updates />

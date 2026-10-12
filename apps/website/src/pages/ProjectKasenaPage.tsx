@@ -1,3 +1,4 @@
+import { CultureHero } from "../components/HomeHero";
 import { PageMotion } from "../components/PageMotion";
 /**
  * src/pages/ProjectKasenaPage.tsx
@@ -26,7 +27,7 @@ export function ProjectKasenaPage() {
 
   return (
     <>
-      <section className="page-hero page-hero--kasena">
+      <CultureHero>
         <div className="container kasena-grid">
           <div className="kasena-copy">
             <SectionHeading
@@ -75,7 +76,7 @@ export function ProjectKasenaPage() {
             <PageMotion placement="inline" />
           </div>
         </div>
-      </section>
+      </CultureHero>
 
       <section className="section section--cream">
         <div className="container">

@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-12: A shared cultural welcome, wherever you begin](2026-10-12-cultural-banners-across-public-pages/README.md) — rotating cultural photo openings across public pages, Labs, the film opening and reference guides, with responsive layouts and shared pause controls. Implemented and verified locally; deployment and Blogger publication pending. Includes actual screenshots and photo credits.
+
 - [2026-10-12: A little motion, wherever you explore Indigen World](2026-10-12-scroll-cards-across-public-pages/README.md) — shared rising-card entrances across public pages and reference guides, desktop editorial stacks, responsive flow and remembered pause controls. Website deployed and verified October 12; Blogger publication pending. Includes a verified live screenshot and actual desktop/mobile previews.
 
 - [2026-10-12: Culture in motion: a new way into Indigen World](2026-10-12-culture-in-motion/README.md) — photographic homepage banner, Ghana-focused map with rotating cards, and responsive scrolling story cards. Website deployed and verified October 12; Blogger publication pending. Includes a verified live screenshot, product previews and documented photo credits.

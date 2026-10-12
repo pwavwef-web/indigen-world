@@ -296,7 +296,7 @@ assert.match(communityPage, /status === "closed"/, "a closed or removed communit
   assert.match(scenesSource, /beyond-the-reef\.m4a`, type: 'audio\/mp4; codecs="mp4a\.6B"' \},\s*\{ src: `\$\{MEDIA_ROOT\}\/audio\/beyond-the-reef\.mp3`/, "the exactly-seekable remux plays first, the original MP3 after");
   assert.ok(!/<audio[^>]*autoPlay/.test(reefPage), "the song never autoplays");
   assert.match(reefPage, /Begin the Journey/, "the opening screen offers to begin");
-  assert.match(reefPage, /<video[\s\S]*?muted[\s\S]*?playsInline/, "the opening loop is silent and inline");
+  assert.match(reefPage, /<CultureHero/, "the film opens with the shared silent photograph banner");
   assert.match(playerSource, /audio\.currentTime/, "the player reads the audio element's own position");
   assert.ok(!/setInterval/.test(playerSource + stageSource + read(`${feature}/LyricStream.tsx`)), "no independent timers drive lyrics or visuals");
   assert.match(stageSource, /muted[\s\S]*?playsInline/, "film clips are silent and inline");

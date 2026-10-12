@@ -25,7 +25,7 @@
       ],
       "headers": [
         {
-          "regex": "^/(scroll-cards\\.(js|css)|(spelling-guide|grammar-guide)(\\.html)?)$",
+          "regex": "^/((scroll-cards|culture-banner|culture-photos|guide-banner)\\.(js|css)|(spelling-guide|grammar-guide)(\\.html)?)$",
           "headers": [
             { "key": "Cache-Control", "value": "no-cache" }
           ]

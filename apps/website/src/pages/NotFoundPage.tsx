@@ -1,4 +1,4 @@
-import { PageMotion } from "../components/PageMotion";
+import { CultureHero } from "../components/HomeHero";
 /**
  * src/pages/NotFoundPage.tsx
  *
@@ -17,10 +17,7 @@ export function NotFoundPage() {
   useDocumentMeta("Page not found", "The page you're looking for doesn't exist.", { noindex: true });
 
   return (
-    <section className="section not-found" aria-labelledby="not-found-title">
-      <PageMotion />
-      <div className="not-found__glow not-found__glow--one" aria-hidden="true" />
-      <div className="not-found__glow not-found__glow--two" aria-hidden="true" />
+    <CultureHero className="culture-hero--not-found">
       <div className="container not-found__layout">
         <div className="not-found__card">
           <div className="not-found__code" aria-label="Error 404">
@@ -57,6 +54,6 @@ export function NotFoundPage() {
           </Link>
         </nav>
       </div>
-    </section>
+    </CultureHero>
   );
 }

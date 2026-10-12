@@ -176,3 +176,7 @@ copy as an implementation summary. Keep `public/sitemap.xml`, `public/robots.txt
 ## Blog updates
 
 The homepage shows the three latest published posts from the independent Blogger site at https://updates.indigenworld.com/. The public summary feed is loaded through Blogger JSONP on each homepage visit, without credentials or a rebuild. Cards link to the original articles. Keep the Blogger site feed enabled under Settings. If it is unavailable, the section keeps a direct blog link visible. The blog theme and publishing workflow remain separate.
+
+### Shared cultural opening banners
+
+`CultureHero` in `src/components/HomeHero.tsx` preserves each page's opening copy and actions while reusing the homepage's credited photographs and motion controls. Public Labs and the film opening use its embedded variant. Shared photo metadata and CSS live in `public/culture-photos.js` and `public/culture-banner.css`. The static reference guides use `guide-banner.js` and `scripts/public-guide-layout.mjs`, with the same motion preference as scroll cards. Only the website guide outputs receive this presentation.

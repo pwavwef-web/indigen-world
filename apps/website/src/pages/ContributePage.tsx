@@ -1,4 +1,4 @@
-import { PageMotion } from "../components/PageMotion";
+import { CultureHero } from "../components/HomeHero";
 /**
  * src/pages/ContributePage.tsx
  *
@@ -121,8 +121,7 @@ export function ContributePage() {
 
   return (
     <>
-      <section className="page-hero page-hero--contribute">
-        <PageMotion />
+      <CultureHero>
         <div className="container contribute-hero">
           <SectionHeading
             eyebrow="Open campaign · Everyday Kasem expressions"
@@ -148,7 +147,7 @@ export function ContributePage() {
             ))}
           </dl>
         </div>
-      </section>
+      </CultureHero>
 
       <section className="section section--cream" id="knowledge" aria-labelledby="knowledge-title">
         <div className="container knowledge-intro">

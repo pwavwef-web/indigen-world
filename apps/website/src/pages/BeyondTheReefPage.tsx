@@ -1,3 +1,4 @@
+import { CultureHero } from "../components/HomeHero";
 /**
  * src/pages/BeyondTheReefPage.tsx
  *
@@ -9,9 +10,9 @@
  * (LyricStream) are both redrawn from the audio element's position, so pausing,
  * seeking and restarting can never leave them out of step with the song.
  *
- * Nothing plays until the visitor chooses to begin. All imagery and footage was
- * generated in advance and ships as static files; visitors never touch an AI
- * service.
+ * Audio starts when the visitor chooses to begin. The opening uses the shared
+ * credited cultural photographs; the film footage ships as static generated
+ * media. Visitors never touch an AI service.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "../app/router";
@@ -22,7 +23,7 @@ import { LyricStream } from "../features/beyond-the-reef/LyricStream";
 import { PlayerControls } from "../features/beyond-the-reef/PlayerControls";
 import { VisualStage } from "../features/beyond-the-reef/VisualStage";
 import { LYRICS, SONG_DURATION } from "../features/beyond-the-reef/lyrics";
-import { AUDIO_SOURCES, CHAPTERS, INTRO_MEDIA, MEDIA_ROOT, SHOTS } from "../features/beyond-the-reef/scenes";
+import { AUDIO_SOURCES, CHAPTERS, MEDIA_ROOT, SHOTS } from "../features/beyond-the-reef/scenes";
 import { lastStartedIndex, spokenTime } from "../features/beyond-the-reef/timeline";
 import { usePrefersReducedMotion } from "../features/beyond-the-reef/usePrefersReducedMotion";
 import { useSongPlayer } from "../features/beyond-the-reef/useSongPlayer";
@@ -77,7 +78,7 @@ export function BeyondTheReefPage() {
   const [introFaded, setIntroFaded] = useState(false);
   const idleTimer = useRef(0);
 
-  // The opening loop stops decoding once the opening screen has faded out.
+  // The opening photo loop unmounts once the opening screen has faded out.
   useEffect(() => {
     if (!started) return;
     const timer = window.setTimeout(() => setIntroFaded(true), 2000);
@@ -306,25 +307,7 @@ export function BeyondTheReefPage() {
       </div>
 
       <section className="btr-intro" aria-labelledby="btr-intro-title" inert={started}>
-        {introFaded ? null : reducedMotion ? (
-          <img className="btr-intro__media" src={INTRO_MEDIA.image} alt="" />
-        ) : (
-          <video
-            className="btr-intro__media"
-            poster={INTRO_MEDIA.image}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            disablePictureInPicture
-            disableRemotePlayback
-            aria-hidden="true"
-          >
-            <source src={INTRO_MEDIA.clip.webm} type="video/webm" />
-            <source src={INTRO_MEDIA.clip.mp4} type="video/mp4" />
-          </video>
-        )}
+        {!introFaded && <CultureHero variant="embedded" className="culture-hero--film">
         <div className="btr-intro__content">
           <p className="btr-eyebrow">An interactive music film</p>
           <h2 id="btr-intro-title" className="btr-title">
@@ -348,6 +331,7 @@ export function BeyondTheReefPage() {
             <kbd>Space</kbd> play · <kbd>←</kbd> <kbd>→</kbd> seek · <kbd>M</kbd> mute · <kbd>F</kbd> full screen
           </p>
         </div>
+        </CultureHero>}
       </section>
 
       <section className="btr-finale" aria-labelledby="btr-finale-title" inert={!ended}>

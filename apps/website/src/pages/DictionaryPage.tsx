@@ -1,4 +1,4 @@
-import { PageMotion } from "../components/PageMotion";
+import { CultureHero } from "../components/HomeHero";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../components/Button";
 import { Icon } from "../components/Icon";
@@ -57,7 +57,7 @@ function DictionaryDetail({
       : null;
     const backgroundElements = Array.from(
       document.querySelectorAll<HTMLElement>(
-        ".skip-link, .site-header, .dictionary-page__masthead, .dictionary-results, .dictionary-next, .site-footer"
+        ".skip-link, .site-header, .culture-hero, .dictionary-results, .dictionary-next, .site-footer"
       )
     );
     const previousInert = backgroundElements.map((element) => [element, element.inert] as const);
@@ -332,8 +332,7 @@ export function DictionaryPage() {
 
   return (
     <section className="dictionary-page">
-      <div className="dictionary-page__masthead">
-        <PageMotion />
+      <CultureHero>
         <div className="container dictionary-page__intro">
           <div>
             <p className="eyebrow">Collection · Dictionary</p>
@@ -361,7 +360,7 @@ export function DictionaryPage() {
             )}
           </label>
         </div>
-      </div>
+      </CultureHero>
 
       <div className="container dictionary-workspace">
         <section className="dictionary-results" aria-labelledby="dictionary-results-heading">

@@ -1,4 +1,4 @@
-import { PageMotion } from "../components/PageMotion";
+import { CultureHero } from "../components/HomeHero";
 /**
  * src/pages/TermsPage.tsx
  *
@@ -23,12 +23,11 @@ export function TermsPage() {
 
   return (
     <>
-      <section className="page-hero page-hero--legal">
-        <PageMotion />
+      <CultureHero>
         <div className="container">
           <SectionHeading eyebrow="Legal" title="Terms of use" light as="h1" />
         </div>
-      </section>
+      </CultureHero>
 
       <section className="section section--white">
         <div className="container legal-copy scroll-card-stack">

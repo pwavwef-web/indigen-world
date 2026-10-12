@@ -1,4 +1,4 @@
-import { PageMotion } from "../components/PageMotion";
+import { CultureHero } from "../components/HomeHero";
 /**
  * src/pages/ContactPage.tsx
  *
@@ -16,8 +16,7 @@ export function ContactPage() {
 
   return (
     <>
-      <section className="page-hero page-hero--contact">
-        <PageMotion />
+      <CultureHero>
         <div className="container">
           <SectionHeading
             eyebrow="Contact Indigen World"
@@ -27,7 +26,7 @@ export function ContactPage() {
             as="h1"
           />
         </div>
-      </section>
+      </CultureHero>
 
       <section className="section section--white">
         <div className="container form-section">
