@@ -88,10 +88,6 @@
 .labs-root .culture-hero { border-radius: 22px; margin: 24px 0 44px; }
 .labs-root .culture-hero__content, .labs-root .culture-hero__footer { width: calc(100% - 64px); }
 .labs-root .culture-hero .labs-button { background: #285cdb; color: #fff; margin-block: 20px; }
-.culture-hero--progress .progress-immersive-heading { text-align: left; padding: 0; margin: 0; }
-.culture-hero--progress h1, .culture-hero--progress h1 em { color: #fff; }
-.culture-hero--progress .observatory-intro { color: #fff; }
-.culture-hero--progress .progress-hero-summary { justify-content: flex-start; }
 .culture-hero--not-found .not-found__card { background: #091b32d9; }
 .culture-hero--not-found .not-found__layout { align-items: center; }
 .culture-hero--not-found .not-found__body { color: #e0e9f4; }
@@ -122,10 +118,6 @@ body[data-standalone-cards] { margin: 0; padding: 0; }
 .culture-hero--guide .eyebrow { font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .culture-hero--guide .guide-reading-link { display: inline-block; padding: 12px 20px; margin-top: 16px; color: #14243b; background: #e6cd91; border-radius: 8px; font-weight: 700; }
 .culture-hero--guide .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-
-.progress-observatory .culture-hero--progress .progress-immersive-heading { align-items: flex-start; text-align: left; }
-.progress-observatory .culture-hero--progress .progress-immersive-heading :is(h1, em, .observatory-intro, .progress-stats-pill, .progress-stats-pill strong) { color: #fff; }
-.progress-observatory .culture-hero--progress .progress-immersive-heading .eyebrow { color: #e6cd91; }
 
 .labs-root .culture-hero h1 { color: #fff; font-size: clamp(2.5rem, 5vw, 4.9rem); line-height: 1.07; }
 .labs-root .culture-hero h1 em { color: #fff; }

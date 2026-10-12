@@ -1,4 +1,3 @@
-import { CultureHero } from "../components/HomeHero";
 /** Full-screen community progress: TribeStudio pumps verified contributions into each collection's vessel. */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
@@ -241,7 +240,6 @@ export function ProgressPage() {
             </button>
           </div>
         </div>
-        <CultureHero variant="embedded" className="culture-hero--progress">
         <div className="progress-immersive-heading">
           <p className="eyebrow"><span className="observatory-live-dot" /> KASEM · LIVING HERITAGE</p>
           <h1>Help fill <em>the jars.</em></h1>
@@ -251,7 +249,6 @@ export function ProgressPage() {
             {prefersReducedMotion && <span className="progress-summary-badge">Reduced motion</span>}
           </div>
         </div>
-        </CultureHero>
         <div className="observatory-toolbar">
           <div className="observatory-views" role="group" aria-label="Progress view">
             {VIEW_MODES.map(mode => <button key={mode} type="button" aria-pressed={viewMode === mode} onClick={() => handleViewModeChange(mode)}>
