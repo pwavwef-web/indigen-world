@@ -13,7 +13,10 @@ npm run dev --workspace @indigen-world/website -- --host 127.0.0.1 --port 5174
 The standalone preview offers an animated opening banner, an Africa map with
 three rotating cards about the Kasem pilot, and cards that reveal and stack
 while scrolling. It is not wired into the public homepage or the production
-build entry. No deployment or release announcement has been made.
+build entry. The user selected all three treatments; their production versions
+are now integrated into the homepage, with four credited cultural photographs
+added to the opening. Deployed and verified October 12, 2026, at
+https://indigenworld.com/.
 
 The artwork comes from the existing website `public/images` illustrations.
 No ELP artwork, video, copy, or photographs were copied. These are adapted
@@ -31,5 +34,5 @@ loaded artwork, 51 country paths, scroll reveals, and no horizontal overflow
 at desktop and 390px mobile widths. JavaScript syntax checked. Reduced-motion
 support is implemented; OS preference switching has not been exercised.
 
-Choose buttons only mark the local preview. The user must communicate their
-choice in chat before the selected design is integrated into the homepage.
+Choose buttons only mark this retained design study. The production homepage
+uses the selections the user supplied in chat.
