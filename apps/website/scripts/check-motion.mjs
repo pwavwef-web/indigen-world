@@ -30,10 +30,14 @@ async function open(page, route) {
   await page.goto(origin + route, { waitUntil: 'domcontentloaded' });
   await page.locator('h1').first().waitFor({ state: 'attached' });
   if (route === '/privacy') await page.locator('.privacy-hero__art img').waitFor();
+  else if (route === '/') await page.locator('.culture-hero__images img.is-active').waitFor();
   else if (route !== '/beyond-the-reef') await page.locator('.page-motion__art svg').waitFor();
   await page.waitForTimeout(800);
 }
-async function artwork(page) { return page.locator('.page-motion__art svg').first().evaluate(svg => svg.outerHTML); }
+async function artwork(page) {
+  if (await page.locator('.culture-hero').count()) return page.locator('.culture-hero__images img.is-active').evaluate(img => `${img.currentSrc}:${getComputedStyle(img).transform}`);
+  return page.locator('.page-motion__art svg').first().evaluate(svg => svg.outerHTML);
+}
 async function checkBannerLayout(page, route, width) {
   const banner = page.locator('.page-motion--banner');
   if (!await banner.count()) return false;
@@ -85,7 +89,7 @@ try {
       if (route === '/project-kassena') await checkKassenaLayout(page, width);
       if (await checkBannerLayout(page, route, width)) bannerRoutes.add(route);
       if (route !== '/beyond-the-reef') {
-        assert.equal(await page.locator(route === '/privacy' ? '.privacy-hero' : '.page-motion').count(), 1, `${route}: exactly one page illustration`);
+        assert.equal(await page.locator(route === '/' ? '.culture-hero' : route === '/privacy' ? '.privacy-hero' : '.page-motion').count(), 1, `${route}: exactly one page visual`);
         const toggle = page.getByRole('button', { name: 'Pause animations', exact: false });
         await toggle.scrollIntoViewIfNeeded();
         assert(await toggle.isVisible(), `${route}: accessible motion control`);
@@ -121,8 +125,9 @@ try {
   console.log('Project Kassena text, controls and illustration remain separate across mobile and desktop breakpoints.');
   await page.setViewportSize({ width: 1440, height: 1000 });
   await open(page, '/');
+  await page.mouse.move(1439, 999);
   const moving = await artwork(page); await page.waitForTimeout(240);
-  assert.notEqual(await artwork(page), moving, 'Remotion advances while visible');
+  assert.notEqual(await artwork(page), moving, 'Homepage photograph moves while visible');
   await page.getByRole('button', { name: 'Pause animations' }).click();
   await page.waitForTimeout(100);
   const paused = await artwork(page); await page.waitForTimeout(240);
@@ -143,6 +148,7 @@ try {
   const offscreen = await artwork(page); await page.waitForTimeout(240);
   assert.equal(await artwork(page), offscreen, 'Offscreen artwork pauses');
   await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(250);
+  await page.mouse.move(1439, 999);
   const returned = await artwork(page); await page.waitForTimeout(240);
   assert.notEqual(await artwork(page), returned, 'Artwork resumes on return');
   await page.evaluate(() => {

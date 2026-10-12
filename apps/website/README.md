@@ -106,6 +106,15 @@ layouts, playback, pause persistence, visibility handling, live reduced-motion c
 Player download. The independent Blogger feed is blocked for these local checks. Signed-in service
 workflows are not part of the animation test.
 
+The homepage uses `HomeHero` for four credited cultural photographs with an
+eight-second crossfade loop, `HomeCultureMap` for the Ghana pilot and three
+nine-second story cards, and `HomeScrollStories` for the illustrated card stack.
+Manual selection pauses motion. Both loops also pause during pointer/focus
+interaction, off-screen viewing, or a hidden browser tab. All three share the
+existing pause and reduced-motion preferences. Small or short screens use
+normal-flow cards. Photo and map provenance is recorded in
+`public/images/culture/README.md`.
+
 Editable product, status, team, principle and Project Kassena copy lives under `src/content/`.
 Navigation and route metadata live in `src/content/navigation.ts`. Page layouts live under
 `src/pages/`; shared UI is under `src/components/`; form behavior is under `src/features/forms/`.

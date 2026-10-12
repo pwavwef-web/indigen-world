@@ -1,4 +1,7 @@
-import { PageMotion } from "../components/PageMotion";
+import { HomeHero } from "../components/HomeHero";
+import { HomeCultureMap } from "../components/HomeCultureMap";
+import { HomeScrollStories } from "../components/HomeScrollStories";
+import { Link } from "../app/router";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { ROUTES_BY_PATH } from "../content/navigation";
 import { IMPACT_TARGETS } from "../content/kasena";
@@ -12,10 +15,8 @@ const route = ROUTES_BY_PATH.home;
 export function HomePage() {
   useDocumentMeta(route.title, route.description);
   return <>
-    <section className="hero" id="top">
-      <div className="hero__pattern" aria-hidden="true" />
-      <div className="container hero__grid">
-        <div className="hero__content" data-reveal>
+    <HomeHero>
+        <div className="hero__content">
           <span className="status-pill"><span className="status-pill__dot" /> Starting with Kasem, in Northern Ghana</span>
           <p className="hero__kicker">Language, stories and the people behind them</p>
           <h1>Culture belongs<span> in the future.</span></h1>
@@ -26,9 +27,8 @@ export function HomePage() {
           </div>
           <p className="tiny">No account needed to browse. Contributing uses a free Google sign-in, so you can follow the review.</p>
         </div>
-        <div className="hero-visual"><PageMotion placement="art" /></div>
-      </div>
-    </section>
+    </HomeHero>
+    <HomeCultureMap />
     <section className="section section--white" id="find-your-path">
       <div className="container">
         <SectionHeading eyebrow="Start here" title="Learn Kasem, or help keep it spoken." body="Two paths, both open today. Each says what it needs from you before you start." />
@@ -37,24 +37,9 @@ export function HomePage() {
     </section>
     <section className="section section--cream" id="progress">
       <div className="container">
-        <SectionHeading eyebrow="Where things stand" title="What is live, what is open, what is coming." body="An honest status for each part of Indigen World, so you know what to expect before you click." />
-        <div className="journey-grid">
-          <article className="journey-card">
-            <span className="target-badge">Live</span><h3>The public Kasem dictionary</h3>
-            <p>Search published entries, read their meaning and context, and listen where a recording is available.</p>
-            <Button to="dictionary" variant="secondary">Open the dictionary</Button>
-          </article>
-          <article className="journey-card">
-            <span className="target-badge">Open now</span><h3>Everyday expressions campaign</h3>
-            <p>Share an expression with its meaning, context and source. Every one is reviewed; approved ones are published as expressions.</p>
-            <Button to="contribute" variant="secondary">See the task and review process</Button>
-          </article>
-          <article className="journey-card">
-            <span className="target-badge">In development</span><h3>Learning on your phone</h3>
-            <p>The mobile app is still in development. Join the waitlist to hear when access is available.</p>
-            <Button to="get-involved?route=mobile-app-waitlist" variant="secondary">Join the app waitlist</Button>
-          </article>
-        </div>
+        <SectionHeading eyebrow="Your next chapter" title="Small steps. A shared future." body="Discover the language, share what you know, and follow the work as it grows." />
+        <HomeScrollStories />
+        <p className="home-mobile-status">Learning on your phone: the mobile app is still in development. <Link to="get-involved?route=mobile-app-waitlist">Join the app waitlist</Link> to hear when access is available.</p>
         <p className="target-label">These describe what is available, not measured community impact.</p>
 
         <details className="home-targets">
@@ -66,12 +51,6 @@ export function HomePage() {
       </div>
     </section>
     <LatestUpdates />
-    <section className="section section--indigo" id="kasena-spotlight">
-      <div className="container kasena-spotlight">
-        <SectionHeading eyebrow="Project Kassena" title="Starting with Kasem. Building with its speakers." body="Project Kassena brings words, stories and cultural knowledge into digital spaces, with sources, permissions and community review. What we learn here will help other language communities build their own tools." light />
-        <Button to="project-kassena" variant="secondary">Meet Project Kassena</Button>
-      </div>
-    </section>
     <section className="section section--white">
       <div className="container split-intro">
         <SectionHeading eyebrow="Built with communities" title="The people behind the knowledge stay part of its future." />
