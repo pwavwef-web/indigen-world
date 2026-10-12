@@ -5,7 +5,8 @@
 - **Labels:** Website, Design, Culture, Accessibility, Kasem
 - **Search description:** Indigen World's rotating cultural photo banner now welcomes visitors across public pages, learning guides and Labs, with shared motion controls.
 - **Suggested permalink:** `cultural-banners-across-indigen-world`
-- **Status:** Implemented and locally verified. GitHub push and Firebase deployment pending. Blogger publication pending.
+- **Status:** Pushed to GitHub and deployed to Firebase on October 12, 2026. Verified live at [indigenworld.com](https://indigenworld.com/). Blogger publication pending.
+- **Deployed source:** GitHub main, [4178d7d3](https://github.com/pwavwef-web/indigen-world/commit/4178d7d3f4805529c14f75a7f2830d1f4a6c236a).
 
 ## Change and availability
 
@@ -30,6 +31,14 @@ handling and account access rules are unchanged.
 
 ## Verification
 
+- `npm run deploy:website` completed from a clean checkout matching origin/main,
+  for project `project-kassena-7e026`, Hosting site `indigen-world`.
+- Live About and Labs banners loaded correctly; Labs headings remained white.
+  Learn had no horizontal overflow at 390px. The grammar guide loaded all four
+  photos, and its controls respected the saved pause preference.
+- The live JavaScript bundle was `index-OIXT8cXt.js`. The shared banner assets
+  and grammar guide returned HTTP 200 with `Cache-Control: no-cache`.
+
 - Website TypeScript, route/privacy checks, progress invariants, all 21 tests
   and the production build passed.
 - Browser checks found one photo banner on each tested public React route,
@@ -38,6 +47,9 @@ handling and account access rules are unchanged.
 - Shared pause persisted between the standalone guides. Photograph selection
   changed the caption and credit. The film's Begin button started playback;
   pause still worked and the opening banner unmounted after the transition.
+- The dictionary search returned 13 published entries for "water"; grammar
+  guide filtering returned four source records for "house". Guide automatic
+  rotation advanced while unfocused, with the matching photo credit.
 - Source generators and standalone browser scripts passed syntax checks.
 - OS reduced-motion switching and signed-in Labs workflows were not exercised.
   The optional `test:motion` browser script was updated but not run; interactive
@@ -45,8 +57,9 @@ handling and account access rules are unchanged.
 
 ## Images and credits
 
-Actual local product screenshots taken October 12, 2026:
+Actual product screenshots taken October 12, 2026:
 
+- `images/about-live.png`: verified production About banner; used in the article.
 - `images/about-desktop.png`: About page with the basket-weaving photograph.
 - `images/learn-mobile.png`: Learn page on a phone with the Tiébélé photograph.
 - `images/guide-desktop.png`: the public grammar guide's new opening.
@@ -71,7 +84,7 @@ they do not imply the photographers or pictured people endorse the project.
 1. Check the final deployment status above before describing the release as live.
 2. Create a draft using the title, labels and search description above.
 3. Paste `post.html` into Blogger's HTML editor.
-4. Upload all three screenshot files and replace their `images/...` paths with
+4. Upload `about-live.png`, `learn-mobile.png` and `guide-desktop.png` and replace their `images/...` paths with
    Blogger-hosted image URLs. Keep alt text, captions and photo credit links.
 5. Preview phone and desktop layouts. Chinedum can then publish the article.
 6. Replace the marked URL in `share.md` before sharing. Preparing these files
