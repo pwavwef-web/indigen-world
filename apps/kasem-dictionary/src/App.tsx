@@ -112,6 +112,7 @@ export function App() {
     });
   };
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const pendingEntryRef = useRef(new URLSearchParams(location.search).get('entry'));
   const openEntry = (id: string) => {
     setSelectedId(id);
     const mobileLayout = window.matchMedia("(max-width: 700px)").matches;
@@ -185,8 +186,11 @@ export function App() {
     return subscribeToDictionary(
       (next) => {
         setEntries(next);
-        const requested = new URLSearchParams(location.search).get('entry');
-        if (requested && next.some(entry => entry.id === requested)) setSelectedId(requested);
+        const requested = pendingEntryRef.current;
+        if (requested && next.some(entry => entry.id === requested)) {
+          pendingEntryRef.current = null;
+          openEntry(requested);
+        }
         setStatus("ready");
       },
       () => setStatus("error"),
@@ -273,6 +277,7 @@ export function App() {
 
   return (
     <div className={`app-shell collection-${collectionKind}${mobileDetail ? " showing-detail" : ""}${headerHidden ? " header-hidden" : ""}`}>
+      <a className="skip-link" href="#dictionary-search" onClick={showSearch}>Skip to search</a>
       <header className="app-header" onFocusCapture={showHeader}>
         <a className="brand" href="/" aria-label="Kasem Dictionary home">
           <span className="brand__mark" aria-hidden="true">K</span>
@@ -280,6 +285,8 @@ export function App() {
         </a>
         <nav className="collection-switch" aria-label="Kasem collections">
           {(Object.keys(COLLECTIONS) as CollectionKind[]).map(kind => <button key={kind} type="button" aria-pressed={collectionKind === kind} className={collectionKind === kind ? "is-active" : ""} onClick={() => {
+            const url = new URL(location.href); url.searchParams.set('collection', kind); url.searchParams.delete('entry'); history.replaceState(null, '', url);
+            pendingEntryRef.current = null;
             setCollectionKind(kind); setQueryText(""); setLetter(null); setSavedOnly(false); setRecentOnly(false); showSearch();
           }}><span aria-hidden="true">{COLLECTIONS[kind].icon}</span>{COLLECTIONS[kind].label}</button>)}
         </nav>
@@ -301,7 +308,7 @@ export function App() {
               <label className="search-box">
                 <span className="search-box__icon" aria-hidden="true">⌕</span>
                 <span className="sr-only">Search Kasem or English</span>
-                <input ref={searchRef} type="text" inputMode="search" value={queryText}
+                <input id="dictionary-search" ref={searchRef} type="text" inputMode="search" value={queryText}
                   onChange={event => { setQueryText(event.target.value); setLetter(null); }}
                   onKeyDown={event => {
                     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -342,6 +349,7 @@ export function App() {
               <div><span>{letter ? `${letter} · ${collection.label}` : savedOnly ? `Saved ${collection.label.toLowerCase()}` : recentOnly ? `Recent ${collection.label.toLowerCase()}` : collection.all}</span><strong>{status === "ready" ? filtered.length.toLocaleString() : "—"}</strong></div>
               <span className="live-badge"><i /> {status === "ready" ? "Up to date" : status === "loading" ? "Connecting" : "Unavailable"}</span>
             </div>
+            {(savedOnly || recentOnly) && <p className="personal-list-note">{savedOnly ? "Saved on this browser. Use the star on an entry to keep it here." : "Your last 50 opened entries on this browser."}</p>}
 
             {status === "loading" && <div className="loading-list" role="status" aria-label="Loading dictionary"><i /><i /><i /><i /></div>}
             {status === "error" && <div className="list-state" role="alert"><h2>Unable to refresh the dictionary</h2><p>Check your connection and try again.</p><button type="button" onClick={() => setRetry((value) => value + 1)}>Try again</button></div>}
@@ -364,6 +372,7 @@ export function App() {
           </div>
           <aside className="explore-panel" aria-label="Explore dictionary">
             <h2>Explore</h2>
+            <nav className="reference-cards" aria-label="Kasem learning guides"><a href="/grammar-guide.html"><span>UNDERSTAND</span><strong>How Kasem works ↗</strong><small>Search grammar topics, examples and the source chapters.</small></a><a href="/spelling-guide.html"><span>WRITE</span><strong>Letters & spelling ↗</strong><small>Explore the written forms and spelling rules.</small></a></nav>
             <p className="explore-label">More to discover</p>
             <p className="explore-description">Keep exploring the {collection.label.toLowerCase()} collection.</p>
             {selected && entries.slice(Math.max(0, entries.findIndex(entry => entry.id === selected.id) - 2), entries.findIndex(entry => entry.id === selected.id) + 6).filter(entry => entry.id !== selected.id).map(entry => (
@@ -375,7 +384,7 @@ export function App() {
         </section>
       </main>
 
-      <footer><span>Kasem lives here. <b aria-hidden="true">✦</b></span><span>Published words, expressions & curated names · Indigen World</span></footer>
+      <footer><span>Kasem lives here. <b aria-hidden="true">✦</b></span><span>Published words, expressions & curated names · <a href="https://indigenworld.com/dictionary">Indigen World</a></span></footer>
     </div>
   );
 }

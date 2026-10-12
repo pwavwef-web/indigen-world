@@ -1,0 +1,15 @@
+/** Reading tools for Venacula. The supplied source content remains intact. */
+export function dictionaryGuideLayout(html, chapters) {
+  const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const chapterOptions = chapters.map(ch => `<option value="${ch.number}">${ch.number} · ${escape(ch.title)}</option>`).join('');
+  return html
+    .replace('</head>', '<link rel="canonical" href="https://www.venacula.com/grammar-guide"><link rel="stylesheet" href="/grammar-reader.css"><script src="/grammar-reader.js" defer></script></head>')
+    .replace('<body><main>', '<body class="grammar-reader"><a class="skip-link" href="#rules">Skip to grammar rules</a><main id="top">')
+    .replace(/<nav aria-label="Reference navigation">[\s\S]*?<\/nav>/, `<header class="reader-header"><a class="reader-brand" href="/"><span aria-hidden="true">K</span><span>Kasem<small>DICTIONARY</small></span></a><nav aria-label="Reference navigation"><a href="/">Dictionary</a><a href="/spelling-guide.html">Spelling guide</a><a href="/grammar-guide" aria-current="page">Grammar guide</a></nav></header><div class="reader-hero"><p class="reader-eyebrow">THE KASEM REFERENCE LIBRARY</p>`)
+    .replace('<p class="note">', '</div><div class="reader-layout"><aside class="reader-contents"><p class="reader-eyebrow">IN THIS GUIDE</p><nav aria-label="On this page"><a href="#rules">01 <span>Grammar rules</span></a><a href="#examples">02 <span>Sentences & phrases</span></a><a href="#words">03 <span>Words & forms</span></a><a href="#chapters">04 <span>The complete book</span></a><a href="#source-limits">05 <span>Source limitations</span></a></nav><p>Based on P. L. Hewer’s<br><em>A Basic Grammar of Kasem</em></p><a class="reader-back" href="/">← Look up a word</a></aside><div class="reader-content"><p class="note">')
+    .replace('<section id="rules"><h2>Grammar rules</h2>', `<section id="rules"><p class="reader-eyebrow">01 / EXPLORE THE LANGUAGE</p><h2>Grammar rules</h2><div class="reader-tools" hidden><div class="reader-filters"><label for="rule-filter">Find a grammar topic<input id="rule-filter" type="search" placeholder="Try pronouns, greetings or verb forms"></label><label for="chapter-filter">Chapter<select id="chapter-filter"><option value="">All chapters</option>${chapterOptions}</select></label></div><div class="reader-actions"><p id="rule-count" role="status"></p><button type="button" id="rules-expand">Expand results</button><button type="button" id="rules-collapse">Collapse results</button><button type="button" id="rules-reset">Reset filters</button></div><p id="rule-empty" hidden>No rules match. Try a shorter search or choose another chapter.</p></div>`)
+    .replace('<section><h2>Source limitations</h2>', '<section id="source-limits"><h2>Source limitations</h2>')
+    .replace('<footer>', '</div></div><footer>')
+    .replace('</footer>', '<a href="#top">Back to the top ↑</a></footer>')
+    .replace('href="/grammar-guide" aria-current', 'href="/grammar-guide.html" aria-current');
+}

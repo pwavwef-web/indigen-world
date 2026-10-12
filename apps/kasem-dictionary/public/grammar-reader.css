@@ -1,0 +1,57 @@
+.grammar-reader{background:#f6f7fb;color:#0f1830;font:17px/1.75 system-ui,sans-serif}
+.grammar-reader main{max-width:1320px;padding:0 36px 48px}
+.grammar-reader a{color:#2355c8;text-underline-offset:4px}
+.reader-header{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px 0;border-bottom:1px solid #dce1eb}
+.reader-header .reader-brand{display:flex;align-items:center;gap:12px;color:#0f1830;text-decoration:none;font-weight:700;line-height:1.3}
+.reader-brand>span:first-child{display:grid;place-items:center;width:44px;height:48px;border-radius:12px;background:#0f1830;color:white;font:30px Georgia,serif}
+.reader-brand small{display:block;font-size:10px;letter-spacing:2px;color:#5d667b;margin-top:4px}
+.reader-header nav{gap:8px;font-size:14px}
+.reader-header nav a{padding:10px 14px;border-radius:8px;text-decoration:none;color:#43506b}
+.reader-header a[aria-current]{background:#e8edfa;color:#19327f;font-weight:650}
+.reader-hero{padding:44px 0 38px;max-width:960px}
+.reader-eyebrow{font-size:11px!important;font-weight:750;letter-spacing:2px;color:#5a6d91}
+.reader-hero h1{font-size:clamp(38px,5vw,64px);font-weight:650;letter-spacing:-2px;margin:14px 0 24px;color:#0f1830}
+.reader-hero>p:not(.reader-eyebrow){color:#4c5870;max-width:780px}
+.grammar-reader .badge{background:#e9eefb;color:#19327f;font-size:13px;border-radius:6px;padding:6px 12px;margin-bottom:6px}
+.reader-layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px;align-items:start}
+.reader-contents{position:sticky;top:24px;font-size:13px}
+.reader-contents nav{display:grid;gap:3px;margin:20px 0 28px}
+.reader-contents nav a{display:flex;gap:14px;padding:11px 8px;text-decoration:none;color:#72809b;border-bottom:1px solid #e1e5ef}
+.reader-contents nav span{color:#253756;font-weight:600}
+.reader-contents>p:not(.reader-eyebrow){color:#65718a;font-size:12px;line-height:1.8}
+.reader-back{display:inline-block;margin-top:12px}
+.reader-content{min-width:0}
+.grammar-reader .note{margin:0 0 36px;background:#eef1f8;border-left:3px solid #91a1c7;border-radius:0 10px 10px 0;color:#4f5b72;font-size:14px;padding:18px 22px}
+.reader-content section{background:#fff;border:1px solid #dfe5ef;border-radius:16px;padding:28px 32px;margin-bottom:28px;scroll-margin-top:24px}
+.reader-content h2{font-size:30px;letter-spacing:-.7px;line-height:1.25;margin:8px 0 16px}
+.reader-content section>p{font-size:15px;color:#57647c}
+.grammar-reader details{border-color:#e3e7f0}
+.grammar-reader summary{font-size:16px;padding:20px 8px;line-height:1.5;color:#19327f}
+.grammar-reader summary:hover{background:#f6f8fc}
+.grammar-reader details[open]>summary{font-weight:750}
+.grammar-reader details>div{padding:0 8px 24px;font-size:16px}
+.grammar-reader details p{overflow-wrap:anywhere}
+.grammar-reader .meta{font-size:12px;color:#66738c;line-height:1.7}
+.reader-tools{background:#f5f7fc;border:1px solid #e1e7f2;border-radius:10px;padding:16px;margin:24px 0}
+.reader-filters{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:14px}
+.reader-filters label,.reader-content section>label{font-size:12px;font-weight:700;color:#42516e}
+.grammar-reader input,.grammar-reader select{display:block;width:100%;min-width:0;min-height:46px;padding:10px 12px;border:1px solid #b9c5da;border-radius:7px;background:#fff;color:#0f1830;font:16px system-ui,sans-serif;margin-top:6px}
+.reader-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
+.reader-actions p{font-size:12px;margin:0 auto 0 0;color:#5c6981}
+.reader-actions button{background:#fff;color:#244c99;border:1px solid #ccd6e7;border-radius:6px;min-height:40px;padding:7px 10px;font:12px system-ui;cursor:pointer}
+.reader-actions button:disabled{opacity:.5;cursor:default}
+.reader-more{display:block;min-height:44px;padding:10px 18px;margin-top:16px;background:#19327f;color:white;border:0;border-radius:8px;font:14px system-ui;cursor:pointer}
+.grammar-reader :focus-visible{outline:3px solid #2f6bff;outline-offset:3px}
+.grammar-reader [hidden]{display:none!important}
+.grammar-reader table{font-size:14px}
+.grammar-reader th{background:#edf1fa;color:#19327f}
+.grammar-reader td,.grammar-reader th{border-color:#e1e6f0}
+.grammar-reader tbody tr:nth-child(even){background:#fafbfe}
+.grammar-reader .scroll{border:1px solid #e1e6f0;border-radius:8px;margin:16px 0}
+.grammar-reader .source-label{scroll-margin-top:28px;color:#657797}
+.grammar-reader footer{font-size:13px;color:#63718a;border-color:#dce1eb}
+.skip-link{position:fixed;top:-80px;left:20px;z-index:200;background:#fff;padding:12px 20px;border-radius:8px}
+.skip-link:focus{top:8px}
+@media(max-width:850px){.reader-layout{grid-template-columns:1fr;gap:20px}.reader-contents{position:static}.reader-contents nav{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.reader-contents nav a{border:1px solid #dce3f0;border-radius:8px;padding:8px 12px}.reader-contents>p:not(.reader-eyebrow),.reader-back{display:none}.reader-hero{padding-bottom:16px}}
+@media(max-width:560px){.grammar-reader main{padding:0 16px 32px}.reader-header{align-items:flex-start;gap:12px;flex-direction:column;padding:18px 0 12px}.reader-header nav{flex-wrap:wrap;gap:4px}.reader-header nav a{padding:10px;font-size:12px}.reader-hero{padding-top:24px}.reader-hero h1{letter-spacing:-1.2px}.reader-hero>p:not(.reader-eyebrow){font-size:15px}.reader-content section{padding:22px 16px}.reader-content h2{font-size:27px}.reader-filters{grid-template-columns:1fr}.reader-actions{gap:6px}.reader-actions p{width:100%;margin-bottom:4px}.reader-contents nav a{font-size:12px}.grammar-reader summary{padding:17px 0}.grammar-reader .note{padding:16px;font-size:13px}.reader-contents nav{gap:6px}}
+@media print{.grammar-reader{background:white;color:black}.reader-header,.reader-contents,.reader-tools,.skip-link{display:none}.grammar-reader main{max-width:none;padding:0}.reader-layout{display:block}.reader-content section{border:0;padding:0}.grammar-reader .scroll{overflow:visible}.grammar-reader table{min-width:0}.grammar-reader .source{font-size:12px}.reader-hero{padding:0}.grammar-reader a{color:inherit}}
