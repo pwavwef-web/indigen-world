@@ -36,7 +36,7 @@ export function LearnPage() {
     <section className="section section--white">
       <div className="container">
         <SectionHeading eyebrow="A few minutes at a time" title="Your next three steps." body="Follow these in order, or pick the resource you need today." />
-        <ol className="learning-steps">
+        <ol className="learning-steps scroll-card-stack">
           <li><span className="learning-step-number">01</span><h3>Find and listen</h3><p>Look up an English or Kasem word. Filter for recordings and compare dialect or source labels before choosing an entry.</p><Button to="dictionary?audio=1" variant="secondary">Find words with audio</Button><small>No sign-in · audio varies by entry</small></li>
           <li><span className="learning-step-number">02</span><h3>Keep a few words</h3><p>Choose Save word on an entry. Return to your list, read an example aloud, and check its meaning again.</p><Button to="dictionary?saved=1" variant="secondary">Open saved words</Button><small>Saved in this browser · no cloud backup</small></li>
           <li><span className="learning-step-number">03</span><h3>Try a little practice</h3><p>Visit Kasem Practice Lab for an experimental practice session using eligible published sources. Availability is shown in the Lab.</p><Button to="labs/kasem-practice" variant="secondary">Visit Practice Lab</Button><small>Alpha · sign-in may be required</small></li>
@@ -47,7 +47,7 @@ export function LearnPage() {
     <section className="section section--cream" id="reference">
       <div className="container">
         <SectionHeading eyebrow="Read with a source" title="Make sense of sounds and sentences." body="Use the existing book guides for spelling, examples and grammar. They retain source references so you can see where the material comes from." />
-        <div className="learning-reference-grid">
+        <div className="learning-reference-grid scroll-card-stack">
           <article className="learning-resource"><span className="target-badge">Public reference</span><h3>Kasem spelling guide</h3><p>Explore spelling rules and printed vocabulary examples. Tone marks and special letters matter; similar-looking spellings can carry different meanings.</p><a href="/spelling-guide.html">Read the spelling guide <span aria-hidden="true">↗</span></a><small>Opens the reference guide on this website</small></article>
           <article className="learning-resource"><span className="target-badge">Public reference</span><h3>Kasem grammar guide</h3><p>Read sentence patterns, pronouns and word forms from P. L. Hewer’s <em>A Basic Grammar of Kasem</em>, with examples from the book.</p><a href="/grammar-guide.html">Read the grammar guide <span aria-hidden="true">↗</span></a><small>Opens the reference guide on this website</small></article>
           <article className="learning-resource"><span className="target-badge">Separate reference site</span><h3>Explore the wider collections</h3><p>Browse published sentences, grammar and book illustrations in the Kasem reference web app, hosted at Venacula.</p><a href="https://www.venacula.com/?collection=sentences" target="_blank" rel="noreferrer">Browse sentence sources <span aria-hidden="true">↗</span></a><small>Opens venacula.com in a new tab</small></article>

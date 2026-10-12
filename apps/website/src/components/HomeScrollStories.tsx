@@ -13,7 +13,7 @@ const CARDS = [
 ];
 
 export function HomeScrollStories() {
-  return <div className="home-scroll-stories" aria-label="Discover, contribute and follow progress">
+  return <div className="home-scroll-stories scroll-card-stack" aria-label="Discover, contribute and follow progress">
     {CARDS.map((card, index) => <article key={card.to} className={`home-scroll-story home-scroll-story--${index + 1}`}>
       <div className="home-scroll-story__inner" data-reveal>
         <div className="home-scroll-story__copy">

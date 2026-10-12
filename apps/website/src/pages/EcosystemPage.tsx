@@ -86,7 +86,7 @@ export function EcosystemPage() {
           </div>
 
           {filteredProducts.length > 0 ? (
-            <div className="product-grid" id="ecosystem-product-grid">
+            <div className="product-grid scroll-card-stack" id="ecosystem-product-grid">
               {filteredProducts.map((product, index) => (
                 <ProductCard key={product.id} product={product} index={index} />
               ))}

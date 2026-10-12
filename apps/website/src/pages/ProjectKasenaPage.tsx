@@ -84,7 +84,7 @@ export function ProjectKasenaPage() {
             title="A record is not publishable simply because it was submitted."
             body="Project Kassena is designed around dialect respect, qualified review and permissions that travel with each record."
           />
-          <ol className="process-list" data-reveal>
+          <ol className="process-list scroll-card-stack">
             {KASENA_STEWARDSHIP_STEPS.map((step, index) => (
               <li key={step.title}>
                 <span>{String(index + 1).padStart(2, "0")}</span>

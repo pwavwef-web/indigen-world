@@ -115,6 +115,16 @@ existing pause and reduced-motion preferences. Small or short screens use
 normal-flow cards. Photo and map provenance is recorded in
 `public/images/culture/README.md`.
 
+Scroll-card entrances across the public website are shared through
+`public/scroll-cards.js` and `public/scroll-cards.css`. The React route hook and
+standalone spelling/grammar guides use the same controller. Add
+`data-scroll-card` to a new card, or `scroll-card-stack` to an editorial sequence.
+Only cards that fit the viewport can stick; narrow and short screens stay in
+normal flow. Entrances run once, newly fetched cards are observed, keyboard
+focus reveals a card immediately, and the existing site pause/reduced-motion
+preferences keep all content visible. The footer also offers Pause scroll
+effects. Guide generators retain these assets only for the public website.
+
 Editable product, status, team, principle and Project Kassena copy lives under `src/content/`.
 Navigation and route metadata live in `src/content/navigation.ts`. Page layouts live under
 `src/pages/`; shared UI is under `src/components/`; form behavior is under `src/features/forms/`.

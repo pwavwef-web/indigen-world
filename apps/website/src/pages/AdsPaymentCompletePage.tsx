@@ -74,7 +74,7 @@ export function AdsPaymentCompletePage() {
       </section>
 
       <section className="section section--white">
-        <div className="container legal-copy">
+        <div className="container legal-copy" data-scroll-card>
           <h2>You can close this page</h2>
           <p>
             Go back to the Indigen app and open your campaign. It checks with

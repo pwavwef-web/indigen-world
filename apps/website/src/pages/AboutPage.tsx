@@ -58,7 +58,7 @@ export function AboutPage() {
           </div>
         </div>
 
-        <div className="container vision-grid">
+        <div className="container vision-grid scroll-card-stack">
           <article className="vision-card vision-card--dark" data-reveal>
             <span className="vision-card__number">01</span>
             <div>

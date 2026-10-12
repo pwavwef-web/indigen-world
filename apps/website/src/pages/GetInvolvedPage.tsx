@@ -115,7 +115,7 @@ export function GetInvolvedPage() {
             title="Start with the role that fits best."
             body="Choose one option and we'll take you directly to a form already set up for that route. You can change it there at any time."
           />
-          <div className="involvement-route-grid">
+          <div className="involvement-route-grid scroll-card-stack">
           {AUDIENCES.map((audience) => (
             <article className="involvement-route-card" key={audience.title} data-reveal>
               <div className="product-card__topline">

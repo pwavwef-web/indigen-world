@@ -46,7 +46,7 @@ export function ImpactGovernancePage() {
               </div>
             </div>
           </div>
-          <div className="principle-list">
+          <div className="principle-list scroll-card-stack">
             {PRINCIPLES.map((principle) => (
               <article className="principle" key={principle.number} data-reveal>
                 <span>{principle.number}</span>

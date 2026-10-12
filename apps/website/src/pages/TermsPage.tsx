@@ -31,7 +31,8 @@ export function TermsPage() {
       </section>
 
       <section className="section section--white">
-        <div className="container legal-copy">
+        <div className="container legal-copy scroll-card-stack">
+          <section className="legal-scroll-card" data-scroll-card>
           <h2>What these terms cover</h2>
           <p>
             Indigen World delivers three user-facing products: this public website, the Indigen
@@ -40,6 +41,8 @@ export function TermsPage() {
             app and contributing through TribeStudio.
           </p>
 
+          </section>
+          <section className="legal-scroll-card" data-scroll-card>
           <h2>Using this site</h2>
           <p>
             This website introduces Indigen World's mission, ecosystem and team, provides ways to
@@ -50,6 +53,8 @@ export function TermsPage() {
             are not yet live.
           </p>
 
+          </section>
+          <section className="legal-scroll-card" data-scroll-card>
           <h2>Using the Indigen World mobile app</h2>
           <p>
             The mobile app is an everyday consumer app for exploring, learning, saving and
@@ -68,6 +73,8 @@ export function TermsPage() {
             language reference.
           </p>
 
+          </section>
+          <section className="legal-scroll-card" data-scroll-card>
           <h2>Contributing through TribeStudio</h2>
           <p>
             TribeStudio is a role-based workspace for creators, contributors, cultural custodians
@@ -79,6 +86,8 @@ export function TermsPage() {
             all decisions are recorded.
           </p>
 
+          </section>
+          <section className="legal-scroll-card" data-scroll-card>
           <h2>Accuracy of information</h2>
           <p>
             We label the status of every product honestly: Live, In development, Planned, or
@@ -86,6 +95,8 @@ export function TermsPage() {
             treated as current results.
           </p>
 
+          </section>
+          <section className="legal-scroll-card" data-scroll-card>
           <h2>Intellectual property and cultural permissions</h2>
           <p>
             Website, programme, language and cultural materials may carry different copyright,
@@ -95,6 +106,8 @@ export function TermsPage() {
             TribeStudio.
           </p>
 
+          </section>
+          <section className="legal-scroll-card" data-scroll-card>
           <h2>No guarantees</h2>
           <p>
             We do not promise specific launch dates, mobile app store availability, financial
@@ -102,11 +115,14 @@ export function TermsPage() {
             is exactly that — a goal, not a commitment.
           </p>
 
+          </section>
+          <section className="legal-scroll-card" data-scroll-card>
           <h2>Contact</h2>
           <p>
             Questions about these terms can be sent through the <Link to="contact">contact page</Link>.
           </p>
 
+          </section>
           <p className="legal-disclaimer">
             This page is a plain-language summary of the current implementation. Final legal
             review remains pending. Contact us if you need clarification before contributing or

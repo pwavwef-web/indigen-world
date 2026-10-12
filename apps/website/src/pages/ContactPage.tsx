@@ -31,7 +31,7 @@ export function ContactPage() {
 
       <section className="section section--white">
         <div className="container form-section">
-          <div data-reveal>
+          <div data-scroll-card>
             <ContactForm />
           </div>
           <aside className="contact-guidance" data-reveal aria-labelledby="contact-next-steps">
