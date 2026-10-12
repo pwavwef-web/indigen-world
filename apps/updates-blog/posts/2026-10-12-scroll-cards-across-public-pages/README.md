@@ -5,7 +5,8 @@
 - **Labels:** Website, Design, Accessibility, Learning, Kasem
 - **Search description:** Rising cards, readable mobile layouts and shared motion controls now connect the public Indigen World pages and Kasem reference guides.
 - **Suggested permalink:** `scroll-cards-across-indigen-world`
-- **Status:** Implemented and verified locally. Wider website deployment and Blogger publication pending; the earlier homepage release is already live.
+- **Status:** Public website deployed and verified October 12, 2026, at [indigenworld.com](https://indigenworld.com/). Blogger publication pending.
+- **Deployed source:** GitHub `main`, commit [9103e48b](https://github.com/pwavwef-web/indigen-world/commit/9103e48be80cc812efad5f814260a04aa3ceb91d).
 
 ## Change and scope
 
@@ -25,6 +26,13 @@ this update, as selected by the user.
 
 ## Verification
 
+- `npm run deploy:website` completed successfully for project
+  `project-kassena-7e026`, Hosting site `indigen-world`, from a clean checkout
+  verified against `origin/main`. Required predeploy validations passed.
+- Live verification: About cards revealed and used sticky positioning on a
+  1440 × 1000 viewport without horizontal overflow; Learn cards and the spelling
+  guide controller loaded correctly. Shared browser assets and the guide
+  returned HTTP 200 with `Cache-Control: no-cache`.
 - Website TypeScript, route/privacy validations, 21 tests and production build
   passed. Shared browser script and guide-generator syntax checks passed.
 - Desktop card coverage checked on About, Ecosystem, Learn, Project Kassena,
@@ -37,6 +45,9 @@ this update, as selected by the user.
   overflow; Terms also passed at 320px.
 - Get Involved radio selection still moved focus to the matching form field.
   Pausing made every observed card visible and removed sticky positioning.
+- Progress's pause button also set the shared pause state and stopped its
+  animated presentation. Labs landing cards were observed after asynchronous
+  loading.
 - Both reference guides loaded the shared controller without horizontal
   overflow on mobile. A pause choice on the spelling guide persisted on the
   grammar guide, with all cards visible.
@@ -48,6 +59,7 @@ this update, as selected by the user.
 Actual local screenshots, October 12, 2026:
 
 - `images/about-desktop.png`: the active About card stack.
+- `images/about-live.png`: verified production About cards; used in the article.
 - `images/learn-mobile.png`: normal-flow learning cards on a phone.
 - `images/guide-mobile.png`: the public grammar guide with motion paused.
 
@@ -62,7 +74,7 @@ printing; no new licence or model-training permission is asserted.
 1. Confirm the final website deployment status recorded above.
 2. Create a draft with the title, labels and search description above.
 3. Paste `post.html` in Blogger HTML mode.
-4. Upload the three actual screenshots. Replace their `images/...` paths with
+4. Upload `about-live.png`, `learn-mobile.png` and `guide-mobile.png`. Replace their `images/...` paths with
    Blogger URLs, retaining descriptive alt text and captions.
 5. Review desktop/mobile layout, then Chinedum can publish the article.
 6. Replace the marked article URL in `share.md` before sharing. Repository

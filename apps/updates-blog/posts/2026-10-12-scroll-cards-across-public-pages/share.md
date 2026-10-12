@@ -1,6 +1,6 @@
 # Share copy for Chinedum
 
-Draft for use after website deployment and Blogger publication:
+Draft for use after Blogger publication:
 
 A familiar rhythm, wherever you explore. Indigen World's public pages now use
 rising cards to guide you through our mission, learning resources and ways to
@@ -9,5 +9,5 @@ time.
 
 Read more: **[PUBLISHED ARTICLE URL — replace after Blogger publication]**
 
-Current status: the wider card update is prepared locally; its public website
-deployment and this article's publication are pending.
+Current status: public website deployed and verified October 12, 2026, at
+https://indigenworld.com/. This article's publication is pending.
