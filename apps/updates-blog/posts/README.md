@@ -6,7 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
-- [2026-10-13: A community of characters for Indigen World](2026-10-13-original-animated-community/README.md) — ten original fictional characters, shared paper-collage scenery, gentle layered motion and scene controls. Implemented and checked locally; website deployment and Blogger publication pending. Includes actual product screenshots and artwork provenance.
+- [2026-10-13: A community of characters for Indigen World](2026-10-13-original-animated-community/README.md) — ten original fictional characters, shared paper-collage scenery, gentle layered motion and scene controls. Website deployed and verified October 13; Blogger publication pending. Includes actual local and live screenshots and artwork provenance.
 
 - [2026-10-12: An easier way to discover, learn and contribute](2026-10-12-easier-website-discovery/README.md) — homepage search and public language previews, grouped navigation, warm visual styling, compact task banners and mobile dictionary controls. Website deployed and verified October 13; Blogger publication pending. Includes a verified live screenshot and actual desktop and mobile previews.
 

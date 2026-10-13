@@ -5,7 +5,8 @@
 - **Labels:** Website, Design, Community, Kasem, Accessibility
 - **Search description:** Ten original illustrated characters bring storytelling, learning and creating into Indigen World's public banners, with gentle motion and shared pause controls.
 - **Suggested permalink:** `original-illustrated-community-indigen-world`
-- **Status:** Implemented and checked locally; website deployment pending. Blogger publication pending.
+- **Status:** Website deployed and verified October 13, 2026 at [indigenworld.com](https://indigenworld.com/). Blogger publication pending.
+- **Deployed source:** GitHub `main`, commit [56c35f10](https://github.com/pwavwef-web/indigen-world/commit/56c35f10).
 
 ## What changed
 
@@ -39,6 +40,17 @@ people. No Endangered Languages Project artwork or video was copied.
   reduced-motion toggle was not exercised for this release.
 - Public website Hosting only; no mobile-app, data, email or signed-in
   workspace release included.
+- `npm run deploy:website` completed for Firebase project
+  `project-kassena-7e026`, Hosting site `indigen-world`. The production guard
+  verified a clean checkout at `origin/main`; required predeploy checks passed.
+- Live homepage loaded `index-DUILhQ0r.js` from the deployed build and all three
+  scene layers loaded the final 2172-pixel character sheet. Landscape, original
+  artwork credits, pause and next-scene controls were verified. The live phone
+  dictionary and standalone grammar guide loaded the new art, with no
+  horizontal overflow and the shared pause setting intact.
+- Browser history contained pre-existing Blogger JSONP callback errors from
+  rapid local navigation before deployment; none came from the banner. No new
+  runtime error was observed in the live banner checks.
 
 ## Images and credits
 
@@ -48,12 +60,16 @@ public records, motion paused for inspection. Credit: Indigen World website;
 artwork created using built-in ImageGen, all characters fictional. Master
 artwork and prompt set: `assets/brand/indigen-world/culture-banner/README.md`.
 
+Live production screenshots captured October 13, 2026:
+`images/community-live.jpg` and `images/dictionary-live.jpg`. The article uses
+the local homepage opening and these two verified live views.
+
 ## Blogger handoff
 
 1. Confirm deployment status above before announcing availability.
 2. Create a draft with this title, labels and search description.
 3. Paste `post.html` in HTML mode.
-4. Upload all three actual JPEGs, replacing each `images/...` source with its
+4. Upload `home-desktop.jpg`, `community-live.jpg` and `dictionary-live.jpg`, replacing each `images/...` source with its
    Blogger-hosted URL. Keep alt text, captions and the AI/fictional credit.
 5. Preview on desktop and phone; Chinedum can then publish.
 6. Replace the article URL placeholder in `share.md` after publication.
