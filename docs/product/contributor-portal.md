@@ -1,10 +1,10 @@
 # Invited expression contributors
 
-Prepared 13 October 2026: [Contribution studio redesign](contribution-studio.md)
-adds a composed dashboard, four-section editor, structured speaker metadata,
-small sessions and private reviewer-based recognition. Repository implementation
-and local verification are recorded in that document; production deployment is
-pending.
+Released 13 October 2026: [Contribution studio redesign](contribution-studio.md)
+adds a blue composed dashboard, four-section editor, structured speaker metadata,
+small sessions and private reviewer-based recognition. TribeStudio and seven
+matching Functions are deployed; live files, sign-in entry and authentication
+gates are verified. Signed-in production workflow verification remains pending.
 
 Released 2026-10-02: [Dictionary word scope and required contributor training agreement](dictionary-word-scope-and-training.md). The deployed agreement replaces the optional portal AI-training choice described in earlier release history below. Backend, web hosting and production dictionary cleanup are verified. The mobile reader update awaits an app release.
 

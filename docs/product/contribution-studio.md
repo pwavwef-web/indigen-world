@@ -1,7 +1,9 @@
 # Contribution studio — 13 October 2026
 
-Implemented in the repository; production deployment and a signed-in production
-check are pending. This is the contributor portal redesign requested in the
+Deployed 13 October 2026 to TribeStudio and seven matching Functions. Live files,
+blue sign-in accents, desktop/phone entry in light/dark modes and authentication
+gates are verified. A signed-in production workflow check remains pending.
+This is the contributor portal redesign requested in the
 20-change plan. The editor uses Understand → Translate → Context → Check & send.
 The home screen uses one composed grid, with a next-action hero, approved-work
 vessel, participation, daily work, missions, recognition, review learning,
@@ -81,15 +83,22 @@ immutable retry metadata, revision participation and hidden-record filtering.
 The emulator runs real transactions including a concurrent preference/submission
 race, and the existing contributor isolation/revocation rules tests.
 
-Deploy the changed `saveExpressionAnswer` and `kawuriContributorAssist`, and these five
+The release deployed `saveExpressionAnswer` and `kawuriContributorAssist`, and these five
 new callables: `getContributorJourney`, `saveContributorJourney`,
 `getContributorCollectionGoal`, `setContributorCollectionGoal`,
-`findContributorExpressionMatches`. Deploy TribeStudio hosting together. The
+`findContributorExpressionMatches`, together with TribeStudio hosting. The
 most-recent-rounds query uses the existing submissions authUid + lifecycle.updatedAt
-descending index. Verify that index and the existing active-account rules are live.
+descending index (`CICAgLjy8IAK`, READY) and existing live contributor rules.
 No backfill, invitation, email, financial-policy change or article publication is
-part of preparing the release. After deployment, verify sign-in, cross-device
-metadata/preferences, a revision, and a reviewer approval using authorised accounts.
+part of this deployment. The remaining signed-in production check is cross-device
+metadata/preferences, a revision and a reviewer approval using authorised accounts.
+
+Backend source: `c4bed522`; final frontend source: `2fb5c2d`.
+Hosting version: `54d849f4af318e83`; released 2026-10-13T22:41:49.298Z.
+The final release passed the required production guard, TribeStudio typecheck,
+79 portal tests and build. Backend verification passed 62 tests. Production
+HTML and core/contributor bundles match the built files by SHA-256; all seven
+callables are ACTIVE and enforce sign-in with JSON UNAUTHENTICATED responses.
 
 Release handoff:
 `apps/updates-blog/posts/2026-10-13-contribution-studio/README.md`.

@@ -4,14 +4,13 @@
 - **Labels:** TribeStudio, Contributors, Kasem, Language data, Product updates.
 - **Search description:** A guided contributor studio brings short sections, useful context, small sessions and recognition for reviewer-approved Kasem work.
 - **Implementation:** Complete in the repository. Local verification listed below.
-- **Deployment:** Pending. No signed-in production check has been performed.
-- **Blogger:** Unpublished. Publish and share after release availability is verified.
+- **Deployment:** Deployed 13 October 2026 to TribeStudio and all seven matching Functions. Live files, blue sign-in accents, authentication gates and desktop/phone entry screens verified. Signed-in production collection and review remain unverified.
+- **Blogger:** Unpublished. Publication and external sharing remain Chinedum’s handoff.
 
 ## Publishing steps
 
-1. Confirm the Functions and TribeStudio release and update the status paragraph
-   in `post.html` to state the actual availability. Do not describe preparation
-   as a live release.
+1. Review the release evidence and remaining signed-in checks below. Keep the
+   availability paragraph and sample-image captions accurate when publishing.
 2. Create a Blogger draft using the title and labels above. Copy `post.html` in
    HTML mode.
 3. Upload `images/cover.png`, `images/studio-home-desktop.jpg`,
@@ -32,17 +31,14 @@ totals and contributions are clearly labelled synthetic preview fixtures. They
 are not evidence of live production use or linguistic accuracy.
 
 `images/` contains the cover and branded device/browser framing made by the
-existing `render-post-art.mjs` renderer from `art.json`. The framing is an
+local `render-post-art.mjs` renderer from the blue `art.json` specification. The framing is an
 illustration; screenshot content is actual product UI. Indigen World branding,
 UI and illustration: Indigen World. No external stock image or credit is used.
 
-Regenerate this post’s art only:
+Use `art.json` and the raw `screens/` as the design source when regenerating
+the framed images. Finished upload-ready assets are supplied in `images/`.
 
-```powershell
-node apps/updates-blog/scripts/render-post-art.mjs 2026-10-13-contribution-studio
-```
-
-## Verification and release needs
+## Verification
 
 - TribeStudio typecheck, workflow suite and production build.
 - Contributor backend tests, including metadata bounds, old-client preservation,
@@ -59,6 +55,28 @@ node apps/updates-blog/scripts/render-post-art.mjs 2026-10-13-contribution-studi
 
 Detailed implementation and rollout:
 [`docs/product/contribution-studio.md`](../../../../docs/product/contribution-studio.md).
-Deploy the seven changed/new Functions named there and TribeStudio hosting
-together, then perform the authorised cross-device and review smoke check.
-Neither this article nor the repository preparation deploys or publishes anything.
+
+## Production release evidence
+
+- Functions source: `c4bed522`; final blue frontend source: `2fb5c2d`.
+- Hosting released: 2026-10-13T22:41:49.298Z. Version: `54d849f4af318e83`.
+- Live verification: 2026-10-13T22:42:33.898Z. All seven Functions are ACTIVE on
+  Node.js 22 and return the expected JSON UNAUTHENTICATED response to anonymous
+  calls. No production contribution was created during verification.
+- Live HTML, main JavaScript/CSS and contributor JavaScript/CSS match the
+  production build by SHA-256. The contributor workspace uses the shared blue.
+- Production sign-in checked at 1440 and 390 pixels in light and dark modes:
+  blue workspace accents, email/password controls, no horizontal overflow and
+  no page errors. Captures use reduced motion so entrance animations have settled.
+- Clean release checkout: 62 backend tests and 79 portal tests passed;
+  TribeStudio typecheck and production build passed. The earlier four-width
+  local browser and 11-test Firestore emulator checks also passed.
+- Existing submissions authUid/lifecycle.updatedAt descending index
+  `CICAgLjy8IAK` is READY; existing contributor access rules are live.
+- Deployment used the unchanged TribeStudio Hosting configuration and its
+  production guard/build/check hooks, scoped to that site.
+
+Remaining production smoke check: use authorised contributor and reviewer
+accounts to verify cross-device metadata/preferences, a revision and a reviewer
+approval. No signed-in production journey has been exercised by this release.
+The article has not been published and no sharing message has been sent.
