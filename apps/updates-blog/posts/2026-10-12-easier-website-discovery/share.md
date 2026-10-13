@@ -11,4 +11,4 @@ Read the update: **[PUBLISHED ARTICLE URL — replace after Blogger publication]
 
 Website: https://indigenworld.com/
 
-Current status: website deployment pending; Blogger publication pending.
+Current status: website deployed and verified October 13, 2026; Blogger publication pending.

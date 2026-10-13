@@ -5,7 +5,8 @@
 - **Labels:** Website, Design, Kasem, Dictionary, Learning, Accessibility
 - **Search description:** Homepage search, public language previews, simpler navigation and shorter task pages make Indigen World's website easier to use on phones and desktop.
 - **Suggested permalink:** `easier-discovery-indigen-world-website`
-- **Status:** Implemented and verified locally. Website deployment pending. Blogger publication pending.
+- **Status:** Website deployed and verified October 13, 2026, at [indigenworld.com](https://indigenworld.com/). Blogger publication pending.
+- **Deployed source:** GitHub `main`, commit [1d8a1ea1](https://github.com/pwavwef-web/indigen-world/commit/1d8a1ea10ca9a0bde7d5781e0814eff0b4c7ae1e).
 
 ## What changed
 
@@ -48,13 +49,21 @@
   fallback. Banner bounds are measured together while asynchronous content loads.
 - Language and expression preview contents depend on public records. Missing
   recordings and source details remain visible. Saved words are browser-local.
-- Deployment and live verification must be recorded here once completed.
+- `npm run deploy:website` completed successfully for project
+  `project-kassena-7e026`, Hosting site `indigen-world`. The production guard
+  confirmed a clean checkout at `origin/main`; required predeploy checks passed.
+- Live Edge verification at `https://indigenworld.com/`: the warm theme and
+  grouped header, homepage search with Unicode characters, reviewed word and
+  user-started audio preview, direct word and expression links, phone filter
+  expansion and sticky search, compact task pages, and mobile story navigation
+  passed with no browser runtime errors. An actual live screenshot is saved.
 
 ## Images and credits
 
-Actual local production-build screenshots, prepared October 12, 2026:
+Actual local production-build screenshots, captured October 13, 2026:
 `images/home-desktop.png`, `images/language-previews.png`,
 `images/dictionary-mobile.png`, `images/learn-mobile.png`.
+Verified live homepage screenshot, October 13, 2026: `images/home-live.png`.
 They show public UI and public records; the saved-word state belongs to a
 temporary review browser. No private accounts or fabricated language fixtures
 are included.
@@ -76,7 +85,8 @@ endorsements by pictured people. Public record attribution stays with each card.
 1. Check the final website deployment status above before announcing availability.
 2. Create a Blogger draft with this title, labels and search description.
 3. Paste `post.html` in HTML mode.
-4. Upload all four PNG assets. Replace each `images/...` path with the matching
+4. Upload the four article assets: `home-live.png`, `language-previews.png`,
+   `dictionary-mobile.png` and `learn-mobile.png`. Replace each `images/...` path with the matching
    Blogger-hosted URL. Retain alt text, captions and photographic attribution.
 5. Review the article on desktop and a phone. Chinedum can then publish it.
 6. Replace the clearly marked article URL placeholder in `share.md` after
