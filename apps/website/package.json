@@ -13,6 +13,7 @@
     "typecheck": "tsc -b --pretty false",
     "test": "node ./scripts/validate-site.mjs && node ./scripts/validate-progress.mjs && node --experimental-strip-types --test ./scripts/liquidAppearance.test.mjs ./scripts/progressLive.test.mjs ./scripts/dictionaryDiscovery.test.mjs",
     "test:motion": "node ./scripts/check-motion.mjs",
+    "test:refresh:browser": "node ./scripts/check-website-refresh.mjs",
     "test:progress:browser": "node ./scripts/check-progress.mjs",
     "test:progress:live": "node ./scripts/check-progress-live.mjs",
     "test:runner": "node --experimental-strip-types --test ./scripts/runner-engine.test.mjs && node ./scripts/check-runner.mjs",

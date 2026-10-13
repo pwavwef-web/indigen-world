@@ -176,6 +176,20 @@ export const DYNAMIC_ROUTES: DynamicRoute[] = [
 /** Routes shown in the header navigation, in display order. */
 export const NAV_ROUTES: AppRoute[] = ROUTES.filter((route) => route.navLabel !== undefined);
 
+/** Task-first header; existing routes stay available in the story group and footer. */
+export const PRIMARY_NAV = [
+  { path: 'learn', label: 'Learn' },
+  { path: 'dictionary', label: 'Dictionary' },
+  { path: 'contribute', label: 'Contribute' },
+];
+export const STORY_NAV = [
+  { path: 'about', label: 'About Indigen World', description: 'Our purpose and the people behind it' },
+  { path: 'project-kassena', label: 'Project Kassena', description: 'Our starting point with Kasem speakers' },
+  { path: 'progress', label: 'Our Progress', description: 'Follow contributions toward shared goals' },
+  { path: 'impact-governance', label: 'Sources & permissions', description: 'How we care for shared knowledge' },
+  { path: 'ecosystem', label: 'Our ecosystem', description: 'Explore the connected products' },
+];
+
 /** Fast lookup from the router's stable route key to its metadata. */
 export const ROUTES_BY_PATH: Record<string, AppRoute> = Object.fromEntries(
   ROUTES.map((route) => [route.path, route])

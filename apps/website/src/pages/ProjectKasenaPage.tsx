@@ -49,7 +49,7 @@ export function ProjectKasenaPage() {
             </Button>
           </div>
 
-          <div className="module-preview" data-reveal>
+          <div className="module-preview">
             <div className="module-preview__header">
               <div>
                 <p className="eyebrow">Kasem module</p>
@@ -69,10 +69,12 @@ export function ProjectKasenaPage() {
               Public mobile access is listed through a waitlist; the app is being developed for
               offline-friendly learning and contribution. Translation tooling remains in development.
             </p>
+            <div className="module-preview__actions">
             <Button to="dictionary" variant="secondary" className="module-preview__button">
               Open the Kasem dictionary
             </Button>
             <Button to="learn" variant="secondary">Find your next learning step</Button>
+            </div>
             <PageMotion placement="inline" />
           </div>
         </div>

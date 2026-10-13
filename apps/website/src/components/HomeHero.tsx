@@ -7,7 +7,7 @@ import { CULTURE_PHOTOS as PHOTOS } from '../../public/culture-photos.js';
 
 /** The headline stays still while credited cultural photographs form a quiet loop. */
 export function CultureHero({ children, variant = 'page', className = '', id = 'top' }: {
-  children: ReactNode; variant?: 'home' | 'page' | 'embedded'; className?: string; id?: string;
+  children: ReactNode; variant?: 'home' | 'page' | 'embedded' | 'compact'; className?: string; id?: string;
 }) {
   const { paused, reduced, toggle } = useSiteMotion();
   const [active, setActive] = useState(0);

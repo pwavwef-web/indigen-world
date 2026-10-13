@@ -6,6 +6,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-12: An easier way to discover, learn and contribute](2026-10-12-easier-website-discovery/README.md) — homepage search and public language previews, grouped navigation, warm visual styling, compact task banners and mobile dictionary controls. Website deployment pending; Blogger publication pending. Includes actual desktop and mobile product screenshots.
+
 - [2026-10-12: Easier discovery and a clearer grammar guide on Venacula](2026-10-12-venacula-reading-and-discovery/README.md) — responsive dictionary navigation, mobile entry links, grammar search and chapter filters, progressive source tables and citation reveal. Deployed and verified October 12; Blogger publication pending. Includes actual desktop and mobile previews.
 
 - [2026-10-12: A shared cultural welcome, wherever you begin](2026-10-12-cultural-banners-across-public-pages/README.md) — rotating cultural photo openings across public pages, Labs, the film opening and reference guides, with responsive layouts and shared pause controls. Website deployed and verified October 12; Blogger publication pending. Includes a verified live screenshot, actual previews and photo credits.

@@ -8,7 +8,8 @@ import { IMPACT_TARGETS } from "../content/kasena";
 import { Button } from "../components/Button";
 import { SectionHeading } from "../components/SectionHeading";
 import { LatestUpdates } from "../components/LatestUpdates";
-import { AudiencePaths } from "../components/AudiencePaths";
+import { HomeSearch } from "../components/HomeSearch";
+import { HomeDiscovery } from "../components/HomeDiscovery";
 
 const route = ROUTES_BY_PATH.home;
 
@@ -20,7 +21,8 @@ export function HomePage() {
           <span className="status-pill"><span className="status-pill__dot" /> Starting with Kasem, in Northern Ghana</span>
           <p className="hero__kicker">Language, stories and the people behind them</p>
           <h1>Culture belongs<span> in the future.</span></h1>
-          <p className="hero__lead">Two things you can do today: look up Kasem words in the public dictionary, or share an everyday Kasem expression for a Kasem-speaking reviewer to check.</p>
+          <p className="hero__lead">Discover Kasem words, hear their voices, and help keep everyday knowledge alive.</p>
+          <HomeSearch />
           <div className="hero__actions">
             <Button to="dictionary">Look up a Kasem word</Button>
             <Button to="contribute" variant="secondary">Share a Kasem expression</Button>
@@ -28,16 +30,11 @@ export function HomePage() {
           <p className="tiny">No account needed to browse. Contributing uses a free Google sign-in, so you can follow the review.</p>
         </div>
     </HomeHero>
+    <HomeDiscovery />
     <HomeCultureMap />
-    <section className="section section--white" id="find-your-path">
-      <div className="container">
-        <SectionHeading eyebrow="Start here" title="Learn Kasem, or help keep it spoken." body="Two paths, both open today. Each says what it needs from you before you start." />
-        <AudiencePaths />
-      </div>
-    </section>
     <section className="section section--cream" id="progress">
       <div className="container">
-        <SectionHeading eyebrow="Your next chapter" title="Small steps. A shared future." body="Discover the language, share what you know, and follow the work as it grows." />
+        <SectionHeading eyebrow="Build with us" title="The next chapter has room for you." body="Share what you know, understand how it is cared for, and follow the work as it grows." />
         <HomeScrollStories />
         <p className="home-mobile-status">Learning on your phone: the mobile app is still in development. <Link to="get-involved?route=mobile-app-waitlist">Join the app waitlist</Link> to hear when access is available.</p>
         <p className="target-label">These describe what is available, not measured community impact.</p>

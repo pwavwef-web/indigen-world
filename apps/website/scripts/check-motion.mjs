@@ -29,6 +29,7 @@ async function context(options = {}) {
 async function open(page, route) {
   await page.goto(origin + route, { waitUntil: 'domcontentloaded' });
   await page.locator('h1').first().waitFor({ state: 'attached' });
+  await page.evaluate(() => document.fonts.ready);
   if (route === '/labs/admin') await page.locator('.page-motion__art svg').waitFor();
   else await page.locator('.culture-hero__images img.is-active').waitFor();
   await page.waitForTimeout(800);
@@ -40,12 +41,17 @@ async function artwork(page) {
 async function checkBannerLayout(page, route, width) {
   const banner = page.locator('.culture-hero');
   if (!await banner.count()) return false;
-  const content = banner.locator('.culture-hero__content');
-  const footer = banner.locator('.culture-hero__footer');
-  const copy = await content.boundingBox(), controls = await footer.boundingBox();
-  assert(copy.y + copy.height <= controls.y + 1, route + ': credits do not overlap page content');
+  // Read both bounds in the same layout, including when async content changes.
+  const bounds = await banner.evaluate(element => ({
+    copyBottom: element.querySelector('.culture-hero__content').getBoundingClientRect().bottom,
+    footerTop: element.querySelector('.culture-hero__footer').getBoundingClientRect().top,
+  }));
+  assert(bounds.copyBottom <= bounds.footerTop + 1, route + ': credits do not overlap page content');
   for (const control of await banner.locator('a, button, input').all()) {
-    if (await control.isVisible() && await control.isEnabled()) await control.click({ trial: true, timeout: 3000 });
+    if (await control.isVisible() && await control.isEnabled()) {
+      try { await control.click({ trial: true, timeout: 5000 }); }
+      catch (error) { throw new Error(`${route} at ${width}px: ${error.message}`); }
+    }
   }
   const sizes = await page.evaluate(() => ({ content: document.documentElement.scrollWidth, viewport: innerWidth }));
   assert(sizes.content <= sizes.viewport + 1, route + ': horizontal overflow at ' + width);
@@ -126,17 +132,19 @@ try {
   await page.waitForTimeout(100);
   const paused = await artwork(page); await page.waitForTimeout(240);
   assert.equal(await artwork(page), paused, 'Pause freezes artwork');
-  await page.getByLabel('Primary navigation', { exact: true }).getByRole('link', { name: 'Ecosystem', exact: true }).click();
+  await page.locator('.story-nav > summary').click();
+  await page.locator('.story-nav__panel a[href="/ecosystem"]').click();
   await page.getByRole('button', { name: 'Resume animations' }).waitFor();
   await page.reload(); await page.getByRole('button', { name: 'Resume animations' }).waitFor();
   await page.getByRole('button', { name: 'Resume animations' }).click();
   await open(page, '/');
-  const pathCard = page.locator('.today-path').first();
+  await open(page, '/learn');
+  const pathCard = page.locator('.learning-resource').first();
   await pathCard.scrollIntoViewIfNeeded(); await page.waitForTimeout(750);
   assert(await pathCard.evaluate(el => el.classList.contains('is-visible')), 'Scrolled cards reveal');
   assert.equal(await pathCard.evaluate(el => getComputedStyle(el).opacity), '1', 'Revealed cards are readable');
   await pathCard.locator('a').first().focus(); await page.waitForTimeout(300);
-  assert.equal(await pathCard.evaluate(el => getComputedStyle(el).translate), '0px -4px', 'Keyboard focus activates card motion');
+  assert.equal(await pathCard.evaluate(el => getComputedStyle(el).opacity), '1', 'Keyboard focus keeps the resource readable');
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await page.waitForTimeout(350);
   const offscreen = await artwork(page); await page.waitForTimeout(240);

@@ -57,7 +57,7 @@ function DictionaryDetail({
       : null;
     const backgroundElements = Array.from(
       document.querySelectorAll<HTMLElement>(
-        ".skip-link, .site-header, .culture-hero, .dictionary-results, .dictionary-next, .site-footer"
+        ".skip-link, .site-header, .culture-hero, .dictionary-toolbar, .dictionary-results, .dictionary-next, .site-footer"
       )
     );
     const previousInert = backgroundElements.map((element) => [element, element.inert] as const);
@@ -266,6 +266,7 @@ export function DictionaryPage() {
   const [entries, setEntries] = useState<DictionaryEntry[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [retryKey, setRetryKey] = useState(0);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [queryText, setQueryText] = useState(() => new URLSearchParams(window.location.search).get("q")?.slice(0, 200) ?? "");
   const [dialect, setDialect] = useState("");
   const [audioOnly, setAudioOnly] = useState(() => new URLSearchParams(window.location.search).get("audio") === "1");
@@ -277,6 +278,16 @@ export function DictionaryPage() {
   const linkedEntry = useRef(new URLSearchParams(window.location.search).get("entry"));
   const [visibleLimit, setVisibleLimit] = useState(PAGE_SIZE);
   const [savedWords, setSavedWords] = useState<Set<string>>(readSavedWords);
+
+  useEffect(() => {
+    if (window.location.hash !== '#dictionary-results-heading') return;
+    const frame = requestAnimationFrame(() => {
+      const heading = document.getElementById('dictionary-results-heading');
+      heading?.scrollIntoView({ behavior: 'auto' });
+      heading?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     setStatus("loading");
@@ -332,7 +343,7 @@ export function DictionaryPage() {
 
   return (
     <section className="dictionary-page">
-      <CultureHero>
+      <CultureHero variant="compact">
         <div className="container dictionary-page__intro">
           <div>
             <p className="eyebrow">Collection · Dictionary</p>
@@ -343,6 +354,10 @@ export function DictionaryPage() {
             </p>
           </div>
 
+        </div>
+      </CultureHero>
+
+      <div className="container dictionary-toolbar" role="search" aria-label="Search and filter the dictionary">
           <label className="dictionary-search">
             <span className="sr-only">Search Kasem, English, or dialect</span>
             <Icon name="search" size={22} />
@@ -350,8 +365,9 @@ export function DictionaryPage() {
               type="search"
               value={queryText}
               onChange={(event) => setQueryText(event.target.value)}
-              placeholder="Search Kasem, English, or dialect"
+              placeholder="Search Kasem or English"
               autoComplete="off"
+              maxLength={200}
             />
             {queryText && (
               <button type="button" onClick={() => setQueryText("")} aria-label="Clear search">
@@ -359,13 +375,8 @@ export function DictionaryPage() {
               </button>
             )}
           </label>
-        </div>
-      </CultureHero>
-
-      <div className="container dictionary-workspace">
-        <section className="dictionary-results" aria-labelledby="dictionary-results-heading">
-          {missingLinkedEntry && <p className="dictionary-link-notice" role="status">The linked entry is not available in this public word collection. You can search other words below or <Link to="learn">explore the reference guides</Link>.</p>}
-          <div className="dictionary-filters">
+          <button className="dictionary-filter-toggle" type="button" aria-expanded={filtersOpen} aria-controls="dictionary-filter-options" onClick={() => setFiltersOpen(value => !value)}>Filters{hasFilters && <span aria-label="Filters applied">•</span>}<Icon name="chevron" size={18} /></button>
+          <div className="dictionary-filters" id="dictionary-filter-options" data-expanded={filtersOpen}>
             <div className="dictionary-view" aria-label="Choose dictionary view">
               <button type="button" aria-pressed={!savedOnly} onClick={() => setSavedOnly(false)}>All words</button>
               <button type="button" aria-pressed={savedOnly} onClick={() => { setSavedOnly(true); trackEvent(ANALYTICS_EVENTS.dictionaryAction, { action: "view_saved" }); }}>Saved words</button>
@@ -375,10 +386,14 @@ export function DictionaryPage() {
             {hasFilters && <button className="dictionary-reset" type="button" onClick={resetFilters}>Reset filters</button>}
             <p className="tiny">Saved words stay in this browser. Recordings and source details vary by entry.</p>
           </div>
+      </div>
+      <div className="container dictionary-workspace">
+        <section className="dictionary-results" aria-labelledby="dictionary-results-heading">
+          {missingLinkedEntry && <p className="dictionary-link-notice" role="status">The linked entry is not available in this public word collection. You can search other words below or <Link to="learn">explore the reference guides</Link>.</p>}
           <div className="dictionary-results__heading">
             <div>
               <p className="eyebrow">Published collection</p>
-              <h2 id="dictionary-results-heading" tabIndex={-1}>
+              <h2 id="dictionary-results-heading" className="dictionary-results-anchor" tabIndex={-1}>
                 {status === "ready" ? `${resultCount.toLocaleString()} ${resultCount === 1 ? "entry" : "entries"}` : "Dictionary entries"}
               </h2>
               <p className="tiny" role="status">{status === "ready" && `${groups.length.toLocaleString()} ${groups.length === 1 ? "spelling" : "spellings"}${audioOnly ? " with recordings" : ""}${savedOnly ? " in your saved words" : ""}`}</p>

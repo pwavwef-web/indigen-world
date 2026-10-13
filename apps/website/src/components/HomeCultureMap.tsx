@@ -7,12 +7,12 @@ const STORIES = [
   { label: 'Project Kassena', title: 'A language. A living connection.',
     body: 'Starting with Kasem in northern Ghana, building with its speakers. Explore the project bringing language and cultural knowledge into digital spaces.',
     image: 'hero-home.jpg', to: 'project-kassena', action: 'Meet Project Kassena' },
-  { label: 'The public dictionary', title: 'Find a word. Hear its story.',
-    body: 'Browse published Kasem entries, meanings and context. Listen to pronunciations where recordings are available. No account needed to browse.',
-    image: 'header-stewardship.jpg', to: 'dictionary', action: 'Explore the Kasem dictionary' },
-  { label: 'Community contributions', title: 'Knowledge grows when we share it.',
-    body: 'Share an everyday Kasem expression with its meaning, context and source. A Kasem-speaking reviewer checks it before publication.',
-    image: 'header-participation.jpg', to: 'contribute', action: 'Share a Kasem expression' },
+  { label: 'Built with communities', title: 'The people are part of the record.',
+    body: 'Kasem speakers bring everyday words, teachers help explain them, and cultural custodians bring context. Learn about the purpose guiding Indigen World.',
+    image: 'header-participation.jpg', to: 'about', action: 'Meet the purpose behind the work' },
+  { label: 'Care and permission', title: 'A shared future needs trust.',
+    body: 'Attribution and clear permissions keep people connected to their knowledge. Explore how sources and community review guide the project.',
+    image: 'header-stewardship.jpg', to: 'impact-governance', action: 'Explore sources and permissions' },
 ];
 
 export function HomeCultureMap() {
@@ -49,7 +49,7 @@ export function HomeCultureMap() {
     onMouseEnter={() => setInteracting(true)} onMouseLeave={() => setInteracting(false)}
     onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
     <div className="container">
-      <SectionHeading eyebrow="Our starting point" title="A world of culture. A place to begin." body="Our first deep commitment is to Kasem in northern Ghana. Discover the project, explore the language, and find your way to contribute." />
+      <SectionHeading eyebrow="Our starting point" title="Rooted in a place. Built with its people." body="Our first deep commitment is to Kasem in northern Ghana. Meet the project and the principles behind it." />
       <div className="home-culture-map__layout">
         <div className="home-culture-map__geography">
           <img src="/images/culture/africa-ghana.svg" alt="Map of Africa highlighting Ghana, the starting point for the Kasem pilot" width="600" height="470" loading="lazy" />
@@ -58,7 +58,7 @@ export function HomeCultureMap() {
         </div>
         <div className="home-culture-map__stories">
           <div className="home-culture-map__tabs" role="group" aria-label="Explore the pilot">
-            {STORIES.map((item, index) => <button key={item.to} type="button" aria-pressed={index === active} onClick={() => select(index)}>{['The project', 'The language', 'Take part'][index]}</button>)}
+            {STORIES.map((item, index) => <button key={item.to} type="button" aria-pressed={index === active} onClick={() => select(index)}>{['The project', 'The people', 'Our principles'][index]}</button>)}
           </div>
           <article className="home-culture-map__story" key={story.to}>
             <img src={`/images/${story.image}`} alt="" width="600" height="240" loading="lazy" />
@@ -73,7 +73,7 @@ export function HomeCultureMap() {
             <button type="button" onClick={() => select(active + 1)} aria-label="Next story">→</button>
             {!reduced && <button type="button" className="home-culture-map__pause" onClick={toggle} aria-pressed={paused}>{paused ? 'Resume stories' : 'Pause stories'}</button>}
           </div>
-          <p className="home-culture-map__note">Three ways into one pilot. Card artwork is illustrative.</p>
+          <p className="home-culture-map__note">Project, people and principles. Card artwork is illustrative.</p>
         </div>
       </div>
     </div>

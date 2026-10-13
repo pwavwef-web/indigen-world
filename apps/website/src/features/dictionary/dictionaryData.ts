@@ -1,5 +1,7 @@
 import {
   collection,
+  getDocs,
+  limit,
   onSnapshot,
   query,
   where,
@@ -95,4 +97,15 @@ export function subscribeToPublishedDictionary(
     },
     onError
   );
+}
+
+/** A bounded public sample; only entries with an explicit review label are featured. */
+export async function fetchReviewedWordPreview(): Promise<DictionaryEntry | null> {
+  const snapshot = await getDocs(query(
+    collection(websiteFirestore(), 'dictionaryEntries'), where('isPublished', '==', true),
+    where('authenticationStatus', 'in', ['gold', 'reviewed']), limit(24)
+  ));
+  return snapshot.docs.map(document => entryFromData(document.id, document.data()))
+    .filter((entry): entry is DictionaryEntry => entry !== null && ['gold', 'reviewed'].includes(entry.authenticationStatus))
+    .sort((left, right) => Number(Boolean(right.audioUrl)) - Number(Boolean(left.audioUrl)) || left.headword.localeCompare(right.headword))[0] ?? null;
 }

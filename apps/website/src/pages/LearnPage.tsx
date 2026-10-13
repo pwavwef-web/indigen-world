@@ -25,7 +25,7 @@ export function LearnPage() {
   }, [retry]);
 
   return <>
-    <CultureHero>
+    <CultureHero variant="compact">
       <div className="container">
         <SectionHeading eyebrow="Learn & explore · Kasem" title="Start with a word. Stay for its story." body="Find a meaning, hear a recording where one is available, and discover how words are used. Start here without an account." light as="h1" />
         <div className="learn-actions"><Button to="dictionary">Find a word</Button><Button to="dictionary?saved=1" variant="secondary">Return to saved words</Button></div>
@@ -35,7 +35,7 @@ export function LearnPage() {
     <section className="section section--white">
       <div className="container">
         <SectionHeading eyebrow="A few minutes at a time" title="Your next three steps." body="Follow these in order, or pick the resource you need today." />
-        <ol className="learning-steps scroll-card-stack">
+        <ol className="learning-steps">
           <li><span className="learning-step-number">01</span><h3>Find and listen</h3><p>Look up an English or Kasem word. Filter for recordings and compare dialect or source labels before choosing an entry.</p><Button to="dictionary?audio=1" variant="secondary">Find words with audio</Button><small>No sign-in · audio varies by entry</small></li>
           <li><span className="learning-step-number">02</span><h3>Keep a few words</h3><p>Choose Save word on an entry. Return to your list, read an example aloud, and check its meaning again.</p><Button to="dictionary?saved=1" variant="secondary">Open saved words</Button><small>Saved in this browser · no cloud backup</small></li>
           <li><span className="learning-step-number">03</span><h3>Try a little practice</h3><p>Visit Kasem Practice Lab for an experimental practice session using eligible published sources. Availability is shown in the Lab.</p><Button to="labs/kasem-practice" variant="secondary">Visit Practice Lab</Button><small>Alpha · sign-in may be required</small></li>
