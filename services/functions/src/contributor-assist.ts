@@ -336,7 +336,7 @@ export const kawuriContributorAssist = onCall(
       translation: boundedText(draftRaw.translation, 2000, 'Translation', { optional: true, multiline: true }),
       alternatives: (Array.isArray(draftRaw.alternatives) ? draftRaw.alternatives : []).slice(0, 12)
         .map((value) => boundedText(value, 500, 'Alternative', { optional: true })).filter(Boolean),
-      context: boundedText(draftRaw.context, 1000, 'Usage note', { optional: true, multiline: true }),
+      context: boundedText(draftRaw.context, 1500, 'Usage note', { optional: true, multiline: true }),
     } : null;
 
     const checks = draft ? draftChecks({

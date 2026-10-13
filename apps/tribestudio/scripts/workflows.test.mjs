@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { test } from 'node:test';
 import { runInNewContext } from 'node:vm';
 import { transformWithOxc } from 'vite';
+import { EMPTY_DETAILS, parseContributorDetails, detailsContext, contributionTextKey } from '@indigen-world/contracts/contributor-details';
 
 const root = resolve(import.meta.dirname, '..');
 const tick = () => new Promise((resolve) => setImmediate(resolve));
@@ -22,6 +23,9 @@ const KIT = ['AppShell', 'Page', 'PageHeader', 'SectionHeader', 'Panel', 'Action
   'Facts', 'Avatar', 'MediaFrame', 'SaveState', 'Disclosure', 'Dialog', 'Button', 'ButtonLink', 'ButtonAnchor', 'IconButton',
   'BrandMark', 'CountUp', 'Reveal', 'AuthScreen', 'AuthFooter', 'AuthWaiting', 'GoogleButton', 'DisplayControl', 'Icon'];
 const KIT_MOCKS = {
+  EMPTY_DETAILS, parseContributorDetails, detailsContext, contributionTextKey,
+  useJourney: () => ({ value: { weeklyGoal: 3, sessionSize: 3, celebrations: false }, loading: false, error: '', save: async () => true }),
+  MilestoneBurst: 'MilestoneBurst', JourneyProvider: 'JourneyProvider', CollectionHome: 'CollectionHome',
   KasemField: 'KasemField',
   ...Object.fromEntries(KIT.map((name) => [name, name])),
   cx: (...values) => values.filter(Boolean).join(' '),
@@ -49,6 +53,7 @@ async function load(path, names, mocks = {}) {
     mocks = { ...await load('src/contributor/model.ts', MODEL_EXPORTS), ...mocks };
   }
   if (path === 'src/contributor/editor.tsx') {
+    mocks = { ...await load('src/contributor/journeyModel.ts', ['duplicateHints']), ...mocks };
     mocks = { ...await load('src/contributor/ReviewTiming.tsx', ['ReviewTiming'], mocks), ...await load('src/contributor/listMemory.ts', ['useListMemory', 'useListScroll'], mocks), ...mocks };
   }
   const { code } = await transformWithOxc(readFileSync(resolve(root, path), 'utf8'), path, { jsx: { runtime: 'classic' } });
@@ -580,6 +585,66 @@ test('contributor autosave keeps full expressions and submits with the latest re
   assert.equal(calls[0].translation, 'A whole expression, with punctuation');
   assert.equal(calls[1].revision, 1); assert.equal(calls[1].submit, true);
   assert.equal('aiTraining' in calls[1], false, 'the contributor agreement replaces the per-submission opt-out');
+  h.dispose();
+});
+
+test('section navigation preserves structured context, alternative labels and recovery metadata', async () => {
+  const h = hooks(), calls = [], storage = new Map(), timers = new Map(); let timerId = 0;
+  const window = { localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) }, setTimeout: fn => { timers.set(++timerId, fn); return timerId; }, clearTimeout: id => timers.delete(id), addEventListener() {}, removeEventListener() {} };
+  const { ExpressionEditor, readLocalDraft } = await load('src/contributor/editor.tsx', ['ExpressionEditor', 'readLocalDraft'], { ...h.api, window, functions: {}, httpsCallable: () => async data => { calls.push(plain(data)); return { data: { revision: data.revision + 1 } }; } });
+  const props = { accountId: 'owner', work: 'work', item: { id: 'item', expression: 'Hello', translation: 'Primary', alternatives: [], revision: 0, status: 'draft' }, onPending() {}, extras: { initialStep: 'context', variety: 'Navrongo' } };
+  let tree = h.render(ExpressionEditor, props); h.flush();
+  assert.equal(find(tree, node => node.props?.id === 'contribution-section-2').props.hidden, false);
+  find(tree, node => node.type === 'input' && node.props.placeholder === 'A host, a child, a friend…').props.onChange({ target: { value: 'An elder' } });
+  tree = h.render(ExpressionEditor, props); h.flush();
+  assert.equal(readLocalDraft('contributor-draft:owner:work:item').details.speaker, 'An elder');
+  find(tree, node => node.type === 'button' && hasClass(node, 'add-alternative')).props.onClick();
+  tree = h.render(ExpressionEditor, props); h.flush();
+  find(tree, node => node.type === 'input' && node.props.name === 'alternatives').props.onChange({ target: { value: 'Another way' } });
+  tree = h.render(ExpressionEditor, props); h.flush();
+  find(tree, node => node.type === 'select' && node.props['aria-label'] === 'Difference for alternative 1').props.onChange({ target: { value: 'polite' } });
+  tree = h.render(ExpressionEditor, props); h.flush();
+  for (const fn of timers.values()) fn(); timers.clear(); await tick();
+  assert.equal(calls.at(-1).details.speaker, 'An elder'); assert.equal(calls.at(-1).details.variety, 'Navrongo');
+  assert.deepEqual(calls.at(-1).details.alternativeNotes, ['polite']);
+  assert.equal(storage.size, 0, 'acknowledged metadata is cleared from recovery storage');
+  tree = h.render(ExpressionEditor, props); h.flush();
+  find(tree, node => node.type === 'button' && node.props['aria-label'] === 'Remove alternative 1').props.onClick();
+  tree = h.render(ExpressionEditor, props); h.flush();
+  assert.deepEqual(plain(readLocalDraft('contributor-draft:owner:work:item').details.alternativeNotes), []);
+  h.dispose();
+});
+
+test('recognition uses current reviewer approvals, successful revisions and contextual acceptance', async () => {
+  const { achievements, weekDays, participationDays, reviewGrowth, duplicateHints } = await load('src/contributor/journeyModel.ts', ['achievements', 'weekDays', 'participationDays', 'reviewGrowth', 'duplicateHints']);
+  const items = [
+    { id: 'a', status: 'verified', submissionId: 'accepted', translation: 'ɛ́ŋɔ', context: 'A setting' },
+    { id: 'b', status: 'submitted', submissionId: 'pending', translation: 'Other', context: 'A setting' },
+    { id: 'c', status: 'rejected', submissionId: 'rejected', translation: 'Another' },
+  ];
+  const rounds = [{ id: 'accepted', revisionOf: 'original', status: 'APPROVED', createdAt: '2026-10-12T10:00:00Z', decidedAt: '2026-10-13T10:00:00Z', feedback: '' }, { id: 'rejected', revisionOf: '', status: 'REJECTED', decidedAt: '2026-10-11T10:00:00Z', feedback: 'Add the usage context.' }, { id: 'pending', status: 'SUBMITTED', decidedAt: '', feedback: '' }];
+  const badges = achievements(items, rounds);
+  assert.equal(badges[0].count, 1); assert.equal(badges[1].count, 1); assert.equal(badges[2].count, 1);
+  const now = new Date('2026-10-13T11:00:00Z');
+  assert.deepEqual(plain(weekDays(now)), ['2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17', '2026-10-18']);
+  assert.deepEqual(plain(participationDays({ participationDays: ['2026-10-12', '2026-10-14'] }, rounds, now)), ['2026-10-12']);
+  const growth = reviewGrowth(rounds, now); assert.equal(growth.recent.total, 2); assert.equal(growth.recent.accepted, 1);
+  assert.equal(growth.themes[0].count, 1);
+  assert.equal(duplicateHints('ɛ\u0301ŋɔ!', items, 'other').length, 1);
+  assert.equal(duplicateHints('ɛ\u0301ŋɔ!', items, 'a').length, 0);
+});
+
+test('uncertainty does not fill a session; successful submissions reach an explicit stopping point', async () => {
+  const h = hooks();
+  const { ContributionWorkspace } = await load('src/contributor/editor.tsx', ['ContributionWorkspace'], { ...h.api, useLayoutEffect() {}, functions: {}, httpsCallable: () => async () => {}, window: { setTimeout() {}, clearTimeout() {}, addEventListener() {}, removeEventListener() {} } });
+  const items = ['a', 'b', 'c', 'd'].map(id => ({ id, expression: id, translation: '', alternatives: [], revision: 0, status: 'draft' }));
+  const props = { items, work: 'work', onPending() {} };
+  let tree = h.render(ContributionWorkspace, props); h.flush();
+  find(tree, node => node.type?.name === 'ExpressionEditor').props.onSkipped();
+  tree = h.render(ContributionWorkspace, props); h.flush();
+  assert.equal(find(tree, node => node.props?.className === 'cq-session-complete'), null);
+  for (let index = 0; index < 3; index++) { find(tree, node => node.type?.name === 'ExpressionEditor').props.onSubmitted(true); tree = h.render(ContributionWorkspace, props); h.flush(); }
+  assert.ok(find(tree, node => node.props?.className === 'cq-session-complete'));
   h.dispose();
 });
 

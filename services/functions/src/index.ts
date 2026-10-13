@@ -200,6 +200,7 @@ export { onContributorPulseSubmissionWritten } from './contributor-pulse.js';
 export { kawuriContributorAssist } from './contributor-assist.js';
 export { getKnowledgeProgress, listKnowledgeRecords, getKnowledgeRecord, saveKnowledgeRecord, reviewKnowledgeRecord, withdrawKnowledgeRecord, readKnowledgeAudio } from './knowledge-workspace.js';
 export { prepareContributorDailyTasks, getContributorDailyTasks, requestMoreContributorTasks } from './contributor-daily-tasks.js';
+export { getContributorJourney, saveContributorJourney, setContributorCollectionGoal, getContributorCollectionGoal, findContributorExpressionMatches } from './contributor-journey.js';
 export { supportPortal, listSupportCases, getSupportCase, updateSupportCase, onSupportEmailCreated, supportEscalationSweep } from './support.js';
 // Firebase resolves all declared secrets during discovery, even for a filtered
 // deployment. Do not load this module until the owner finishes Meta onboarding.

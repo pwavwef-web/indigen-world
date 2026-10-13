@@ -18,7 +18,7 @@ const DUE_TONE: Record<string, 'neutral' | 'warning' | 'danger' | 'info'> = { da
 export function AssignmentPage({ workId, itemId }: { workId: string; itemId?: string }) {
   const data = useWorkspace();
   const { setEditing } = useShared();
-  const { navigate } = useRoute();
+  const { navigate, search } = useRoute();
   const now = useNow();
   const [pending, setPending] = useState(false);
   const [editorOpen, setEditorOpen] = useState(Boolean(itemId));
@@ -127,6 +127,10 @@ export function AssignmentPage({ workId, itemId }: { workId: string; itemId?: st
           try { window.history.replaceState(window.history.state, '', data.paths.work(work.id, id)); } catch { /* The address is a convenience. */ }
         }}
         extras={{
+          checkDuplicates: data.services.findExpressionMatches,
+          initialStep: new URLSearchParams(search).get('step') ?? undefined,
+          variety: work.dialect,
+          previousTranslation: id => data.rounds.find(round => round.work === work.id && round.id === items.find(item => item.id === id)?.submissionId)?.translation,
           guideHref,
           onNavigate: navigate,
           renderKawuri: (openItem, draft, close) => (

@@ -17,6 +17,7 @@ import { AppShell, AuthScreen, AuthWaiting, GoogleButton, Icon, useWorkspaceAcce
 import { SupportPage } from './SupportPage';
 import { CONTRIBUTOR_TRAINING_NOTICE, CONTRIBUTOR_TRAINING_TERMS_VERSION } from './trainingTerms';
 import './contributor.css';
+import './collection-studio.css';
 
 /**
  * The contributor portal at /contributor.

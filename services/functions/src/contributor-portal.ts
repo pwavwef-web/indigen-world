@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { parseContributorDetails, detailsContext, EMPTY_DETAILS } from '@indigen-world/contracts/contributor-details';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
@@ -124,8 +125,16 @@ export function parseExpressionAnswer(raw: Record<string, unknown>) {
   }
   // Optional usage note: who says it, to whom, where. Only a client that shows
   // the field sends it, so an older build never blanks a note it cannot see.
-  if (raw.context == null) return { translation, alternatives };
-  return { translation, alternatives, context: text(raw.context, 1000, true) };
+  let details;
+  try { details = raw.details == null ? undefined : parseContributorDetails(raw.details); }
+  catch (error) { throw new HttpsError('invalid-argument', error instanceof Error ? error.message : 'Check contribution details.'); }
+  if (details) details.alternativeNotes = alternatives.map(value => {
+    const index = (raw.alternatives as unknown[]).findIndex(candidate => typeof candidate === 'string' && candidate.trim() === value);
+    return details!.alternativeNotes[index] ?? '';
+  });
+  return { translation, alternatives,
+    ...(raw.context == null ? {} : { context: text(raw.context, 1000, true) }),
+    ...(details ? { details } : {}) };
 }
 
 /** Reviewer notes for a submitted expression: usage first, then the alternatives. */
@@ -682,7 +691,8 @@ export const saveExpressionAnswer = onCall(options, guarded('saveExpressionAnswe
     if (previousId && !canRevise) {
       if (submit && answer.translation === row.get('translation')
         && JSON.stringify(answer.alternatives) === JSON.stringify(row.get('alternatives'))
-        && (answer.context === undefined || answer.context === (row.get('context') ?? ''))) {
+        && (answer.context === undefined || answer.context === (row.get('context') ?? ''))
+        && (answer.details === undefined || JSON.stringify(answer.details) === JSON.stringify(row.get('details') ?? EMPTY_DETAILS))) {
         return { revision: row.get('revision'), submissionId: previousId };
       }
       throw new HttpsError('failed-precondition', 'Submitted expressions are locked for review.');
@@ -694,7 +704,9 @@ export const saveExpressionAnswer = onCall(options, guarded('saveExpressionAnswe
       ? createHash('sha256').update(`${uid}/${work}/${item}/revision/${revision}`).digest('hex')
       : firstSubmissionId;
     if (submit) {
-      const usageContext = answer.context ?? row.get('context') ?? '';
+      const details = answer.details ?? row.get('details') ?? EMPTY_DETAILS;
+      const usageContext = detailsContext(details, answer.context ?? row.get('context') ?? '');
+      if (usageContext.length > 1500) throw new HttpsError('failed-precondition', 'Shorten the combined usage note and setting to 1,500 characters before submitting.');
       // An expression, filed as one: reviewed on the same desk as every other
       // contribution and published to `expressionEntries`, never split into
       // dictionary headwords. The English prompt is its meaning and the
@@ -705,17 +717,18 @@ export const saveExpressionAnswer = onCall(options, guarded('saveExpressionAnswe
           phrase: answer.translation,
           alternatives: answer.alternatives,
           meaning: String(row.get('expression')),
-          literalTranslation: '',
+          literalTranslation: details.literalMeaning,
           context: usageContext,
           kind: 'phrase',
-          dialect: 'Kasem',
+          dialect: details.variety || 'Kasem',
           source: { type: 'invited-speaker', detail: INVITED_SOURCE_DETAIL, speakerName: '' },
         },
         publicationPermission: true,
         aiTraining: true,
         revisionOf: null,
       };
-      const reviewerNotes = expressionReviewNotes(answer.alternatives, usageContext);
+      const alternativeLabels = answer.alternatives.map((value, index) => details.alternativeNotes[index] ? `${value} (${details.alternativeNotes[index]})` : value);
+      const reviewerNotes = expressionReviewNotes(alternativeLabels, usageContext);
       const submission = buildExpressionSubmissionDocument(submissionId, uid, contribution, now, CONTRIBUTOR_TRAINING_TERMS_VERSION);
       const portal = { contributorId: uid, work, item };
       if (!campaign.exists) tx.set(campaign.ref, buildCollectionCampaignDocument(now));
@@ -723,13 +736,16 @@ export const saveExpressionAnswer = onCall(options, guarded('saveExpressionAnswe
       tx.create(db.doc(`submissions/${submissionId}`), { ...submission, contributorPortal: portal,
         trainingAgreement: member.get('trainingAgreement'),
         ...(previousId ? { revisionOf: previousId, previousReview: previous?.get('moderation') ?? null } : {}),
-        translationNotes: reviewerNotes, alternativeExpressions: answer.alternatives });
+        contributorDetails: details, translationNotes: reviewerNotes, alternativeExpressions: answer.alternatives });
       tx.create(db.doc(`collectionContributions/${submissionId}`), {
         ...buildExpressionReceipt(submissionId, uid, contribution),
         notes: reviewerNotes, contributorPortal: portal, alternativeExpressions: answer.alternatives,
       });
       const day = now.slice(0, 10);
-      if (!previousId && member.get('streakLastDay') !== day) {
+      const participationDays = [...new Set([...(member.get('journey.participationDays') ?? []), day])]
+        .filter((value: string) => value >= new Date(Date.parse(now) - 90 * 86400000).toISOString().slice(0, 10)).sort();
+      tx.update(account, { 'journey.participationDays': participationDays });
+      if (member.get('streakLastDay') !== day) {
         const yesterday = new Date(Date.parse(`${day}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
         const streak = member.get('streakLastDay') === yesterday ? Number(member.get('streakCount') ?? 0) + 1 : 1;
         tx.update(account, { streakLastDay: day, streakCount: streak,
@@ -738,7 +754,7 @@ export const saveExpressionAnswer = onCall(options, guarded('saveExpressionAnswe
     }
     tx.update(ref, { ...answer, revision, updatedAt: now, unsure: skip,
       ...(skip ? { skippedAt: now } : {}),
-      ...(submit ? { submissionId, submittedAt: now, status: 'submitted', feedback: '', reviewedAt: null } : {}) });
+      ...(submit ? { submissionId, revisionOf: previousId ?? '', submittedAt: now, status: 'submitted', feedback: '', reviewedAt: null } : {}) });
     return { revision, ...(submit ? { submissionId } : {}) };
   });
 }));

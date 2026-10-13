@@ -5,7 +5,8 @@ import { friendlyError, itemStatus, metricsFor, type FriendlyError } from './mod
 import type { AccountTab, PaymentsView, Section, SelfView, WorkspaceData } from './types';
 import { AppShell, EmptyState, Button, Page, type NavItem } from '../ui';
 import { NotificationCentre } from './notifications';
-import { OverviewPage } from './pages/OverviewPage';
+import { CollectionHome } from './pages/CollectionHome';
+import { JourneyProvider } from './Journey';
 import { AssignmentsPage } from './pages/AssignmentsPage';
 import { AssignmentPage } from './pages/AssignmentPage';
 import { ContributionsPage } from './pages/ContributionsPage';
@@ -232,7 +233,7 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
   }).filter((item) => !data.preview || item.to !== '/contributor/corpus');
   const workTitle = route.section === 'assignments' && route.work ? data.works.find((work) => work.id === route.work)?.title : undefined;
   return (
-    <SharedContext.Provider value={shared}>
+    <SharedContext.Provider value={shared}><JourneyProvider>
       <AppShell
         workspace="contribute"
         nav={nav}
@@ -247,7 +248,7 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
           {route.notFound ? <NotFound /> : <PageFor key={`${data.uid}:${route.section}`} route={route} />}
         </div>
       </AppShell>
-    </SharedContext.Provider>
+    </JourneyProvider></SharedContext.Provider>
   );
 }
 
@@ -270,7 +271,7 @@ function PageFor({ route }: { route: PortalRoute }) {
     case 'account':
       return <AccountPage tab={route.accountTab} />;
     default:
-      return <OverviewPage />;
+      return <CollectionHome />;
   }
 }
 

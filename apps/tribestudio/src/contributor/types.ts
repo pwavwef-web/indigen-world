@@ -1,4 +1,5 @@
 import type { Item, PaymentNotice, SubmissionRound, Work } from './model';
+import type { Journey } from './journeyModel';
 
 /**
  * The shapes the contributor workspace reads and the services it calls.
@@ -198,6 +199,9 @@ export interface AccountSummary {
 export type SaveAnswer = (data: Record<string, unknown>) => Promise<{ data: { revision: number; submissionId?: string } }>;
 
 export interface WorkspaceServices {
+  findExpressionMatches(phrase: string): Promise<{ matches: { phrase: string; meaning: string; variety: string }[] }>;
+  loadJourney(): Promise<Journey>;
+  saveJourney(input: Journey): Promise<void>;
   unlockDailyPreview?(): void;
   saveAnswer: SaveAnswer;
   loadPayments(): Promise<PaymentsView>;

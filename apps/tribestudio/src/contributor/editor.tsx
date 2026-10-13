@@ -7,6 +7,10 @@ import { contributionState, itemStatus, STATUS_META, type Item, type Status } fr
 import type { SaveAnswer } from './types';
 import { Icon } from '../ui/icons';
 import { KasemField } from '../spelling/KasemField';
+import { EMPTY_DETAILS, parseContributorDetails, detailsContext, type ContributorDetails } from '@indigen-world/contracts/contributor-details';
+import { duplicateHints } from './journeyModel';
+import { MilestoneBurst, useJourney } from './Journey';
+import { motionAllowed } from '../ui/motion';
 
 /**
  * The translation workspace: the expression list and the editor.
@@ -28,6 +32,11 @@ import { KasemField } from '../spelling/KasemField';
 const save = httpsCallable<Record<string, unknown>, { revision: number; submissionId?: string }>(functions, 'saveExpressionAnswer');
 
 export interface EditorExtras {
+  checkDuplicates?: (phrase: string) => Promise<{ matches: { phrase: string; meaning: string; variety: string }[] }>;
+  initialStep?: string;
+  variety?: string;
+  previousTranslation?: (itemId: string) => string | undefined;
+  duplicateItems?: Item[];
   /** Builds a Platform guide link for a section id. */
   guideHref?: (section: string) => string;
   /** In-app navigation for guide links; a plain link is used without it. */
@@ -43,6 +52,7 @@ interface LocalDraft {
   alternatives: string;
   context: string;
   revision: number;
+  details: ContributorDetails;
 }
 
 export function readLocalDraft(key: string): LocalDraft | null {
@@ -54,7 +64,8 @@ export function readLocalDraft(key: string): LocalDraft | null {
       || !Number.isInteger(value.revision)) return null;
     // Copies made before the usage note existed have no `context`.
     if (value.context !== undefined && (typeof value.context !== 'string' || value.context.length > 1000)) return null;
-    return { translation: value.translation, alternatives: value.alternatives, context: value.context ?? '', revision: value.revision };
+    return { translation: value.translation, alternatives: value.alternatives, context: value.context ?? '', revision: value.revision,
+      details: value.details ? parseContributorDetails(value.details) : { ...EMPTY_DETAILS, alternativeNotes: [] } };
   } catch {
     return null;
   }
@@ -115,6 +126,9 @@ export function ContributionWorkspace({ items, work, onPending, accountId, saveA
   const [pending, setPending] = useState(false);
   const [mobileEditor, setMobileEditor] = useState(Boolean(initialItem));
   const [confirmation, setConfirmation] = useState('');
+  const journey = useJourney();
+  const [sessionDone, setSessionDone] = useState<string[]>([]);
+  const [paused, setPaused] = useState(false);
   useListScroll(`${positionKey}:scroll:${filter}:${query}`, items.length>0, !mobileEditor);
   useListScroll(`${positionKey}:inner-scroll:${filter}:${query}`, items.length>0, !mobileEditor, '.cw-list__items');
   useEffect(() => {
@@ -128,11 +142,13 @@ export function ContributionWorkspace({ items, work, onPending, accountId, saveA
   const currentIndex = item ? items.findIndex((candidate) => candidate.id === item.id) : -1;
   const hasNextIncomplete = items.some((candidate, index) => index !== currentIndex && contributionState(candidate) !== 'Submitted');
   const choose = (id: string) => {
+    if (paused) { setPaused(false); setSessionDone([]); }
     setSelected(id);
     setMobileEditor(true);
     onSelectItem?.(id);
   };
   const counts = Object.fromEntries(FILTERS.map((label) => [label, label === 'All' ? items.length : items.filter((candidate) => contributionState(candidate) === label).length]));
+  const nextSession = items.find(candidate => !sessionDone.includes(candidate.id) && ['Not started', 'Drafts', 'Needs revision'].includes(contributionState(candidate)));
 
   if (!items.length) {
     return (
@@ -145,7 +161,9 @@ export function ContributionWorkspace({ items, work, onPending, accountId, saveA
   }
   return (
     <>
-      {confirmation ? <p className="ts-notice ts-notice--success cw-confirmation" role="status"><Icon name="check-circle" className="ts-notice__icon" /><span>{confirmation}</span></p> : null}
+      <div className="cq-session-bar"><span className="cq-eyebrow"><Icon name="target" />Your small session</span><span>{sessionDone.length} / {journey.value.sessionSize} sent for review</span><label className="cq-small">Session size <select aria-label="Session size" value={journey.value.sessionSize} disabled={pending || journey.loading || journey.saving || Boolean(journey.error) || sessionDone.length > 0} onChange={event => void journey.save({ sessionSize: Number(event.target.value) })}><option value={3}>3 expressions</option><option value={5}>5 expressions</option></select></label></div>
+      {confirmation ? <p className="ts-notice ts-notice--success cw-confirmation cq-confirmation" role="status"><MilestoneBurst active={journey.value.celebrations && motionAllowed()} /><Icon name="check-circle" className="ts-notice__icon" /><span>{confirmation}</span></p> : null}
+      {paused ? <section className="cq-session-complete" aria-label="Session complete"><span className="cq-session-medal"><Icon name="check" /></span><div><h2>A thoughtful session, complete.</h2><p>{sessionDone.length} expressions sent for review. {nextSession ? 'Take a break or begin another small session.' : 'Your remaining work is submitted or flagged unsure.'}</p></div><button type="button" className="ts-btn ts-btn--primary" disabled={!nextSession} onClick={() => { if (nextSession) choose(nextSession.id); }}>Start another session<Icon name="arrow" /></button></section> : null}
       <div className={'contributor-workspace' + (mobileEditor ? ' is-editing' : '')}>
         <section className="cw-list" aria-label="Expressions in this assignment">
           <div className="cw-list__tools">
@@ -187,7 +205,7 @@ export function ContributionWorkspace({ items, work, onPending, accountId, saveA
         </section>
         <div className="cw-editor-pane">
           <button type="button" className="ts-btn ts-btn--ghost ts-btn--sm cw-back" disabled={pending} onClick={() => setMobileEditor(false)}><Icon name="back" />All expressions</button>
-          {item ? (
+          {item && !paused ? (
             <ExpressionEditor
               accountId={accountId}
               key={item.id}
@@ -197,7 +215,7 @@ export function ContributionWorkspace({ items, work, onPending, accountId, saveA
               hasNextIncomplete={hasNextIncomplete}
               work={work}
               saveAnswer={saveAnswer}
-              extras={extras}
+              extras={{ ...extras, duplicateItems: items }}
               onPending={(value) => { setPending(value); onPending(value); if (value) setSelected(item.id); }}
               onSkipped={() => {
                 const index = items.findIndex((candidate) => candidate.id === item.id);
@@ -207,12 +225,16 @@ export function ContributionWorkspace({ items, work, onPending, accountId, saveA
               }}
               onSubmitted={(next) => {
                 const index = items.findIndex((candidate) => candidate.id === item.id);
-                const remaining = [...items.slice(index + 1), ...items.slice(0, index)].find((candidate) => contributionState(candidate) === 'Not started');
+                const remaining = [...items.slice(index + 1), ...items.slice(0, index)].find((candidate) => !sessionDone.includes(candidate.id) && ['Not started', 'Drafts', 'Needs revision'].includes(contributionState(candidate)));
+                const completed = [...new Set([...sessionDone, item.id])];
+                setSessionDone(completed);
+                const sessionComplete = completed.length >= journey.value.sessionSize;
+                if (sessionComplete) { setPaused(true); setMobileEditor(false); if (remaining) setSelected(remaining.id); }
                 setConfirmation(`“${item.expression}” was sent to the Review Desk.${next && !remaining ? ' No untouched expressions remain. Check Drafts for unfinished work.' : ''}`);
-                if (next && remaining) { setFilter('All'); setQuery(''); choose(remaining.id); }
+                if (next && remaining && !sessionComplete) { setFilter('All'); setQuery(''); choose(remaining.id); }
               }}
             />
-          ) : <p className="ts-muted">Choose an expression to begin.</p>}
+          ) : !paused ? <p className="ts-muted">Choose an expression to begin.</p> : null}
           {/* Outside the editor's form: the report dialog has a form of its own. */}
           {item && extras.renderReport ? <div className="cw-editor__footer">{extras.renderReport(item.id)}</div> : null}
         </div>
@@ -239,15 +261,32 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
   const [translation, setTranslation] = useState(item.translation);
   const [alternatives, setAlternatives] = useState(item.alternatives.join('\n'));
   const [context, setContext] = useState(item.context ?? '');
+  const [details, setDetails] = useState<ContributorDetails>(() => ({ ...EMPTY_DETAILS, variety: extras.variety ?? '', ...item.details, alternativeNotes: item.details?.alternativeNotes ?? [] }));
+  const steps = ['understand', 'translate', 'context', 'check'];
+  const [step, setStep] = useState(() => steps.includes(extras.initialStep ?? '') ? steps.indexOf(extras.initialStep!) : item.submissionId && !['rejected', 'needs_revision'].includes(item.status) ? 3 : item.translation.trim() ? 1 : 0);
+  const panelHeading = useRef<HTMLHeadingElement>(null);
+  const moveStep = (next: number) => { setStep(next); if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(() => panelHeading.current?.focus({ preventScroll: true })); };
   const [alternativeCount, setAlternativeCount] = useState(item.alternatives.length);
   const [publication, setPublication] = useState(false);
   const [status, setStatus] = useState('Saved');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [kawuriOpen, setKawuriOpen] = useState(false);
+  const [publishedMatches, setPublishedMatches] = useState<{ phrase: string; meaning: string; variety: string }[] | null>(null);
+  const [duplicateBusy, setDuplicateBusy] = useState(false), [duplicateError, setDuplicateError] = useState('');
+  const duplicateRequest = useRef(0);
+  useEffect(() => { duplicateRequest.current++; setPublishedMatches(null); setDuplicateError(''); setDuplicateBusy(false); }, [translation]);
+  const checkPublished = async () => {
+    if (!extras.checkDuplicates || !translation.trim()) return;
+    const request = ++duplicateRequest.current;
+    setDuplicateBusy(true); setDuplicateError('');
+    try { const result = await extras.checkDuplicates(translation); if (request === duplicateRequest.current) setPublishedMatches(result.matches); }
+    catch { if (request === duplicateRequest.current) setDuplicateError('Published expressions could not be checked. You can still send this for human review.'); }
+    finally { if (request === duplicateRequest.current) setDuplicateBusy(false); }
+  };
   const revision = useRef(item.revision), chain = useRef(Promise.resolve()), dirty = useRef(false), blocked = useRef(false);
-  const payload = useRef({ translation, alternatives, context });
-  payload.current = { translation, alternatives, context };
+  const payload = useRef({ translation, alternatives, context, details });
+  payload.current = { translation, alternatives, context, details };
   const submitting = useRef(false);
   const activeField = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
   const [sent, setSent] = useState(false);
@@ -259,7 +298,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
   const storageKey = accountId ? `contributor-draft:${accountId}:${work}:${item.id}` : '';
   const [recovery, setRecovery] = useState(() => readLocalDraft(storageKey));
   const [storageError, setStorageError] = useState('');
-  const keepLocal = (answer: { translation: string; alternatives: string; context: string }) => {
+  const keepLocal = (answer: { translation: string; alternatives: string; context: string; details: ContributorDetails }) => {
     if (!storageKey) return;
     try {
       window.localStorage.setItem(storageKey, JSON.stringify({ ...answer, revision: revision.current }));
@@ -278,6 +317,12 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
     else if (field === 'alternatives') setAlternatives(value);
     else setContext(value);
   };
+  const changeDetails = (patch: Partial<ContributorDetails>) => {
+    const next = { ...payload.current.details, ...patch };
+    payload.current = { ...payload.current, details: next };
+    keepLocal(payload.current); dirty.current = true; onPending(true);
+    setStatus(blocked.current ? 'Couldn’t save' : 'Saving…'); setDetails(next);
+  };
   const persist = (submit = false, skip = false) => {
     const answer = { ...payload.current };
     chain.current = chain.current.then(async () => {
@@ -285,11 +330,12 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
       const result = await saveAnswer({
         work, item: item.id, revision: revision.current, translation: answer.translation,
         alternatives: answer.alternatives.split('\n').filter((value) => value.trim()), context: answer.context,
+        details: { ...answer.details, alternativeNotes: answer.alternatives.split('\n').flatMap((value, index) => value.trim() ? [answer.details.alternativeNotes[index] ?? ''] : []) },
         submit, skip, publicationPermission: publication,
       });
       revision.current = result.data.revision;
       if (payload.current.translation === answer.translation && payload.current.alternatives === answer.alternatives
-        && payload.current.context === answer.context) dirty.current = false;
+        && payload.current.context === answer.context && JSON.stringify(payload.current.details) === JSON.stringify(answer.details)) dirty.current = false;
       if (dirty.current) keepLocal(payload.current);
       else { try { if (storageKey) window.localStorage.removeItem(storageKey); } catch { /* Keep the acknowledged server copy. */ } }
       onPending(dirty.current || submitting.current);
@@ -307,7 +353,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
     setStatus('Saving…');
     const timer = window.setTimeout(() => { void persist().catch(() => undefined); }, 700);
     return () => window.clearTimeout(timer);
-  }, [translation, alternatives, context, locked, busy, recovery]);
+  }, [translation, alternatives, context, details, locked, busy, recovery]);
   useEffect(() => {
     const guard = (event: Event) => {
       if (dirty.current) {
@@ -335,8 +381,10 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
     const next = alternativeValues.filter((_, current) => current !== index);
     setAlternativeCount(next.length);
     changeAnswer('alternatives', next.join('\n'));
+    changeDetails({ alternativeNotes: details.alternativeNotes.filter((_, current) => current !== index) });
   };
   const cannotSubmit = !translation.trim() ? 'Enter a Kasem translation to submit.'
+    : detailsContext(details, context).length > 1500 ? 'Shorten the combined usage note and setting to 1,500 characters.'
     : !publication ? 'Tick the required sharing permission to submit.'
       : blocked.current ? 'Retry saving your draft before submitting.' : '';
   const submitHelp = recovery ? 'Restore or discard the recovered draft before submitting.'
@@ -369,14 +417,25 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
   const state = contributionState(item);
   const detailed = itemStatus(item);
   const listedAlternatives = savedAlternatives.filter((value) => value.trim());
+  const duplicates = duplicateHints(translation, extras.duplicateItems ?? [], item.id);
+  const previousTranslation = extras.previousTranslation?.(item.id);
+  const stepTitles = ['Understand the expression', 'Write natural Kasem', 'Give it a setting', 'Check & send for review'];
+  const checklist = [
+    { title: 'A Kasem translation is present', done: Boolean(translation.trim()), required: true, target: 1 },
+    { title: 'Draft is saved safely', done: !dirty.current && !blocked.current && !recovery, required: true, target: 1 },
+    { title: 'Usage context helps the reviewer', done: Boolean(context.trim() || details.situation.trim()), required: false, target: 2 },
+    { title: 'Language variety is recorded', done: Boolean(details.variety.trim()), required: false, target: 0 },
+    { title: 'Sharing permission is confirmed', done: publication || locked, required: true, target: 3 },
+  ];
   const saveTone = status === 'Couldn’t save' ? ' is-error' : status === 'Saving…' ? ' is-saving' : '';
   const chipTone = STATUS_META[detailed].tone;
   return (
-    <form className="contributor-editor" onInvalid={(event) => {
+    <form className="contributor-editor cq-editor" noValidate onInvalid={(event) => {
       event.currentTarget.querySelector<HTMLElement>(':invalid')?.scrollIntoView({ block: 'center' });
     }} onSubmit={(event) => {
       event.preventDefault();
-      if (locked || recovery || blocked.current || cannotSubmit || busy || submitting.current) return;
+      if (locked || recovery || blocked.current || busy || submitting.current) return;
+      if (cannotSubmit) { moveStep(!translation.trim() ? 1 : detailsContext(details, context).length > 1500 ? 2 : 3); return; }
       reviewNext.current = (event.nativeEvent as SubmitEvent | undefined)?.submitter?.getAttribute('value') === 'next';
       reviewDialog.current?.showModal();
     }}>
@@ -393,6 +452,8 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
             <div><dt>Kasem translation</dt><dd className="review-answer-text" lang="xsm">{translation}</dd></div>
             <div><dt>Alternatives</dt><dd>{listedAlternatives.length ? <ul className="cw-review-alts">{listedAlternatives.map((value, index) => <li key={index} lang="xsm">{value}</li>)}</ul> : 'None added.'}</dd></div>
             <div><dt>Usage note</dt><dd>{context.trim() || 'None added.'}</dd></div>
+            <div><dt>Language variety</dt><dd>{details.variety || 'Not recorded'}</dd></div>
+            <div><dt>Speaker and setting</dt><dd>{detailsContext(details) || 'None added.'}</dd></div>
             <div><dt>Sharing permission</dt><dd>{publication ? 'Granted' : 'Not granted'}</dd></div>
             <div><dt>Model training and evaluation</dt><dd>Included under your contributor agreement</dd></div>
           </dl>
@@ -419,6 +480,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
           <div>
             <strong>Reviewer feedback</strong>
             <p>{item.feedback}</p>
+            {revising && previousTranslation ? <details className="cq-previous"><summary>Your previously submitted version</summary><p lang="xsm">{previousTranslation}</p></details> : null}
             {revising ? <small>Revise your translation below, then resubmit it. Your earlier version and this decision stay on record. <GuideHint section="review" extras={extras}>How revisions work</GuideHint></small> : null}
           </div>
         </section>
@@ -437,6 +499,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
                 changeAnswer('translation', recovery.translation);
                 changeAnswer('alternatives', recovery.alternatives);
                 changeAnswer('context', recovery.context);
+                changeDetails(recovery.details);
                 setRecovery(null);
               }}>Restore draft</button> : null}
               <button type="button" className="ts-btn ts-btn--ghost ts-btn--sm" onClick={() => { try { window.localStorage.removeItem(storageKey); } catch { /* Storage may be unavailable. */ } setRecovery(null); }}>Discard recovery copy</button>
@@ -455,7 +518,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
           {!locked ? <button type="button" className="ts-btn ts-btn--ghost ts-btn--sm" disabled={busy || Boolean(recovery) || blocked.current || !dirty.current} onClick={() => void persist().catch(() => undefined)}>Save draft</button> : null}
           {error && !locked ? <button type="button" className="ts-btn ts-btn--sm" disabled={busy} onClick={retrySave}>Retry save now</button> : null}
           {extras.renderKawuri && !locked ? (
-            <button type="button" className="ts-btn ts-btn--soft ts-btn--sm cw-kawuri-toggle" aria-expanded={kawuriOpen} onClick={() => setKawuriOpen((open) => !open)}>
+            <button type="button" className="ts-btn ts-btn--soft ts-btn--sm cw-kawuri-toggle" aria-expanded={kawuriOpen} onClick={() => { moveStep(3); setKawuriOpen((open) => !open); }}>
               <Icon name="kawuri" />
               {kawuriOpen ? 'Hide Kawuri check' : 'Check with Kawuri'}
             </button>
@@ -463,12 +526,24 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
         </span>
       </div>
 
-      {kawuriOpen && extras.renderKawuri ? extras.renderKawuri(item.id, { translation, alternatives: listedAlternatives, context }, () => setKawuriOpen(false)) : null}
+      <div className="cq-editor-nav"><span className="cq-sticky-source">{item.expression}</span><nav className="cq-stepper" aria-label="Contribution sections" style={{ ['--step' as string]: step }}>
+        {['Understand', 'Translate', 'Context', 'Check & send'].map((label, index) => <button key={label} type="button" aria-current={step === index ? 'step' : undefined} aria-controls={`contribution-section-${index}`} onClick={() => moveStep(index)}><span>{(index === 1 && translation.trim()) || (index === 2 && (context.trim() || details.situation.trim())) || (index === 3 && locked) ? <Icon name="check" /> : index + 1}</span><strong>{label}</strong><small>{index === 2 ? 'Optional details' : index === step ? 'You are here' : index === 1 && translation.trim() ? 'Translation added' : 'Open section'}</small></button>)}
+      </nav></div>
+      <div className="cq-section-heading"><span className="cq-eyebrow">Section {step + 1} of 4</span><h3 tabIndex={-1} ref={panelHeading}>{stepTitles[step]}</h3><p>{['Picture a real conversation before you begin.', 'Use the way you would say it in everyday life.', 'A little context can make the meaning much clearer.', 'Check your own answer. Reviewers confirm its accuracy.'][step]}</p></div>
+      <section id="contribution-section-0" className="cq-step-panel" hidden={step !== 0} aria-label="Understand">
+        <blockquote className="cq-source"><span className="cq-eyebrow">English expression</span><p>{item.expression}</p></blockquote>
+        <div className="cq-understand-tips"><span><Icon name="users" /><strong>Picture the conversation</strong><small>Who would say this, and what are they trying to convey?</small></span><span><Icon name="translation" /><strong>Keep the intended meaning</strong><small>A natural expression may use different words from the English.</small></span></div>
+        <label className="ts-field"><span className="ts-label">Kasem language variety <span className="ts-optional">Optional</span></span><input className="ts-input" value={details.variety} maxLength={80} disabled={locked || busy || Boolean(recovery)} placeholder="For example, Navrongo · or Not sure" onChange={event => changeDetails({ variety: event.target.value })} /><small className="ts-hint">Assignment guidance is prefilled when available. Correct it if your expression uses another variety.</small></label>
+        <GuideHint section="good-contribution" extras={extras}>Read the contribution tips<Icon name="arrow" /></GuideHint>
+      </section>
+
+      <section id="contribution-section-1" className="cq-step-panel" hidden={step !== 1} aria-label="Translate">
 
       <label className="ts-field translation-field">
         <span className="ts-label">Kasem translation <span aria-hidden="true" className="ts-required">*</span></span>
         <KasemField
           className="ts-textarea cw-translation"
+          aria-label="Kasem translation"
           lang="xsm"
           ref={(node) => { if (node && !activeField.current) activeField.current = node; }}
           onFocus={(event) => { activeField.current = event.currentTarget; }}
@@ -482,15 +557,18 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
         />
         <small className="ts-hint" id="translation-help">Write it as you would say it. <GuideHint section="good-contribution" extras={extras}>Translation tips</GuideHint></small>
       </label>
+      {revising && item.feedback ? <p className="cq-inline-feedback"><Icon name="message" /><span>{item.feedback}</span></p> : null}
+      </section>
 
       {!locked ? (
-        <div className="contributor-characters" role="group" aria-label="Kasem characters">
+        <div className="contributor-characters cq-character-bar" hidden={step !== 1 && step !== 2} role="group" aria-label="Kasem characters">
           <small>Insert a Kasem letter · <a href="/spelling-guide.html" target="_blank" rel="noreferrer">Spelling guide</a> · <a href="/grammar-guide.html" target="_blank" rel="noreferrer">Grammar guide</a></small>
           <div>
             {KASEM_CHARACTERS.map((char) => (
               <button type="button" key={char} className="cw-letter" aria-label={`Insert ${char}`} disabled={busy || Boolean(recovery)} onMouseDown={(event) => event.preventDefault()} onClick={() => {
                 const field = activeField.current;
-                if (!field) return;
+                if (!field || field.closest('[hidden]')) return;
+                if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) && document.activeElement !== field) return;
                 const start = field.selectionStart ?? field.value.length;
                 const end = field.selectionEnd ?? start;
                 const value = field.value.slice(0, start) + char + field.value.slice(end);
@@ -506,7 +584,10 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
         </div>
       ) : null}
 
-      <details className="ts-disclosure cw-optional" open={Boolean(item.alternatives.length || item.context)}>
+      <section id="contribution-section-2" className="cq-step-panel" hidden={step !== 2} aria-label="Context">
+      <div className="cq-context-grid">{[{ key: 'speaker' as const, label: 'Who says it?', placeholder: 'A host, a child, a friend…', max: 160 }, { key: 'listener' as const, label: 'To whom?', placeholder: 'An elder, a neighbour, a group…', max: 160 }, { key: 'situation' as const, label: 'In what situation?', placeholder: 'What is happening in this conversation?', max: 300 }, { key: 'literalMeaning' as const, label: 'Literal meaning', placeholder: 'Useful when the phrase is an idiom', max: 300 }].map(field => <label key={field.key} className="ts-field"><span className="ts-label">{field.label}<span className="ts-optional">Optional</span></span><input className="ts-input" maxLength={field.max} value={details[field.key]} disabled={locked || busy || Boolean(recovery)} placeholder={field.placeholder} onChange={event => changeDetails({ [field.key]: event.target.value })} /></label>)}</div>
+      <label className="ts-field"><span className="ts-label">Tone <span className="ts-optional">Optional</span></span><select className="ts-select" aria-label="Expression tone" value={details.register} disabled={locked || busy || Boolean(recovery)} onChange={event => changeDetails({ register: event.target.value })}><option value="">Choose if useful</option>{['Everyday', 'Respectful', 'Informal', 'Formal', 'Playful', 'Not sure'].map(value => <option key={value}>{value}</option>)}</select></label>
+      <details className="ts-disclosure cw-optional" open>
         <summary><Icon name="layers" /><span>Alternatives and usage note<small>Optional · reviewers read the usage note first</small></span><Icon name="chevron" className="ts-disclosure__chev" /></summary>
         <div className="ts-disclosure__body">
           <section className="alternative-translations ts-stack ts-stack--sm">
@@ -515,11 +596,12 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
               <small className="ts-hint">Up to 12 · <GuideHint section="alternatives-context" extras={extras}>When to add one</GuideHint></small>
             </div>
             {alternativeValues.map((value, index) => (
-              <label key={index} className="cw-alternative">
-                <span className="sr-only">Alternative {index + 1}</span>
-                <KasemField as="input" className="ts-input ts-input--sm" lang="xsm" name="alternatives" data-alternative-index={index} maxLength={500} disabled={locked || busy || Boolean(recovery)} value={value} placeholder={`Another natural way to say it (${index + 1})`} onFocus={(event) => { activeField.current = event.currentTarget; }} onChange={(event) => updateAlternative(index, event.target.value)} />
+              <div key={index} className="cw-alternative cq-alternative-row">
+                <label><span className="sr-only">Alternative {index + 1}</span>
+                <KasemField as="input" aria-label={`Alternative ${index + 1}`} className="ts-input ts-input--sm" lang="xsm" name="alternatives" data-alternative-index={index} maxLength={500} disabled={locked || busy || Boolean(recovery)} value={value} placeholder={`Another natural way to say it (${index + 1})`} onFocus={(event) => { activeField.current = event.currentTarget; }} onChange={(event) => updateAlternative(index, event.target.value)} />
+                </label><select className="ts-select ts-select--sm" aria-label={`Difference for alternative ${index + 1}`} disabled={locked || busy || Boolean(recovery)} value={details.alternativeNotes[index] ?? ''} onChange={event => { const notes = [...details.alternativeNotes]; notes[index] = event.target.value; changeDetails({ alternativeNotes: notes.map(value => value ?? '') }); }}><option value="">Difference (optional)</option><option value="polite">More polite</option><option value="informal">Informal</option><option value="regional">Regional</option><option value="emphasis">Different emphasis</option><option value="other">Other</option></select>
                 <button type="button" className="ts-btn ts-btn--ghost ts-btn--icon ts-btn--sm" aria-label={`Remove alternative ${index + 1}`} disabled={busy || locked} onClick={() => removeAlternative(index)}><Icon name="close" /></button>
-              </label>
+              </div>
             ))}
             {!locked && alternativeValues.length < 12 ? <button className="add-alternative ts-btn ts-btn--ghost ts-btn--sm" type="button" disabled={busy || Boolean(recovery)} onClick={() => setAlternativeCount((count) => Math.min(12, count + 1))}><Icon name="plus" />Add an alternative</button> : null}
           </section>
@@ -538,10 +620,19 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
               onFocus={(event) => { activeField.current = event.currentTarget; }}
               onChange={(event) => changeAnswer('context', event.target.value)}
             />
-            <small className="ts-hint" id="context-help">For idioms, add the literal and intended meaning. <GuideHint section="alternatives-context" extras={extras}>Context tips</GuideHint></small>
+            <small className="ts-hint" id="context-help">For idioms, add the literal and intended meaning. {detailsContext(details, context).length} / 1,500 characters across the usage note and setting. <GuideHint section="alternatives-context" extras={extras}>Context tips</GuideHint></small>
           </label>
         </div>
       </details>
+      </section>
+
+      <section id="contribution-section-3" className="cq-step-panel" hidden={step !== 3} aria-label="Check and send">
+        <div className="cq-answer-preview"><span className="cq-eyebrow">Your answer</span><p lang="xsm">{translation.trim() || 'Your Kasem translation will appear here.'}</p><small>{details.variety || 'Language variety not recorded'}</small></div>
+        <ul className="cq-readiness" aria-label="Ready for review checklist">{checklist.map(check => <li key={check.title} className={check.done ? 'is-ready' : ''}><Icon name={check.done ? 'check-circle' : check.required ? 'circle' : 'info'} /><span>{check.title}<small>{check.done ? 'Done' : check.required ? 'Needed before sending' : 'Suggestion · optional'}</small></span>{!check.done ? <button type="button" onClick={() => moveStep(check.target)}>Open<Icon name="arrow" /></button> : null}</li>)}</ul>
+        {extras.checkDuplicates && !locked ? <div className="cq-published-check"><button type="button" className="ts-btn ts-btn--ghost ts-btn--sm" disabled={duplicateBusy || !translation.trim()} onClick={() => void checkPublished()}><Icon name="search" />{duplicateBusy ? 'Checking published expressions…' : 'Check published expressions'}</button>{publishedMatches ? <p className="cq-small" role="status">{publishedMatches.length ? `This exact wording is published: ${publishedMatches.map(match => `${match.meaning}${match.variety ? ` (${match.variety})` : ''}`).join(' · ')}` : 'No exact published wording found. Similar expressions may still exist.'}</p> : null}{duplicateError ? <p className="cq-error" role="status">{duplicateError}</p> : null}</div> : null}
+        {duplicates.length ? <div className="cq-duplicate"><Icon name="layers" /><div><strong>This wording appears in your assignment already.</strong><p>{duplicates.map(item => item.expression).join(' · ')}</p><label className="ts-field"><span className="ts-label">What makes this a distinct variant? <span className="ts-optional">Optional</span></span><textarea className="ts-textarea" rows={2} maxLength={300} value={details.variantNote} disabled={locked || busy || Boolean(recovery)} onChange={event => changeDetails({ variantNote: event.target.value })} /></label><small>A reviewer will decide whether the variant is distinct.</small></div></div> : null}
+        {extras.renderKawuri && !locked ? <button type="button" className="ts-btn ts-btn--soft" aria-expanded={kawuriOpen} onClick={() => setKawuriOpen(value => !value)}><Icon name="kawuri" />{kawuriOpen ? 'Hide Kawuri suggestions' : 'Ask Kawuri for suggestions'}</button> : null}
+        {kawuriOpen && extras.renderKawuri ? detailsContext(details, context).length <= 1500 ? extras.renderKawuri(item.id, { translation, alternatives: listedAlternatives, context: detailsContext(details, context) }, () => setKawuriOpen(false)) : <p className="cq-error">Shorten your combined usage notes to 1,500 characters to use the draft check.</p> : null}
 
       {!locked ? (
         <>
@@ -556,6 +647,11 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
             </label>
             <p className="ts-hint">All submissions are used for language model training and evaluation under your contributor agreement. Reviewed expressions stay in the expression collection; the dictionary contains words. <GuideHint section="review" extras={extras}>What these permissions mean</GuideHint></p>
           </section>
+        </>
+      ) : <p className="cq-success"><Icon name="shield" />{item.status === 'verified' ? 'Accepted by a reviewer.' : 'Submitted for review.'} Follow publication and point decisions in My contributions and Points & rewards.</p>}
+      </section>
+      {!locked ? (
+        <>
           {error ? (
             <div role="alert" className="ts-notice ts-notice--danger">
               <Icon name="alert" className="ts-notice__icon" />
@@ -565,7 +661,8 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
               <div className="ts-notice__action"><button type="button" className="ts-btn ts-btn--sm" onClick={retrySave}>Retry save</button></div>
             </div>
           ) : null}
-          <div className="contributor-submit-wrap cw-submit">
+          <div className="cq-section-actions" hidden={step === 3}><button type="button" className="ts-btn ts-btn--ghost" disabled={step === 0} onClick={() => moveStep(step - 1)}><Icon name="back" />Back</button><span className="cq-small">{step === 2 ? 'Optional details · skip if not useful' : 'Your draft saves as you work'}</span>{step < 3 ? <button type="button" className="ts-btn ts-btn--primary" onClick={() => moveStep(step + 1)}>Continue<Icon name="arrow" /></button> : null}</div>
+          <div className="contributor-submit-wrap cw-submit" hidden={step !== 3}>
             <p id="submit-help" className={cannotSubmit || recovery ? 'ts-hint' : 'ts-hint cw-submit__ready'}>{!cannotSubmit && !recovery ? <Icon name="check-circle" /> : null}{submitHelp}</p>
             <button type="submit" value={hasNextIncomplete ? 'next' : 'submit'} className="ts-btn ts-btn--primary ts-btn--lg contributor-submit-cta" aria-describedby="submit-help" disabled={busy || Boolean(recovery) || blocked.current}>{busy ? 'Submitting…' : revising ? 'Resubmit for review →' : 'Submit for review →'}</button>
           </div>
@@ -573,6 +670,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
             <div>
               <strong>Not sure about this one?</strong>
               <p>Flag it and move on. Your draft stays private and nothing is sent for review.</p>
+              <select className="ts-select ts-select--sm" aria-label="Why are you unsure?" disabled={busy || Boolean(recovery) || blocked.current} value={details.uncertainty} onChange={event => changeDetails({ uncertainty: event.target.value })}><option value="">Reason (optional)</option><option value="unclear-prompt">The English is unclear</option><option value="unfamiliar">I don’t know this expression</option><option value="several-meanings">It could mean several things</option><option value="variety">Unsure about the language variety</option><option value="other">Another reason</option></select>
             </div>
             <button type="button" className="ts-btn ts-btn--ghost ts-btn--sm" disabled={busy || Boolean(recovery) || blocked.current} onClick={async () => {
               submitting.current = true;
