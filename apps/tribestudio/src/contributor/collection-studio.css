@@ -1,5 +1,5 @@
 /* The contributor studio uses the shared blue brand in both colour modes. */
-.ts-app[data-workspace="contribute"], :root[data-theme-resolved="dark"] .ts-app[data-workspace="contribute"] { --ws: var(--accent); --ws-text: var(--accent-text); --ws-soft: var(--accent-soft); --ws-line: var(--accent-line); }
+.ts-app[data-workspace="contribute"], .ts-auth[data-workspace="contribute"], :root[data-theme-resolved="dark"] .ts-app[data-workspace="contribute"], :root[data-theme-resolved="dark"] .ts-auth[data-workspace="contribute"] { --ws: var(--accent); --ws-text: var(--accent-text); --ws-soft: var(--accent-soft); --ws-line: var(--accent-line); }
 .ts-app[data-workspace="contribute"] .ts-ambient { opacity: .3; }
 .ts-app[data-workspace="contribute"] .cw-assignment, .ts-app[data-workspace="contribute"] .cw-list { border-radius: 20px; box-shadow: 0 3px 12px -9px #0f183020; }
 .cq-home, .cw-assignment-page { --cq-brand: var(--accent); --cq-curve: cubic-bezier(.22, 1, .36, 1); }
