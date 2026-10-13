@@ -5,7 +5,7 @@ import { useSiteMotion } from '../features/motion/SiteMotion';
 import { CULTURE_PHOTOS as PHOTOS } from '../../public/culture-photos.js';
 
 
-/** The headline stays still while credited cultural photographs form a quiet loop. */
+/** Stable page content over an original illustrated community and layered scenery. */
 export function CultureHero({ children, variant = 'page', className = '', id = 'top' }: {
   children: ReactNode; variant?: 'home' | 'page' | 'embedded' | 'compact'; className?: string; id?: string;
 }) {
@@ -54,16 +54,19 @@ export function CultureHero({ children, variant = 'page', className = '', id = '
     }
   };
 
-  return <section ref={root} className={`culture-hero culture-hero--${variant} ${className}`} id={id} aria-label="Indigen World cultural photographs"
+  return <section ref={root} className={`culture-hero culture-hero--illustrated culture-hero--${variant} ${className}`} id={id} aria-label="Indigen World illustrated community banner"
     data-playing={playing} data-active-slide={active}
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onFocusCapture={() => setFocused(true)}
     onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
+    <div className="culture-atmosphere" aria-hidden="true"><span className="culture-cloud culture-cloud--one" /><span className="culture-cloud culture-cloud--two" />
+      <svg className="culture-birds" viewBox="0 0 800 180"><path d="M90 90q12-16 24 0q12-16 24 0 M300 55q10-14 20 0q10-14 20 0 M560 115q14-18 28 0q14-18 28 0" /></svg>
+      <span className="culture-leaf culture-leaf--left" /><span className="culture-leaf culture-leaf--right" />
+    </div>
     <div className="culture-hero__images" aria-hidden="true">
-      {PHOTOS.map((item, index) => <img key={item.id}
+      {PHOTOS.map((item, index) => <img key={item.id} data-scene={item.id}
         className={index === active && ready.includes(index) ? 'is-active' : ''}
-        src={`/images/culture/${item.id}-${item.width}.webp`}
-        srcSet={`/images/culture/${item.id}-800.webp 800w, /images/culture/${item.id}-${item.width}.webp ${item.width}w`}
+        src={item.image}
         sizes="100vw" width={item.width} height={item.height} alt=""
         fetchPriority={index === 0 ? 'high' : 'low'} decoding="async"
         onLoad={() => setReady(current => current.includes(index) ? current : [...current, index])}
@@ -76,19 +79,17 @@ export function CultureHero({ children, variant = 'page', className = '', id = '
         <p className="culture-hero__location">{ready.includes(active) ? photo.place : 'Language, stories and shared knowledge'}</p>
         <p className="culture-hero__photo-title">{ready.includes(active) ? photo.title : 'Indigen World'}</p>
         {ready.includes(active) && <p className="culture-hero__credit">
-          Photo: <a href={`https://commons.wikimedia.org/wiki/File:${photo.source}`} target="_blank" rel="noreferrer">{photo.author}</a>
-          {' · '}<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>
-          <span> · Resized and cropped for display</span>
+          Original Indigen World illustration · AI-generated · Fictional characters
         </p>}
         <span className="sr-only">{ready.includes(active) ? photo.alt : ''}</span>
       </div>
-      <div className="culture-hero__controls" role="group" aria-label="Cultural photograph controls">
-        <button type="button" className="culture-hero__arrow" onClick={() => step(-1)} aria-label="Previous photograph" disabled={ready.length < 2}>←</button>
-        <div className="culture-hero__dots" role="group" aria-label="Choose a photograph">
-          {PHOTOS.map((item, index) => <button key={item.id} type="button" aria-label={`Show photograph ${index + 1}: ${item.title}`}
+      <div className="culture-hero__controls" role="group" aria-label="Illustrated scene controls">
+        <button type="button" className="culture-hero__arrow" onClick={() => step(-1)} aria-label="Previous scene" disabled={ready.length < 2}>←</button>
+        <div className="culture-hero__dots" role="group" aria-label="Choose a scene">
+          {PHOTOS.map((item, index) => <button key={item.id} type="button" aria-label={`Show scene ${index + 1}: ${item.title}`}
             aria-pressed={active === index} disabled={!ready.includes(index)} onClick={() => select(index)}><span /></button>)}
         </div>
-        <button type="button" className="culture-hero__arrow" onClick={() => step(1)} aria-label="Next photograph" disabled={ready.length < 2}>→</button>
+        <button type="button" className="culture-hero__arrow" onClick={() => step(1)} aria-label="Next scene" disabled={ready.length < 2}>→</button>
         {!reduced && <button type="button" className="culture-hero__pause" aria-pressed={paused} onClick={toggle}>
           <span aria-hidden="true">{paused ? '▷' : 'Ⅱ'}</span> {paused ? 'Resume animations' : 'Pause animations'}
         </button>}

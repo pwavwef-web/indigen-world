@@ -3,13 +3,13 @@ import { Button } from './Button';
 const CARDS = [
   { step: '01 / Share your knowledge', title: 'Your everyday words have a place here.', status: 'Open campaign',
     body: 'Share one expression with its meaning, context and source. A Kasem-speaking reviewer checks it before publication. Free Google sign-in; this is a volunteer campaign.',
-    image: 'header-participation.jpg', to: 'contribute', action: 'See the task and review process' },
+    image: 'culture/original/community-characters-v2.webp', to: 'contribute', action: 'See the task and review process' },
   { step: '02 / Care for the record', title: 'The source stays with the story.', status: 'Sources & permissions',
     body: 'Speakers, teachers and cultural custodians help care for shared knowledge. Read how attribution, review and permission guide the work.',
-    image: 'hero-home.jpg', to: 'impact-governance', action: 'Read how knowledge is cared for' },
+    image: 'culture/original/community-characters-v2.webp', to: 'impact-governance', action: 'Read how knowledge is cared for' },
   { step: '03 / Build together', title: 'Small contributions. A shared future.', status: 'Follow the progress',
     body: 'See the community’s progress toward its shared goals, explore the contribution categories, and find where you can help next.',
-    image: 'header-stewardship.jpg', to: 'progress', action: 'Explore community progress' },
+    image: 'culture/original/community-characters-v2.webp', to: 'progress', action: 'Explore community progress' },
 ];
 
 export function HomeScrollStories() {

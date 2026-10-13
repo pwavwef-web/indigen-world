@@ -1,14 +1,9 @@
+// Retain the module/export name for the standalone guide generators.
+// Every scene reuses the same original character sheet; these are fictional people.
 export const CULTURE_PHOTOS = [
-  { id: 'tiebele', title: 'Kassena architecture', place: 'Tiébélé, Burkina Faso',
-    alt: 'Decorated earthen buildings of the Kassena people in Tiébélé, Burkina Faso',
-    author: 'Alexander Leisser', source: 'Tiebele_village_in_Burkina_Faso_04.jpg', position: '58% 52%', width: 1600, height: 1061 },
-  { id: 'basket-weavers', title: 'Knowledge in the making', place: 'Bolgatanga, Ghana',
-    alt: 'Basket weavers at work in Bolgatanga in the Upper East Region of Ghana',
-    author: 'Vrinda Khushu', source: 'Basket_Weavers.jpg', position: '58% 50%', width: 1600, height: 900 },
-  { id: 'kente-weaving', title: 'Threads of tradition', place: 'Kente weaving, Ghana',
-    alt: 'A kente weaver working at a loom in Ghana',
-    author: 'Kwameghana (Bright Kwame Ayisi)', source: 'A_kente_weaver_busily_creating_a_design_in_a_loom.jpg', position: '65% 50%', width: 1280, height: 851 },
-  { id: 'baskets', title: 'Everyday craft, living culture', place: 'Northern Ghana',
-    alt: 'Handwoven baskets made in northern Ghana',
-    author: 'Hasslaebetch', source: 'Baskets_made_in_Northern_Ghana.jpg', position: '55% 50%', width: 1600, height: 1200 },
-];
+  { id: 'storytelling', title: 'Knowledge passes between us', place: 'Storytelling', position: '0% 100%' },
+  { id: 'learning', title: 'Every word is a beginning', place: 'Learning together', position: '50% 100%' },
+  { id: 'creating', title: 'The next chapter is shared', place: 'Creating together', position: '100% 100%' },
+].map(scene => ({ ...scene, image: '/images/culture/original/community-characters-v2.webp',
+  alt: 'Original paper-collage illustration of ten fictional people sharing stories, books, notebooks and a recording',
+  author: 'Indigen World', source: '', width: 2172, height: 724 }));

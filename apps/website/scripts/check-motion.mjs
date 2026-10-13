@@ -185,7 +185,7 @@ try {
   await reducedContext.close();
 
   const fallbackContext = await context();
-  await fallbackContext.route('**/images/culture/*.webp', route => route.abort());
+  await fallbackContext.route('**/images/culture/**/*.webp', route => route.abort());
   const fallbackPage = await fallbackContext.newPage();
   await fallbackPage.goto(origin + '/contact');
   await fallbackPage.locator('h1').waitFor();

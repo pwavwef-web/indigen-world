@@ -6,13 +6,13 @@ import { SectionHeading } from './SectionHeading';
 const STORIES = [
   { label: 'Project Kassena', title: 'A language. A living connection.',
     body: 'Starting with Kasem in northern Ghana, building with its speakers. Explore the project bringing language and cultural knowledge into digital spaces.',
-    image: 'hero-home.jpg', to: 'project-kassena', action: 'Meet Project Kassena' },
+    image: 'culture/original/community-characters-v2.webp', to: 'project-kassena', action: 'Meet Project Kassena' },
   { label: 'Built with communities', title: 'The people are part of the record.',
     body: 'Kasem speakers bring everyday words, teachers help explain them, and cultural custodians bring context. Learn about the purpose guiding Indigen World.',
-    image: 'header-participation.jpg', to: 'about', action: 'Meet the purpose behind the work' },
+    image: 'culture/original/community-characters-v2.webp', to: 'about', action: 'Meet the purpose behind the work' },
   { label: 'Care and permission', title: 'A shared future needs trust.',
     body: 'Attribution and clear permissions keep people connected to their knowledge. Explore how sources and community review guide the project.',
-    image: 'header-stewardship.jpg', to: 'impact-governance', action: 'Explore sources and permissions' },
+    image: 'culture/original/community-characters-v2.webp', to: 'impact-governance', action: 'Explore sources and permissions' },
 ];
 
 export function HomeCultureMap() {
