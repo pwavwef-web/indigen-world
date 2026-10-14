@@ -16,7 +16,7 @@
     "test:refresh:browser": "node ./scripts/check-website-refresh.mjs",
     "test:progress:browser": "node ./scripts/check-progress.mjs",
     "test:progress:live": "node ./scripts/check-progress-live.mjs",
-    "test:runner": "node --experimental-strip-types --test ./scripts/runner-engine.test.mjs && node ./scripts/check-runner.mjs",
+    "test:runner": "node --experimental-strip-types --test ./scripts/runner-engine.test.mjs ./scripts/runner-audio.test.mjs && node ./scripts/check-runner.mjs",
     "check": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
@@ -26,13 +26,15 @@
     "firebase": "^11.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "remotion": "4.0.532"
+    "remotion": "4.0.532",
+    "three": "^0.186.1"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
     "typescript": "^7.0.2",
-    "vite": "^8.1.5"
+    "vite": "^8.1.5",
+    "@types/three": "^0.186.0"
   }
 }

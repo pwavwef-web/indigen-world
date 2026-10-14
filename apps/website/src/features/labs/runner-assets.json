@@ -1,0 +1,14 @@
+{
+  "environment": "Blue Horizon — fictional contemporary earth-and-stone trail",
+  "pipeline": "Original procedural Three.js geometry, authored in runner-art.ts; no remote assets",
+  "character": {
+    "name": "Trail explorer",
+    "description": "Stylized young adult in a blue jacket, trousers, trainers and practical backpack",
+    "articulation": "Shoulder/elbow and hip/knee pivots with procedural joint animation",
+    "states": ["idle", "run", "jump", "slide", "hit", "game-over"],
+    "limitation": "Stylized procedural art; no externally generated or downloaded rigged model"
+  },
+  "scenery": "Original reusable trail segments, vegetation, fictional courtyards and checkpoint landmark; no claimed heritage reconstruction",
+  "audio": "Original Web Audio oscillator cues; no sampled, proprietary or purported traditional music",
+  "thirdParty": [{ "name": "Three.js", "license": "MIT", "notice": "/assets/word-trail/THIRD-PARTY-NOTICES.txt" }]
+}

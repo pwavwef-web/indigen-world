@@ -87,9 +87,10 @@ after(async () => {
 });
 
 test("Word Trail gates require a real queue answer; saving and duplicate retries unlock exactly once", async () => {
+  const fixtureBatch = `labs-runner-${Date.now()}`;
   await assert.rejects(guest("runner"), e => e.code === "functions/unauthenticated");
   for (const [n, word] of [[1, "DEVELOPMENT WORD A"], [2, "DEVELOPMENT WORD B"], [3, "DEVELOPMENT WORD C"]])
-    await db.doc(`wordQueue/labs-runner-${n}`).set({ word, sentence: "Disposable integration fixture.", status: "open", rank: n, pendingCount: 0, approvedCount: 0 });
+    await db.doc(`wordQueue/${fixtureBatch}-${n}`).set({ word, sentence: "Disposable integration fixture.", status: "open", rank: n, pendingCount: 0, approvedCount: 0 });
   let { run } = await member("runner", { restart: true });
   const params = { id: run.id, section: run.section };
   await assert.rejects(other("beginRunnerSection", params), e => ["functions/not-found", "functions/failed-precondition"].includes(e.code));
@@ -105,7 +106,9 @@ test("Word Trail gates require a real queue answer; saving and duplicate retries
   const firstWord = run.word.id;
   ({ run } = await member("runnerWord", { ...params, another: true }));
   assert.notEqual(run.word.id, firstWord); assert.equal(run.phase, "checkpoint");
-  const answer = { ...params, translations: "DEVELOPMENT TRANSLATION", dialect: "Disposable fixture", partOfSpeech: "noun", publicationPermission: false, aiTraining: false, credit: "anonymous" };
+  const answer = { ...params, expectedWordId: run.word.id, translations: "DEVELOPMENT TRANSLATION", dialect: "Disposable fixture", partOfSpeech: "noun", publicationPermission: false, aiTraining: false, credit: "anonymous" };
+  await assert.rejects(member("submitRunnerWord", { ...answer, expectedWordId: firstWord }), e => e.code === "functions/failed-precondition");
+  assert.equal((await member("runner")).run.checkpoints, 0, "A stale displayed prompt cannot create a contribution or unlock the gate");
   await assert.rejects(member("submitRunnerWord", { ...answer, translations: " " }), e => e.code === "functions/invalid-argument");
   assert.equal((await member("runner")).run.phase, "checkpoint");
   const responses = await Promise.all([member("submitRunnerWord", answer), member("submitRunnerWord", answer)]);
@@ -118,7 +121,8 @@ test("Word Trail gates require a real queue answer; saving and duplicate retries
   assert.equal(contribution.get("wordQueueId"), run.word.id);
   assert.equal(submission.get("wordQueueId"), run.word.id);
   assert.equal(submission.get("permissions.aiTraining"), false);
-  const retry = await member("submitRunnerWord", answer); assert.equal(retry.run.score, 440);
+  const { expectedWordId: _expectedWordId, ...legacyAnswer } = answer;
+  const retry = await member("submitRunnerWord", legacyAnswer); assert.equal(retry.run.score, 440);
   assert.equal((await member("runner")).run.checkpoints, 1);
   await member("beginRunnerSection", { id: finished.id, section: 2 });
   await db.doc("labsRunners/labs-e2e-member").update({ startedAt: new Date(Date.now() - 31000).toISOString() });
@@ -140,6 +144,7 @@ test("Word Trail empty queue stays gated and invitation/retirement controls appl
   assert.equal(gate.run.word, null); assert.equal(gate.run.phase, "checkpoint");
   await assert.rejects(other("beginRunnerSection", params), e => e.code === "functions/failed-precondition");
   const base = LABS_REGISTRY.find(e => e.id === "word-trail");
+  await db.doc("labsTesters/labs-e2e-other").set({ experiments: [] });
   await db.doc("labsExperiments/word-trail").set({ ...base, access: "invited testers" });
   await assert.rejects(other("runner"), e => e.code === "functions/permission-denied");
   await db.doc("labsTesters/labs-e2e-other").set({ experiments: ["word-trail"] });

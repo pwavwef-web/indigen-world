@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useState,
+  lazy,
   type FormEvent,
   type ReactNode,
 } from "react";
@@ -16,7 +17,7 @@ import { errorMessage, labsCall, useLabsAccount } from "./api";
 import { PracticeWorkspace, StoryWorkspace } from "./workspaces";
 import { Activity, Admin, Updates } from "./records";
 import { QuestWorkspace } from "./quest";
-import { RunnerWorkspace } from "./runner";
+const RunnerWorkspace = lazy(() => import("./runner").then(m => ({ default: m.RunnerWorkspace })));
 import { MODE_LABELS, accessFor, accessNote, present, type AccessState, type LabsViewer } from "./access";
 import { Collection, FeaturedRow, ModeShortcuts, StatusBadge } from "./cards";
 import { HeroCarousel } from "./HeroCarousel";
@@ -286,6 +287,13 @@ function ExperimentShell({
     if (window.location.hash === "#feedback")
       requestAnimationFrame(() => document.getElementById("feedback")?.scrollIntoView());
   }, []);
+  if (experiment.id === "word-trail") return <>
+    <Link className="lab-back" to="/labs/experiments">← All experiments</Link>
+    <div className="lab-page-head"><p className="lab-eyebrow">Play / Contribute / Alpha</p><h1>Word Trail</h1><p className="lab-section__lede">An adventure that keeps your language moving.</p></div>
+    <RunnerWorkspace key={userId ?? "guest"} canContribute={allowed && !!userId} />
+    {!allowed && state !== "sign-in" && <AccessGate experiment={experiment} state={state} onRetry={onRetry} />}
+    <details id="feedback" className="labs-panel lab-trail-feedback"><summary>Feedback & community review</summary><p>Saved answers enter the existing review workflow. <a href={experiment.destination}>{experiment.destinationLabel} ↗</a></p>{userId ? <FeedbackForm experiment={experiment} /> : <p>Sign in from the header to contribute and send feedback.</p>}</details>
+  </>;
   return (
     <>
       <div className="lab-detail">

@@ -19,7 +19,7 @@ export const ROUTES: AppRoute[] = [
   { path: "labs/experiments", title: "Labs experiments", description: "Play, learn, create and contribute: every Indigen World Labs experiment in one place.", immersive: true },
   { path: "labs/kasem-practice", title: "Kasem Practice Lab", description: "Practise with reviewed Kasem meanings and expressions.", immersive: true },
   { path: "labs/culture-quest", title: "Culture Quest", description: "A daily Labs expedition: discover reviewed sources and leave notes for community review.", immersive: true, noindex: true },
-  { path: "labs/word-trail", title: "Word Trail", description: "A Labs running game where Kasem translations open each new section of the trail.", immersive: true, noindex: true },
+  { path: "labs/word-trail", title: "Word Trail", description: "Run a sunlit 3D trail. Dodge, jump, slide and share a Kasem translation at safe language checkpoints.", immersive: true, noindex: true },
   { path: "labs/cultural-story", title: "Cultural Story Builder", description: "Shape a private story with retained reviewed source notes.", immersive: true, noindex: true },
   { path: "labs/activity", title: "My Labs activity", description: "Your private practice, drafts and feedback.", immersive: true, noindex: true },
   { path: "labs/updates", title: "Labs updates", description: "Follow changes to Indigen World Labs experiments.", immersive: true },
