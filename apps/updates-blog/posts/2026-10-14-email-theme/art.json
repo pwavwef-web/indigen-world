@@ -1,0 +1,15 @@
+{
+  "accent": "blue",
+  "motif": "chevrons",
+  "eyebrow": "Indigen World · Email",
+  "title": "Emails that sound\nlike Indigen World",
+  "lede": "One clear, blue design for every message we send: decisions, feedback, support and receipts.",
+  "tags": ["Our logo, every time", "Plain status labels", "Phone and dark mode"],
+  "hero": ["review-feedback-desktop.png", "approved-phone.png"],
+  "figures": {
+    "review-feedback-desktop.png": { "title": "Feedback you can act on", "note": "Reviewer notes sit in their own labelled panel, with one button back to your work. Actual rendered email, synthetic example." },
+    "approved-phone.png": { "title": "Approved means approved", "note": "Status pills use the backend's own decision and always carry a written label. Actual rendered email at 375 px." },
+    "password-reset-phone.png": { "title": "Account emails stay direct", "note": "A clear button, a copyable fallback link and what to do if you did not ask. Synthetic, non-working link." },
+    "dark-phone.png": { "title": "Readable in dark mode", "note": "Mail apps that follow your device's dark setting get matching colours. Actual rendered email, forced dark." }
+  }
+}
