@@ -4,15 +4,13 @@
 - **Topic:** Redesign of Indigen World Labs (`/labs`, `/labs/experiments` and the experiment pages): photo-led hero, live experiment previews, consistent sign-in and access states, Play/Learn/Create/Contribute discovery.
 - **Labels:** Labs, Feature, Design, Kasem, Community.
 - **Search description:** Indigen World Labs gets a photo-led home, live previews of Word Trail and Culture Quest, clear sign-in and access states, and Play, Learn, Create and Contribute filters.
-- **Implementation:** Complete in the repository, uncommitted at preparation time. Local verification listed below.
-- **Deployment:** **Not deployed.** The live Labs site is unchanged. A website Hosting deploy (and, optionally, a `labsApi` Functions deploy for the new registry fields) is required; the website falls back to its bundled registry, so Hosting alone is sufficient.
+- **Implementation:** Committed to `main` as `afc3790` (on top of `4af3cdc`). Local verification listed below.
+- **Deployment:** Website Hosting (`indigen-world`) deployed 14 October 2026 from a clean checkout of `afc3790`, through the normal production guard and `check:website`. `labsApi` was not redeployed; the website supplies the new `summary`/`modes` fields from its bundled registry.
 - **Blogger:** Unpublished. Publication and external sharing remain Chinedum’s handoff.
 
 ## Publishing steps
 
-1. Publish only after the website is deployed and `/labs` is checked live.
-   Then change the opening **Release status** paragraph and the closing line of
-   `post.html` from "not live yet" to the actual release date.
+1. Review the release evidence below.
 2. Create a Blogger draft with the title and labels above. Paste `post.html` in
    HTML view.
 3. Upload `images/cover.png`, `images/labs-home-desktop.jpg`,
@@ -82,5 +80,21 @@ Indigen World branding, UI and post framing: Indigen World.
   admin-only navigation, real Continue exploring and lab-note rendering, and
   Word Trail still launching. Hero text contrast on its panel is above 8:1.
 
-Not verified: real Google sign-in, production data, Safari/iOS, and live
-deployment.
+## Production release evidence
+
+- Released 14 October 2026 (verified 2026-10-14T06:20Z). `/labs`,
+  `/labs/experiments`, `/labs/word-trail` and `/app-ads.txt` return 200.
+- The live `LabsPage` JavaScript and CSS match the release build by SHA-256;
+  `app-ads.txt` matches the build.
+- Live signed-out browser check at 1440×900 and 390×844 against production data:
+  five hero photos load, every featured card says a free account is required with
+  "Sign in to start", lab notes show the honest empty state, the Play filter
+  shows Word Trail and Culture Quest, no error notice, no page errors and no
+  horizontal overflow. The phone "Explore experiments" button sits above the fold.
+- Experiment pages were not opened on production, to keep verification out of
+  the usage counters.
+- The repository motion check's homepage-photo assertion ("Homepage photograph
+  moves while visible") fails on unmodified `origin/main` too; it concerns the
+  shared site banner, not Labs. All Labs route checks passed.
+
+Not verified: signed-in production use, real Google sign-in and Safari/iOS.

@@ -2,7 +2,7 @@
 
 **Published article URL:** [ADD THE PUBLISHED ARTICLE URL HERE]
 
-Share only after the redesign is deployed and the article is published.
+Released 14 October 2026. Share after the article is published.
 
 Indigen World Labs has a new home: real photographs from Kassena communities,
 live previews of Word Trail and Culture Quest, and clear Play, Learn, Create and

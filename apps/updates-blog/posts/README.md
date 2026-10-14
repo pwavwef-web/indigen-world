@@ -6,7 +6,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
-- [2026-10-13: Living culture. New possibilities: Labs redesigned](2026-10-13-labs-redesign/README.md) — photo-led Labs home with credited Wikimedia Commons photographs and an accessible slideshow, live experiment previews (Word Trail drawn by its own renderer), one consistent sign-in/access state, Play/Learn/Create/Contribute filters, purpose section, Continue exploring and feedback paths. Implemented and verified locally; not deployed; Blogger publication pending. Includes actual local product previews and branded image assets.
+- [2026-10-13: Living culture. New possibilities: Labs redesigned](2026-10-13-labs-redesign/README.md) — photo-led Labs home with credited Wikimedia Commons photographs and an accessible slideshow, live experiment previews (Word Trail drawn by its own renderer), one consistent sign-in/access state, Play/Learn/Create/Contribute filters, purpose section, Continue exploring and feedback paths. Website deployed and verified live October 14 (`afc3790`); signed-in production check and Blogger publication pending. Includes actual local product previews and branded image assets.
 
 - [2026-10-13: Thoughtful steps, useful contributions](2026-10-13-contribution-studio/README.md) — composed contributor dashboard, four-section editor, speaker context, small sessions, private recognition and shared approval goals. Deployed and verified October 13 with the shared blue palette, seven matching Functions, live files and light/dark desktop/phone sign-in checks. Signed-in production workflow check and Blogger publication pending. Includes actual labelled product previews and branded image assets.
 
