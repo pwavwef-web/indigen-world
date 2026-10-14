@@ -109,7 +109,7 @@ export const publicForms = onRequest(
         // Welcome only genuinely new subscribers so re-subscribing never spams.
         if (isNewSubscriber) {
           const welcome = newsletterWelcome();
-          await sendMail({ to: subscriberEmail, deliveryKey: `newsletter:${subscriberRef.id}`, subject: welcome.subject, html: welcome.html, text: welcome.text });
+          await sendMail({ to: subscriberEmail, deliveryKey: `newsletter:${subscriberRef.id}`, ...welcome });
         }
 
         // Duplicate subscriptions intentionally receive the same response so
@@ -141,8 +141,8 @@ export const publicForms = onRequest(
         const teamAlert = contactTeamAlert({ name, email: contactEmail, subject, message });
         const ack = contactAcknowledgement({ name, subject });
         await Promise.all([
-          sendMail({ to: teamInbox(), deliveryKey: `form:${ref.id}:team`, subject: teamAlert.subject, html: teamAlert.html, text: teamAlert.text, replyTo: contactEmail }),
-          sendMail({ to: contactEmail, deliveryKey: `form:${ref.id}:ack`, subject: ack.subject, html: ack.html, text: ack.text }),
+          sendMail({ to: teamInbox(), deliveryKey: `form:${ref.id}:team`, ...teamAlert, replyTo: contactEmail }),
+          sendMail({ to: contactEmail, deliveryKey: `form:${ref.id}:ack`, ...ack }),
         ]);
 
         res.status(200).json({ accepted: true });
@@ -186,7 +186,7 @@ export const publicForms = onRequest(
         ];
         if (contactIsEmail) {
           const ack = involvementAcknowledgement({ name, route });
-          sends.push(sendMail({ to: contact, deliveryKey: `form:${ref.id}:ack`, subject: ack.subject, html: ack.html, text: ack.text }));
+          sends.push(sendMail({ to: contact, deliveryKey: `form:${ref.id}:ack`, ...ack }));
         }
         await Promise.all(sends);
 
@@ -263,8 +263,8 @@ export const publicForms = onRequest(
         const teamAlert = testerRewardTeamAlert({ certificateName, cardName, playEmail, contactEmail, country, recognitionChoice });
         const acknowledgement = testerRewardAcknowledgement({ name: certificateName });
         await Promise.all([
-          sendMail({ to: teamInbox(), deliveryKey: `form:${ref.id}:team`, subject: teamAlert.subject, html: teamAlert.html, text: teamAlert.text, replyTo: contactEmail }),
-          sendMail({ to: contactEmail, deliveryKey: `form:${ref.id}:ack`, subject: acknowledgement.subject, html: acknowledgement.html, text: acknowledgement.text }),
+          sendMail({ to: teamInbox(), deliveryKey: `form:${ref.id}:team`, ...teamAlert, replyTo: contactEmail }),
+          sendMail({ to: contactEmail, deliveryKey: `form:${ref.id}:ack`, ...acknowledgement }),
         ]);
 
         res.status(200).json({ accepted: true });

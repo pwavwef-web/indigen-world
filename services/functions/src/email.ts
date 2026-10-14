@@ -77,6 +77,8 @@ export interface MailMessage {
   subject: string;
   html: string;
   text: string;
+  /** Body for the automatic PDF letter; defaults to `text`. Themed templates omit the inbox footer here. */
+  letterText?: string;
   replyTo?: string;
   /** Optional override; defaults to the operational team inbox. */
   from?: string;
@@ -97,7 +99,7 @@ export function correspondenceLetters(message:MailMessage,from=mailFrom(),date=n
   if (recipients.length>1 && message.recipient?.name) throw new Error('Send named, personalised messages individually so every recipient gets the correct letter.');
   const sender=message.sender || {name:from.includes('<')?from.slice(0,from.indexOf('<')).trim():from};
   return [...new Set(recipients)].map(to=>{
-    const letter=normalizeLetter(message.letter || {date,recipient:{...message.recipient,email:to},subject:message.subject,body:message.text.split(/\n\n+/).filter(Boolean).map(text=>({runs:[{text}]})),sender});
+    const letter=normalizeLetter(message.letter || {date,recipient:{...message.recipient,email:to},subject:message.subject,body:(message.letterText || message.text).split(/\n\n+/).filter(Boolean).map(text=>({runs:[{text}]})),sender});
     if (message.letter && letter.recipient.email && letter.recipient.email!==to) throw new Error('The formal letter recipient does not match the email.');
     // Even an explicitly supplied letter without an email field is addressed
     // correctly when it becomes an email attachment.

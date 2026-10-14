@@ -7,6 +7,7 @@ import { consumeRateLimit } from './rate-limit.js';
 import { generateLetterFiles, letterVersion, sha256 } from './correspondence-render.js';
 import { normalizeLetter, bodyPlainText, HERITAGE_FRAME } from '@indigen-world/contracts/correspondence';
 import { SMTP_PASSWORD, sendMailWithLetter } from './email.js';
+import { correspondenceEmail } from './email-templates.js';
 
 const identifier = (value: unknown) => {
   if (typeof value !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(value)) throw new HttpsError('invalid-argument','Choose a valid draft or version.');
@@ -17,7 +18,6 @@ function validatedLetter(input: unknown, draft = false) {
   try { return normalizeLetter(input,{draft}); }
   catch (error) { throw new HttpsError('invalid-argument',error instanceof Error ? error.message : 'Invalid letter.'); }
 }
-function escapeHtml(value: string) { return value.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!)); }
 
 /** Shared portal/assistant boundary. Print returns both formats without sending. */
 export const correspondence = onCall({...CONTRIBUTOR_CALL_OPTIONS,secrets:[SMTP_PASSWORD],timeoutSeconds:120,memory:'512MiB',concurrency:1},guarded('correspondence',async req=>{
@@ -72,7 +72,8 @@ export const correspondence = onCall({...CONTRIBUTOR_CALL_OPTIONS,secrets:[SMTP_
     if (!formal.recipient.email) throw new HttpsError('invalid-argument','Add the recipient email to send this letter.');
     const [pdf] = await getStorage().bucket().file(versionSnap.get('paths.pdf')).download();
     const text = versionSnap.get('emailBody') || [formal.salutation,bodyPlainText(formal.body),formal.closing,formal.sender.name,formal.sender.role].filter(Boolean).join('\n\n');
-    const result = (await sendMailWithLetter({to:formal.recipient.email,subject:formal.subject,text,html:`<div style="white-space:pre-wrap">${escapeHtml(text)}</div>`,letter:formal,deliveryKey:`correspondence:${uid}:${id}:${version}`},{pdf,path:versionSnap.get('paths.pdf'),pdfSha256:versionSnap.get('pdfSha256')}))[0];
+    const content = correspondenceEmail({subject:formal.subject,text});
+    const result = (await sendMailWithLetter({to:formal.recipient.email,subject:formal.subject,text:content.text,html:content.html,letter:formal,deliveryKey:`correspondence:${uid}:${id}:${version}`},{pdf,path:versionSnap.get('paths.pdf'),pdfSha256:versionSnap.get('pdfSha256')}))[0];
     await versionRef.update({delivery:{...result,updatedAt:timestamp()}});
     if (result.status === 'preparation_failed') throw new HttpsError('failed-precondition','PDF attachment preparation failed. Nothing was sent. Your draft is saved; retry sending.');
     if (result.status === 'not_configured') throw new HttpsError('failed-precondition','Email is not configured on this server. The documents and draft are saved.');

@@ -1,4 +1,5 @@
 import { sha256 } from './correspondence-render.js';
+import { EMAIL_LOGO_CID, emailLogoPng } from './email-theme.js';
 import type { CorrespondenceLetter } from '@indigen-world/contracts/correspondence';
 
 export type DeliveryStatus = 'preparing' | 'preparation_failed' | 'sending' | 'accepted' | 'unknown' | 'not_configured';
@@ -14,7 +15,12 @@ export interface LetterEmail { to: string; subject: string; text: string; html: 
 export interface PreparedAttachment { pdf: Buffer; path?: string; pdfSha256?: string }
 /** The production SMTP payload, also used with Nodemailer's offline test transport. */
 export function letterMailOptions(email:LetterEmail,pdf:Buffer,messageId:string) {
-  return {from:email.from,to:email.to,subject:email.subject,text:email.text,html:email.html,replyTo:email.replyTo,messageId,attachments:[{filename:`${email.filename}.pdf`,content:pdf,contentType:'application/pdf'}]};
+  // Themed bodies reference the logo by Content-ID; it travels inline with the
+  // message, so it shows without a remote image fetch.
+  const logo = email.html.includes(`cid:${EMAIL_LOGO_CID}`)
+    ? [{filename:'indigen-world-logo.png',content:emailLogoPng(),contentType:'image/png',cid:EMAIL_LOGO_CID,contentDisposition:'inline' as const}]
+    : [];
+  return {from:email.from,to:email.to,subject:email.subject,text:email.text,html:email.html,replyTo:email.replyTo,messageId,attachments:[{filename:`${email.filename}.pdf`,content:pdf,contentType:'application/pdf'},...logo]};
 }
 export async function deliverLetterEmail(input: {
   id: string; fingerprint: string; email: LetterEmail; store: DeliveryStore;

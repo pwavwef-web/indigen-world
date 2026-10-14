@@ -118,3 +118,4 @@ admob.local.json
 # Disposable Labs emulator configuration; production uses firebase.json.
 /.labs-local/
 /.labs-local.firebase.json
+/output/email-previews/

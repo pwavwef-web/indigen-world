@@ -72,6 +72,9 @@ JSON uses the shared letter model. `body` may be a string in the documented
 Markdown subset, or structured blocks/runs. The CLI prints Download Word and
 Download PDF paths. Future Codex sessions should return those paths as links.
 
+The email body around the attachment uses the shared Indigen World email
+theme; see [email-theme.md](email-theme.md).
+
 ## Runtime, permissions and history
 
 The `correspondence` Firebase callable uses existing authentication, admin roles,

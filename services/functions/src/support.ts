@@ -195,7 +195,8 @@ export async function deliverSupportEmail(ref: DocumentReference, mailer = sendM
       await ticket.ref.update({ needsAttention: true, deliveryProblem: 'recovery_unavailable', updatedAt: timestamp() }); return;
     }
   } else subject = `Indigen World support · ${code}`;
-  const accepted = await mailer({ to: job.to, ...supportEmail({ subject, text, recoveryUrl }), deliveryKey: `support:${ref.id}` });
+  const kind = job.type === 'recovery' || job.type === 'team' ? job.type : 'reply';
+  const accepted = await mailer({ to: job.to, ...supportEmail({ subject, text, recoveryUrl, kind, reference: code }), deliveryKey: `support:${ref.id}` });
   const status = accepted ? 'accepted' : 'failed';
   await ref.update({ status, completedAt: timestamp() });
   if (job.messageId) await caseRef(job.caseId).collection('messages').doc(job.messageId).update({ delivery: status });
