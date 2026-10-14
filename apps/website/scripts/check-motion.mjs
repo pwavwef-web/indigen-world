@@ -24,13 +24,15 @@ async function context(options = {}) {
   const ctx = await browser.newContext(options);
   // The independent Blogger feed is outside these local animation checks.
   await ctx.route('https://updates.indigenworld.com/**', route => route.abort());
+  // Production builds call the live Labs gateway; a layout check must not add to its counters.
+  await ctx.route('**/labsApi', route => route.abort());
   return ctx;
 }
 async function open(page, route) {
   await page.goto(origin + route, { waitUntil: 'domcontentloaded' });
   await page.locator('h1').first().waitFor({ state: 'attached' });
   await page.evaluate(() => document.fonts.ready);
-  if (route === '/labs/admin') await page.locator('.page-motion__art svg').waitFor();
+  if (route.startsWith('/labs')) await page.locator('.lab-header').waitFor();
   else await page.locator('.culture-hero__images img.is-active').waitFor();
   await page.waitForTimeout(800);
 }
@@ -88,8 +90,19 @@ try {
       assert(sizes.content <= sizes.viewport + 1, `${route} overflows at ${width}px: ${sizes.content}`);
       if (route === '/project-kassena') await checkKassenaLayout(page, width);
       if (await checkBannerLayout(page, route, width)) bannerRoutes.add(route);
-      if (route !== '/beyond-the-reef') {
-        assert.equal(await page.locator(route === '/labs/admin' ? '.page-motion' : '.culture-hero').count(), 1, `${route}: exactly one page visual`);
+      if (route.startsWith('/labs')) {
+        // Labs brings its own shell: one compact header, and on the home page a
+        // photographic slideshow whose pause control must stay reachable.
+        assert.equal(await page.locator('.lab-header').count(), 1, `${route}: one Labs header`);
+        assert.equal(await page.locator('.site-header').count(), 0, `${route}: site header steps aside`);
+        if (route === '/labs') {
+          const toggle = page.getByRole('button', { name: /slideshow/ });
+          assert(await toggle.isVisible(), '/labs: slideshow pause control');
+          const box = await toggle.boundingBox();
+          assert(box.x >= 0 && box.x + box.width <= width + 1, '/labs: slideshow control outside viewport');
+        }
+      } else if (route !== '/beyond-the-reef') {
+        assert.equal(await page.locator('.culture-hero').count(), 1, `${route}: exactly one page visual`);
         const toggle = page.getByRole('button', { name: 'Pause animations', exact: false }).first();
         await toggle.scrollIntoViewIfNeeded();
         assert(await toggle.isVisible(), `${route}: accessible motion control`);

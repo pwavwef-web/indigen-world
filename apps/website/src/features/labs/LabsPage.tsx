@@ -1,5 +1,3 @@
-import { PageMotion } from "../../components/PageMotion";
-import { CultureHero } from "../../components/HomeHero";
 import {
   useCallback,
   useEffect,
@@ -14,18 +12,19 @@ import {
 } from "@indigen-world/contracts/labs";
 import { Link, useRoute } from "../../app/router";
 import { useDocumentMeta } from "../../lib/useDocumentMeta";
-import {
-  errorMessage,
-  labsCall,
-  loginEmail,
-  loginGoogle,
-  logout,
-  useLabsAccount,
-} from "./api";
+import { errorMessage, labsCall, useLabsAccount } from "./api";
 import { PracticeWorkspace, StoryWorkspace } from "./workspaces";
 import { Activity, Admin, Updates } from "./records";
 import { QuestWorkspace } from "./quest";
 import { RunnerWorkspace } from "./runner";
+import { MODE_LABELS, accessFor, accessNote, present, type AccessState, type LabsViewer } from "./access";
+import { Collection, FeaturedRow, ModeShortcuts, StatusBadge } from "./cards";
+import { HeroCarousel } from "./HeroCarousel";
+import { ContinueExploring, PurposeSection, ShapeTheLab, UpdatesStrip } from "./home";
+import { HERO_PHOTOS } from "./labs-media";
+import { ExperimentPreview } from "./previews";
+import { LabsFooter, LabsHeader, SignInPanel } from "./shell";
+import "@fontsource-variable/sora/wght.css";
 import "./labs.css";
 
 export function useTask() {
@@ -74,77 +73,6 @@ export function Field({
       <span>{label}</span>
       {children}
     </label>
-  );
-}
-function Account() {
-  const [open, setOpen] = useState(false),
-    [email, setEmail] = useState(""),
-    [password, setPassword] = useState(""),
-    task = useTask();
-  return (
-    <div className="labs-account">
-      <button
-        className="labs-button labs-button-small"
-        onClick={() => setOpen(!open)}
-        aria-expanded={open}
-      >
-        Sign in ↗
-      </button>
-      {open && (
-        <div className="labs-login labs-panel">
-          <h2>Your Indigen World account</h2>
-          <p>
-            Use the same account as the app or TribeStudio. Sign in to save
-            practice, drafts and feedback.
-          </p>
-          <button
-            className="labs-button labs-secondary"
-            disabled={task.busy}
-            onClick={() =>
-              void task.run(async () => {
-                await loginGoogle();
-              })
-            }
-          >
-            Continue with Google
-          </button>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void task.run(async () => {
-                await loginEmail(email, password);
-              });
-            }}
-          >
-            <Field label="Email">
-              <input
-                type="email"
-                autoComplete="username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </Field>
-            <Field label="Password">
-              <input
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </Field>
-            <button className="labs-button" disabled={task.busy}>
-              Sign in with email
-            </button>
-          </form>
-          <TaskStatus task={task} />
-          <a href="https://tribestudio.indigenworld.com/studio">
-            Account help in TribeStudio
-          </a>
-        </div>
-      )}
-    </div>
   );
 }
 export function FeedbackForm({
@@ -257,146 +185,6 @@ export function SourceNotes({ sources }: { sources: LabsSource[] }) {
     </div>
   );
 }
-function Preview({ experiment }: { experiment: Experiment }) {
-  return (
-    <div
-      className={`labs-preview labs-preview-${experiment.id}`}
-      aria-hidden="true"
-    >
-      {experiment.id === "word-trail" ? (<><span className="labs-preview-label">RUN / CONTRIBUTE</span><div className="labs-preview-word">Dodge.<br />Translate.<br /><em>Keep going.</em></div><span className="labs-preview-foot">A word opens the next section.</span></>) : experiment.id === "culture-quest" ? (<><span className="labs-preview-label">PLAY / CONTRIBUTE</span><div className="labs-preview-word">Explore.<br />Contribute.<br /><em>Level up.</em></div><span className="labs-preview-foot">Three missions. A living archive.</span></>) : experiment.id === "kasem-practice" ? (
-        <>
-          <span className="labs-preview-label">KASEM / PRACTICE</span>
-          <div className="labs-preview-word">
-            Listen.
-            <br />
-            Match.
-            <br />
-            <em>Remember.</em>
-          </div>
-          <div className="labs-preview-options">
-            <span>Meaning</span>
-            <span>Expression</span>
-            <span>Reviewed audio</span>
-          </div>
-        </>
-      ) : (
-        <>
-          <span className="labs-preview-label">CULTURE / CREATE</span>
-          <div className="labs-paper">
-            <span>Source → Story</span>
-            <div />
-            <div />
-            <div />
-            <p>
-              A beginning.
-              <br />A moment.
-              <br />
-              <em>Your voice.</em>
-            </p>
-          </div>
-          <span className="labs-preview-foot">
-            Rooted in sources. Open to imagination.
-          </span>
-        </>
-      )}
-    </div>
-  );
-}
-function ExperimentCard({ experiment }: { experiment: Experiment }) {
-  return (
-    <article className="labs-card">
-      <Link
-        to={`/labs/${experiment.slug}`}
-        className="labs-preview-link"
-        aria-label={`Explore ${experiment.name}`}
-      >
-        <Preview experiment={experiment} />
-      </Link>
-      <div className="labs-card-body">
-        <div className="labs-row">
-          <span className="labs-meta">{experiment.category}</span>
-          <span className="labs-tag">{experiment.status}</span>
-        </div>
-        <h3>
-          <Link to={`/labs/${experiment.slug}`}>{experiment.name}</Link>
-        </h3>
-        <p>{experiment.purpose}</p>
-        <div className="labs-card-bottom">
-          <span className="labs-meta">
-            {!experiment.enabled
-              ? "Paused"
-              : experiment.status === "retired"
-                ? "Retired"
-                : experiment.access === "signed-in"
-                  ? "Sign in to participate"
-                  : experiment.access}
-          </span>
-          <Link to={`/labs/${experiment.slug}`}>Explore ↗</Link>
-        </div>
-      </div>
-    </article>
-  );
-}
-function Catalogue({ experiments }: { experiments: Experiment[] }) {
-  const [search, setSearch] = useState(""),
-    [category, setCategory] = useState("All"),
-    [status, setStatus] = useState("All"),
-    found = experiments.filter(
-      (e) =>
-        `${e.name} ${e.purpose}`.toLowerCase().includes(search.toLowerCase()) &&
-        (category === "All" || e.category === category) &&
-        (status === "All" || e.status === status),
-    );
-  return (
-    <>
-      <CultureHero variant="embedded"><div className="culture-hero__copy">
-        <p className="labs-eyebrow">THE EXPERIMENTS</p>
-        <h1>Find your next small discovery.</h1>
-        <p>
-          Focused experiments. Try what interests you and tell us what you
-          learn.
-        </p>
-      </div></CultureHero>
-      <div className="labs-filters">
-        <Field label="Search experiments">
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Language, stories…"
-          />
-        </Field>
-        <Field label="Category">
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            {["All", "Language", "Creating", "Contributing"].map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Lifecycle">
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
-            {["All", "prototype", "alpha", "beta", "graduated", "retired"].map(
-              (c) => (
-                <option key={c}>{c}</option>
-              ),
-            )}
-          </select>
-        </Field>
-      </div>
-      <div className="labs-grid">
-        {found.map((e) => (
-          <ExperimentCard key={e.id} experiment={e} />
-        ))}
-      </div>
-      {!found.length && (
-        <p className="labs-notice">No experiments match these filters.</p>
-      )}
-    </>
-  );
-}
 interface Bootstrap {
   development: boolean;
   experiments: Experiment[];
@@ -404,31 +192,88 @@ interface Bootstrap {
   canAdmin: boolean;
   aiEnabled: boolean;
 }
-function ExperimentShell({
+const WORKSPACE_TITLES: Record<string, string> = {
+  "kasem-practice": "A few minutes of practice",
+  "word-trail": "Every word takes you further",
+  "culture-quest": "An expedition with a purpose",
+  "cultural-story": "A story starts here",
+};
+/** What stands between the visitor and the workspace, said plainly. */
+function AccessGate({
   experiment,
-  loaded,
-  userId,
-  invited,
-  canAdmin,
-  aiEnabled,
+  state,
+  onRetry,
 }: {
   experiment: Experiment;
-  loaded: boolean;
-  userId?: string;
-  invited: string[];
-  canAdmin: boolean;
-  aiEnabled: boolean;
+  state: AccessState;
+  onRetry: () => void;
 }) {
-  const retired = ["retired", "graduated"].includes(experiment.status),
-    allowed =
-      loaded &&
-      experiment.enabled &&
-      !retired &&
-      (!["culture-quest", "word-trail"].includes(experiment.id) || !!userId) &&
-      (experiment.access === "public" || !!userId) &&
-      (experiment.access !== "invited testers" ||
-        invited.includes(experiment.id) ||
-        canAdmin);
+  if (state === "sign-in")
+    return (
+      <div className="lab-gate lab-gate--signin">
+        <SignInPanel
+          title={`Sign in to start ${experiment.name}`}
+          intro={
+            <>
+              Your progress{present(experiment).modes.includes("contribute") ? " and contributions are" : " is"} saved to
+              your free Indigen World account. Once you sign in, {experiment.name} opens right here.
+            </>
+          }
+        />
+      </div>
+    );
+  const copy: Record<Exclude<AccessState, "open" | "sign-in">, [string, string]> = {
+    checking: ["Checking availability…", "Confirming this experiment is open for you."],
+    unconfirmed: [
+      "Availability could not be confirmed",
+      "The Labs service did not answer. Nothing has been lost; try again in a moment.",
+    ],
+    "invite-only": [
+      "Invited testers only",
+      "The team is testing this version with a smaller group. The details on this page stay open to everyone.",
+    ],
+    paused: [
+      "Taking a pause",
+      "The team has paused new work while this experiment is improved. Your saved activity is still available.",
+    ],
+    retired: ["This experiment is retired", "You can still read the details and open your saved activity."],
+    graduated: ["This experiment has graduated", "You can still read the details and open your saved activity."],
+  };
+  const [title, body] = copy[state as keyof typeof copy];
+  return (
+    <div className="lab-gate" role={state === "checking" ? "status" : undefined}>
+      <h3>{title}</h3>
+      <p>{body}</p>
+      {state === "unconfirmed" && (
+        <button type="button" className="lab-btn lab-btn--secondary" onClick={onRetry}>
+          Try again
+        </button>
+      )}
+      {["paused", "retired", "graduated"].includes(state) && (
+        <Link className="lab-text-link" to="/labs/activity">
+          Open my activity <span aria-hidden="true">→</span>
+        </Link>
+      )}
+    </div>
+  );
+}
+function ExperimentShell({
+  experiment: raw,
+  viewer,
+  aiEnabled,
+  onRetry,
+}: {
+  experiment: Experiment;
+  viewer: LabsViewer;
+  aiEnabled: boolean;
+  onRetry: () => void;
+}) {
+  const experiment = present(raw),
+    state = accessFor(experiment, viewer),
+    allowed = state === "open",
+    userId = viewer.uid,
+    loaded = viewer.loaded,
+    [previewActive, setPreviewActive] = useState(false);
   useEffect(() => {
     if (loaded)
       void labsCall("event", {
@@ -436,62 +281,49 @@ function ExperimentShell({
         type: "experimentOpened",
       }).catch(() => {});
   }, [experiment.id, loaded]);
+  // Links such as "Feedback on Word Trail" land on the form once the page exists.
+  useEffect(() => {
+    if (window.location.hash === "#feedback")
+      requestAnimationFrame(() => document.getElementById("feedback")?.scrollIntoView());
+  }, []);
   return (
     <>
-      <Link className="labs-back" to="/labs/experiments">
-        ← All experiments
-      </Link>
-      <CultureHero variant="embedded"><div className="culture-hero__copy">
-        <div>
-          <p className="labs-eyebrow">
-            {experiment.category.toUpperCase()} /{" "}
-            {experiment.status.toUpperCase()}
-          </p>
+      <div className="lab-detail">
+        <div className="lab-detail__copy">
+          <Link className="lab-back" to="/labs/experiments">
+            <span aria-hidden="true">←</span> All experiments
+          </Link>
+          <div className="lab-card__meta">
+            <StatusBadge experiment={experiment} />
+            <span className="lab-card__modes">{experiment.modes.map((m) => MODE_LABELS[m]).join(" · ")}</span>
+            <span className="lab-card__modes">v{experiment.version}</span>
+          </div>
           <h1>{experiment.name}</h1>
-          <p>{experiment.purpose}</p>
+          <p className="lab-detail__purpose">{experiment.purpose}</p>
+          <p className="lab-detail__summary">{experiment.summary}</p>
+          <p className="lab-access" data-state={state}>
+            <span className="lab-access__dot" aria-hidden="true" />
+            {accessNote(experiment, state)}
+          </p>
         </div>
-        <span className="labs-tag">v{experiment.version}</span>
-      </div></CultureHero>
+        <div
+          className="lab-detail__media"
+          onPointerEnter={(e) => e.pointerType === "mouse" && setPreviewActive(true)}
+          onPointerLeave={() => setPreviewActive(false)}
+        >
+          <ExperimentPreview experiment={experiment} active={previewActive} />
+        </div>
+      </div>
       <div className="labs-workspace-layout">
-        <section className="labs-panel labs-workspace">
-          <h2>
-            {experiment.id === "kasem-practice"
-              ? "A few minutes of practice"
-              : experiment.id === "word-trail" ? "Every word takes you further" : experiment.id === "culture-quest" ? "An expedition with a purpose" : "A story starts here"}
-          </h2>
+        <section className="labs-panel labs-workspace" aria-labelledby="workspace-heading">
+          <h2 id="workspace-heading">{WORKSPACE_TITLES[experiment.id] ?? experiment.name}</h2>
           {!allowed &&
           !(
             userId &&
             experiment.id === "cultural-story" &&
             new URLSearchParams(window.location.search).has("draft")
           ) ? (
-            <div className="labs-empty">
-              <span aria-hidden="true">◌</span>
-              <h3>
-                {!loaded
-                  ? "Waiting for the Labs service"
-                  : retired
-                    ? experiment.status === "graduated"
-                      ? "This experiment has graduated"
-                      : "This experiment is retired"
-                    : !experiment.enabled
-                      ? "Taking a pause"
-                      : !userId
-                        ? "Your practice, your account"
-                        : "Invited testers only"}
-              </h3>
-              <p>
-                {!loaded
-                  ? "Availability could not be confirmed. Use Retry above before starting."
-                  : retired
-                    ? "You can still read the details and open your saved activity."
-                    : !experiment.enabled
-                      ? "The team has paused new work while this experiment is improved. Your activity is still available."
-                      : !userId
-                        ? "Sign in above with your Indigen World account to try this experiment and keep your activity."
-                        : "The team is testing this version with a smaller group."}
-              </p>
-            </div>
+            <AccessGate experiment={experiment} state={state} onRetry={onRetry} />
           ) : experiment.id === "word-trail" ? (
             <RunnerWorkspace key={userId} />
           ) : experiment.id === "culture-quest" ? (
@@ -519,15 +351,13 @@ function ExperimentShell({
             <h3>What to keep in mind</h3>
             <p>{experiment.limitations}</p>
             <div className="labs-rule" />
-            <p className="labs-meta">
-              Access: {experiment.access}
-              <br />
-              Availability: {experiment.enabled ? "Enabled" : "Paused"}
-              <br />
-              Updated: {experiment.updatedAt.slice(0, 10)}
-            </p>
+            <dl className="lab-facts">
+              <div><dt>Access</dt><dd>{experiment.access}</dd></div>
+              <div><dt>Availability</dt><dd>{experiment.enabled ? "Enabled" : "Paused"}</dd></div>
+              <div><dt>Updated</dt><dd>{experiment.updatedAt.slice(0, 10)}</dd></div>
+            </dl>
             <a
-              className="labs-text-link"
+              className="lab-text-link"
               href={experiment.destination}
               onClick={() => {
                 void labsCall("event", {
@@ -536,16 +366,16 @@ function ExperimentShell({
                 }).catch(() => {});
               }}
             >
-              {experiment.destinationLabel} ↗
+              {experiment.destinationLabel} <span aria-hidden="true">↗</span>
             </a>
           </section>
-          <section className="labs-panel">
+          <section className="labs-panel" id="feedback" tabIndex={-1}>
             {userId ? (
               <FeedbackForm experiment={experiment} />
             ) : (
               <>
                 <h3>Help shape what comes next</h3>
-                <p>Sign in to submit feedback and follow its review status.</p>
+                <p>Sign in to send feedback on {experiment.name} and follow its review status in My activity.</p>
               </>
             )}
           </section>
@@ -554,21 +384,27 @@ function ExperimentShell({
     </>
   );
 }
+function PageHead({ eyebrow, title, children }: { eyebrow: string; title: string; children?: ReactNode }) {
+  return (
+    <div className="lab-page-head">
+      <p className="lab-eyebrow">{eyebrow}</p>
+      <h1>{title}</h1>
+      {children && <p className="lab-section__lede">{children}</p>}
+    </div>
+  );
+}
 export function LabsPage() {
   const { path } = useRoute(),
     { user, ready } = useLabsAccount(),
     [data, setData] = useState<Bootstrap | null>(null),
     [error, setError] = useState(""),
-    [loading, setLoading] = useState(true),
     [refresh, setRefresh] = useState(0),
     [controlMessage, setControlMessage] = useState(""),
-    accountTask = useTask(),
     reload = useCallback(() => setRefresh((n) => n + 1), []);
   useEffect(() => {
     if (!ready) return;
     let live = true;
     setData(null);
-    setLoading(true);
     setError("");
     labsCall<Bootstrap>("bootstrap")
       .then((d) => {
@@ -576,9 +412,6 @@ export function LabsPage() {
       })
       .catch((e) => {
         if (live) setError(errorMessage(e));
-      })
-      .finally(() => {
-        if (live) setLoading(false);
       });
     return () => {
       live = false;
@@ -590,73 +423,48 @@ export function LabsPage() {
     { noindex: path !== "labs" },
   );
   const experiments = data?.experiments ?? [...LABS_REGISTRY],
-    detail = experiments.find((e) => path === `labs/${e.slug}`);
+    detail = experiments.find((e) => path === `labs/${e.slug}`),
+    // Account and access UI all derive from this one view of the visitor.
+    viewer: LabsViewer = {
+      authReady: ready,
+      uid: user?.uid,
+      loaded: !!data,
+      failed: !!error,
+      invited: data?.invited ?? [],
+      canAdmin: data?.canAdmin ?? false,
+    };
   return (
-    <div className="labs-root">
-      <header className="labs-header">
-        <Link className="labs-brand" to="/labs">
-          <span className="labs-brand-mark" aria-hidden="true">
-            i<span>·</span>
-          </span>
-          <span>
-            Indigen World <strong>Labs</strong>
-          </span>
-        </Link>
-        <div className="labs-header-end">
-          <a className="labs-world-link" href="/">
-            Back to Indigen World ↗
-          </a>
-          {user ? (
-            <button
-              className="labs-button labs-button-small labs-secondary"
-              disabled={accountTask.busy}
-              onClick={() =>
-                void accountTask.run(async () => {
-                  await logout();
-                })
-              }
-            >
-              Sign out
-            </button>
-          ) : ready ? (
-            <Account />
-          ) : (
-            <span>Loading account…</span>
-          )}
-        </div>
-      </header>
-      <nav className="labs-nav" aria-label="Labs">
-        <div>
-          {[
-            ["labs", "Home"],
-            ["labs/experiments", "Experiments"],
-            ["labs/activity", "My activity"],
-            ["labs/updates", "Updates"],
-            ...(data?.canAdmin ? [["labs/admin", "Admin"]] : []),
-          ].map(([route, label]) => (
-            <Link
-              key={route}
-              to={`/${route}`}
-              aria-current={path === route ? "page" : undefined}
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-        <span className="labs-beta">A space to try what’s next</span>
-      </nav>
-      <div className="labs-container">
+    <div className="labs-root lab-root">
+      <LabsHeader user={user} ready={ready} canAdmin={viewer.canAdmin} />
+      {path === "labs" && (
+        <HeroCarousel photos={HERO_PHOTOS}>
+          <p className="lab-eyebrow lab-eyebrow--light">
+            <span className="lab-live-dot" aria-hidden="true" /> Indigen World Labs
+          </p>
+          <h1>
+            Living culture.
+            <br />
+            <em>New possibilities.</em>
+          </h1>
+          <p className="lab-hero__lede">
+            Play with language. Explore stories. Help shape what comes next for the cultures we call home.
+          </p>
+          <div className="lab-hero__actions">
+            <a className="lab-btn lab-btn--light" href="#featured-experiments">
+              Explore experiments <span aria-hidden="true">↓</span>
+            </a>
+            <a className="lab-btn lab-btn--ghost" href="#why">
+              Why this lab exists
+            </a>
+          </div>
+        </HeroCarousel>
+      )}
+      <div className="lab-container">
         {data?.development && (
           <p className="labs-notice">
             Local development demo. Fixture entries demonstrate the workflow and
             are not reviewed Kasem or cultural material. They are excluded from
             production.
-          </p>
-        )}
-        <TaskStatus task={accountTask} />
-        {loading && (
-          <p className="labs-service" role="status">
-            Checking experiment availability…
           </p>
         )}
         {error && (
@@ -669,91 +477,40 @@ export function LabsPage() {
         )}
         {path === "labs" ? (
           <>
-            <CultureHero variant="embedded"><div className="culture-hero__copy">
-              <div>
-                <p className="labs-eyebrow">
-                  <span className="labs-live-dot" /> INDIGEN WORLD LABS
-                </p>
-                <h1>
-                  Small experiments.
-                  <br />
-                  <em>Living culture.</em>
-                </h1>
-                <p className="labs-intro">
-                  Try new ways to learn, create, and connect with indigenous
-                  culture. Help shape what comes next.
-                </p>
-                <Link className="labs-button" to="/labs/experiments">
-                  Explore experiments ↗
-                </Link>
-                <p className="labs-hero-note">
-                  Made for the curious. Built with the community.
-                </p>
-              </div>
-            </div></CultureHero>
-            <section>
-              <div className="labs-section-heading">
-                <div>
-                  <p className="labs-eyebrow">START EXPLORING</p>
-                  <h2>More ways to get involved.</h2>
-                </div>
-                <Link to="/labs/experiments">View all experiments ↗</Link>
-              </div>
-              <div className="labs-grid">
-                {experiments.map((e) => (
-                  <ExperimentCard key={e.id} experiment={e} />
-                ))}
-              </div>
-            </section>
-            <section className="labs-principles">
-              <div>
-                <span>01 / TRY</span>
-                <h3>Something small, something useful.</h3>
-                <p>
-                  A short practice session. A story idea. Start wherever your
-                  curiosity takes you.
-                </p>
-              </div>
-              <div>
-                <span>02 / TELL US</span>
-                <h3>Your experience matters.</h3>
-                <p>
-                  Share a language concern, a rough edge or an idea. Follow your
-                  feedback as it is reviewed.
-                </p>
-              </div>
-              <div>
-                <span>03 / FOLLOW ALONG</span>
-                <h3>Experiments grow and change.</h3>
-                <p>
-                  Some become part of Indigen World. Others pause or retire.
-                  We’ll explain what changes.
-                </p>
-                <Link to="/labs/updates">Follow the updates ↗</Link>
-              </div>
-            </section>
+            <FeaturedRow experiments={experiments} viewer={viewer} />
+            <ModeShortcuts experiments={experiments} />
+            {user && <ContinueExploring key={user.uid} experiments={experiments} viewer={viewer} />}
+            <PurposeSection />
+            <UpdatesStrip experiments={experiments} />
           </>
         ) : path === "labs/experiments" ? (
-          <Catalogue experiments={experiments} />
+          <>
+            <PageHead eyebrow="The experiments" title="Find your next small discovery.">
+              Every experiment in Labs, with what you do in it and who can take part today.
+            </PageHead>
+            <Collection experiments={experiments} viewer={viewer} />
+          </>
         ) : detail ? (
           <ExperimentShell
             experiment={detail}
-            loaded={!!data}
-            userId={user?.uid}
-            invited={data?.invited ?? []}
-            canAdmin={data?.canAdmin ?? false}
+            viewer={viewer}
             aiEnabled={data?.aiEnabled ?? false}
+            onRetry={reload}
           />
         ) : path === "labs/activity" ? (
           user ? (
             <Activity key={user.uid} />
           ) : (
-            <CultureHero variant="embedded"><div className="culture-hero__copy"><h1>My activity</h1>
-              <p>
-                Sign in above to reopen your private drafts, practice sessions
-                and feedback.
-              </p>
-            </div></CultureHero>
+            <>
+              <PageHead eyebrow="Your space" title="My activity">
+                Your private story drafts, practice sessions and feedback live here once you sign in.
+              </PageHead>
+              {ready && (
+                <div className="lab-gate lab-gate--signin">
+                  <SignInPanel title="Sign in to see your activity" />
+                </div>
+              )}
+            </>
           )
         ) : path === "labs/updates" ? (
           <Updates />
@@ -774,26 +531,17 @@ export function LabsPage() {
               />
             </>
           ) : (
-            <div className="labs-empty">
-              <PageMotion placement="inline" />
-              <h1>Admin access required</h1>
-              <p>
-                This workspace is available to administrators with a trusted
-                account role.
-              </p>
-            </div>
+            <PageHead
+              eyebrow="Administration"
+              title={!ready || (!data && !error) ? "Checking access…" : "Admin access required"}
+            >
+              This workspace is available to administrators with a trusted account role.
+            </PageHead>
           )
         ) : null}
       </div>
-      <footer className="labs-footer">
-        <Link to="/labs">Indigen World Labs</Link>
-        <span>Culture belongs in the future.</span>
-        <div>
-          <a href="/privacy">Privacy</a>
-          <a href="/contribute">Contribute</a>
-          <a href="/">Indigen World ↗</a>
-        </div>
-      </footer>
+      {path === "labs" && <ShapeTheLab experiments={experiments} signedIn={!!user} />}
+      <LabsFooter />
     </div>
   );
 }

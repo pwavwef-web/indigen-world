@@ -4,7 +4,8 @@ import { Link } from "../../app/router";
 import { labsCall, errorMessage } from "./api";
 
 interface Quest { day: string; cards: LabsSource[]; completed: string[]; xp: number; missions: number }
-const stops = ["The word grove", "The story bridge", "The lookout"];
+export const stops = ["The word grove", "The story bridge", "The lookout"];
+export const stopIcons = ["♧", "⌁", "✦"];
 const badges = [[1, "First footsteps"], [3, "Trail finder"], [10, "Culture keeper"]] as const;
 export function QuestWorkspace() {
   const [quest, setQuest] = useState<Quest | null>(null);
@@ -57,7 +58,7 @@ export function QuestWorkspace() {
       </details>
       {!quest.cards.length ? <p className="labs-notice">No eligible reviewed sources are available in the current sample. Try again later.</p> : <>
         <div className="quest-daily-goal"><div><strong>Today’s quest: leave {quest.cards.length} useful clue{quest.cards.length === 1 ? "" : "s"}</strong><span>{quest.completed.length}/{quest.cards.length} shared · up to {quest.cards.length * 20} XP</span></div><progress aria-label="Today's contribution goal" value={quest.completed.length} max={quest.cards.length} /></div>
-        <div className="quest-map"><span className="quest-map-label">YOUR TRAIL TODAY</span><span className="quest-map-sun" aria-hidden="true">☀</span><nav className="quest-trail" aria-label="Expedition missions">{quest.cards.map((s, i) => <button key={s.ref} className={`quest-node ${i === index ? "active" : ""} ${quest.completed.includes(s.ref) ? "done" : ""}`} aria-current={i === index ? "step" : undefined} disabled={busy} onClick={() => move(i)}><span className="quest-island" aria-hidden="true">{quest.completed.includes(s.ref) ? "⚑" : ["♧", "⌁", "✦"][i]}</span><span>{stops[i]}</span><small>{quest.completed.includes(s.ref) ? "Clue shared ✓" : `Mission ${i + 1} · explore`}</small></button>)}</nav><p>No timer. No lost lives. Follow your curiosity.</p></div>
+        <div className="quest-map"><span className="quest-map-label">YOUR TRAIL TODAY</span><span className="quest-map-sun" aria-hidden="true">☀</span><nav className="quest-trail" aria-label="Expedition missions">{quest.cards.map((s, i) => <button key={s.ref} className={`quest-node ${i === index ? "active" : ""} ${quest.completed.includes(s.ref) ? "done" : ""}`} aria-current={i === index ? "step" : undefined} disabled={busy} onClick={() => move(i)}><span className="quest-island" aria-hidden="true">{quest.completed.includes(s.ref) ? "⚑" : stopIcons[i]}</span><span>{stops[i]}</span><small>{quest.completed.includes(s.ref) ? "Clue shared ✓" : `Mission ${i + 1} · explore`}</small></button>)}</nav><p>No timer. No lost lives. Follow your curiosity.</p></div>
         <section className="quest-stage" ref={challengeRef} tabIndex={-1} aria-label={`Current mission: ${stops[index]}`}>
         <ol className="quest-steps" aria-label="Mission steps"><li aria-current={!discovered ? "step" : undefined}>{discovered ? "✓" : "1"} Discover</li><li aria-current={discovered && !completed ? "step" : undefined}>{completed ? "✓" : "2"} Leave a clue</li><li aria-current={completed ? "step" : undefined}>3 Collect XP</li></ol>
         {source && !discovered && <section className="quest-discovery" key={source.ref}>

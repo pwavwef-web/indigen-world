@@ -1,5 +1,3 @@
-import { CultureHero } from "../../components/HomeHero";
-import { PageMotion } from "../../components/PageMotion";
 import { useEffect, useState } from "react";
 import type {
   Experiment,
@@ -85,14 +83,14 @@ export function Activity() {
     });
   return (
     <>
-      <CultureHero variant="embedded"><div className="culture-hero__copy">
+      <div className="labs-page-heading">
         <p className="labs-eyebrow">YOUR SPACE</p>
         <h1>A little progress, kept here.</h1>
         <p>
           Your private drafts, practice sessions and feedback. Practice results
           describe participation, not fluency.
         </p>
-      </div></CultureHero>
+      </div>
       <div className="labs-tabs" role="group" aria-label="Activity type">
         {[
           ["drafts", "Story drafts"],
@@ -201,11 +199,11 @@ export function Updates() {
   const page = usePage<LabsUpdate>("updates");
   return (
     <>
-      <CultureHero variant="embedded"><div className="culture-hero__copy">
+      <div className="labs-page-heading">
         <p className="labs-eyebrow">AS WE LEARN</p>
         <h1>Follow the experiments.</h1>
         <p>Changes, limitations and next steps, shared by the Labs team.</p>
-      </div></CultureHero>
+      </div>
       <div className="labs-record-list">
         {page.records.map((u) => (
           <article className="labs-panel" key={u.id}>
@@ -621,7 +619,6 @@ export function Admin({
   return (
     <>
       <div className="labs-page-heading">
-        <PageMotion placement="inline" />
         <p className="labs-eyebrow">LABS ADMINISTRATION</p>
         <h1>Care for the experiments.</h1>
         <p>Control availability, listen to testers and explain what changes.</p>

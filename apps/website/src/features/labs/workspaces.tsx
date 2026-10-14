@@ -13,6 +13,17 @@ import {
   TaskStatus,
   useTask,
 } from "./LabsPage";
+export const PRACTICE_MODE_LABELS = {
+  meaning: "Choose the meaning",
+  matching: "Match the expression",
+  listening: "Listen for meaning",
+} as const;
+export const STORY_STEPS = [
+  "Start with something trusted",
+  "Give your story a shape",
+  "Make it your own",
+] as const;
+export const STORY_FORMATS = ["short story", "short video script", "scene outline"] as const;
 function ReviewedAudio({ source }: { source: LabsSource }) {
   const [unavailable, setUnavailable] = useState(false);
   return (
@@ -205,11 +216,7 @@ export function PracticeWorkspace({
                 Question {index + 1} of {session.questions.length}
               </span>
               <span className="labs-tag">
-                {question.mode === "matching"
-                  ? "Match the expression"
-                  : question.mode === "listening"
-                    ? "Listen for meaning"
-                    : "Choose the meaning"}
+                {PRACTICE_MODE_LABELS[question.mode]}
               </span>
             </div>
             <progress
@@ -436,7 +443,7 @@ export function StoryWorkspace({
       <TaskStatus task={task} />
       <div className="labs-story-step">
         <span className="labs-step">01</span>
-        <h3>Start with something trusted</h3>
+        <h3>{STORY_STEPS[0]}</h3>
       </div>
       {draft ? (
         <p>
@@ -484,7 +491,7 @@ export function StoryWorkspace({
       <SourceNotes sources={sources} />
       <div className="labs-story-step">
         <span className="labs-step">02</span>
-        <h3>Give your story a shape</h3>
+        <h3>{STORY_STEPS[1]}</h3>
       </div>
       <div onChange={() => setDirty(true)}>
         <Field label="Draft title">
@@ -517,7 +524,7 @@ export function StoryWorkspace({
         </div>
         <Field label="Format">
           <select value={format} onChange={(e) => setFormat(e.target.value)}>
-            {["short story", "short video script", "scene outline"].map((v) => (
+            {STORY_FORMATS.map((v) => (
               <option key={v}>{v}</option>
             ))}
           </select>
@@ -582,7 +589,7 @@ export function StoryWorkspace({
       )}
       <div className="labs-story-step">
         <span className="labs-step">03</span>
-        <h3>Make it your own</h3>
+        <h3>{STORY_STEPS[2]}</h3>
       </div>
       <Field label="Creative section — not reviewed cultural information">
         <textarea

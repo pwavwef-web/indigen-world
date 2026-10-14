@@ -1,0 +1,15 @@
+{
+  "accent": "blue",
+  "motif": "chevrons",
+  "eyebrow": "Indigen World Labs · Redesign",
+  "title": "Living culture.\nNew possibilities.",
+  "lede": "A new Labs home with real photographs, live experiment previews and clear access for every visitor.",
+  "tags": ["Photo-led home", "Live previews", "Honest access"],
+  "hero": ["labs-home-desktop.png", "labs-home-phone.png"],
+  "figures": {
+    "labs-home-desktop.png": { "title": "Arrive somewhere alive", "note": "Actual local product preview. Photographs from Wikimedia Commons, credited on the page." },
+    "labs-featured-desktop.png": { "title": "See each experiment before you start", "note": "Word Trail's preview is drawn by the game's own renderer. Actual local product preview." },
+    "labs-experiments-desktop.png": { "title": "Find what you want to do", "note": "Play, Learn, Create and Contribute filters come from the experiment registry." },
+    "labs-home-phone.png": { "title": "The message first on your phone", "note": "Main action visible without scrolling. Actual local preview at 390 pixels." }
+  }
+}

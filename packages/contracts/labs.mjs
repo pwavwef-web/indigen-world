@@ -2,6 +2,8 @@
 export const LABS_REGISTRY = [
   {
     id: "word-trail", slug: "word-trail", name: "Word Trail",
+    summary: "Dodge rocks and leap logs on a three-lane trail. Every 300 metres, translate a real English word into Kasem to open the next section.",
+    modes: ["play", "contribute"],
     purpose: "Run the trail. Keep your language moving.",
     category: "Contributing", status: "alpha", access: "signed-in",
     enabled: true, version: "0.1.0", updatedAt: "2026-10-02",
@@ -12,6 +14,8 @@ export const LABS_REGISTRY = [
   },
   {
     id: "culture-quest", slug: "culture-quest", name: "Culture Quest",
+    summary: "Visit three reviewed sources a day, guess what they mean, then leave a usage note or a correction with evidence for reviewers.",
+    modes: ["play", "contribute"],
     purpose: "Play a small expedition. Help living culture grow.",
     category: "Contributing", status: "alpha", access: "signed-in",
     enabled: true, version: "0.1.0", updatedAt: "2026-10-01",
@@ -24,6 +28,9 @@ export const LABS_REGISTRY = [
     id: "kasem-practice",
     slug: "kasem-practice",
     name: "Kasem Practice Lab",
+    summary:
+      "Pick a topic and answer up to six questions built only from reviewed Kasem entries: meanings, whole expressions and, where a reviewed recording exists, listening.",
+    modes: ["learn"],
     purpose: "A little practice. A closer connection.",
     category: "Language",
     status: "alpha",
@@ -49,6 +56,9 @@ export const LABS_REGISTRY = [
     id: "cultural-story",
     slug: "cultural-story",
     name: "Cultural Story Builder",
+    summary:
+      "Choose reviewed sources, an audience and a format, then shape a private story draft that keeps its source notes separate from your own writing.",
+    modes: ["create"],
     purpose: "Start with a source. Make it your own.",
     category: "Creating",
     status: "alpha",

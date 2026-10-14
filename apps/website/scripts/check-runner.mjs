@@ -114,7 +114,7 @@ try {
     assert(await integrated.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Full Labs page fits ${width}px`);
   }
   await integrated.goto(`${origin}/labs/experiments`);
-  await integrated.getByRole('link', { name:'Word Trail',exact:true }).waitFor();
+  await integrated.getByRole('link', { name:'Play: Word Trail',exact:true }).waitFor();
   console.log('Word Trail UI passed: gameplay checkpoint, pause, mobile controls, failed-save retention, retry, reload, alternate word, empty gate, reduced motion and 360/390px overflow.');
 } finally {
   await browser?.close();
