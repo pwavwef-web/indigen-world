@@ -5,7 +5,7 @@
 - Search description: An original fullscreen 3D language runner with an animated explorer, blue UI, safe contribution checkpoints and guest practice.
 - Date: 2026-10-14 (UTC)
 - Product route: https://indigenworld.com/labs/word-trail
-- Release status: Implemented and verified in a clean release checkout based on the current production main. Production deployment pending confirmation.
+- Release status: Deployed and verified on production on 2026-10-14. Source commit: be1cf01eccd5feaf70e30a921dc55f5886f41ca7.
 - Blogger status: Prepared for Chinedum; unpublished. No community messages have been sent.
 
 ## What changed
@@ -53,4 +53,8 @@ Art specification: art.json. The established release-art renderer generated the 
 
 ## Production evidence
 
-Pending confirmation of the normal clean-source origin/main gate, labsApi and indigen-world Hosting deployment, and live served-asset checks. No other Hosting site, function, rules or indexes are part of this release.
+- Firebase confirmed a successful Node.js 22 second-generation labsApi update in us-central1 and an indigen-world Hosting release. The deploy completed before the live verification at 2026-10-14T11:49:22.572Z.
+- The normal clean-source origin/main guard passed at be1cf01e. Website validation, typecheck, 29 tests and the 27-route production build passed again during predeploy. Firebase also ran the existing Dictionary and TribeStudio predeploy checks; both passed. Only labsApi and indigen-world Hosting were updated; no other Hosting site, function, rules or indexes were deployed.
+- On https://indigenworld.com, the Labs entry HTML, Labs JS/CSS, runner JS/CSS, actual gameplay preview and Three.js notice matched the release build byte for byte. SHA-256 evidence is in production-verification.json.
+- Actual signed-out production browsing at 390 × 844 opened practice, completed the countdown, advanced distance, rendered the 3D scene, paused and exited successfully. The public Labs bootstrap returned HTTP 200. The blue experiment catalogue also loaded. No production translation or account mutation was submitted.
+- screens/live-game-phone.png and screens/live-labs-blue.png are unretouched production screenshots from that browser viewport, without synthetic account or queue data. The framed article figures remain clearly identified local QA captures. This live browser check does not substitute for physical-phone performance, iOS/Safari or soft-keyboard verification.
