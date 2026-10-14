@@ -5,7 +5,7 @@
 - Search description: An original fullscreen 3D language runner with an animated explorer, blue UI, safe contribution checkpoints and guest practice.
 - Date: 2026-10-14 (UTC)
 - Product route: https://indigenworld.com/labs/word-trail
-- Release status: Deployed and verified on production on 2026-10-14. Source commit: be1cf01eccd5feaf70e30a921dc55f5886f41ca7.
+- Release status: Deployed and verified on production on 2026-10-14. Final website source: 5cfe66fa8c5c345c11cb3daacee11adfc37a548b. Checkpoint API source: be1cf01eccd5feaf70e30a921dc55f5886f41ca7.
 - Blogger status: Prepared for Chinedum; unpublished. No community messages have been sent.
 
 ## What changed
@@ -58,3 +58,5 @@ Art specification: art.json. The established release-art renderer generated the 
 - On https://indigenworld.com, the Labs entry HTML, Labs JS/CSS, runner JS/CSS, actual gameplay preview and Three.js notice matched the release build byte for byte. SHA-256 evidence is in production-verification.json.
 - Actual signed-out production browsing at 390 × 844 opened practice, completed the countdown, advanced distance, rendered the 3D scene, paused and exited successfully. The public Labs bootstrap returned HTTP 200. The blue experiment catalogue also loaded. No production translation or account mutation was submitted.
 - screens/live-game-phone.png and screens/live-labs-blue.png are unretouched production screenshots from that browser viewport, without synthetic account or queue data. The framed article figures remain clearly identified local QA captures. This live browser check does not substitute for physical-phone performance, iOS/Safari or soft-keyboard verification.
+- The final Hosting-only blue-preview polish deployed from origin/main at 5cfe66fa. A locally filtered copy of firebase.json retained the exact indigen-world site settings and both standard predeploy commands, avoiding unrelated site hooks. The production-main guard, website validation, 29 tests and production build passed. API code was unchanged.
+- Final live verification completed at 2026-10-14T12:50:42.744Z. Updated hashes are in production-verification.json. The catalogue capture waited for fonts, image decoding and scroll-triggered card reveals; all four cards were inspected with the blue preview palette. Guest practice, distance progress, pause, exit and the successful public bootstrap were verified again.

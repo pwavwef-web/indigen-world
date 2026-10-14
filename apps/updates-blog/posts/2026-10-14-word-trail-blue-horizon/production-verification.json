@@ -1,10 +1,10 @@
 {
-  "checkedAt": "2026-10-14T11:49:22.572Z",
+  "checkedAt": "2026-10-14T12:50:42.744Z",
   "origin": "https://indigenworld.com",
   "checks": [
     {
       "asset": "labs/index.html",
-      "sha256": "da0593f1597a461c0e2f8071076504690324432e162e9af68390fb086ef2e60b",
+      "sha256": "c9e9d45f3c430c7a7e53569f48e27076f07fb65dd16cb2087263cdcac942c594",
       "bytes": 2520
     },
     {
@@ -18,24 +18,24 @@
       "bytes": 1102
     },
     {
-      "asset": "assets/LabsPage-7m2KKhlc.js",
-      "sha256": "44e8a9172276c5ef192ec73f283fc96300458820ad6151de183731b2eb4fb92e",
+      "asset": "assets/LabsPage-BMq_0Mtc.js",
+      "sha256": "da1b35690ceff91110188a9bbcffa9cf418577228cfd3f597de9ca99dc7eb538",
       "bytes": 190087
     },
     {
-      "asset": "assets/LabsPage-DcQIy-vD.css",
-      "sha256": "0b758e04e063c4a900320b28b0ce34c9be439e5adbda5258bdade219f142e2ad",
+      "asset": "assets/LabsPage-C9vidhBX.css",
+      "sha256": "69136757b3fc7e5c1ebafd7c2d3373a10f4bd07c04410060599eda49c64ae2ab",
       "bytes": 50947
-    },
-    {
-      "asset": "assets/runner-DyYGj6vk.js",
-      "sha256": "3fa24a89d0c4ccd2f21774928255dc96455861977dad34df6042789509ec1daf",
-      "bytes": 593963
     },
     {
       "asset": "assets/runner-m3_nSXCt.css",
       "sha256": "4ab76b14448169de77b17d45a96a8b43c476b919a6ad0c72e18f6e11a89139bd",
       "bytes": 14791
+    },
+    {
+      "asset": "assets/runner-M8p6QM6-.js",
+      "sha256": "11b72c23fdcb11c5cf8aa5dcdf21e8d70fe896a8bb22e7bb35a934675a66827c",
+      "bytes": 593963
     },
     {
       "check": "Live signed-out phone practice, countdown, rendering, pause and exit",
