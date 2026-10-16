@@ -100,7 +100,8 @@ export const collectionMedia = onCall(options, async (req) => {
   }
   throw new HttpsError('invalid-argument', 'Unsupported media operation.');
 });
-export const processCollectionImage = onObjectFinalized({ region: 'us-central1', timeoutSeconds: 120, memory: '1GiB', concurrency: 1, maxInstances: 4 }, async (event) => {
+// Storage events must use the existing production bucket's us-east1 region.
+export const processCollectionImage = onObjectFinalized({ region: 'us-east1', timeoutSeconds: 120, memory: '1GiB', concurrency: 1, maxInstances: 4 }, async (event) => {
   const match = /^collectionMediaRaw\/([^/]+)\/([a-f0-9-]{36})\/original$/.exec(event.data.name);
   if (!match) return;
   const [, uid, id] = match, db = getFirestore(), ref = db.collection('collectionMediaAssets').doc(id), asset = await ref.get();
