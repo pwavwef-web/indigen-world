@@ -167,6 +167,7 @@ ThemeData _buildTheme(BrandTheme theme, BrandPalette brand) {
       systemOverlayStyle: brandOverlayStyle(brand),
       iconTheme: IconThemeData(color: brand.ink),
       titleTextStyle: TextStyle(
+        fontFamily: 'Noto Sans',
         color: brand.ink,
         fontSize: 19,
         fontWeight: FontWeight.w800,
@@ -192,7 +193,7 @@ ThemeData _buildTheme(BrandTheme theme, BrandPalette brand) {
       filled: true,
       fillColor: brand.surfaceMuted,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      hintStyle: TextStyle(color: brand.faintInk),
+      hintStyle: TextStyle(fontFamily: 'Noto Sans', color: brand.faintInk),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: brand.border),
@@ -205,8 +206,9 @@ ThemeData _buildTheme(BrandTheme theme, BrandPalette brand) {
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: brand.accent, width: 1.6),
       ),
-      labelStyle: TextStyle(color: brand.mutedInk),
+      labelStyle: TextStyle(fontFamily: 'Noto Sans', color: brand.mutedInk),
       floatingLabelStyle: TextStyle(
+        fontFamily: 'Noto Sans',
         color: brand.accent,
         fontWeight: FontWeight.w700,
       ),
@@ -225,6 +227,7 @@ ThemeData _buildTheme(BrandTheme theme, BrandPalette brand) {
       }),
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => TextStyle(
+          fontFamily: 'Noto Sans',
           color: states.contains(WidgetState.selected)
               ? brand.accent
               : brand.mutedInk,
@@ -239,7 +242,11 @@ ThemeData _buildTheme(BrandTheme theme, BrandPalette brand) {
         foregroundColor: brand.onAccentFill,
         minimumSize: const Size(44, 52),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        textStyle: const TextStyle(
+          fontFamily: 'Noto Sans',
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -248,13 +255,20 @@ ThemeData _buildTheme(BrandTheme theme, BrandPalette brand) {
         minimumSize: const Size(44, 52),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         side: BorderSide(color: brand.border),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        textStyle: const TextStyle(
+          fontFamily: 'Noto Sans',
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: brand.accent,
-        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+        textStyle: const TextStyle(
+          fontFamily: 'Noto Sans',
+          fontWeight: FontWeight.w700,
+        ),
       ),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
@@ -271,7 +285,11 @@ ThemeData _buildTheme(BrandTheme theme, BrandPalette brand) {
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       side: BorderSide(color: brand.border),
-      labelStyle: TextStyle(color: brand.ink, fontWeight: FontWeight.w600),
+      labelStyle: TextStyle(
+        fontFamily: 'Noto Sans',
+        color: brand.ink,
+        fontWeight: FontWeight.w600,
+      ),
     ),
     dividerTheme: DividerThemeData(
       color: brand.divider,
@@ -281,7 +299,11 @@ ThemeData _buildTheme(BrandTheme theme, BrandPalette brand) {
     listTileTheme: ListTileThemeData(
       iconColor: brand.mutedInk,
       textColor: brand.ink,
-      subtitleTextStyle: TextStyle(color: brand.mutedInk, fontSize: 13),
+      subtitleTextStyle: TextStyle(
+        fontFamily: 'Noto Sans',
+        color: brand.mutedInk,
+        fontSize: 13,
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     ),
     switchTheme: SwitchThemeData(
@@ -321,6 +343,7 @@ ThemeData _buildTheme(BrandTheme theme, BrandPalette brand) {
       behavior: SnackBarBehavior.floating,
       backgroundColor: _darkSlab(brand),
       contentTextStyle: const TextStyle(
+        fontFamily: 'Noto Sans',
         color: Colors.white,
         fontSize: 14,
         fontWeight: FontWeight.w600,
@@ -363,12 +386,14 @@ ThemeData _buildTheme(BrandTheme theme, BrandPalette brand) {
         borderRadius: BorderRadius.circular(kGlassPopupRadius),
       ),
       titleTextStyle: TextStyle(
+        fontFamily: 'Noto Sans',
         color: brand.ink,
         fontSize: 20,
         fontWeight: FontWeight.w800,
         letterSpacing: -0.3,
       ),
       contentTextStyle: TextStyle(
+        fontFamily: 'Noto Sans',
         color: brand.mutedInk,
         fontSize: 15,
         height: 1.5,
@@ -381,7 +406,11 @@ ThemeData _buildTheme(BrandTheme theme, BrandPalette brand) {
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: brand.border),
       ),
-      textStyle: TextStyle(color: brand.ink, fontSize: 14),
+      textStyle: TextStyle(
+        fontFamily: 'Noto Sans',
+        color: brand.ink,
+        fontSize: 14,
+      ),
     ),
     drawerTheme: DrawerThemeData(
       backgroundColor: brand.background,
@@ -405,6 +434,7 @@ ThemeData _buildTheme(BrandTheme theme, BrandPalette brand) {
         borderRadius: BorderRadius.circular(10),
       ),
       textStyle: const TextStyle(
+        fontFamily: 'Noto Sans',
         color: Colors.white,
         fontSize: 12,
         fontWeight: FontWeight.w600,

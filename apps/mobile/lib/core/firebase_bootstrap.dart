@@ -32,6 +32,17 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (Firebase.apps.isEmpty) {
     await Firebase.initializeApp(options: firebaseOptionsFor(appEnvironment));
   }
+  if (message.data['renderLocally'] == 'true') {
+    await createNotificationChannels();
+    await showForegroundAlert(
+      message,
+      route:
+          message.data['route'] ??
+          (message.data['postId'] == null
+              ? '/notifications'
+              : '/post/${message.data['postId']}'),
+    );
+  }
 }
 
 class FirebaseBootstrap {

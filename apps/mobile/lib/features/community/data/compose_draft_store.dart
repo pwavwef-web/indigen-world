@@ -1,7 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:indigen_world_mobile/features/community/data/post_category.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// What somebody was writing when Android took the app away.
@@ -42,6 +45,9 @@ class ComposeDraft {
     this.attachmentPaths = const <String>[],
     this.kasemConfirmed = false,
     this.category,
+    this.videoProjectId,
+    this.videoSourcePath,
+    this.community,
   });
 
   final String text;
@@ -67,9 +73,14 @@ class ComposeDraft {
 
   final bool kasemConfirmed;
   final PostCategory? category;
+  final String? videoProjectId, videoSourcePath;
+  final PostCommunityStamp? community;
 
   bool get isEmpty =>
-      text.trim().isEmpty && attachmentPaths.isEmpty && quoteToId == null;
+      text.trim().isEmpty &&
+      attachmentPaths.isEmpty &&
+      quoteToId == null &&
+      videoProjectId == null;
 
   Map<String, Object?> toJson() => {
     'text': text,
@@ -78,6 +89,15 @@ class ComposeDraft {
     'attachmentPaths': attachmentPaths,
     'kasemConfirmed': kasemConfirmed,
     'category': category?.wire,
+    'videoProjectId': videoProjectId,
+    'videoSourcePath': videoSourcePath,
+    'community': community == null
+        ? null
+        : {
+            'id': community!.id,
+            'name': community!.name,
+            'isPrivate': community!.isPrivate,
+          },
   };
 
   static ComposeDraft? fromJson(Object? raw) {
@@ -94,6 +114,19 @@ class ComposeDraft {
       ],
       kasemConfirmed: raw['kasemConfirmed'] == true,
       category: PostCategory.fromWire(raw['category']),
+      videoProjectId: raw['videoProjectId'] is String
+          ? raw['videoProjectId'] as String
+          : null,
+      videoSourcePath: raw['videoSourcePath'] is String
+          ? raw['videoSourcePath'] as String
+          : null,
+      community: raw['community'] is Map
+          ? PostCommunityStamp(
+              id: raw['community']['id'] as String,
+              name: raw['community']['name'] as String,
+              isPrivate: raw['community']['isPrivate'] == true,
+            )
+          : null,
     );
   }
 }
@@ -104,9 +137,19 @@ class ComposeDraft {
 /// — the composer is a full screen and only one is ever up — and a queue of
 /// them would turn a rescue into an inbox.
 class ComposeDraftStore {
-  const ComposeDraftStore();
+  const ComposeDraftStore({this.ownerUid});
+  final String? ownerUid;
 
-  static const _key = 'community.composeDraft.v1';
+  String get _key {
+    String? uid = ownerUid;
+    try {
+      if (uid == null && Firebase.apps.isNotEmpty)
+        uid = FirebaseAuth.instance.currentUser?.uid;
+    } on Object {
+      /* offline guest/test */
+    }
+    return 'community.composeDraft.v2.${uid ?? 'guest'}';
+  }
 
   Future<void> save(ComposeDraft draft) async {
     if (draft.isEmpty) return unawaitedClear();

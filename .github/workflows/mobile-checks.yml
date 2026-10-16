@@ -156,6 +156,7 @@ jobs:
           ADMOB_COMMUNITY_NATIVE_AD_UNIT_ID: ${{ secrets.ADMOB_COMMUNITY_NATIVE_AD_UNIT_ID }}
           ADMOB_EXPLORE_NATIVE_AD_UNIT_ID: ${{ secrets.ADMOB_EXPLORE_NATIVE_AD_UNIT_ID }}
           ADMOB_COLLECTION_NATIVE_AD_UNIT_ID: ${{ secrets.ADMOB_COLLECTION_NATIVE_AD_UNIT_ID }}
+          ADMOB_POST_COMMENTS_NATIVE_AD_UNIT_ID: ${{ secrets.ADMOB_POST_COMMENTS_NATIVE_AD_UNIT_ID }}
         run: |
           flutter pub get
           flutter gen-l10n
@@ -166,7 +167,9 @@ jobs:
               --dart-define=ADMOB_ANDROID_APP_ID="$ADMOB_ANDROID_APP_ID" \
               --dart-define=ADMOB_COMMUNITY_NATIVE_AD_UNIT_ID="$ADMOB_COMMUNITY_NATIVE_AD_UNIT_ID" \
               --dart-define=ADMOB_EXPLORE_NATIVE_AD_UNIT_ID="$ADMOB_EXPLORE_NATIVE_AD_UNIT_ID" \
-              --dart-define=ADMOB_COLLECTION_NATIVE_AD_UNIT_ID="$ADMOB_COLLECTION_NATIVE_AD_UNIT_ID"
+              --dart-define=ADMOB_COLLECTION_NATIVE_AD_UNIT_ID="$ADMOB_COLLECTION_NATIVE_AD_UNIT_ID" \
+              --dart-define=ADMOB_POST_COMMENTS_NATIVE_AD_UNIT_ID="$ADMOB_POST_COMMENTS_NATIVE_AD_UNIT_ID" \
+              --dart-define=POST_COMMENTS_ADS_ENABLED="${{ secrets.ADMOB_POST_COMMENTS_NATIVE_AD_UNIT_ID != '' }}"
           else
             echo "::warning::AdMob release secrets are not configured. Building a compile-only production bundle with Google's sample app id; it cannot serve live adverts and must not be uploaded to Play."
             ADMOB_COMPILE_CHECK_ONLY=true flutter build appbundle --release --flavor production \

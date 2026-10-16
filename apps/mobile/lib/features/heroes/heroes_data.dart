@@ -103,6 +103,7 @@ class KasemHeroesRepository {
       .collection('kasemHeroes')
       .where('published', isEqualTo: true)
       .orderBy('order')
+      .limit(100)
       .snapshots()
       .map(
         (snapshot) => snapshot.docs

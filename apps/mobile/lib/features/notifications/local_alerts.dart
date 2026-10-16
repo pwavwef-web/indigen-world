@@ -1,4 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:path_provider/path_provider.dart';
+import 'package:crypto/crypto.dart';
+
+import 'notification_actions.dart';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -70,7 +77,7 @@ const _accountChannel = AndroidNotificationChannel(
 AndroidNotificationChannel _channelFor(Map<String, dynamic> data) =>
     switch (data['type']) {
       'message' => _messagesChannel,
-      'account' => _accountChannel,
+      'account' || 'order' => _accountChannel,
       _ => _communityChannel,
     };
 
@@ -110,17 +117,89 @@ Future<void> initializeLocalAlerts({
   required void Function(String route) onRoute,
 }) async {
   void handle(String? payload) {
+    if (payload?.startsWith('{') == true) {
+      try {
+        final data = jsonDecode(payload!) as Map;
+        final route = data['route'];
+        if (route is String && route.startsWith('/')) onRoute(route);
+      } on Object {
+        /* stale payload */
+      }
+      return;
+    }
     if (payload != null && payload.startsWith('/')) onRoute(payload);
   }
 
   await _plugin.initialize(
-    settings: const InitializationSettings(
+    settings: InitializationSettings(
       // A bare resource name, not the `@drawable/...` reference the manifest
       // uses: the plugin resolves it with Resources.getIdentifier, which does
       // not understand the prefixed form and silently finds nothing.
-      android: AndroidInitializationSettings(_notificationIcon),
+      android: const AndroidInitializationSettings(_notificationIcon),
+      iOS: DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+        notificationCategories: [
+          DarwinNotificationCategory(
+            'community_actions',
+            actions: [
+              DarwinNotificationAction.plain(
+                'like',
+                'Like',
+                options: {
+                  DarwinNotificationActionOption.foreground,
+                  DarwinNotificationActionOption.authenticationRequired,
+                },
+              ),
+              DarwinNotificationAction.plain(
+                'read',
+                'Mark read',
+                options: {
+                  DarwinNotificationActionOption.foreground,
+                  DarwinNotificationActionOption.authenticationRequired,
+                },
+              ),
+              DarwinNotificationAction.text(
+                'reply',
+                'Reply',
+                buttonTitle: 'Send',
+                placeholder: 'Write a reply',
+                options: {
+                  DarwinNotificationActionOption.foreground,
+                  DarwinNotificationActionOption.authenticationRequired,
+                },
+              ),
+            ],
+          ),
+          DarwinNotificationCategory(
+            'notification_read',
+            actions: [
+              DarwinNotificationAction.plain(
+                'read',
+                'Mark read',
+                options: {
+                  DarwinNotificationActionOption.foreground,
+                  DarwinNotificationActionOption.authenticationRequired,
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
     ),
-    onDidReceiveNotificationResponse: (response) => handle(response.payload),
+    onDidReceiveNotificationResponse: (response) async {
+      if (response.actionId?.isNotEmpty == true) {
+        try {
+          await handleNotificationAction(response);
+        } on Object {
+          /* queued or account action required */
+        }
+      } else {
+        handle(response.payload);
+      }
+    },
+    onDidReceiveBackgroundNotificationResponse: notificationActionBackground,
   );
 
   final launch = await _plugin.getNotificationAppLaunchDetails();
@@ -158,6 +237,15 @@ String alertKeyFor(RemoteMessage message) {
   return message.messageId ?? 'indigen_alert';
 }
 
+/// Dart hashCode is not a persistence contract across launches/isolates.
+int stableAlertId(String key) {
+  final bytes = sha256.convert(utf8.encode(key)).bytes;
+  return ((bytes[0] & 0x7f) << 24) |
+      (bytes[1] << 16) |
+      (bytes[2] << 8) |
+      bytes[3];
+}
+
 /// Posts [message] as a local alert, for a push that arrived with the app open.
 ///
 /// Best-effort throughout: the notification centre already holds the row this
@@ -168,8 +256,8 @@ Future<void> showForegroundAlert(
   required String? route,
 }) async {
   final notification = message.notification;
-  final title = notification?.title;
-  final body = notification?.body ?? '';
+  final title = notification?.title ?? message.data['title'];
+  final body = notification?.body ?? message.data['body'] ?? '';
   if (title == null || title.isEmpty) return;
 
   // Keyed on the conversation for a message, and on the alert otherwise, so a
@@ -177,14 +265,41 @@ Future<void> showForegroundAlert(
   // shows — rather than stacking a row per message only when the app is open.
   final key = alertKeyFor(message);
   final channel = _channelFor(message.data);
+  final actionable =
+      message.data['payloadVersion'] == '2' &&
+      message.data['recipientId'] is String &&
+      message.data['notificationId'] is String;
+  final supportsReaction =
+      actionable &&
+      [
+        'like',
+        'reply',
+        'quote',
+        'mention',
+        'post',
+        'thread_reply',
+      ].contains(message.data['type']);
+  final imagePath = message.data['previews'] == 'false'
+      ? null
+      : await _boundedAlertImage(message.data['imageUrl']);
 
   try {
     await _plugin.show(
-      id: key.hashCode & 0x7fffffff,
+      id: stableAlertId(key),
       title: title,
       body: body,
-      payload: route,
+      payload: actionable
+          ? jsonEncode({...message.data, 'route': route})
+          : route,
       notificationDetails: NotificationDetails(
+        iOS: DarwinNotificationDetails(
+          categoryIdentifier: supportsReaction
+              ? 'community_actions'
+              : 'notification_read',
+          attachments: imagePath == null
+              ? null
+              : [DarwinNotificationAttachment(imagePath)],
+        ),
         android: AndroidNotificationDetails(
           channel.id,
           channel.name,
@@ -193,10 +308,94 @@ Future<void> showForegroundAlert(
           priority: Priority.high,
           icon: _notificationIcon,
           tag: key,
+          visibility: message.data['previews'] == 'false'
+              ? NotificationVisibility.secret
+              : NotificationVisibility.private,
+          styleInformation: imagePath == null
+              ? BigTextStyleInformation(body)
+              : BigPictureStyleInformation(
+                  FilePathAndroidBitmap(imagePath),
+                  contentTitle: title,
+                  summaryText: body,
+                ),
+          actions: actionable
+              ? [
+                  if (supportsReaction)
+                    const AndroidNotificationAction(
+                      'like',
+                      'Like',
+                      cancelNotification: false,
+                    ),
+                  const AndroidNotificationAction(
+                    'read',
+                    'Mark read',
+                    cancelNotification: false,
+                  ),
+                  if (supportsReaction)
+                    const AndroidNotificationAction(
+                      'reply',
+                      'Reply',
+                      cancelNotification: false,
+                      inputs: [
+                        AndroidNotificationActionInput(label: 'Write a reply'),
+                      ],
+                    ),
+                ]
+              : null,
         ),
       ),
     );
   } on Object catch (error) {
     debugPrint('Could not post a foreground alert (continuing): $error');
+  }
+}
+
+Future<String?> _boundedAlertImage(dynamic value) async {
+  if (value is! String || value.length > 4000) return null;
+  final uri = Uri.tryParse(value);
+  if (uri?.scheme != 'https' || uri?.host != 'firebasestorage.googleapis.com')
+    return null;
+  final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
+  try {
+    final request = await client.getUrl(uri!);
+    request.followRedirects = false;
+    final response = await request.close().timeout(const Duration(seconds: 5));
+    if (response.statusCode != 200 ||
+        response.contentLength > 5 * 1024 * 1024 ||
+        ![
+          'image/jpeg',
+          'image/png',
+          'image/webp',
+        ].contains(response.headers.contentType?.mimeType))
+      return null;
+    final bytes = <int>[];
+    await for (final chunk in response.timeout(const Duration(seconds: 5))) {
+      bytes.addAll(chunk);
+      if (bytes.length > 5 * 1024 * 1024) return null;
+    }
+    final dir = Directory(
+      '${(await getTemporaryDirectory()).path}/notification-images',
+    );
+    await dir.create(recursive: true);
+    final files = await dir
+        .list()
+        .where((f) => f is File)
+        .cast<File>()
+        .toList();
+    for (final file in files) {
+      if (DateTime.now().difference((await file.stat()).modified).inHours >
+              24 ||
+          files.length > 30)
+        await file.delete();
+    }
+    final file = File(
+      '${dir.path}/${DateTime.now().microsecondsSinceEpoch}.jpg',
+    );
+    await file.writeAsBytes(bytes);
+    return file.path;
+  } on Object {
+    return null;
+  } finally {
+    client.close(force: true);
   }
 }

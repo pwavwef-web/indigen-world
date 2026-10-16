@@ -46,6 +46,7 @@ export interface DirectoryApp {
   description: string;
   category: string;
   iconUrl: string;
+  screenshots?: { id: string; url: string; alt: string; credit: string; rights: string; status: string }[];
   /** Store or web link per platform. At least one is required. */
   links: Partial<Record<AppPlatform, string>>;
   order: number;
@@ -202,6 +203,7 @@ export async function listApps(): Promise<DirectoryApp[]> {
       description: data.description ?? '',
       category: data.category ?? 'Other',
       iconUrl: data.iconUrl ?? '',
+      screenshots: Array.isArray(data.screenshots) ? data.screenshots.slice(0, 12) : [],
       links: (data.links ?? {}) as DirectoryApp['links'],
       order: typeof data.order === 'number' ? data.order : 0,
       published: data.published === true,
@@ -225,6 +227,7 @@ export async function saveApp(app: DirectoryApp): Promise<void> {
       description: app.description.trim(),
       category: app.category,
       iconUrl: app.iconUrl.trim(),
+      screenshots: app.screenshots ?? [],
       links,
       order: Math.max(0, Math.round(app.order)),
       published: app.published,
@@ -545,6 +548,7 @@ export interface LibraryAudiobook {
   /** Read-only, minted server-side after a publish. */
   audioUrl: string;
   coverUrl: string;
+  coverAssetId?: string;
   /** ISO, or blank for a record that has never been live. */
   publishedAt: string;
   /**
@@ -693,6 +697,7 @@ export async function listAudiobooks(): Promise<LibraryAudiobook[]> {
       published: data.publicationStatus === 'published',
       audioUrl: typeof data.mediaUrl === 'string' ? data.mediaUrl : '',
       coverUrl: typeof data.thumbnailUrl === 'string' ? data.thumbnailUrl : '',
+      coverAssetId: typeof data.coverAssetId === 'string' ? data.coverAssetId : undefined,
       publishedAt: typeof data.publishedAt === 'string' ? data.publishedAt : '',
       publicationRoute:
         typeof data.publicationRoute === 'string' ? data.publicationRoute : 'reviewed',
@@ -720,6 +725,8 @@ interface PublishAudiobookPayload {
   licenceDisplay: string;
   audio: StoredFile;
   cover: StoredFile | null;
+  coverAssetId?: string | null;
+  coverUrl?: string;
   published: boolean;
 }
 
@@ -757,6 +764,8 @@ export async function publishAudiobook(
     licenceDisplay: book.licenceDisplay.trim(),
     audio,
     cover,
+    coverAssetId: book.coverAssetId ?? null,
+    coverUrl: book.coverUrl,
     published: book.published,
   });
   return { id: result.data.id, mediaPublished: result.data.mediaPublished !== false };

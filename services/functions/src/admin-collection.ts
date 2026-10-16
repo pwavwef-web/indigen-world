@@ -350,6 +350,11 @@ export const publishAdminAudiobook = onCall(
     const input = parseAdminAudiobookInput(req.data);
 
     const db = getFirestore();
+    const coverAssetId = typeof req.data?.coverAssetId === 'string' ? req.data.coverAssetId : null;
+    const linkedCover = typeof req.data?.coverUrl === 'string' ? req.data.coverUrl : null;
+    if (linkedCover && (linkedCover.length > 3000 || !/^https:\/\//.test(linkedCover))) throw new HttpsError('invalid-argument', 'Use a complete HTTPS cover link.');
+    const coverAsset = coverAssetId ? await db.collection('collectionMediaAssets').doc(coverAssetId).get() : null;
+    if (coverAsset && coverAsset.get('status') !== 'published') throw new HttpsError('failed-precondition', 'Choose a finalized cover from the media library.');
     const publishedRef = input.audiobookId
       ? db.collection('publishedContent').doc(input.audiobookId)
       : db.collection('publishedContent').doc();
@@ -414,6 +419,10 @@ export const publishAdminAudiobook = onCall(
         mediaType: 'audio',
         thumbnailPath: input.cover?.storagePath ?? null,
       });
+      if (coverAsset) {
+        await publishedRef.update({ thumbnailUrl: coverAsset.get('url'), coverAssetId });
+        await coverAsset.ref.update({ usage: FieldValue.arrayUnion(`publishedContent/${publishedRef.id}`) });
+      } else if (linkedCover !== null) await publishedRef.update({ thumbnailUrl: linkedCover || null, coverAssetId: null });
     } catch (error) {
       mediaPublished = false;
       console.error(`finalisePublishedMedia failed for audiobook ${publishedRef.id}`, error);

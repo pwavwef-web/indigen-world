@@ -1,5 +1,9 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
+
+import 'notification_actions.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,10 +37,33 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
+  String _filter = 'All';
+  @override
+  void initState() {
+    super.initState();
+    unawaited(NotificationActions.retry().catchError((Object _) {}));
+  }
+
   @override
   Widget build(BuildContext context) {
     final uid = ref.watch(currentUidProvider);
-    final feed = ref.watch(notificationFeedProvider);
+    final feed = ref
+        .watch(notificationFeedProvider)
+        .whenData(
+          (rows) => rows
+              .where(
+                (n) => switch (_filter) {
+                  'Unread' => !n.read,
+                  'Community' => n.postId != null,
+                  'Orders' => n.route?.startsWith('/shop/order/') == true,
+                  'System' =>
+                    n.postId == null &&
+                        n.route?.startsWith('/shop/order/') != true,
+                  _ => true,
+                },
+              )
+              .toList(),
+        );
     final unread =
         ref.watch(unreadNotificationCountProvider).asData?.value ?? 0;
     final hasNotifications = feed.value?.isNotEmpty ?? false;
@@ -45,6 +72,32 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       backgroundColor: context.brand.background,
       appBar: AppBar(
         title: const Text('Notifications'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                for (final filter in [
+                  'All',
+                  'Unread',
+                  'Community',
+                  'Orders',
+                  'System',
+                ])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(filter),
+                      selected: _filter == filter,
+                      onSelected: (_) => setState(() => _filter = filter),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
         actions: [
           if (unread > 0)
             IconButton(
@@ -402,6 +455,26 @@ class _NotificationRow extends StatelessWidget {
                             const SizedBox(height: 8),
                             _PostPreview(text: notification.postPreview.trim()),
                           ],
+                          if (notification.imageUrl != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: CachedNetworkImage(
+                                  imageUrl: notification.imageUrl!,
+                                  memCacheWidth: 700,
+                                  height: 140,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (_, _, _) =>
+                                      const SizedBox.shrink(),
+                                ),
+                              ),
+                            ),
+                          _NotificationActionsRow(
+                            notification: notification,
+                            onReply: onTap,
+                          ),
                         ],
                       ),
                     ),
@@ -451,6 +524,93 @@ class _NotificationRow extends StatelessWidget {
 }
 
 /// The avatar plus the little kind badge that tells you *why* this arrived.
+class _NotificationActionsRow extends StatefulWidget {
+  const _NotificationActionsRow({
+    required this.notification,
+    required this.onReply,
+  });
+  final IndigenNotification notification;
+  final VoidCallback onReply;
+  @override
+  State<_NotificationActionsRow> createState() =>
+      _NotificationActionsRowState();
+}
+
+class _NotificationActionsRowState extends State<_NotificationActionsRow> {
+  bool _busy = false, _liked = false;
+  String? _error;
+  Future<void> _act(String action) async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await NotificationActions.send(
+        NotificationActions.request(
+          recipientId: widget.notification.recipientId,
+          notificationId: widget.notification.id,
+          action: action,
+        ),
+      );
+      if (mounted && action == 'like') setState(() => _liked = true);
+    } on Object catch (e) {
+      if (mounted) setState(() => _error = '$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final n = widget.notification;
+    final react =
+        n.postId != null &&
+        [
+          NotificationKind.like,
+          NotificationKind.reply,
+          NotificationKind.quote,
+          NotificationKind.mention,
+          NotificationKind.post,
+          NotificationKind.threadReply,
+        ].contains(n.kind);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 4,
+          children: [
+            if (react)
+              TextButton.icon(
+                onPressed: _busy ? null : () => _act('like'),
+                icon: Icon(
+                  _liked ? Icons.favorite : Icons.favorite_border,
+                  size: 18,
+                ),
+                label: Text(_liked ? 'Liked' : 'Like'),
+              ),
+            if (!n.read)
+              TextButton(
+                onPressed: _busy ? null : () => _act('read'),
+                child: const Text('Mark read'),
+              ),
+            if (react)
+              TextButton.icon(
+                onPressed: widget.onReply,
+                icon: const Icon(Icons.reply, size: 18),
+                label: const Text('Reply'),
+              ),
+          ],
+        ),
+        if (_error != null)
+          Text(
+            _error!,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+      ],
+    );
+  }
+}
+
 class _ActorMark extends StatelessWidget {
   const _ActorMark({required this.notification, required this.accent});
 

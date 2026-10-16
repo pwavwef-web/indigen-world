@@ -160,6 +160,8 @@ class CommunityMediaPicker {
     );
   }
 
+  Future<PendingUpload> stageEditedVideo(String path) => _stageVideo(path);
+
   /// Writes the clip's opening frame to a temporary JPEG, to be uploaded with
   /// it as the post's cover.
   ///

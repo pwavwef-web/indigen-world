@@ -1,0 +1,8 @@
+{
+  "ADMOB_ANDROID_APP_ID": "",
+  "ADMOB_COMMUNITY_NATIVE_AD_UNIT_ID": "",
+  "ADMOB_EXPLORE_NATIVE_AD_UNIT_ID": "",
+  "ADMOB_COLLECTION_NATIVE_AD_UNIT_ID": "",
+  "ADMOB_POST_COMMENTS_NATIVE_AD_UNIT_ID": "",
+  "_note": "The optional comment unit must be a new Native unit in the existing Indigen World app. Leave blank to keep the feature off in release. Never use invented production IDs."
+}

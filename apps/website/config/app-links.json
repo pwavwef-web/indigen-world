@@ -87,7 +87,8 @@
     "appIds": [],
     "paths": [
       "/post/*",
-      "/communities/*"
+      "/communities/*",
+      "/shop/payment-complete"
     ]
   }
 }

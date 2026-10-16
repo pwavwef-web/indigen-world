@@ -167,6 +167,7 @@ export {
   sweepVideoRenders,
   planVideoScenes,
   alignVideoCaptions,
+  getMobileEditedVideo,
 } from './video-editor/video-projects.js';
 export { startIntegrityCheck, verifyDeviceIntegrity } from './play-integrity.js';
 export {
@@ -220,3 +221,10 @@ export { releaseKnowledgeRecord, revokeKnowledgeRelease, resolveKnowledgeRecords
 export { configureKnowledgeGovernance } from './knowledge-governance.js';
 export { onDictionaryCandidate, onContributorCandidate, onKnowledgeCandidate, onSentenceCandidate, onGrammarCandidate, onExpressionCandidate, onEvidenceCandidate } from './kawuri-candidate-index.js';
 export { checkKasemSpelling, getKasemWordSubmissionStatus } from './kasem-spelling.js';
+
+export { shop, shopAdmin, reconcileShopOrders } from './shop.js';
+export { collectionMedia, processCollectionImage, cleanupCollectionUploads } from './collection-media.js';
+export { notificationAction } from './notification-actions.js';
+export { houseAdsAdmin } from './house-ads.js';
+export { notificationCampaignAdmin, dispatchNotificationCampaigns } from './notification-campaigns.js';
+export { notificationDeliveryPreferences, retryNotificationPushes } from './notification-dispatch.js';

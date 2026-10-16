@@ -2312,8 +2312,29 @@ service cloud.firestore {
     // ---- Shop catalogue: public read, admin-managed --------------------------
     match /shopProducts/{productId} {
       allow read: if resource.data.get('published', false) == true || isStaff();
-      allow write: if isAdmin();
+      allow write: if isAdmin() && (request.auth.token.get('shopScopes', null) == null || request.auth.token.get('shopScopes', []).hasAny(['catalogue']));
     }
+    match /shopOrdersV2/{orderId} {
+      allow read, write: if false; // owner/staff projections through shop callables
+      match /{document=**} { allow read, write: if false; }
+    }
+    match /shopCustomers/{uid} {
+      allow read, write: if false;
+      match /{document=**} { allow read, write: if false; }
+    }
+    match /shopInventory/{id} { allow read, write: if false; }
+    match /shopTransactions/{id} { allow read, write: if false; }
+    match /shopRefunds/{id} { allow read, write: if false; }
+    match /shopPaymentAuthorizations/{id} { allow read, write: if false; }
+    match /shopInquiries/{id} { allow read, write: if false; }
+    match /shopPromotions/{id} { allow read, write: if false; }
+    match /shopDelivery/{id} { allow read, write: if false; }
+    match /shopCategories/{id} { allow read, write: if false; }
+    match /shopSettings/{id} { allow read, write: if false; }
+    match /collectionMediaAssets/{id} { allow read: if isAdmin(); allow write: if false; }
+    match /advertiserProfiles/{id} { allow read, write: if false; }
+    match /houseAdCampaigns/{id} { allow read, write: if false; }
+    match /notificationCampaigns/{id} { allow read, write: if false; }
 
     // ---- Shop orders: a member places one, staff fulfil it ------------------
     // No payment is taken in the app. An order is a request to buy, answered by

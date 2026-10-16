@@ -15,6 +15,7 @@
 import type { AppRoute, DynamicRoute } from "../lib/types";
 
 export const ROUTES: AppRoute[] = [
+  { path: "shop/payment-complete", title: "Return to your order", description: "Return to Indigen World to check your shop order and verified payment status.", noindex: true },
   { path: "labs", title: "Indigen World Labs", description: "Try new ways to learn, create, and connect with indigenous culture. Help shape what comes next.", immersive: true },
   { path: "labs/experiments", title: "Labs experiments", description: "Play, learn, create and contribute: every Indigen World Labs experiment in one place.", immersive: true },
   { path: "labs/kasem-practice", title: "Kasem Practice Lab", description: "Practise with reviewed Kasem meanings and expressions.", immersive: true },

@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/features/auth/auth_repository.dart';
 import 'package:indigen_world_mobile/features/explore/create_reel/reel_draft.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -50,18 +51,22 @@ abstract interface class ReelDraftStore {
 }
 
 final reelDraftStoreProvider = Provider<ReelDraftStore>(
-  (ref) => LocalReelDraftStore(),
+  (ref) => LocalReelDraftStore(
+    ownerUid: ref.watch(authStateProvider).asData?.value?.uid ?? 'guest',
+  ),
 );
 
 /// [ReelDraftStore] backed by shared preferences and the documents directory.
 class LocalReelDraftStore implements ReelDraftStore {
   LocalReelDraftStore({
+    this.ownerUid = 'guest',
     Future<Directory> Function()? documents,
     Future<Directory> Function()? temporary,
   }) : _documents = documents ?? getApplicationDocumentsDirectory,
        _temporary = temporary ?? getTemporaryDirectory;
 
-  static const _key = 'explore.reelDrafts.v1';
+  final String ownerUid;
+  String get _key => 'explore.reelDrafts.v2.$ownerUid';
   static const _folderName = 'reel_drafts';
 
   final Future<Directory> Function() _documents;
@@ -73,7 +78,7 @@ class LocalReelDraftStore implements ReelDraftStore {
 
   Future<Directory> _root() async {
     final documents = await _documents();
-    final root = Directory(p.join(documents.path, _folderName));
+    final root = Directory(p.join(documents.path, _folderName, ownerUid));
     if (!await root.exists()) await root.create(recursive: true);
     return root;
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:indigen_world_mobile/features/ads/comment_sponsor.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
@@ -181,6 +182,10 @@ class _Thread extends ConsumerWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
+        ),
+        CommentSponsor(
+          threadKey: 'community:${post.id}',
+          eligible: !post.isPrivateCommunityPost,
         ),
         ...switch (replies) {
           AsyncValue(:final value?) when value.isEmpty => const [

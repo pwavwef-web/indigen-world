@@ -121,6 +121,8 @@
                 <!-- A shared community, which also has a page on the website. -->
                 <data android:scheme="https" android:host="indigenworld.com" android:pathPrefix="/communities/"/>
                 <data android:scheme="https" android:host="www.indigenworld.com" android:pathPrefix="/communities/"/>
+                <data android:scheme="https" android:host="indigenworld.com" android:pathPrefix="/shop/payment-complete"/>
+                <data android:scheme="https" android:host="www.indigenworld.com" android:pathPrefix="/shop/payment-complete"/>
             </intent-filter>
             <!-- The fallback the website's post page offers when verification
                  did not take — a debug or sideloaded build signed with a key
@@ -216,6 +218,7 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/notification_accent"/>
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

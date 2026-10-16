@@ -1,0 +1,11 @@
+import { readFileSync } from 'node:fs';
+import assert from 'node:assert/strict';
+const source=readFileSync('apps/mobile/ios/Runner.xcodeproj/project.pbxproj','utf8');
+const cleaned=source.replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/[^\n]*/g,'').replace(/"(?:\\.|[^"\\])*"/g,'""');
+const stack=[];for(const c of cleaned){if(c==='{'||c==='(')stack.push(c);else if(c==='}'||c===')')assert.equal(stack.pop(),c==='}'?'{':'(')}assert.equal(stack.length,0,'PBX object/array structure is balanced');
+const ids=[...cleaned.matchAll(/\b([A-F0-9]{24})\s*=\s*\{\s*isa\s*=/g)].map(x=>x[1]);assert.equal(new Set(ids).size,ids.length,'PBX object IDs are unique');
+for(const match of cleaned.matchAll(/\b(A9[A-F0-9]{22})\b/g))assert.ok(ids.includes(match[1]),`Extension reference is defined: ${match[1]}`);
+assert.match(source,/com\.apple\.product-type\.app-extension/);assert.match(source,/Embed App Extensions/);
+for(const flavor of ['development','staging','production'])for(const config of ['Debug','Release','Profile'])assert.match(source,new RegExp(`A9[A-F0-9]{22} \\/\\* ${config}-${flavor} \\*\\/ = \\{isa = XCBuildConfiguration; baseConfigurationReference`));
+for(const file of ['Info.plist','NotificationService.swift'])assert.ok(readFileSync('apps/mobile/ios/NotificationService/'+file).length>0);
+console.log('PASS: extension target/source/embed/dependency/configuration references and PBX structural checks. Apple compile/sign/device checks still require macOS.');

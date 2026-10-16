@@ -17,6 +17,12 @@ import 'package:flutter/material.dart';
 /// Ordered loudest first. Somebody who came to this screen because their phone
 /// would not stop should find the reason in the first two rows.
 enum NotificationPreference {
+  promotions(
+    'promotions',
+    'Indigen updates and shop news',
+    'Optional promotional notifications; off until you choose to receive them',
+    Icons.campaign_outlined,
+  ),
   followedPosts(
     'followedPosts',
     'Posts from people you follow',
@@ -105,7 +111,8 @@ class NotificationPreferences {
   final Map<String, bool> _values;
 
   bool isOn(NotificationPreference preference) =>
-      _values[preference.key] ?? true;
+      _values[preference.key] ??
+      (preference != NotificationPreference.promotions);
 
   /// Reads the `notificationPrefs` field off a profile document.
   ///

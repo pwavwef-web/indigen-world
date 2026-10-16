@@ -1,0 +1,18 @@
+{
+  "score": 4,
+  "summary": "The additive financial, notification-action and image-upload boundaries pass targeted emulator tests. This scoped prototype review does not certify the entire existing rule set or a live deployment.",
+  "findings": [{ "check": "Least privilege and authority source", "severity": "minor", "issue": "Legacy admins without shopScopes retain broad catalogue, fulfillment and customer authority. Finance and broadcast remain separate server claims.", "recommendation": "Provision explicit shopScopes through authorized identity administration, refresh tokens and verify the staff access matrix before broad rollout. Never accept authority from profile fields." }],
+  "resolvedFindings": [
+    "Storage overwrite testing showed allow create alone was insufficient; resource == null now enforces immutable originals.",
+    "Client-created legacy requests cannot mutate new paid-order, inventory, refund, transaction or reusable-authorization state.",
+    "Notification recipient, canonical reply target, blocks and active public-community membership are rechecked; repeated Like/Reply has one effect.",
+    "A delayed duplicate payment webhook after partial refund no longer reallocates stock or overwrites the refund state."
+  ],
+  "checks": {
+    "updateBypass": "Financial reads/writes denied even to admin client SDK claims; only recipient notification read updates permitted.",
+    "authority": "Server claims and canonical records; hiding UI is not authorization.",
+    "bounds": "Money, quantities, address input, upload bytes/pixels/workers, notification queues/attempts and render contracts bounded.",
+    "types": "Server input validation; MIME declaration plus signature plus real decoder validation.",
+    "ownership": "Private customer/authorization projections are callable-only; asset owner paths and render ownership/revision/fingerprint enforced."
+  }
+}

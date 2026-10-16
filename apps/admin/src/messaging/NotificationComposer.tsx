@@ -1,0 +1,23 @@
+import { useEffect, useState } from 'react';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../firebase';
+import { PageHeader, Button } from '../ui/primitives';
+import { MediaPicker, type MediaAsset } from '../collection/MediaPicker';
+import '../shop/shop.css';
+type Row = Record<string, any>;
+const api = async (data: Row) => (await httpsCallable<Row, Row>(functions, 'notificationCampaignAdmin')(data)).data;
+export function NotificationComposer() {
+  const [draft, setDraft] = useState<Row>({ title: '', body: '', route: '/notifications', segment: 'self', scheduledAt: '' }), [assets, setAssets] = useState<MediaAsset[]>([]), [saved, setSaved] = useState<Row | null>(null), [history, setHistory] = useState<Row[]>([]), [error, setError] = useState(''), [busy, setBusy] = useState(false), [notice, setNotice] = useState('');
+  async function load() { try { setHistory((await api({ operation: 'list' })).items); } catch (e) { setError(String(e)); } }
+  useEffect(() => { void load(); }, []);
+  function change(value: Row) { setDraft((old) => ({ ...old, ...value })); setSaved(null); }
+  async function action(operation: string) {
+    setBusy(true); setError(''); setNotice('');
+    try {
+      if (operation === 'save') { const result = await api({ operation, id: draft.id, value: { ...draft, assetId: assets[0]?.id ?? draft.assetId ?? null } }); setDraft((old) => ({ ...old, id: result.id })); setSaved(result); setNotice('Draft saved. Review the preview before queuing or sending a test.'); }
+      else { await api({ operation, id: saved?.id, revision: saved?.revision }); setSaved(null); setDraft({ title: '', body: '', route: '/notifications', segment: 'self', scheduledAt: '' }); setAssets([]); setNotice(operation === 'testSelf' ? 'Test queued for your account. Provider acceptance and device display are separate.' : 'Campaign queued. You can cancel before dispatch starts.'); }
+      await load();
+    } catch (e) { setError(String(e)); } finally { setBusy(false); }
+  }
+  return <div className="shop-workspace"><PageHeader title="Push notifications" description="Draft, review, schedule and track optional in-app announcements. Broadcast requires a separate permission." />{error && <p role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}<div className="shop-overview"><section className="panel shop-editor"><h2>Compose</h2><div className="shop-form-grid">{['title', 'body', 'route', 'scheduledAt'].map((key) => <label key={key}>{key === 'scheduledAt' ? 'Schedule (UTC ISO date, blank = now)' : key === 'route' ? 'In-app destination' : key}<input value={draft[key] ?? ''} onChange={(e) => change({ [key]: e.target.value })} maxLength={key === 'body' ? 1000 : 200} /></label>)}<label>Recipients<select value={draft.segment} onChange={(e) => change({ segment: e.target.value })}><option value="self">My account only</option><option value="all">Members who opted into promotions</option></select></label></div><MediaPicker label="Notification image" value={assets} onChange={(value) => { setAssets(value); setSaved(null); }} /><div className="shop-toolbar"><Button busy={busy} variant="primary" onClick={() => void action('save')}>Save draft</Button><Button disabled={!saved} busy={busy} onClick={() => void action('testSelf')}>Queue test to myself</Button><Button disabled={!saved} busy={busy} onClick={() => void action('queue')}>Queue reviewed version</Button></div></section><section className="panel"><small className="shop-eyebrow">Supported action preview</small><h2>{draft.title || 'Notification title'}</h2><p>{draft.body || 'Your message appears here.'}</p>{assets[0] && <img style={{ maxWidth: '100%', borderRadius: 12 }} src={assets[0].url} alt={assets[0].alt} />}<p>Open destination · Mark read</p><small>Announcement notifications do not support post reactions. Lock-screen previews follow each device’s privacy setting.</small></section></div><section className="panel"><h2>Saved drafts & dispatch history</h2>{history.length ? history.map((item) => <article key={item.id}><h3>{item.title}</h3><p>{item.status} · {item.segment} · {item.scheduledAt} · Records processed: {item.recordsProcessed ?? 0}</p>{item.status === 'draft' && <Button onClick={() => { setDraft(item); setSaved({ id: item.id, revision: item.revision }); setAssets([]); }}>Open saved version</Button>}{item.status === 'scheduled' && <Button onClick={async () => { try { await api({ operation: 'cancel', id: item.id }); await load(); } catch (e) { setError(String(e)); } }}>Cancel before dispatch</Button>}</article>) : <p>No campaigns yet.</p>}</section></div>;
+}

@@ -30,6 +30,9 @@ const audit = () => import('./console/AuditLogViewer');
 const exportsScreen = () => import('./console/ExportManager');
 
 export const SCREENS: Record<`${SectionId}.${string}`, Screen> = {
+  'creators.house-ads': named(() => import('./shop/HouseAdsWorkspace'), 'HouseAdsWorkspace'),
+  'finance.shop': named(() => import('./shop/ShopFinance'), 'ShopFinance'),
+  'messaging.push': named(() => import('./messaging/NotificationComposer'), 'NotificationComposer'),
   'finance.overview': named(finance, 'FinanceOverview'),
   'finance.redemptions': named(finance, 'RedemptionsDesk'),
   'finance.settings': named(finance, 'PointSettings'),
@@ -41,7 +44,8 @@ export const SCREENS: Record<`${SectionId}.${string}`, Screen> = {
   'collections.names': named(collections, 'CollectionAdmin', { tab: 'names' }),
   'collections.apps': named(collections, 'CollectionAdmin', { tab: 'apps' }),
   'collections.audiobooks': named(collections, 'CollectionAdmin', { tab: 'audiobooks' }),
-  'collections.shop': named(collections, 'CollectionAdmin', { tab: 'shop' }),
+  'collections.media': named(() => import('./collection/CollectionArtwork'), 'CollectionArtwork'),
+  'collections.shop': named(() => import('./shop/ShopWorkspace'), 'ShopWorkspace'),
   'collections.orders': named(collections, 'CollectionAdmin', { tab: 'orders' }),
 
   'messaging.compose': named(messaging, 'MessagingAdmin', { view: 'compose' }),

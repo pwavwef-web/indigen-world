@@ -110,6 +110,7 @@ class IndigenNotification {
     this.actorAvatarUrl,
     this.postId,
     this.postPreview = '',
+    this.imageUrl,
     this.route,
     this.read = false,
     this.createdAt,
@@ -133,6 +134,7 @@ class IndigenNotification {
   /// The community post this alert points at, when there is one.
   final String? postId;
   final String postPreview;
+  final String? imageUrl;
 
   /// Optional deep link for kinds that do not open a post.
   final String? route;
@@ -164,6 +166,7 @@ class IndigenNotification {
     actorAvatarUrl: actorAvatarUrl,
     postId: postId,
     postPreview: postPreview,
+    imageUrl: imageUrl,
     route: route,
     read: read ?? this.read,
     createdAt: createdAt,
@@ -189,6 +192,7 @@ class IndigenNotification {
       actorAvatarUrl: _nonEmpty(actor['avatarUrl']),
       postId: _nonEmpty(data['postId']),
       postPreview: (data['postPreview'] as String?) ?? '',
+      imageUrl: _nonEmpty(data['imageUrl']),
       route: _nonEmpty(data['route']),
       read: data['read'] == true,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),

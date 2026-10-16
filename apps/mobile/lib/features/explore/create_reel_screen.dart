@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:indigen_world_mobile/features/video_editor/mobile_video_editor.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -74,6 +76,7 @@ class _CreateReelScreenState extends ConsumerState<CreateReelScreen>
       tools: ref.read(reelMediaToolsProvider),
       openPreview: ref.read(reelPreviewControllerFactoryProvider),
       publisher: _publisher,
+      editVideo: (path) => openMobileVideoEditor(context, path),
     )..addListener(_onEditorChanged);
     WidgetsBinding.instance.addObserver(this);
     _communities = ref.listenManual<AsyncValue<List<CommunitySpace>>>(

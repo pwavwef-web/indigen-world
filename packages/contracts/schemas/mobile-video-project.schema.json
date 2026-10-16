@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://indigenworld.com/contracts/mobile-video-project.schema.json",
+  "title": "Indigen mobile timeline v1",
+  "type": "object",
+  "required": ["contract", "version", "id", "ownerUid", "aspect", "revision", "scenes", "music"],
+  "properties": {
+    "contract": {"const": "indigen-mobile-timeline"},
+    "version": {"const": 1},
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,120}$"},
+    "ownerUid": {"type": "string", "minLength": 1, "maxLength": 128},
+    "aspect": {"enum": ["9:16", "1:1", "16:9"]},
+    "revision": {"type": "integer", "minimum": 0},
+    "renderId": {"type": ["string", "null"]},
+    "renderRevision": {"type": ["integer", "null"]},
+    "scenes": {"type": "array", "maxItems": 30, "items": {"type": "object", "required": ["id", "kind", "mediaId", "duration"], "properties": {"id": {"type": "string"}, "kind": {"enum": ["video", "image"]}, "mediaId": {"type": "string"}, "duration": {"type": "number", "minimum": 0.5, "maximum": 120}, "sourceIn": {"type": "number", "minimum": 0}, "speed": {"type": "number", "minimum": 0.25, "maximum": 3}, "overlays": {"type": "array", "maxItems": 80}}}},
+    "music": {"type": "array", "maxItems": 12}
+  },
+  "additionalProperties": false,
+  "description": "Seconds are source-relative inside scenes; the Flutter adapter converts them into render-spec v1 absolute times and owned raster assets. Unsupported web timelines must be preserved and opened in their original editor. Local paths are private recovery hints, never renderer inputs."
+}

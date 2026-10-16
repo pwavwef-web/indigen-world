@@ -10,6 +10,8 @@ import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/collection/discovery_session.dart';
+import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/collection/illustrated_document_screen.dart';
 import 'package:indigen_world_mobile/features/collection/literature_categories.dart';
 import 'package:indigen_world_mobile/features/collection/widgets/collection_card_surface.dart';
@@ -103,6 +105,63 @@ class _PublishedCollectionScreenState
   final _searchController = TextEditingController();
   var _query = '';
   var _literatureCategoryId = LiteratureCategory.all.id;
+  String _sort = 'recommended';
+  late CollectionDiscoverySession _session;
+  bool _sessionReady = false, _loadingPage = false, _hasMore = true;
+  String? _pageCursor, _pageError;
+  final _older = <PublishedReel>[];
+  @override
+  void initState() {
+    super.initState();
+    _session = CollectionDiscoverySession(
+      widget.kind.name,
+      ref.read(currentUidProvider) ?? 'guest',
+    );
+    _session.load().catchError((Object _) {}).whenComplete(() {
+      if (mounted) setState(() => _sessionReady = true);
+    });
+  }
+
+  Future<void> _refreshDiscovery() async {
+    _older.clear();
+    _pageCursor = null;
+    _hasMore = true;
+    _pageError = null;
+    _session = CollectionDiscoverySession(
+      widget.kind.name,
+      ref.read(currentUidProvider) ?? 'guest',
+    );
+    await _session.load();
+    await widget.onReload();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadPage() async {
+    if (_pageCursor == null || _loadingPage) return;
+    final repository = ref.read(publishedContentRepositoryProvider);
+    if (repository == null) return;
+    setState(() {
+      _loadingPage = true;
+      _pageError = null;
+    });
+    try {
+      final page = await repository.collectionPage(
+        widget.kind.name,
+        _pageCursor!,
+      );
+      if (!mounted) return;
+      setState(() {
+        _older.addAll(page.where((p) => belongsInCollection(p, widget.kind)));
+        _hasMore = page.length == 60;
+        if (page.isNotEmpty) _pageCursor = page.last.id;
+      });
+    } on Object {
+      if (mounted)
+        setState(() => _pageError = 'Could not load the next page. Try again.');
+    } finally {
+      if (mounted) setState(() => _loadingPage = false);
+    }
+  }
 
   @override
   void didUpdateWidget(PublishedCollectionScreen oldWidget) {
@@ -147,7 +206,7 @@ class _PublishedCollectionScreenState
       appBar: AppBar(title: Text(widget.kind.label)),
       body: ScreenContainer(
         child: RefreshIndicator(
-          onRefresh: widget.onReload,
+          onRefresh: _refreshDiscovery,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
@@ -194,6 +253,44 @@ class _PublishedCollectionScreenState
                     ),
                   ),
                 ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.sort, size: 20),
+                      const SizedBox(width: 12),
+                      DropdownButton<String>(
+                        value: _sort,
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'recommended',
+                            child: Text('For this visit'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'newest',
+                            child: Text('Newest first'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'title',
+                            child: Text('Title A–Z'),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _sort = v!),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        tooltip: 'Reset discovery history',
+                        onPressed: () async {
+                          await _session.reset();
+                          await _refreshDiscovery();
+                        },
+                        icon: const Icon(Icons.restart_alt),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               ...switch (items) {
                 AsyncValue(hasValue: false, hasError: true) => [
                   SliverFillRemaining(
@@ -222,6 +319,39 @@ class _PublishedCollectionScreenState
     List<PublishedReel> all,
     LiteratureCategory? selectedCategory,
   ) {
+    if (!_sessionReady)
+      return const [
+        SliverToBoxAdapter(child: Center(child: CircularProgressIndicator())),
+      ];
+    if (_pageCursor == null && all.isNotEmpty) {
+      _pageCursor = all.last.id;
+      _hasMore = all.length >= 60;
+    }
+    final blocked =
+        ref.watch(myBlockedProfilesProvider).asData?.value ?? const <String>{};
+    final muted =
+        ref.watch(myMutedProfilesProvider).asData?.value ?? const <String>{};
+    all = {
+      for (final item in [...all, ..._older])
+        if (!blocked.contains(item.creatorId) &&
+            !muted.contains(item.creatorId))
+          item.id: item,
+    }.values.toList();
+    if (_sort == 'recommended' && _query.isEmpty) {
+      all = _session.rank(
+        all,
+        id: (p) => p.id,
+        creator: (p) => p.creatorId,
+        pinned: (p) => p.editorialPinned,
+      );
+    } else {
+      all.sort((a, b) {
+        final primary = _sort == 'newest'
+            ? (b.publishedAt ?? '').compareTo(a.publishedAt ?? '')
+            : a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        return primary == 0 ? a.id.compareTo(b.id) : primary;
+      });
+    }
     final query = _query.toLowerCase();
     final filteringCategory =
         selectedCategory != null &&
@@ -282,18 +412,39 @@ class _PublishedCollectionScreenState
                 ),
               );
             }
-            return _PublishedCollectionCard(
-              item: row as PublishedReel,
-              kind: widget.kind,
+            final item = row as PublishedReel;
+            return QualifiedCollectionExposure(
+              id: item.id,
+              session: _session,
+              child: _PublishedCollectionCard(item: item, kind: widget.kind),
             );
           },
+        ),
+      ),
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
+          child: Column(
+            children: [
+              if (_pageError != null) Text(_pageError!),
+              if (_hasMore)
+                OutlinedButton(
+                  onPressed: _loadingPage ? null : _loadPage,
+                  child: Text(_loadingPage ? 'Loading…' : 'Load more'),
+                )
+              else
+                const Text(
+                  'All caught up. Refresh for another discovery order.',
+                ),
+            ],
+          ),
         ),
       ),
     ];
   }
 
   /// How long a channel has to be before it is worth searching.
-  static const _searchFrom = 6;
+  static const _searchFrom = 1;
 
   String get _searchHint => switch (widget.kind) {
     CollectionKind.music => 'Search songs, singers or dialect',

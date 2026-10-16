@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:indigen_world_mobile/features/notifications/quiet_hours_settings.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -288,6 +289,7 @@ class _NotificationPreferencesGroup extends ConsumerWidget {
               ? () => unawaited(setAll(enabled: muted == total))
               : null,
         ),
+        const QuietHoursSettings(),
         for (final preference in NotificationPreference.values)
           SwitchListTile.adaptive(
             secondary: Icon(preference.icon, color: context.brand.accent),

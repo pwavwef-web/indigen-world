@@ -51,6 +51,20 @@ String? appRouteForLink(Uri uri) {
     ...uri.pathSegments,
   ].where((segment) => segment.isNotEmpty).toList(growable: false);
 
+  // The hosted checkout return carries only an order lookup reference. Payment
+  // status still comes from the authenticated shop callable and Paystack.
+  if (segments.length == 2 &&
+      segments[0] == 'shop' &&
+      segments[1] == 'payment-complete') {
+    final reference =
+        uri.queryParameters['reference'] ?? uri.queryParameters['trxref'];
+    if (reference == null ||
+        !RegExp(r'^shop_[a-f0-9]{40}$').hasMatch(reference)) {
+      return '/shop';
+    }
+    return '/shop/payment-complete?reference=$reference';
+  }
+
   if (segments.length != 2) return null;
   final [prefix, id] = segments;
   if (!_claimedPrefixes.contains(prefix)) return null;

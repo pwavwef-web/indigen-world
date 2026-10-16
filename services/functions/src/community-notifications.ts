@@ -1,7 +1,8 @@
 import { FieldValue, GrpcStatus, getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
-import { COMMUNITY_CHANNEL_ID, pushToUser } from './push.js';
+import { COMMUNITY_CHANNEL_ID, ACCOUNT_CHANNEL_ID } from './push.js';
+import { dispatchRecordedPush } from './notification-dispatch.js';
 
 /**
  * Community notifications for the mobile app.
@@ -197,6 +198,7 @@ export function publicationIdentity(
  * behaviour that would not feel broken.
  */
 export const notificationPreferenceKeys = [
+  'promotions',
   'followedPosts',
   'threadReplies',
   'milestones',
@@ -225,6 +227,7 @@ export type NotificationPreference = (typeof notificationPreferenceKeys)[number]
  * alert off.
  */
 export function wantsNotification(prefs: unknown, key: NotificationPreference): boolean {
+  if (key === 'promotions') return !!prefs && typeof prefs === 'object' && (prefs as Record<string, unknown>)[key] === true;
   if (!prefs || typeof prefs !== 'object' || Array.isArray(prefs)) return true;
   return (prefs as Record<string, unknown>)[key] !== false;
 }
@@ -449,6 +452,7 @@ export interface NotificationInput {
   body?: string;
   postId?: string | null;
   postPreview?: string;
+  actionTargetPostId?: string;
   route?: string | null;
   /**
    * Groups alerts that supersede each other on the lock screen, so somebody
@@ -465,6 +469,9 @@ export interface NotificationInput {
 function notificationBody(id: string, input: NotificationInput): Record<string, unknown> {
   return {
     id,
+    payloadVersion: 2,
+    eventKey: id,
+    actionTargetPostId: input.actionTargetPostId ?? input.postId ?? null,
     recipientId: input.recipientId,
     type: input.type,
     ...(input.actor ? { actor: input.actor, actorId: input.actor.id } : {}),
@@ -782,6 +789,7 @@ export const onCommunityPostCreated = onDocumentCreated(
           type: 'reply',
           actor,
           title: `${actor.displayName} replied to you`,
+          actionTargetPostId: postId,
           body: preview(text),
           // Opens the thread the reply lives in, not the reply in isolation.
           postId: parentId,
@@ -1119,15 +1127,31 @@ export const onCommunityNotificationCreated = onDocumentCreated(
       ? data.collapseKey
       : undefined;
 
-    await pushToUser(getFirestore(), recipientId, {
+    const targetId = data.actionTargetPostId || data.postId;
+    let imageUrl = typeof data.imageUrl === 'string' && data.imageUrl.startsWith('https://firebasestorage.googleapis.com/') ? data.imageUrl : '';
+    if (typeof targetId === 'string') {
+      const target = await getFirestore().collection('communityPosts').doc(targetId).get();
+      const media = target.get('media');
+      const first = Array.isArray(media) ? media.find((m: Record<string, unknown>) => m.mediaType === 'image' || m.thumbnailUrl) : null;
+      const candidate = first?.thumbnailUrl || first?.url;
+      if (typeof candidate === 'string' && candidate.startsWith('https://firebasestorage.googleapis.com/')) imageUrl = candidate;
+    }
+    if (imageUrl) await snap.ref.update({ imageUrl });
+    await dispatchRecordedPush(snap.ref, recipientId, {
       title,
       body,
-      channelId: COMMUNITY_CHANNEL_ID,
+      redactedBody: 'New activity on Indigen World',
+      imageUrl,
+      richActions: process.env.RICH_NOTIFICATION_PUSH_ENABLED === 'true',
+      channelId: data.type === 'order' ? ACCOUNT_CHANNEL_ID : COMMUNITY_CHANNEL_ID,
       // The app routes on these; keep every value a string, which is all FCM
       // data payloads carry.
       data: {
         type: String(data.type ?? 'announcement'),
         notificationId: snap.id,
+        payloadVersion: '2',
+        recipientId,
+        ...(imageUrl ? { imageUrl } : {}),
         ...(typeof data.postId === 'string' && data.postId ? { postId: data.postId } : {}),
         ...(typeof data.route === 'string' && data.route ? { route: data.route } : {}),
         // Carried in the data payload as well as in the Android and APNs

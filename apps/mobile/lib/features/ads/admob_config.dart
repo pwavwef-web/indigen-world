@@ -39,6 +39,9 @@ class AdMobConfig {
     String collectionNativeId = const String.fromEnvironment(
       'ADMOB_COLLECTION_NATIVE_AD_UNIT_ID',
     ),
+    String postCommentsNativeId = const String.fromEnvironment(
+      'ADMOB_POST_COMMENTS_NATIVE_AD_UNIT_ID',
+    ),
   }) {
     final selectedEnvironment = environment ?? appEnvironment;
     final useTestIds =
@@ -60,6 +63,9 @@ class AdMobConfig {
         AdPlacement.collection: useTestIds
             ? GoogleMobileAdsTestIds.native
             : collectionNativeId,
+        AdPlacement.post_comments: useTestIds
+            ? GoogleMobileAdsTestIds.native
+            : postCommentsNativeId,
       },
     );
   }
@@ -94,8 +100,10 @@ class AdMobConfig {
     return [
       if (!hasValidAppId) 'ADMOB_ANDROID_APP_ID',
       for (final placement in AdPlacement.values)
-        if (nativeUnitIdFor(placement) == null)
-          'ADMOB_${placement.name.toUpperCase()}_NATIVE_AD_UNIT_ID',
+        if (placement != AdPlacement.post_comments ||
+            (nativeUnitIds[placement]?.isNotEmpty ?? false))
+          if (nativeUnitIdFor(placement) == null)
+            'ADMOB_${placement.name.toUpperCase()}_NATIVE_AD_UNIT_ID',
     ];
   }
 }
