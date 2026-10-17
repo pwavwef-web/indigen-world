@@ -85,4 +85,3 @@ export function tickTrail(state: TrailState, delta: number) {
     step(state, TRAIL.step); state.accumulator -= TRAIL.step;
   }
 }
-

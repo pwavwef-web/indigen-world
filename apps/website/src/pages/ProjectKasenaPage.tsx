@@ -1,3 +1,4 @@
+import { CultureHero } from "../components/HomeHero";
 import { PageMotion } from "../components/PageMotion";
 /**
  * src/pages/ProjectKasenaPage.tsx
@@ -26,7 +27,7 @@ export function ProjectKasenaPage() {
 
   return (
     <>
-      <section className="page-hero page-hero--kasena">
+      <CultureHero>
         <div className="container kasena-grid">
           <div className="kasena-copy">
             <SectionHeading
@@ -48,7 +49,7 @@ export function ProjectKasenaPage() {
             </Button>
           </div>
 
-          <div className="module-preview" data-reveal>
+          <div className="module-preview">
             <div className="module-preview__header">
               <div>
                 <p className="eyebrow">Kasem module</p>
@@ -68,14 +69,16 @@ export function ProjectKasenaPage() {
               Public mobile access is listed through a waitlist; the app is being developed for
               offline-friendly learning and contribution. Translation tooling remains in development.
             </p>
+            <div className="module-preview__actions">
             <Button to="dictionary" variant="secondary" className="module-preview__button">
               Open the Kasem dictionary
             </Button>
             <Button to="learn" variant="secondary">Find your next learning step</Button>
+            </div>
             <PageMotion placement="inline" />
           </div>
         </div>
-      </section>
+      </CultureHero>
 
       <section className="section section--cream">
         <div className="container">
@@ -84,7 +87,7 @@ export function ProjectKasenaPage() {
             title="A record is not publishable simply because it was submitted."
             body="Project Kassena is designed around dialect respect, qualified review and permissions that travel with each record."
           />
-          <ol className="process-list" data-reveal>
+          <ol className="process-list scroll-card-stack">
             {KASENA_STEWARDSHIP_STEPS.map((step, index) => (
               <li key={step.title}>
                 <span>{String(index + 1).padStart(2, "0")}</span>

@@ -81,7 +81,7 @@ and refunds, a signed Apple build and real-device background/privacy/accessibili
 interrupted-render/post checks. The additive catalogue migration and scoped backend/web deployment are verified.
 No live charge, broadcast, store release, article publication or sharing occurred.
 
-## Follow-up pass — 17 October 2026 (uncommitted)
+## Follow-up pass — 17 October 2026 (committed 99b4c18; Android 0.1.34+43)
 
 | Requirement | Change | Verification / boundary |
 | --- | --- | --- |

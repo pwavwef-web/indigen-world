@@ -524,10 +524,10 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
       key: _scaffoldKey,
       backgroundColor: Colors.transparent,
       drawer: const CommunitySidebar(),
-      // The shell extends its body behind the floating glass rail, so the FAB
-      // is lifted clear of it.
+      // The shell extends its body behind the floating glass rail, so keep the
+      // whole compose button clear of the rail across device safe areas.
       floatingActionButton: Padding(
-        padding: EdgeInsets.only(bottom: shellBottomReserve(context) - 24),
+        padding: EdgeInsets.only(bottom: shellBottomReserve(context) + 16),
         // Slides down out of the frame rather than fading in place, so a
         // half-hidden button is never left sitting there to be half-tapped.
         child: AnimatedSlide(

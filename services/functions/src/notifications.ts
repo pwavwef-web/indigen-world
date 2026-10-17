@@ -133,8 +133,14 @@ export const onNotificationCreated = onDocumentCreated(
           if (!to) {
             await snap.ref.update({ email: { status: 'skipped', reason: 'no-recipient-email', attemptedAt: nowIso() } });
           } else {
-            const content = notificationEmail({ title, body, actionUrl: toAbsoluteUrl(data.link) });
-            const sent = await sendMail({ to, subject: content.subject, html: content.html, text: content.text, deliveryKey: `notification:${snap.id}` });
+            const content = notificationEmail({
+              title,
+              body,
+              actionUrl: toAbsoluteUrl(data.link),
+              type: typeof data.type === 'string' ? data.type : undefined,
+              link: typeof data.link === 'string' ? data.link : undefined,
+            });
+            const sent = await sendMail({ to, ...content, deliveryKey: `notification:${snap.id}` });
             await snap.ref.update({ email: { status: sent ? 'sent' : 'failed', to, attemptedAt: nowIso() } });
           }
         }

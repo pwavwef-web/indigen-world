@@ -4,6 +4,8 @@ export type LabsStatus =
   | "beta"
   | "graduated"
   | "retired";
+/** What a visitor does in an experiment; drives Labs discovery filters. */
+export type LabsMode = "play" | "learn" | "create" | "contribute";
 export type LabsAccess = "public" | "signed-in" | "invited testers";
 export type FeedbackStatus =
   | "submitted"
@@ -16,6 +18,9 @@ export interface Experiment {
   slug: string;
   name: string;
   purpose: string;
+  /** One sentence: what the visitor actually does. Optional for older servers. */
+  summary?: string;
+  modes?: LabsMode[];
   category: string;
   status: LabsStatus;
   access: LabsAccess;

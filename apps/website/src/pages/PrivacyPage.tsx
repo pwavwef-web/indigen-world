@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
-import { useSiteMotion } from "../features/motion/SiteMotion";
+import { CultureHero } from "../components/HomeHero";
 import { ROUTES_BY_PATH } from "../content/navigation";
 import { PRIVACY_SECTIONS } from "../content/privacy";
 import { Link, scrollToTop } from "../app/router";
@@ -9,47 +9,7 @@ import "../styles/privacy.css";
 const route = ROUTES_BY_PATH["privacy"];
 
 function PrivacyHero() {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [motionAllowed, setMotionAllowed] = useState(false);
-  const { paused, reduced, toggle } = useSiteMotion();
-  const [failed, setFailed] = useState(false);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-    setMotionAllowed(!reduced && !connection?.saveData);
-  }, [reduced]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !motionAllowed || failed) return;
-    let inView = true;
-    const update = () => {
-      if (paused || document.hidden || !inView) video.pause();
-      else void video.play().catch((error: unknown) => {
-        // Scrolling away or effect cleanup can interrupt an outstanding play().
-        if (!(error instanceof DOMException && error.name === "AbortError")) setFailed(true);
-      });
-    };
-    const observer = new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; update(); });
-    observer.observe(video);
-    document.addEventListener("visibilitychange", update);
-    update();
-    return () => { observer.disconnect(); document.removeEventListener("visibilitychange", update); video.pause(); };
-  }, [motionAllowed, paused, failed]);
-
-  return (
-    <section className="privacy-hero" id="privacy-top" aria-labelledby="privacy-title" data-motion-theme="care">
-      <div className="privacy-hero__art" aria-hidden="true">
-        <img src="/images/privacy-stewardship.jpg" alt="" width="1280" height="720" fetchPriority="high" />
-        {motionAllowed && !failed && <video
-          ref={videoRef}
-          className={ready ? "is-ready" : ""}
-          src="/media/privacy-stewardship.mp4"
-          muted loop playsInline preload="none" tabIndex={-1}
-          onPlaying={() => setReady(true)} onError={() => setFailed(true)}
-        />}
-      </div>
+  return <CultureHero id="privacy-top">
       <div className="container privacy-hero__content">
         <p className="eyebrow">Privacy notice · Indigen World</p>
         <h1 id="privacy-title">Your information.<br /><span>Our responsibility.</span></h1>
@@ -60,12 +20,7 @@ function PrivacyHero() {
         </div>
         <p className="privacy-hero__date">Last reviewed <time dateTime="2026-10-02">2 October 2026</time> · Implementation notice</p>
       </div>
-      <div className="container privacy-hero__foot">
-        <span>AI-generated illustration inspired by community stewardship.</span>
-        {!reduced && <button type="button" className="privacy-motion" aria-pressed={paused} onClick={toggle}>{paused ? "Resume animations" : "Pause animations"}</button>}
-      </div>
-    </section>
-  );
+  </CultureHero>;
 }
 
 export function PrivacyPage() {

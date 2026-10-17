@@ -17,9 +17,10 @@ import type { AppRoute, DynamicRoute } from "../lib/types";
 export const ROUTES: AppRoute[] = [
   { path: "shop/payment-complete", title: "Return to your order", description: "Return to Indigen World to check your shop order and verified payment status.", noindex: true },
   { path: "labs", title: "Indigen World Labs", description: "Try new ways to learn, create, and connect with indigenous culture. Help shape what comes next.", immersive: true },
-  { path: "labs/experiments", title: "Labs experiments", description: "Explore reviewed Kasem practice and private cultural storytelling experiments.", immersive: true },
-  { path: "labs/word-trail", title: "Word Trail", description: "Run a sunlit 3D trail. Dodge, jump, slide and share a Kasem translation at safe language checkpoints.", immersive: true },
+  { path: "labs/experiments", title: "Labs experiments", description: "Play, learn, create and contribute: every Indigen World Labs experiment in one place.", immersive: true },
   { path: "labs/kasem-practice", title: "Kasem Practice Lab", description: "Practise with reviewed Kasem meanings and expressions.", immersive: true },
+  { path: "labs/culture-quest", title: "Culture Quest", description: "A daily Labs expedition: discover reviewed sources and leave notes for community review.", immersive: true, noindex: true },
+  { path: "labs/word-trail", title: "Word Trail", description: "Run a sunlit 3D trail. Dodge, jump, slide and share a Kasem translation at safe language checkpoints.", immersive: true, noindex: true },
   { path: "labs/cultural-story", title: "Cultural Story Builder", description: "Shape a private story with retained reviewed source notes.", immersive: true, noindex: true },
   { path: "labs/activity", title: "My Labs activity", description: "Your private practice, drafts and feedback.", immersive: true, noindex: true },
   { path: "labs/updates", title: "Labs updates", description: "Follow changes to Indigen World Labs experiments.", immersive: true },
@@ -177,6 +178,20 @@ export const DYNAMIC_ROUTES: DynamicRoute[] = [
 
 /** Routes shown in the header navigation, in display order. */
 export const NAV_ROUTES: AppRoute[] = ROUTES.filter((route) => route.navLabel !== undefined);
+
+/** Task-first header; existing routes stay available in the story group and footer. */
+export const PRIMARY_NAV = [
+  { path: 'learn', label: 'Learn' },
+  { path: 'dictionary', label: 'Dictionary' },
+  { path: 'contribute', label: 'Contribute' },
+];
+export const STORY_NAV = [
+  { path: 'about', label: 'About Indigen World', description: 'Our purpose and the people behind it' },
+  { path: 'project-kassena', label: 'Project Kassena', description: 'Our starting point with Kasem speakers' },
+  { path: 'progress', label: 'Our Progress', description: 'Follow contributions toward shared goals' },
+  { path: 'impact-governance', label: 'Sources & permissions', description: 'How we care for shared knowledge' },
+  { path: 'ecosystem', label: 'Our ecosystem', description: 'Explore the connected products' },
+];
 
 /** Fast lookup from the router's stable route key to its metadata. */
 export const ROUTES_BY_PATH: Record<string, AppRoute> = Object.fromEntries(

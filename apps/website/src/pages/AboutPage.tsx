@@ -1,4 +1,4 @@
-import { PageMotion } from "../components/PageMotion";
+import { CultureHero } from "../components/HomeHero";
 /**
  * src/pages/AboutPage.tsx
  *
@@ -21,8 +21,7 @@ export function AboutPage() {
 
   return (
     <>
-      <section className="page-hero page-hero--about">
-        <PageMotion />
+      <CultureHero>
         <div className="container">
           <SectionHeading
             eyebrow="Why Indigen World"
@@ -31,7 +30,7 @@ export function AboutPage() {
             as="h1"
           />
         </div>
-      </section>
+      </CultureHero>
 
       <section className="section section--cream">
         <div className="container split-intro">
@@ -58,7 +57,7 @@ export function AboutPage() {
           </div>
         </div>
 
-        <div className="container vision-grid">
+        <div className="container vision-grid scroll-card-stack">
           <article className="vision-card vision-card--dark" data-reveal>
             <span className="vision-card__number">01</span>
             <div>

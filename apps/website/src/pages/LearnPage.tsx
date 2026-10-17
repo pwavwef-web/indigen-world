@@ -1,8 +1,8 @@
+import { CultureHero } from "../components/HomeHero";
 import { useEffect, useState } from "react";
 import { Link } from "../app/router";
 import { Button } from "../components/Button";
 import { ExperienceFeedback } from "../components/ExperienceFeedback";
-import { PageMotion } from "../components/PageMotion";
 import { SectionHeading } from "../components/SectionHeading";
 import { ROUTES_BY_PATH } from "../content/navigation";
 import { fetchPublishedExpressions, type PublishedExpression } from "../features/expressions/expressionData";
@@ -25,13 +25,12 @@ export function LearnPage() {
   }, [retry]);
 
   return <>
-    <section className="page-hero page-hero--kasena">
-      <PageMotion />
+    <CultureHero variant="compact">
       <div className="container">
         <SectionHeading eyebrow="Learn & explore · Kasem" title="Start with a word. Stay for its story." body="Find a meaning, hear a recording where one is available, and discover how words are used. Start here without an account." light as="h1" />
         <div className="learn-actions"><Button to="dictionary">Find a word</Button><Button to="dictionary?saved=1" variant="secondary">Return to saved words</Button></div>
       </div>
-    </section>
+    </CultureHero>
 
     <section className="section section--white">
       <div className="container">
@@ -47,7 +46,7 @@ export function LearnPage() {
     <section className="section section--cream" id="reference">
       <div className="container">
         <SectionHeading eyebrow="Read with a source" title="Make sense of sounds and sentences." body="Use the existing book guides for spelling, examples and grammar. They retain source references so you can see where the material comes from." />
-        <div className="learning-reference-grid">
+        <div className="learning-reference-grid scroll-card-stack">
           <article className="learning-resource"><span className="target-badge">Public reference</span><h3>Kasem spelling guide</h3><p>Explore spelling rules and printed vocabulary examples. Tone marks and special letters matter; similar-looking spellings can carry different meanings.</p><a href="/spelling-guide.html">Read the spelling guide <span aria-hidden="true">↗</span></a><small>Opens the reference guide on this website</small></article>
           <article className="learning-resource"><span className="target-badge">Public reference</span><h3>Kasem grammar guide</h3><p>Read sentence patterns, pronouns and word forms from P. L. Hewer’s <em>A Basic Grammar of Kasem</em>, with examples from the book.</p><a href="/grammar-guide.html">Read the grammar guide <span aria-hidden="true">↗</span></a><small>Opens the reference guide on this website</small></article>
           <article className="learning-resource"><span className="target-badge">Separate reference site</span><h3>Explore the wider collections</h3><p>Browse published sentences, grammar and book illustrations in the Kasem reference web app, hosted at Venacula.</p><a href="https://www.venacula.com/?collection=sentences" target="_blank" rel="noreferrer">Browse sentence sources <span aria-hidden="true">↗</span></a><small>Opens venacula.com in a new tab</small></article>

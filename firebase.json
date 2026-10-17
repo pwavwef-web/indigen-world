@@ -25,6 +25,12 @@
       ],
       "headers": [
         {
+          "regex": "^/((scroll-cards|culture-banner|culture-photos|guide-banner|culture-scene)\\.(js|css)|(spelling-guide|grammar-guide)(\\.html)?)$",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        {
           "source": "index.html",
           "headers": [
             { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }

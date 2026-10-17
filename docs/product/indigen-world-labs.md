@@ -39,8 +39,8 @@ The second stop reverses source/meaning matching. Reviewed audio may be played a
 
 - `/labs/culture-quest`: signed-in daily contribution expedition. Up to three server-selected reviewed source snapshots, usage/context notes or correction proposals with evidence, optional skipping, 20 participation XP per submitted source per UTC day, levels every 100 XP and lifetime mission badges at 1/3/10. Daily completion resets at 00:00 UTC; XP remains. Transactional `labsQuests/{uid}` progress prevents duplicate submission rewards. Notes enter the existing Labs feedback queue with source references and snapshots, and appear under My activity → Feedback. No automatic publication, verified contributor points or payments. This new experiment is implemented locally, not confirmed deployed; callable/rules tests need a Java-enabled emulator host.
 
-- `/labs`: home, two registry-backed previews and the primary Explore experiments action.
-- `/labs/experiments`: text search, category and lifecycle filters.
+- `/labs`: photo-led hero carousel, featured experiment row, Play/Learn/Create/Contribute shortcuts, purpose section, Continue exploring (signed-in, from the owner-only `activity` pages), lab notes (`updates`) and a feedback band linking to each experiment's `#feedback` form. See "Discovery design" below.
+- `/labs/experiments`: Play/Learn/Create/Contribute filters derived from registry `modes`, text search, a lifecycle filter when more than one stage exists, and a shareable `?mode=`/`?q=` address.
 - `/labs/kasem-practice`: selectable topics from available reviewed sources, up to six questions, meanings, whole-expression/sentence matching, and listening only with publication-reviewed audio evidence. Results, per-question reports and source links. Exact source text is preserved. Ambiguous spellings, duplicate meanings, mixed dialect topics and multi-sense glosses are skipped. Honest empty/error states replace unsuitable content.
 - `/labs/cultural-story`: source selection (up to five), audience, length, format, context, structured templates and an editable creative section. Save privately, reopen, revise, copy/export with source references and delete. Source snapshots remain immutable through later edits and withdrawal of an original source; they are historical notes, not a promise of current source availability. Saved work can be retrieved/deleted and exported while execution is paused or retired.
 - `/labs/activity`: paginated private drafts, saved practice sessions and reporter-visible feedback/status/responses.
@@ -48,6 +48,14 @@ The second stop reverses source/meaning matching. Reviewed audio may be played a
 - `/labs/admin`: trusted admins manage enabled/paused state, access, lifecycle, version, limitations, tester access, feedback and separate internal notes; publish updates; inspect real aggregate counts and paginated audit events.
 
 Default registry versions are `0.1.0`, alpha and signed-in. Configurations in `labsExperiments` override access, status, availability, version and limitations. Lifecycle never grants access. Public trials may be enabled by admins; trial practice stays in the browser, and private draft saving, feedback and AI assistance still require an account. Administrators may test invite-only experiments but cannot bypass paused/retired/graduated controls. Admins cannot read other accounts' private drafts or sessions.
+
+## Discovery design (13 October 2026 redesign)
+
+The Labs shell lives in `shell.tsx` (compact sticky header, mobile menu, one account control, footer with photo credits). Every card, gate and button derives access from `access.ts` (`accessFor`), using the same Firebase auth state and `bootstrap` response: a signed-in member is never shown a sign-in prompt, a signed-in member who is not invited sees "Invited testers only", and paused/retired/graduated states are named. Signed-out visitors see an inline sign-in panel on the experiment page, which opens the workspace in place after sign-in. Server enforcement is unchanged.
+
+Registry entries carry optional `summary` (one sentence on what the visitor does) and `modes` (`play`, `learn`, `create`, `contribute`). `present()` fills them from the bundled registry when an older `labsApi` omits them. Previews (`previews.tsx`) are honest: Word Trail is drawn by `drawTrail` and the real engine, animated only while its card is hovered or focused (never under reduced motion); Culture Quest, Practice and Story reuse the workspaces' own stop names, mode labels and step names.
+
+The hero (`HeroCarousel.tsx`, rules in `carousel.ts`) shows five credited Wikimedia Commons photographs listed with licences, subjects, focal points and placement in `apps/website/src/features/labs/media/README.md`. Copy sits on a solid panel. Rotation: 8 s with a 900 ms crossfade and a slow push; hover, keyboard focus, hidden tabs and off-screen hold it; manual navigation or Pause stops it until Play; reduced motion or the site-wide animation pause starts it paused. Only the current and next slide images are requested. Add community-approved photography by editing `HERO_PHOTOS` and the manifest.
 
 ## Reviewed sources and integrations
 

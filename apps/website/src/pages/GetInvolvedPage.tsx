@@ -1,4 +1,4 @@
-import { PageMotion } from "../components/PageMotion";
+import { CultureHero } from "../components/HomeHero";
 /**
  * src/pages/GetInvolvedPage.tsx
  *
@@ -95,8 +95,7 @@ export function GetInvolvedPage() {
 
   return (
     <>
-      <section className="page-hero page-hero--involved">
-        <PageMotion />
+      <CultureHero>
         <div className="container">
           <SectionHeading
             eyebrow="Get involved"
@@ -106,7 +105,7 @@ export function GetInvolvedPage() {
             as="h1"
           />
         </div>
-      </section>
+      </CultureHero>
 
       <section className="section section--white involvement-picker" aria-labelledby="involvement-picker-title">
         <div className="container">
@@ -115,7 +114,7 @@ export function GetInvolvedPage() {
             title="Start with the role that fits best."
             body="Choose one option and we'll take you directly to a form already set up for that route. You can change it there at any time."
           />
-          <div className="involvement-route-grid">
+          <div className="involvement-route-grid scroll-card-stack">
           {AUDIENCES.map((audience) => (
             <article className="involvement-route-card" key={audience.title} data-reveal>
               <div className="product-card__topline">

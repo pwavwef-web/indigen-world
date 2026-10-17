@@ -10,8 +10,10 @@ import { Link } from "../app/router";
 import { BrandMark } from "./BrandMark";
 import { NewsletterForm } from "../features/forms/NewsletterForm";
 import { ResponsiveDisclosure } from "./ResponsiveDisclosure";
+import { useSiteMotion } from "../features/motion/SiteMotion";
 
 export function Footer() {
+  const { paused, reduced, toggle } = useSiteMotion();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -73,6 +75,7 @@ export function Footer() {
       <div className="container site-footer__bottom">
         <p>© {currentYear} Indigen World. Cultural materials may carry distinct permissions.</p>
         <p>Venacula is the Indigen World newsletter.</p>
+        {!reduced && <button className="footer-scroll-motion" type="button" aria-pressed={paused} onClick={toggle}>{paused ? "Resume scroll effects" : "Pause scroll effects"}</button>}
       </div>
     </footer>
   );

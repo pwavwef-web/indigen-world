@@ -867,3 +867,19 @@
     transform: translateX(-50%);
   }
 }
+
+/* The shared opening stops rendering after the film begins. */
+.btr-experience .btr-intro { display: block; padding: 0; overflow-y: auto; }
+.btr-experience .btr-intro::before { display: none; }
+.btr-experience .culture-hero--film { min-height: 100svh; padding-top: 130px; }
+.btr-experience .culture-hero--film .btr-intro__content { max-width: 900px; margin: 0; text-align: left; }
+.btr-experience .culture-hero--film .btr-title { font-size: clamp(2.8rem, 7vw, 6rem); }
+.btr-experience .culture-hero--film .btr-meta { justify-content: flex-start; }
+.btr-experience .culture-hero--film .culture-hero__footer { position: relative; }
+@media (max-width: 639px) {
+  .btr-experience .culture-hero--film { padding-top: 100px; }
+  .btr-experience .culture-hero--film .btr-keys { display: none; }
+}
+
+.btr-experience .culture-hero--film { width: 100%; text-align: left; }
+.btr-experience .culture-hero--film .btr-intro__content { justify-items: start; }

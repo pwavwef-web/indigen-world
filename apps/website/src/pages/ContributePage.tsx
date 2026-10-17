@@ -1,4 +1,4 @@
-import { PageMotion } from "../components/PageMotion";
+import { CultureHero } from "../components/HomeHero";
 /**
  * src/pages/ContributePage.tsx
  *
@@ -57,6 +57,15 @@ function PublishedExpressions() {
     };
   }, []);
 
+  useEffect(() => {
+    if (state.status !== 'ready' || !window.location.hash.startsWith('#expression-')) return;
+    const frame = requestAnimationFrame(() => {
+      try { document.getElementById(decodeURIComponent(window.location.hash.slice(1)))?.scrollIntoView(); }
+      catch { /* A malformed fragment must not interrupt browsing. */ }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [state]);
+
   if (state.status === "loading") {
     return <p className="contribute-published__note" role="status">Loading published expressions…</p>;
   }
@@ -81,7 +90,7 @@ function PublishedExpressions() {
   return (
     <ul className="expression-list" aria-label="Recently published expressions">
       {state.items.map((item) => (
-        <li key={item.id} className="expression-card">
+        <li key={item.id} id={`expression-${item.id}`} className="expression-card">
           <p className="expression-card__kind">
             {item.kindLabel}
             {item.dialect ? ` · ${item.dialect}` : ""}
@@ -121,16 +130,16 @@ export function ContributePage() {
 
   return (
     <>
-      <section className="page-hero page-hero--contribute">
-        <PageMotion />
+      <CultureHero variant="compact">
         <div className="container contribute-hero">
           <SectionHeading
-            eyebrow="Open campaign · Everyday Kasem expressions"
-            title="Share a Kasem expression you use every day."
-            body="Greetings, blessings, idioms and sayings — the things you hear at home or in the market. Send one with what it means, when it is said and who you learned it from. A Kasem-speaking reviewer checks it before anyone else can see it."
+            eyebrow="Open campaign · Kasem"
+            title="Share a Kasem expression."
+            body="Send a greeting, blessing, idiom or saying with its meaning, context and source. A Kasem-speaking reviewer checks it before publication."
             light
             as="h1"
           />
+          <p className="contribute-start-note">Free Google sign-in · Volunteer · About 5 minutes</p>
           <div className="hero__actions contribute-hero__actions">
             <Button href={CAMPAIGN_CTA_URL} external>
               Share an expression
@@ -139,7 +148,11 @@ export function ContributePage() {
               How review works
             </Button>
           </div>
-          <dl className="contribute-facts">
+        </div>
+      </CultureHero>
+
+      <div className="container contribute-quick-facts">
+          <dl className="contribute-facts" aria-label="Campaign details">
             {CAMPAIGN_FACTS.map((fact) => (
               <div key={fact.label}>
                 <dt>{fact.label}</dt>
@@ -147,8 +160,7 @@ export function ContributePage() {
               </div>
             ))}
           </dl>
-        </div>
-      </section>
+      </div>
 
       <section className="section section--cream" id="knowledge" aria-labelledby="knowledge-title">
         <div className="container knowledge-intro">

@@ -1,4 +1,4 @@
-import { PageMotion } from "../components/PageMotion";
+import { CultureHero } from "../components/HomeHero";
 import { useState } from "react";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
 import { ROUTES_BY_PATH } from "../content/navigation";
@@ -41,8 +41,7 @@ export function EcosystemPage() {
 
   return (
     <>
-      <section className="page-hero page-hero--ecosystem">
-        <PageMotion />
+      <CultureHero>
         <div className="container">
           <SectionHeading
             eyebrow="One ecosystem, three products"
@@ -52,7 +51,7 @@ export function EcosystemPage() {
             as="h1"
           />
         </div>
-      </section>
+      </CultureHero>
 
       <section className="section section--white">
         <div className="container">
@@ -86,7 +85,7 @@ export function EcosystemPage() {
           </div>
 
           {filteredProducts.length > 0 ? (
-            <div className="product-grid" id="ecosystem-product-grid">
+            <div className="product-grid scroll-card-stack" id="ecosystem-product-grid">
               {filteredProducts.map((product, index) => (
                 <ProductCard key={product.id} product={product} index={index} />
               ))}

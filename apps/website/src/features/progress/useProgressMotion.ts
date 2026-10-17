@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useSiteMotion } from '../motion/SiteMotion';
 
 const MOTION_PAUSE_STORAGE_KEY = 'iw_progress_motion_paused';
 
@@ -20,6 +21,7 @@ export interface ProgressMotionControl {
 }
 
 export function useProgressMotion(): ProgressMotionControl {
+  const { paused: sitePaused, toggle: toggleSitePause } = useSiteMotion();
   const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return false;
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -58,22 +60,17 @@ export function useProgressMotion(): ProgressMotionControl {
   }, []);
 
   const toggleMotionPause = () => {
-    setIsManuallyPaused((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(MOTION_PAUSE_STORAGE_KEY, String(next));
-      } catch {
-        // Ignore storage errors
-      }
-      return next;
-    });
+    const next = !(isManuallyPaused || sitePaused);
+    setIsManuallyPaused(next);
+    try { localStorage.setItem(MOTION_PAUSE_STORAGE_KEY, String(next)); } catch { /* Session preference still works. */ }
+    if (sitePaused !== next) toggleSitePause();
   };
 
-  const isMotionPaused = isManuallyPaused || isDocumentHidden;
+  const isMotionPaused = isManuallyPaused || sitePaused || isDocumentHidden;
   const canAnimate = !prefersReducedMotion && !isMotionPaused;
 
   return {
-    isMotionPaused: isManuallyPaused,
+    isMotionPaused: isManuallyPaused || sitePaused,
     prefersReducedMotion,
     toggleMotionPause,
     canAnimate,

@@ -1,0 +1,85 @@
+/* Original cut-paper scenery; artwork and people are shared across every scene. */
+.home-culture-map__story > img, .home-scroll-story img { background: #faf6ed url('/images/culture/original/paper-landscape.webp') center / cover; object-fit: contain; padding-top: 12px; }
+.culture-hero.culture-hero--illustrated {
+  background: #faf6ed url('/images/culture/original/paper-landscape.webp') center bottom / cover;
+  color: #142543; min-height: 0; padding-top: 138px; padding-bottom: 24px;
+}
+.culture-hero--illustrated::after { display: none; }
+.culture-hero--illustrated .culture-hero__content { order: 1; flex: initial; display: block; position: relative; z-index: 1; padding-block: 0 16px; }
+.culture-hero--illustrated .culture-hero__content > .container { width: 100%; }
+.culture-hero--illustrated .culture-hero__images { order: 2; position: relative; inset: auto; z-index: 0; height: 305px; flex-shrink: 0; overflow: hidden; width: 100%; }
+.culture-hero--illustrated .culture-hero__images img { width: min(1050px, 100%); height: 100%; left: 50%; top: auto; bottom: 0; transform: translateX(-50%); object-fit: cover; object-position: var(--photo-position); transition: opacity 1200ms ease; }
+.culture-hero--illustrated .culture-hero__images img.is-active { animation: culture-people-drift 14s ease-in-out infinite alternate; }
+.culture-hero--illustrated .culture-hero__images img[data-scene=storytelling] { mask-image: linear-gradient(90deg, #000 0 44%, #0009 62%); }
+.culture-hero--illustrated .culture-hero__images img[data-scene=learning] { mask-image: linear-gradient(90deg, #0009, #000 36% 64%, #0009); }
+.culture-hero--illustrated .culture-hero__images img[data-scene=creating] { mask-image: linear-gradient(90deg, #0009 38%, #000 56%); }
+.culture-hero--illustrated .culture-hero__footer { order: 3; position: relative; z-index: 1; padding-top: 16px; align-items: center; }
+.culture-hero--illustrated .culture-hero__caption p { color: #142543; text-shadow: none; }
+.culture-hero--illustrated .culture-hero__caption { background: #fffdfae8; padding: 10px 14px; border-radius: 12px; }
+.culture-hero--illustrated .culture-hero__location { color: #244c51; }
+.culture-hero--illustrated .culture-hero__credit { color: #385154; }
+.culture-hero--illustrated .culture-hero__controls button { color: #142543; background: #fffdfaee; border-color: #14254340; }
+.culture-hero--illustrated .culture-hero__controls button:hover { background: #f0d99c; }
+.culture-hero--illustrated .culture-hero__dots button { background: transparent; }
+.culture-hero--illustrated .culture-hero__dots span { background: #14254370; }
+.culture-hero--illustrated .culture-hero__dots [aria-pressed=true] span { background: #142543; box-shadow: 0 0 0 4px #14254318; }
+.culture-hero--illustrated .culture-hero__controls button:focus-visible { outline-color: #24406e; }
+.culture-hero--illustrated :is(h1, h2, .hero__kicker, .hero__lead, .section-heading--light h1, .section-heading--light h2) { color: #142543; text-shadow: none; }
+.culture-hero--illustrated h1 span { color: #142543; }
+.culture-hero--illustrated :is(.section-heading__body, .section-heading--light .section-heading__body, .tiny, .dictionary-page__intro p:not(.eyebrow)) { color: #35444f; }
+.culture-hero--illustrated :is(.eyebrow, .section-heading--light .eyebrow, .home-search > label) { color: #9a492e; }
+.culture-hero--illustrated .button--secondary { background: #fffdfad9; color: #1e365d; border-color: #1e365d; }
+.culture-hero--illustrated .button--secondary:hover { background: #1e365d; color: white; }
+.culture-hero--illustrated .status-pill { color: #1e365d; background: #fffdfac9; border-color: #1e365d40; }
+.culture-hero--illustrated .contribute-start-note { color: #35444f; }
+.culture-hero--illustrated .dictionary-page__role a { color: #9a492e; }
+.culture-hero--illustrated.culture-hero--home .hero__content { margin: auto; max-width: 850px; text-align: center; }
+.culture-hero--illustrated.culture-hero--home h1 { font-size: clamp(2.5rem, 5.3vw, 4.7rem); margin-bottom: 18px; }
+.culture-hero--illustrated.culture-hero--home :is(.hero__lead, .home-search, .tiny) { margin-inline: auto; }
+.culture-hero--illustrated.culture-hero--home .hero__actions { justify-content: center; }
+.culture-hero--illustrated.culture-hero--home .culture-atmosphere::before,
+.culture-hero--illustrated.culture-hero--home .culture-atmosphere::after { content: ''; position: absolute; width: 155px; height: 270px; top: 380px; background: url('/images/culture/original/community-characters-v2.webp') no-repeat left bottom / auto 270px; }
+.culture-hero--illustrated.culture-hero--home .culture-atmosphere::before { left: 18px; }
+.culture-hero--illustrated.culture-hero--home .culture-atmosphere::after { right: 18px; width: 130px; background-position: right bottom; }
+.culture-hero--illustrated.culture-hero--compact { padding-top: 122px; padding-bottom: 18px; }
+.culture-hero--illustrated.culture-hero--compact .culture-hero__content { padding-bottom: 10px; }
+.culture-hero--illustrated.culture-hero--compact .culture-hero__images { height: 100px; }
+.culture-hero--illustrated.culture-hero--compact .culture-hero__images img { width: min(600px, 100%); height: 145px; object-fit: contain; }
+.culture-hero--illustrated.culture-hero--embedded { padding-top: 50px; }
+.culture-atmosphere { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+.culture-cloud { position: absolute; width: 250px; height: 62px; border-radius: 50%; background: #fffefaac; filter: blur(3px); animation: culture-cloud-drift 26s ease-in-out infinite alternate; }
+.culture-cloud--one { top: 18%; left: -70px; }
+.culture-cloud--two { top: 38%; right: -60px; width: 310px; animation-delay: -13s; }
+.culture-birds { position: absolute; width: min(780px, 90%); height: 150px; top: 8%; left: 8%; fill: none; stroke: #2e5766; stroke-width: 3; stroke-linecap: round; opacity: .55; animation: culture-birds-float 18s ease-in-out infinite alternate; }
+.culture-hero--guide .culture-birds { width: 280px; height: 60px; top: 20px; left: auto; right: 5%; }
+.culture-leaf { position: absolute; bottom: 20%; width: 95px; height: 230px; background: #47796b20; border-radius: 95% 0 90% 0; transform-origin: bottom; animation: culture-leaf-sway 9s ease-in-out infinite alternate; }
+.culture-leaf--left { left: -30px; rotate: 18deg; }
+.culture-leaf--right { right: -35px; rotate: -28deg; animation-delay: -4s; }
+.culture-hero--illustrated[data-playing=false] :is(.culture-cloud, .culture-birds, .culture-leaf) { animation-play-state: paused; }
+@keyframes culture-people-drift { from { transform: translateX(-50%) translateY(2px); } to { transform: translateX(-49%) translateY(-3px); } }
+@keyframes culture-cloud-drift { to { translate: 48px -10px; } }
+@keyframes culture-birds-float { to { translate: 35px -9px; } }
+@keyframes culture-leaf-sway { to { transform: rotate(5deg); } }
+@media(max-width: 900px) {
+  .culture-hero--illustrated .culture-hero__footer { align-items: flex-start; }
+  .culture-hero--illustrated.culture-hero--compact .culture-hero__images { height: 80px; }
+}
+@media(max-width:1100px) { .culture-hero--illustrated.culture-hero--home .culture-atmosphere::before, .culture-hero--illustrated.culture-hero--home .culture-atmosphere::after { display: none; } }
+@media(max-width: 639px) {
+  .culture-hero.culture-hero--illustrated { padding-top: 112px; }
+  .culture-hero--illustrated.culture-hero--embedded { padding-top: 40px; }
+  .culture-hero--illustrated.culture-hero--home h1 { font-size: clamp(2.4rem, 10vw, 3.5rem); }
+  .culture-hero--illustrated .culture-hero__images { height: 195px; }
+  .culture-hero--illustrated .culture-hero__images img { width: 560px; max-width: none; }
+  .culture-hero--illustrated.culture-hero--compact .culture-hero__images img { height: 125px; width: 400px; }
+  .culture-hero--illustrated .culture-hero__footer { padding-top: 10px; gap: 12px; }
+  .culture-hero--illustrated .culture-hero__photo-title { font-size: .9rem; }
+  .culture-hero--illustrated .culture-hero__credit { font-size: .65rem; }
+  .culture-hero--illustrated .culture-hero__location { font-size: .65rem; }
+  .culture-birds { top: 9%; height: 85px; opacity: .35; }
+  .culture-hero--illustrated .hero__actions .button { width: 100%; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .culture-hero--illustrated :is(.culture-cloud, .culture-birds, .culture-leaf, .culture-hero__images img.is-active) { animation: none; transition: none; }
+  .culture-hero--illustrated .culture-hero__images img { transform: translateX(-50%); }
+}

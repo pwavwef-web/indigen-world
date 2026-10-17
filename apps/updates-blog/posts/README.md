@@ -17,15 +17,32 @@ date identifies when the post was prepared; it does not prove the update is live
 - [2026-10-15: Gemini 4 for Indigen World's text tools](2026-10-15-gemini-4-text-upgrade/README.md) — shared Gemini 4 Argon upgrade for Kawuri interpretation, community text/checks and optional Labs English story assistance. Deployed and verified October 15: eleven ACTIVE Functions, production lookup and runtime Gemini 4/global log. Build and 166 backend tests pass. Reviewed Kasem answers stay grounded; media and assessment models are separate. Includes actual editorial illustration assets. Blogger publication and sharing pending.
 
 - [2026-10-15: Meet Zem Ghana: Ghana headlines, with sources](2026-10-15-zem-ghana-headlines/README.md) — new automated @zem_ghana account. Four times a day it posts one headline from a named Ghana outlet, with a neutral, source-checked AI summary, a link to the full report and an Indigen-branded card drawn in code. Deployed and verified live 15 October 2026; first post published by the production Scheduler. Blogger publication and sharing pending.
+
 - [2026-10-15: See the meaning: word-of-the-day illustrations](2026-10-15-word-of-the-day-illustrations/README.md) — Gemini draws the published word's meaning: actions for verbs, subjects for nouns and scenes for other concepts. Deployed October 15; production job generated and attached the verified illustration for di / to eat. Ten policy and twelve emulator checks pass. Includes actual generated artwork and branded images. Blogger publication and sharing pending.
 
+- [2026-10-14: Emails that sound like Indigen World](2026-10-14-email-theme/README.md) — one shared blue email theme with the Indigen World logo, written status labels, reviewer feedback panels, account fallback links, phone and dark layouts and matching plain text, across website forms, TribeStudio and Contributor Portal notifications, support and letters. Four email Functions and the website deployed October 14 (`46c31b6`); a test email arrived in the Gmail inbox. Firebase reset template, client-matrix testing and Blogger publication pending. Includes actual renders of the email templates with synthetic examples.
+
+- [2026-10-13: Living culture. New possibilities: Labs redesigned](2026-10-13-labs-redesign/README.md) — photo-led Labs home with credited Wikimedia Commons photographs and an accessible slideshow, live experiment previews (Word Trail drawn by its own renderer), one consistent sign-in/access state, Play/Learn/Create/Contribute filters, purpose section, Continue exploring and feedback paths. Website deployed and verified live October 14 (`afc3790`); signed-in production check and Blogger publication pending. Includes actual local product previews and branded image assets.
+
 - [2026-10-13: Thoughtful steps, useful contributions](2026-10-13-contribution-studio/README.md) — composed contributor dashboard, four-section editor, speaker context, small sessions, private recognition and shared approval goals. Deployed and verified October 13 with the shared blue palette, seven matching Functions, live files and light/dark desktop/phone sign-in checks. Signed-in production workflow check and Blogger publication pending. Includes actual labelled product previews and branded image assets.
+
+- [2026-10-13: A community of characters for Indigen World](2026-10-13-original-animated-community/README.md) — ten original fictional characters, shared paper-collage scenery, gentle layered motion and scene controls. Website deployed and verified October 13; Blogger publication pending. Includes actual local and live screenshots and artwork provenance.
+
+- [2026-10-12: An easier way to discover, learn and contribute](2026-10-12-easier-website-discovery/README.md) — homepage search and public language previews, grouped navigation, warm visual styling, compact task banners and mobile dictionary controls. Website deployed and verified October 13; Blogger publication pending. Includes a verified live screenshot and actual desktop and mobile previews.
+
+- [2026-10-12: Easier discovery and a clearer grammar guide on Venacula](2026-10-12-venacula-reading-and-discovery/README.md) — responsive dictionary navigation, mobile entry links, grammar search and chapter filters, progressive source tables and citation reveal. Deployed and verified October 12; Blogger publication pending. Includes actual desktop and mobile previews.
+
+- [2026-10-12: A shared cultural welcome, wherever you begin](2026-10-12-cultural-banners-across-public-pages/README.md) — rotating cultural photo openings across public pages, Labs, the film opening and reference guides, with responsive layouts and shared pause controls. Website deployed and verified October 12; Blogger publication pending. Includes a verified live screenshot, actual previews and photo credits.
+
+- [2026-10-12: A little motion, wherever you explore Indigen World](2026-10-12-scroll-cards-across-public-pages/README.md) — shared rising-card entrances across public pages and reference guides, desktop editorial stacks, responsive flow and remembered pause controls. Website deployed and verified October 12; Blogger publication pending. Includes a verified live screenshot and actual desktop/mobile previews.
+
+- [2026-10-12: Culture in motion: a new way into Indigen World](2026-10-12-culture-in-motion/README.md) — photographic homepage banner, Ghana-focused map with rotating cards, and responsive scrolling story cards. Website deployed and verified October 12; Blogger publication pending. Includes a verified live screenshot, product previews and documented photo credits.
 
 - [2026-10-11: One Kasem question through a complete evidence cycle](2026-10-11-kasem-question-evidence-cycle/README.md) — local research ledger, open-elicitation packets, separate use permissions and unseen-test checks. Updated October 12: editable copies accepted and four source passages checked. Five questions and twenty situations prepared; speech, review and actual Kawuri evaluation pending. Includes labelled illustrations; no deployment or article publication.
 
 - [2026-10-11: A cleaner place to read our updates](2026-10-11-updates-blog-redesign/README.md) — Blogger theme redesign: one uncropped cover per post (the cover had rendered two or three times), restored paragraph spacing, contained snippets (no italic leak), Indigen World byline, editorial serif headlines, ranked topics, named share buttons, cover-card related posts and on-demand comments. Validated and previewed locally; theme not installed on Blogger; article unpublished. Includes actual renders of a real post in the new theme.
 
-- [2026-10-10: Heritage Frame letters and correspondence](2026-10-10-heritage-frame-correspondence/README.md) — existing Indigen World logo, reusable editable Word/searchable PDF letters, private drafts, print preparation and reviewed SMTP attachments. Admin, four Functions and private-data rules deployed October 10; authorised cloud Word/PDF generation verified Includes actual deployed composer and rendered cloud PDF with synthetic identities. — Blogger article published 11 October 2026: [Read article](https://updates.indigenworld.com/2026/10/blog-post.html).
+- [2026-10-10: Heritage Frame letters and correspondence](2026-10-10-heritage-frame-correspondence/README.md) — existing Indigen World logo, reusable editable Word/searchable PDF letters, private drafts, print preparation and reviewed SMTP attachments. Admin, four Functions and private-data rules deployed October 10; authorised cloud Word/PDF generation verified; Blogger unpublished. Includes actual deployed composer and rendered cloud PDF with synthetic identities.
 
 - [2026-10-10: Check Kasem spellings without leaving your contribution](2026-10-10-kasem-dictionary-assistance/README.md) — dictionary underlines, approved suggestions and reviewed word submissions across responsive contributor fields. Deployed and verified on both TribeStudio domains, with four active backend functions Includes desktop and mobile product previews with test fixtures. — Blogger article published 11 October 2026: [Read article](https://updates.indigenworld.com/2026/10/kasem-dictionary-assistance.html).
 
@@ -58,7 +75,9 @@ date identifies when the post was prepared; it does not prove the update is live
 - [2026-10-04: A steadier place to look up Kasem](2026-10-04-dictionary-steady-scrolling/README.md) — dictionary scroll feedback fix and mobile result-position preservation implemented and verified; deployed October 4 with verified public assets and live scroll regressions Includes verified local product screenshots. — Blogger article published 11 October 2026: [Read article](https://updates.indigenworld.com/2026/10/dictionary-steady-scrolling.html).
 
 - [2026-10-04: Help Fill the Jars — track our community progress toward launch](2026-10-04-help-fill-the-jars-progress/README.md) — public website feature implemented and verified on October 4; 10 distinct heritage categories, switchable vertical jars and horizontal tanks, SVG liquid dynamics, honest unconfigured target states, and direct contribution CTAs. Prerendered metadata and 11 calculation invariants verified. Illustrated — Blogger article published 11 October 2026: [Read article](https://updates.indigenworld.com/2026/10/help-fill-the-jars-progress.html).
+
 - [2026-10-03: Workspaces rebuilt around the work](2026-10-03-workspaces-rebuilt/README.md) — TribeStudio Hosting and three compatible review functions deployed October 4; live routes, assets and anonymous authentication gates verified. Authenticated production journeys remain unverified. Illustrated — Blogger article published 11 October 2026: [Read article](https://updates.indigenworld.com/2026/10/workspaces-rebuilt-around-the-work.html).
+
 - [2026-10-03: Kawuri answers from reviewed records](2026-10-03-kawuri-reviewed-answers/README.md) — backend deployed and verified October 3. Chat and community answers now quote eligible records or fixed help, with unsupported language withheld. Includes a labelled workflow illustration. — Blogger article published 11 October 2026: [Read article](https://updates.indigenworld.com/2026/10/kawuri-reviewed-language-answers.html).
 
 - [2026-10-03: Browse Kasem literature by category](2026-10-03-literature-category-tabs/README.md) — illustrated draft held at the owner's request until the mobile update is deployed and publication is authorized again; five primary category tabs implemented and tested. — Blogger article published 11 October 2026: [Read article](https://updates.indigenworld.com/2026/10/kasem-literature-category-tabs.html).
@@ -80,45 +99,83 @@ date identifies when the post was prepared; it does not prove the update is live
 - [2026-09-30: Small experiments, living culture — Indigen World Labs](2026-09-30-indigen-world-labs/README.md) — signed-in alpha deployed September 30; reviewed practice, private stories, activity and feedback verified against production. Actual local screenshots; automatic assistance disabled. Blogger article remains a draft.
 
 - [2026-09-30: The review desk comes to the contributor portal](2026-09-30-contributor-review-desk/README.md) — draft article; guarded web review desk with four queues and validator-only navigation. TribeStudio Hosting deployed September 30; custom-domain files verified against the release build. Signed-in checks pending; newer dictionary output choices await their backend release. Includes an original workflow illustration.
+
 - [2026-09-30: More ways to build and share with Indigen World](2026-09-30-language-review-and-video-editor/README.md) — draft article; rules, indexes, 16 functions and hosting deployed September 30. TribeStudio video editor and reviewer tools for contributed language material.
+
 - [2026-09-28: Help the dictionary from wherever you are (Indigen World 0.1.29)](2026-09-28-help-the-dictionary/README.md) — draft article. The language loop is implemented and tested: Explore word prompts, Help add from search, topics and Kawuri, answer-then-sign-in, corrections, the reviewer's choice of what an answer becomes, and Kawuri lessons (1,571 app tests; backend 578 + 41 + 205). The 0.1.29 (38) bundle was built 2026-09-28; it includes 0.1.28 and is not uploaded. Rules, indexes, six functions and admin hosting await approval. Rendered screenshots use real queue words, verified Kasem only and a real Kawuri lesson.
+
 - [2026-09-28: Make the whole video in TribeStudio](2026-09-28-tribestudio-video-editor/README.md) — draft article. The video editor is verified end to end against the emulators, with three real exports inspected. The 50-track, 48-sticker library is live in production Firestore. Rules, ten functions and TribeStudio hosting await approval. The screenshots come from a demo project made in the editor.
+
 - [2026-09-28: More Kasem sounds, matched to the right meaning](2026-09-28-kasem-words-and-meanings/README.md) — 23 recordings published across 21 entries; gaale meanings separated, Dian withdrawn and the fruit take held for confirmation. Four rounds cover 89 audio entries. Includes a live screenshot; Blogger article is a draft.
+
 - [2026-09-27: Explore keeps your place, and My Space gets simpler (Indigen World 0.1.28)](2026-09-27-explore-and-my-space/README.md) — draft article; 20 app upgrades implemented and tested locally (1,555 tests, rules 201). The 0.1.28 (37) bundle was built 2026-09-27 but superseded before upload by 0.1.29 (38), which contains these changes (see the post above). The `hasVideo` backfill, two indexes and a rules deploy await approval. Includes rendered screenshots with sample data.
+
 - [2026-09-27: Kasem pronunciation: matching the sound to the meaning](2026-09-27-kasem-tone-and-meaning/README.md) — 26 approved recordings assigned to 25 entries using the owner's tone and meaning notes; eight entries added, four glosses corrected, uncertain proverbs meaning queued. All three releases cover 68 entries. Includes a live screenshot; Blogger article is a draft.
+
 - [2026-09-27: Another 25 Kasem words to hear and practise](2026-09-27-more-reviewed-kasem-pronunciations/README.md) — 26 approved takes published to 25 more entries; public access and source credits verified. The two releases cover 43 words. Blogger article is a draft.
+
 - [2026-09-27: Listen to 18 reviewed Kasem words](2026-09-27-reviewed-kasem-pronunciations/README.md) — first pronunciation release; public files and website attribution verified. Blogger article is a draft. The second listening round is covered in the follow-up above.
+
 - [2026-09-27: Share a Kasem expression: one clear way to contribute](2026-09-27-share-an-expression/README.md) — draft article; website entry point, expressions campaign and review flow implemented and tested locally, not deployed. Deploy rules, functions and hosting before publishing.
+
 - [2026-09-26: A clearer final step for contributor submissions](2026-09-26-visible-contributor-submit/README.md) — deployed September 26; local mobile workflow and live guide verified in Edge; Blogger draft.
+
 - [2026-09-26: A familiar look for Indigen World emails](2026-09-26-branded-emails/README.md) — application emails deployed; Firebase native template changes blocked; inbox delivery unverified; Blogger draft.
+
 - [2026-09-26: Help before contributor sign-in](2026-09-26-contributor-support/README.md) — website and staff inbox deployed and inspected September 26; live email delivery unverified; WhatsApp inactive.
+
 - [2026-09-26: A fresh space for your words](2026-09-26-contributor-studio-refresh/README.md) — draft article; visual redesign deployed, live sign-in verified; signed-in production smoke test pending.
+
 - [2026-09-26: Daily contributor tasks](2026-09-26-daily-contributor-tasks/README.md) — deployed September 26; authenticated production workflow verification pending.
+
 - [2026-09-26: An easier contributor workspace](2026-09-26-easier-contributor-workspace/README.md) — deployed September 26; authenticated production workflow verification pending.
+
 - [2026-09-26: Approved expression rewards](2026-09-26-approved-expression-rewards/README.md) — deployed September 26; 19 earlier approved expressions credited; signed-in end-to-end verification pending.
+
 - [2026-09-26: Contributor workspace updates](2026-09-26-contributor-workspace-updates/README.md) — implemented in repository; deployment and live verification pending.
+
 - [2026-09-26: Contributor redemption history](2026-09-26-contributor-redemption-history/README.md) — implemented in repository; deployment and live verification pending.
+
 - [2026-09-26: Points, with a little more spark](2026-09-26-points-redesigned/README.md) — draft points-page redesign article; implemented locally, Android release and publication pending.
+
 - [2026-09-25: Contributor streaks](2026-09-25-contributor-streaks/README.md) — implemented in repository; deployment and live verification pending.
+
 - [2026-09-25: Expression points and redemption](2026-09-25-contributor-expression-points/README.md) — implemented in repository; deployment and live verification pending.
+
 - [2026-09-24: Indigen opens again on Android](2026-09-24-android-startup-fix/README.md) — draft startup-fix article for 0.1.26 (35); signed bundle and emulator update verified, Play testing availability pending.
+
 - [2026-09-24: Music, reimagined (Indigen World 0.1.25)](2026-09-24-music-reimagined/README.md) — draft article; a user reports 0.1.25 (34) installed from a Play testing track but crashing at startup. Hold publication until the 0.1.26 fix is available.
+
 - [2026-09-24: Music that makes room (Indigen World 0.1.23)](2026-09-24-music-player-bubble/README.md) — draft article; 0.1.23 (32) bundle built and checked, not yet uploaded to Google Play. Publish only after the Play rollout.
+
 - [2026-09-23: A rebuilt workspace for Kasem contributors](2026-09-23-contributor-workspace-rebuild/README.md) — draft article; deployed 2026-09-23, finance claim and signed-in smoke test pending.
+
 - [2026-09-23: Contributor issue reporting](2026-09-23-contributor-issue-reporting/README.md) — draft article; deployed 2026-09-23, authenticated workflow verification pending.
+
 - [2026-09-23: Payment details now have a home under Account](2026-09-23-contributor-payment-profile/README.md) — draft article; deployed 2026-09-23, authenticated workflow verification pending.
+
 - [2026-09-23: De N Lei — Come Learn Kasem joins Music](2026-09-23-de-n-lei-kasem-song/README.md) — music record published to Firebase; guest access and public assets verified, device playback pending.
+
 - [2026-09-21: More context for Kasem contributions](2026-09-21-kasem-contribution-context/README.md) — draft; Functions and both dictionary websites deployed 2026-09-23, mobile release pending.
+
 - [2026-09-20: First-party community campaigns now have a privacy-aware fallback](2026-09-20-mobile-admob-fallback/README.md) — draft; consent message published and Play data disclosures submitted, app-ads.txt and a release still pending, nothing serving.
+
 - [2026-09-17: A faster contributor translation workspace](2026-09-17-contributor-workspace-redesign/README.md) — draft article; implementation verified locally, production deployment pending.
+
 - [2026-09-17: Contributor invitations by SMS](2026-09-17-contributor-sms-invitations/README.md) — draft article; deployed, handset-delivery check pending.
+
 - [2026-09-17: Contributor management comes to the Admin console](2026-09-17-contributor-management/README.md) — draft article; feature deployed, authenticated workflow smoke test pending.
+
 - [2026-09-16: Beyond the Reef, now an interactive music film](2026-09-16-beyond-the-reef/README.md) — the page is live; settle the song credit before publishing.
+
 - [2026-09-16: Assignment guidance, uncertainty flags and contributor activation](2026-09-16-contributor-guidance-and-activation/README.md) — draft; deployment verification pending.
 
 - [2026-09-16: A clearer workspace for Kasem expression contributors](2026-09-16-contributor-portal/README.md) — draft; deployment verification pending.
+
 - [2026-09-14: Kawuri creates](2026-09-14-kawuri-creates/README.md)
+
 - [2026-09-14: Reels that explain themselves](2026-09-14-reels-that-explain-themselves/README.md)
+
 - [2026-09-13: The Kasem Dictionary has a new look](2026-09-13-kasem-dictionary-new-look/README.md)
 
 ## Handoff for each major update

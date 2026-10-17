@@ -4,6 +4,7 @@ import { writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { GoogleAuth } from 'google-auth-library';
 import { firebasePasswordResetEmail } from '../lib/email-templates.js';
+import { EMAIL_LINKS } from '../lib/email-theme.js';
 
 const args = process.argv.slice(2);
 const option = name => args[args.indexOf(name) + 1];
@@ -27,6 +28,11 @@ const mask = Object.entries(templates).flatMap(([name, fields]) =>
   Object.keys(fields).map(field => `notification.sendEmail.${name}.${field}`));
 console.log(JSON.stringify({ project, apply, fields: mask, resetBodySha256: createHash('sha256').update(reset.html).digest('hex') }));
 try { if (apply) {
+  // The reset body shows the hosted logo; it must be live before the template points at it.
+  const logo = await fetch(EMAIL_LINKS.hostedLogo, { method: 'HEAD' });
+  if (!logo.ok || !String(logo.headers.get('content-type')).startsWith('image/png')) {
+    throw new Error(`Deploy the website first: ${EMAIL_LINKS.hostedLogo} is not serving the PNG.`);
+  }
   const client = await new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] }).getClient();
   const url = `https://identitytoolkit.googleapis.com/v2/projects/${encodeURIComponent(project)}/config`;
   const { data: before } = await client.request({ url });

@@ -106,6 +106,25 @@ layouts, playback, pause persistence, visibility handling, live reduced-motion c
 Player download. The independent Blogger feed is blocked for these local checks. Signed-in service
 workflows are not part of the animation test.
 
+The homepage uses `HomeHero` for four credited cultural photographs with an
+eight-second crossfade loop, `HomeCultureMap` for the Ghana pilot and three
+nine-second story cards, and `HomeScrollStories` for the illustrated card stack.
+Manual selection pauses motion. Both loops also pause during pointer/focus
+interaction, off-screen viewing, or a hidden browser tab. All three share the
+existing pause and reduced-motion preferences. Small or short screens use
+normal-flow cards. Photo and map provenance is recorded in
+`public/images/culture/README.md`.
+
+Scroll-card entrances across the public website are shared through
+`public/scroll-cards.js` and `public/scroll-cards.css`. The React route hook and
+standalone spelling/grammar guides use the same controller. Add
+`data-scroll-card` to a new card, or `scroll-card-stack` to an editorial sequence.
+Only cards that fit the viewport can stick; narrow and short screens stay in
+normal flow. Entrances run once, newly fetched cards are observed, keyboard
+focus reveals a card immediately, and the existing site pause/reduced-motion
+preferences keep all content visible. The footer also offers Pause scroll
+effects. Guide generators retain these assets only for the public website.
+
 Editable product, status, team, principle and Project Kassena copy lives under `src/content/`.
 Navigation and route metadata live in `src/content/navigation.ts`. Page layouts live under
 `src/pages/`; shared UI is under `src/components/`; form behavior is under `src/features/forms/`.
@@ -157,3 +176,7 @@ copy as an implementation summary. Keep `public/sitemap.xml`, `public/robots.txt
 ## Blog updates
 
 The homepage shows the three latest published posts from the independent Blogger site at https://updates.indigenworld.com/. The public summary feed is loaded through Blogger JSONP on each homepage visit, without credentials or a rebuild. Cards link to the original articles. Keep the Blogger site feed enabled under Settings. If it is unavailable, the section keeps a direct blog link visible. The blog theme and publishing workflow remain separate.
+
+### Shared cultural opening banners
+
+`CultureHero` in `src/components/HomeHero.tsx` preserves each page's opening copy and actions while reusing the homepage's credited photographs and motion controls. Public Labs and the film opening use its embedded variant. Shared photo metadata and CSS live in `public/culture-photos.js` and `public/culture-banner.css`. The static reference guides use `guide-banner.js` and `scripts/public-guide-layout.mjs`, with the same motion preference as scroll cards. Only the website guide outputs receive this presentation.

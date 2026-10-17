@@ -11,8 +11,9 @@
     "build": "tsc -b && vite build && node ./scripts/prerender-meta.mjs && node ./scripts/emit-well-known.mjs && node ./scripts/emit-app-ads.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
-    "test": "node ./scripts/validate-site.mjs && node ./scripts/validate-progress.mjs && node --experimental-strip-types --test ./scripts/liquidAppearance.test.mjs ./scripts/progressLive.test.mjs ./scripts/dictionaryDiscovery.test.mjs",
+    "test": "node ./scripts/validate-site.mjs && node ./scripts/validate-progress.mjs && node --experimental-strip-types --test ./scripts/liquidAppearance.test.mjs ./scripts/progressLive.test.mjs ./scripts/dictionaryDiscovery.test.mjs ./scripts/labsDiscovery.test.mjs",
     "test:motion": "node ./scripts/check-motion.mjs",
+    "test:refresh:browser": "node ./scripts/check-website-refresh.mjs",
     "test:progress:browser": "node ./scripts/check-progress.mjs",
     "test:progress:live": "node ./scripts/check-progress-live.mjs",
     "test:runner": "node --experimental-strip-types --test ./scripts/runner-engine.test.mjs ./scripts/runner-audio.test.mjs && node ./scripts/check-runner.mjs",
@@ -20,6 +21,7 @@
   },
   "dependencies": {
     "@fontsource-variable/noto-sans": "5.3.0",
+    "@fontsource-variable/sora": "^5.3.0",
     "@remotion/player": "4.0.532",
     "firebase": "^11.3.0",
     "react": "^19.2.8",
@@ -33,6 +35,7 @@
     "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^6.0.4",
     "typescript": "^7.0.2",
-    "vite": "^8.1.5"
+    "vite": "^8.1.5",
+    "@types/three": "^0.186.0"
   }
 }

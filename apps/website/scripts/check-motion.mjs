@@ -24,33 +24,39 @@ async function context(options = {}) {
   const ctx = await browser.newContext(options);
   // The independent Blogger feed is outside these local animation checks.
   await ctx.route('https://updates.indigenworld.com/**', route => route.abort());
+  // Production builds call the live Labs gateway; a layout check must not add to its counters.
+  await ctx.route('**/labsApi', route => route.abort());
   return ctx;
 }
 async function open(page, route) {
   await page.goto(origin + route, { waitUntil: 'domcontentloaded' });
   await page.locator('h1').first().waitFor({ state: 'attached' });
-  if (route === '/privacy') await page.locator('.privacy-hero__art img').waitFor();
-  else if (route !== '/beyond-the-reef') await page.locator('.page-motion__art svg').waitFor();
+  await page.evaluate(() => document.fonts.ready);
+  if (route.startsWith('/labs')) await page.locator('.lab-header').waitFor();
+  else await page.locator('.culture-hero__images img.is-active').waitFor();
   await page.waitForTimeout(800);
 }
-async function artwork(page) { return page.locator('.page-motion__art svg').first().evaluate(svg => svg.outerHTML); }
+async function artwork(page) {
+  if (await page.locator('.culture-hero').count()) return page.locator('.culture-hero__images img.is-active').evaluate(img => `${img.currentSrc}:${getComputedStyle(img).transform}`);
+  return page.locator('.page-motion__art svg').first().evaluate(svg => svg.outerHTML);
+}
 async function checkBannerLayout(page, route, width) {
-  const banner = page.locator('.page-motion--banner');
+  const banner = page.locator('.culture-hero');
   if (!await banner.count()) return false;
-  const art = await banner.boundingBox();
-  const content = banner.locator('..').locator(':scope > .container');
-  const box = await content.boundingBox();
-  assert(art.x + art.width <= box.x + 1 || box.x + box.width <= art.x + 1 ||
-    art.y + art.height <= box.y + 1 || box.y + box.height <= art.y + 1,
-  `${route}: artwork overlaps the content column at ${width}px`);
-  const controls = content.locator('a, button, input, select, textarea');
-  for (const control of await controls.all()) {
+  // Read both bounds in the same layout, including when async content changes.
+  const bounds = await banner.evaluate(element => ({
+    copyBottom: element.querySelector('.culture-hero__content').getBoundingClientRect().bottom,
+    footerTop: element.querySelector('.culture-hero__footer').getBoundingClientRect().top,
+  }));
+  assert(bounds.copyBottom <= bounds.footerTop + 1, route + ': credits do not overlap page content');
+  for (const control of await banner.locator('a, button, input').all()) {
     if (await control.isVisible() && await control.isEnabled()) {
-      await control.click({ trial: true, timeout: 3000 });
+      try { await control.click({ trial: true, timeout: 5000 }); }
+      catch (error) { throw new Error(`${route} at ${width}px: ${error.message}`); }
     }
   }
   const sizes = await page.evaluate(() => ({ content: document.documentElement.scrollWidth, viewport: innerWidth }));
-  assert(sizes.content <= sizes.viewport + 1, `${route}: horizontal overflow at ${width}px`);
+  assert(sizes.content <= sizes.viewport + 1, route + ': horizontal overflow at ' + width);
   return true;
 }
 async function checkKassenaLayout(page, width) {
@@ -84,9 +90,20 @@ try {
       assert(sizes.content <= sizes.viewport + 1, `${route} overflows at ${width}px: ${sizes.content}`);
       if (route === '/project-kassena') await checkKassenaLayout(page, width);
       if (await checkBannerLayout(page, route, width)) bannerRoutes.add(route);
-      if (route !== '/beyond-the-reef') {
-        assert.equal(await page.locator(route === '/privacy' ? '.privacy-hero' : '.page-motion').count(), 1, `${route}: exactly one page illustration`);
-        const toggle = page.getByRole('button', { name: 'Pause animations', exact: false });
+      if (route.startsWith('/labs')) {
+        // Labs brings its own shell: one compact header, and on the home page a
+        // photographic slideshow whose pause control must stay reachable.
+        assert.equal(await page.locator('.lab-header').count(), 1, `${route}: one Labs header`);
+        assert.equal(await page.locator('.site-header').count(), 0, `${route}: site header steps aside`);
+        if (route === '/labs') {
+          const toggle = page.getByRole('button', { name: /slideshow/ });
+          assert(await toggle.isVisible(), '/labs: slideshow pause control');
+          const box = await toggle.boundingBox();
+          assert(box.x >= 0 && box.x + box.width <= width + 1, '/labs: slideshow control outside viewport');
+        }
+      } else if (route !== '/beyond-the-reef') {
+        assert.equal(await page.locator('.culture-hero').count(), 1, `${route}: exactly one page visual`);
+        const toggle = page.getByRole('button', { name: 'Pause animations', exact: false }).first();
         await toggle.scrollIntoViewIfNeeded();
         assert(await toggle.isVisible(), `${route}: accessible motion control`);
         await toggle.click({ trial: true, timeout: 3000 });
@@ -121,28 +138,32 @@ try {
   console.log('Project Kassena text, controls and illustration remain separate across mobile and desktop breakpoints.');
   await page.setViewportSize({ width: 1440, height: 1000 });
   await open(page, '/');
+  await page.mouse.move(1439, 999);
   const moving = await artwork(page); await page.waitForTimeout(240);
-  assert.notEqual(await artwork(page), moving, 'Remotion advances while visible');
+  assert.notEqual(await artwork(page), moving, 'Homepage photograph moves while visible');
   await page.getByRole('button', { name: 'Pause animations' }).click();
   await page.waitForTimeout(100);
   const paused = await artwork(page); await page.waitForTimeout(240);
   assert.equal(await artwork(page), paused, 'Pause freezes artwork');
-  await page.getByLabel('Primary navigation', { exact: true }).getByRole('link', { name: 'Ecosystem', exact: true }).click();
+  await page.locator('.story-nav > summary').click();
+  await page.locator('.story-nav__panel a[href="/ecosystem"]').click();
   await page.getByRole('button', { name: 'Resume animations' }).waitFor();
   await page.reload(); await page.getByRole('button', { name: 'Resume animations' }).waitFor();
   await page.getByRole('button', { name: 'Resume animations' }).click();
   await open(page, '/');
-  const pathCard = page.locator('.today-path').first();
+  await open(page, '/learn');
+  const pathCard = page.locator('.learning-resource').first();
   await pathCard.scrollIntoViewIfNeeded(); await page.waitForTimeout(750);
   assert(await pathCard.evaluate(el => el.classList.contains('is-visible')), 'Scrolled cards reveal');
   assert.equal(await pathCard.evaluate(el => getComputedStyle(el).opacity), '1', 'Revealed cards are readable');
   await pathCard.locator('a').first().focus(); await page.waitForTimeout(300);
-  assert.equal(await pathCard.evaluate(el => getComputedStyle(el).translate), '0px -4px', 'Keyboard focus activates card motion');
+  assert.equal(await pathCard.evaluate(el => getComputedStyle(el).opacity), '1', 'Keyboard focus keeps the resource readable');
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await page.waitForTimeout(350);
   const offscreen = await artwork(page); await page.waitForTimeout(240);
   assert.equal(await artwork(page), offscreen, 'Offscreen artwork pauses');
   await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(250);
+  await page.mouse.move(1439, 999);
   const returned = await artwork(page); await page.waitForTimeout(240);
   assert.notEqual(await artwork(page), returned, 'Artwork resumes on return');
   await page.evaluate(() => {
@@ -157,7 +178,7 @@ try {
     document.dispatchEvent(new Event('visibilitychange'));
   });
   await page.emulateMedia({ reducedMotion: 'reduce' }); await page.waitForTimeout(100);
-  assert.equal(await page.locator('.page-motion__toggle').count(), 0, 'Runtime reduced-motion change removes playback');
+  assert.equal(await page.locator('.culture-hero__pause').count(), 0, 'Runtime reduced-motion change removes playback');
   const reducedStill = await artwork(page); await page.waitForTimeout(240);
   assert.equal(await artwork(page), reducedStill, 'Reduced motion is static');
   assert.equal(await page.locator('h1').evaluate(el => getComputedStyle(el).animationName), 'none');
@@ -176,32 +197,13 @@ try {
   assert.deepEqual(motionRequests, [], 'Reduced-motion users do not download the Player chunk');
   await reducedContext.close();
 
-  const privacyContext = await context();
-  const privacyPage = await privacyContext.newPage();
-  await open(privacyPage, '/privacy');
-  await privacyPage.waitForFunction(() => document.querySelector('.privacy-hero video')?.currentTime > 0.1);
-  await privacyPage.getByRole('button', { name: 'Pause animations' }).click();
-  assert(await privacyPage.locator('.privacy-hero video').evaluate(video => video.paused), 'Privacy video shares pause control');
-  const privacyTime = await privacyPage.locator('.privacy-hero video').evaluate(video => video.currentTime);
-  await privacyPage.waitForTimeout(240);
-  assert(Math.abs(await privacyPage.locator('.privacy-hero video').evaluate(video => video.currentTime) - privacyTime) < 0.04, 'Privacy video stays paused');
-  await open(privacyPage, '/ecosystem');
-  await privacyPage.getByRole('button', { name: 'Resume animations' }).waitFor();
-  await open(privacyPage, '/privacy');
-  assert(await privacyPage.locator('.privacy-hero video').evaluate(video => video.paused), 'Privacy respects saved site preference');
-  await privacyPage.getByRole('button', { name: 'Resume animations' }).click();
-  await privacyPage.waitForFunction(() => document.querySelector('.privacy-hero video')?.paused === false);
-  await privacyPage.emulateMedia({ reducedMotion: 'reduce' });
-  await privacyPage.waitForFunction(() => !document.querySelector('.privacy-hero video'));
-  assert(await privacyPage.locator('.privacy-hero__art img').isVisible(), 'Privacy keeps its still under reduced motion');
-  await privacyContext.close();
-
   const fallbackContext = await context();
-  await fallbackContext.route('**/RemotionArtwork-*.js', route => route.abort());
+  await fallbackContext.route('**/images/culture/**/*.webp', route => route.abort());
   const fallbackPage = await fallbackContext.newPage();
-  await open(fallbackPage, '/contact');
-  assert(await fallbackPage.locator('h1').isVisible(), 'Text survives a failed animation download');
-  assert.equal(await fallbackPage.locator('.page-motion__art svg').count(), 1, 'Failed animation keeps static illustration');
+  await fallbackPage.goto(origin + '/contact');
+  await fallbackPage.locator('h1').waitFor();
+  assert(await fallbackPage.locator('h1').isVisible(), 'Text survives failed photograph downloads');
+  assert.equal(await fallbackPage.locator('.culture-hero__images img.is-active').count(), 0, 'Unavailable photographs keep the CSS fallback');
   await fallbackContext.close();
   console.log('Playback, pause/navigation/reload persistence, offscreen resume, tab visibility, reduced motion and download fallback passed.');
 } finally { await browser.close(); }

@@ -62,4 +62,3 @@ test('practice is slower and never needs a queue to reach another section',()=>{
   const s=newTrail(1,true);tickTrail(s,.1);assert(s.speed<8);s.status='checkpoint';s.distance=300;s.totalDistance=300;
   const next=nextTrail(s);assert.equal(next.practice,true);assert.equal(next.status,'running');
 });
-

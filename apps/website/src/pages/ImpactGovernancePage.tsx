@@ -1,4 +1,4 @@
-import { PageMotion } from "../components/PageMotion";
+import { CultureHero } from "../components/HomeHero";
 /**
  * src/pages/ImpactGovernancePage.tsx
  *
@@ -22,8 +22,7 @@ export function ImpactGovernancePage() {
 
   return (
     <>
-      <section className="page-hero page-hero--governance">
-        <PageMotion />
+      <CultureHero>
         <div className="container">
           <SectionHeading
             eyebrow="Cultural governance"
@@ -33,7 +32,7 @@ export function ImpactGovernancePage() {
             as="h1"
           />
         </div>
-      </section>
+      </CultureHero>
 
       <section className="section section--sand">
         <div className="container governance-grid">
@@ -46,7 +45,7 @@ export function ImpactGovernancePage() {
               </div>
             </div>
           </div>
-          <div className="principle-list">
+          <div className="principle-list scroll-card-stack">
             {PRINCIPLES.map((principle) => (
               <article className="principle" key={principle.number} data-reveal>
                 <span>{principle.number}</span>

@@ -1,0 +1,126 @@
+/* A full-width photographic opening, with stable copy and independently controlled motion. */
+.culture-hero {
+  position: relative; isolation: isolate; overflow: hidden; color: #fff;
+  display: flex; flex-direction: column; justify-content: space-between;
+  min-height: min(900px, 100svh); padding: 170px 0 28px;
+  background: #11243b url('/images/hero-home.jpg') center / cover;
+}
+.culture-hero::after {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(5, 14, 25, .36), rgba(5, 14, 25, .12) 40%, rgba(5, 14, 25, .86)),
+    linear-gradient(90deg, rgba(5, 14, 25, .72), rgba(5, 14, 25, .32) 60%, rgba(5, 14, 25, .12));
+}
+.culture-hero__images { position: absolute; inset: 0; z-index: -2; overflow: hidden; }
+.culture-hero__images img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  object-position: var(--photo-position); opacity: 0; transition: opacity 1400ms ease;
+  transform: scale(1.06); will-change: opacity, transform;
+}
+.culture-hero__images img.is-active { opacity: 1; animation: culture-photo-drift 10s linear both; }
+.culture-hero__content { flex: 1; display: flex; align-items: center; padding-block: 10px 70px; }
+.culture-hero .hero__content { max-width: 760px; }
+.culture-hero .status-pill { background: rgba(5, 14, 25, .4); border-color: rgba(255,255,255,.38); color: #fff; }
+.culture-hero .hero__kicker { color: #d9e9ff; }
+.culture-hero h1 { font-size: clamp(3rem, 6.5vw, 6rem); line-height: 1.02; letter-spacing: -.045em; margin-bottom: 24px; color: #fff; }
+.culture-hero h1 span { display: block; color: #fff; }
+.culture-hero .hero__lead { max-width: 53ch; font-size: 1.06rem; color: #fff; text-shadow: 0 1px 10px #07152580; }
+.culture-hero .hero__actions { flex-direction: row; flex-wrap: wrap; }
+.culture-hero .button--secondary { background: rgba(7,21,37,.62); border-color: rgba(255,255,255,.7); color: #fff; }
+.culture-hero .button--secondary:hover { background: #19327f; }
+.culture-hero .tiny { color: #e7ecf3; max-width: 62ch; }
+.culture-hero__footer { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; }
+.culture-hero__caption { min-width: 0; max-width: 630px; }
+.culture-hero__location { font-size: .68rem; text-transform: uppercase; letter-spacing: .14em; color: #e0e9f4; margin-bottom: 6px; }
+.culture-hero__photo-title { color: #fff; font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+.culture-hero__credit { color: #d4dce7; font-size: .69rem; line-height: 1.6; margin: 0; }
+.culture-hero__credit a { text-decoration: underline; text-underline-offset: 3px; }
+.culture-hero__controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex-shrink: 0; }
+.culture-hero__controls button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-width: 44px; min-height: 44px; border: 1px solid #ffffff55; border-radius: 50%;
+  background: #08182cb3; color: #fff; cursor: pointer; padding: 9px;
+}
+.culture-hero__controls button:hover { background: #19327f; }
+.culture-hero__controls button:focus-visible { outline: 3px solid #bde9ff; outline-offset: 3px; }
+.culture-hero__controls button:disabled { opacity: .4; cursor: default; }
+.culture-hero__dots { display: flex; }
+.culture-hero__dots button { border: 0; background: transparent; min-width: 32px; }
+.culture-hero__dots span { width: 6px; height: 6px; border-radius: 50%; background: #ffffff80; }
+.culture-hero__dots [aria-pressed=true] span { background: #fff; box-shadow: 0 0 0 4px #ffffff25; }
+.culture-hero__controls .culture-hero__pause { border-radius: 99px; padding-inline: 14px; font-size: .73rem; margin-left: 10px; }
+@keyframes culture-photo-drift { from { transform: scale(1.06); } to { transform: scale(1); } }
+@media (max-width: 900px) {
+  .culture-hero { padding-top: 140px; min-height: 820px; }
+  .culture-hero__footer { align-items: flex-start; flex-direction: column; gap: 20px; }
+  .culture-hero__content { padding-bottom: 48px; }
+}
+@media (max-width: 639px) {
+  .culture-hero { min-height: 100svh; padding-top: 116px; padding-bottom: 24px; }
+  .culture-hero::after { background: linear-gradient(180deg, #07152540, #071525b8 28%, #071525eb); }
+  .culture-hero h1 { font-size: clamp(2.8rem, 11vw, 4.2rem); }
+  .culture-hero .hero__lead { font-size: .96rem; }
+  .culture-hero .hero__actions { flex-direction: column; width: 100%; }
+  .culture-hero__content { padding-bottom: 36px; }
+  .culture-hero__controls { gap: 2px; width: 100%; }
+  .culture-hero__controls .culture-hero__pause { margin: 8px 0 0; }
+  .culture-hero__dots button { min-width: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .culture-hero__images img { animation: none; transition: none; transform: none; }
+}
+
+/* Shared openings keep the homepage's photographs, with space for each page's task. */
+.culture-hero--page { min-height: min(780px, 92svh); padding-top: 150px; }
+.culture-hero--page .culture-hero__content,
+.culture-hero--embedded .culture-hero__content { display: block; padding-bottom: 52px; }
+.culture-hero__content > .container { width: 100%; max-width: none; padding-inline: 0; margin: 0; }
+.culture-hero .section-heading { max-width: 950px; margin-bottom: 0; }
+.culture-hero--page h1,
+.culture-hero--embedded h1 { font-size: clamp(2.5rem, 5vw, 4.9rem); max-width: 22ch; line-height: 1.07; }
+.culture-hero .eyebrow, .culture-hero .labs-eyebrow { color: #e6cd91; }
+.culture-hero :is(.section-heading__body, .dictionary-page__intro p:not(.eyebrow), .labs-intro, .labs-hero-note) { color: #f0f3f7; max-width: 62ch; }
+.culture-hero__copy { max-width: 900px; }
+.culture-hero__copy > p:not(.eyebrow) { max-width: 64ch; }
+.culture-hero .privacy-hero__content { padding-bottom: 0; }
+.culture-hero .dictionary-search { max-width: 760px; background: #071525d9; }
+.culture-hero .kasena-grid { align-items: start; }
+.culture-hero--embedded { min-height: 560px; padding: 64px 0 28px; }
+.labs-root .culture-hero { border-radius: 22px; margin: 24px 0 44px; }
+.labs-root .culture-hero__content, .labs-root .culture-hero__footer { width: calc(100% - 64px); }
+.labs-root .culture-hero .labs-button { background: #285cdb; color: #fff; margin-block: 20px; }
+.culture-hero--not-found .not-found__card { background: #091b32d9; }
+.culture-hero--not-found .not-found__layout { align-items: center; }
+.culture-hero--not-found .not-found__body { color: #e0e9f4; }
+.site-motion[data-motion-paused=true] .culture-hero__images img { transition: none; }
+.culture-hero [hidden] { display: none !important; }
+@media (max-width: 900px) {
+  .culture-hero--page { padding-top: 130px; min-height: 720px; }
+  .culture-hero--embedded { padding-top: 48px; min-height: 540px; }
+}
+@media (max-width: 639px) {
+  .culture-hero--page { padding-top: 118px; min-height: 84svh; }
+  .culture-hero--embedded { padding-top: 40px; min-height: 520px; }
+  .culture-hero--page h1, .culture-hero--embedded h1 { font-size: clamp(2.2rem, 9.5vw, 3.4rem); }
+  .culture-hero--page .culture-hero__content, .culture-hero--embedded .culture-hero__content { padding-bottom: 36px; }
+  .labs-root .culture-hero__content, .labs-root .culture-hero__footer { width: calc(100% - 36px); }
+}
+/* Standalone reference pages share the same presentation without app dependencies. */
+body[data-standalone-cards] { margin: 0; padding: 0; }
+.guide-site-nav { padding: 22px max(20px, calc((100% - 1120px) / 2)); background: #f9faf6; }
+.guide-site-nav > a { font-weight: 800; font-size: 1.15rem; color: #172641; }
+.guide-site-nav nav { margin: 12px 0 0; }
+.culture-hero--guide { box-sizing: border-box; font-family: system-ui, sans-serif; }
+.culture-hero--guide * { box-sizing: border-box; }
+.culture-hero--guide .container { width: calc(100% - 40px); max-width: 1120px; margin-inline: auto; }
+.culture-hero--guide h1 { margin-top: 0; }
+.culture-hero--guide p { line-height: 1.7; }
+.culture-hero--guide a { color: inherit; }
+.culture-hero--guide .eyebrow { font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.culture-hero--guide .guide-reading-link { display: inline-block; padding: 12px 20px; margin-top: 16px; color: #14243b; background: #e6cd91; border-radius: 8px; font-weight: 700; }
+.culture-hero--guide .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+.labs-root .culture-hero h1 { color: #fff; font-size: clamp(2.5rem, 5vw, 4.9rem); line-height: 1.07; }
+.labs-root .culture-hero h1 em { color: #fff; }
+.labs-root .culture-hero__copy > div > p { color: #f0f3f7; }
+.labs-root .culture-hero__copy > div > .labs-eyebrow { color: #e6cd91; }
+@media (max-width: 639px) { .labs-root .culture-hero h1 { font-size: clamp(2.2rem, 9.5vw, 3.4rem); } }

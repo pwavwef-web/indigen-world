@@ -355,4 +355,3 @@ function TrailGame({ practice: initialPractice, onExit }: { practice: boolean; o
     {mode === "unsupported" && modal(<><span className="trail-kicker">3D GRAPHICS UNAVAILABLE</span><h1>A clearer path<br />back to Labs.</h1><p>Word Trail needs WebGL 2. Try a current browser with hardware acceleration enabled. Your saved account trail is unchanged.</p><button className="trail-primary" onClick={exit}>Return to Labs →</button></>, "Graphics unavailable")}
   </div>;
 }
-
