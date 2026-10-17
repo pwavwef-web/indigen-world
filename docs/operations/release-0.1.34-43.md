@@ -1,6 +1,6 @@
 # Android 0.1.34+43 — shop, Literature + Blogs, Explore ads
 
-Built 17 October 2026 from `cbc0437` (main), which contains `99b4c18`. Not uploaded to Play. Nothing deployed.
+Built 17 October 2026 from `cbc0437` (main), which contains `99b4c18`. Not uploaded to Play. Backend for this build deployed the same day (below).
 
 ## Android artifact
 
@@ -17,13 +17,18 @@ Built 17 October 2026 from `cbc0437` (main), which contains `99b4c18`. Not uploa
 
 Codex's connected-workflows upgrade plus the 17 October pass: the shop on the app's glass rail; Literature as Library · Genres · Writers · Blogs with the live Blogger feed; compact notifications; a reply-shaped sponsored entry above the first comment; full-screen autoplaying Explore video ads; shop option filters and promotions; account-synced discovery history. See `docs/product/integrated-mobile-upgrade-ledger.md`.
 
+## Deployed 17 October 2026 (project-kassena-7e026)
+
+- Firestore rules: live ruleset `4382ca9e-a5b5-4e01-b6f6-f04cb2c7afc3` (16:06:59 UTC), read back byte-identical to `firebase/firestore.rules`; the only change from the previous release is the `discoveryHistory/{uid}` block.
+- `shop` (us-central1): ACTIVE 16:19:35 UTC. Live `config` returns the new `facets`; an option-filtered `catalogue` query succeeds (no new index needed).
+- `shopAdmin` (us-central1): ACTIVE 20:25:07 UTC; unauthenticated calls get 401.
+- Deployed by explicit name only (no creates or deletes). Two network failures on the way: a Secret Manager lookup (nothing deployed) and a dropped update request that had in fact reached the server — waited for it to finish rather than retrying over it.
+- Not deployed: Admin hosting (the bulk-action and promotion forms), indexes (unchanged), any other function.
+
 ## Before uploading
 
-1. Deploy the backend this build expects (each needs explicit approval):
-   Firestore rules (`discoveryHistory`), and the `shop` / `shopAdmin` Functions
-   (promotions, option filters, bulk actions). The app degrades safely without
-   them (discovery sync is refused, option filters are ignored), but they should
-   go first.
+1. Backend: done (above). Admin hosting is still the old build, so staff can't
+   use bulk actions or the new promotion fields until it is deployed.
 2. Install on a real Android phone and check: push alerts and their actions,
    an Explore video advert playing muted with working controls, the comment
    sponsor slot, the Blogs tab loading, and checkout still showing as closed.
