@@ -1,0 +1,38 @@
+{
+  "accent": "teal",
+  "motif": "rings",
+  "eyebrow": "Website · Progress",
+  "title": "Floating jars, glowing tanks, clay pots.",
+  "lede": "Our progress page is now an open, animated space where contributions fill glass vessels.",
+  "tags": [
+    "Ten categories",
+    "Mobile galleries",
+    "Details in popups"
+  ],
+  "hero": [
+    "floating-jars-desktop.png",
+    "floating-jars-mobile.png"
+  ],
+  "figures": {
+    "floating-jars-desktop.png": {
+      "title": "Ten floating glass jars",
+      "note": "The redesigned progress page, in a local preview."
+    },
+    "glowing-tanks-desktop.png": {
+      "title": "Glowing horizontal tanks",
+      "note": "Local sample data."
+    },
+    "local-pots-desktop.png": {
+      "title": "Textured clay pots",
+      "note": "Terracotta and smoked-clay illustrations, local sample data."
+    },
+    "floating-jars-mobile.png": {
+      "title": "Swipe through on a phone",
+      "note": "An open glass jar with its percentage readout."
+    },
+    "category-popup-mobile.png": {
+      "title": "Details in a popup",
+      "note": "The Words and Meanings popup, with sample records."
+    }
+  }
+}

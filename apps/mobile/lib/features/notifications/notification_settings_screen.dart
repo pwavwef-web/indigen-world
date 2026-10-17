@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:indigen_world_mobile/features/notifications/quiet_hours_settings.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -239,7 +241,7 @@ class _NotificationPreferencesGroup extends ConsumerWidget {
         ref.watch(notificationPreferencesProvider).asData?.value ??
         const NotificationPreferences.all();
     final muted = preferences.mutedCount;
-    final total = NotificationPreference.values.length;
+    final total = NotificationPreference.optOut.length;
 
     Future<void> set(NotificationPreference preference, bool enabled) async {
       if (uid == null || repository == null) return;
@@ -288,6 +290,7 @@ class _NotificationPreferencesGroup extends ConsumerWidget {
               ? () => unawaited(setAll(enabled: muted == total))
               : null,
         ),
+        const QuietHoursSettings(),
         for (final preference in NotificationPreference.values)
           SwitchListTile.adaptive(
             secondary: Icon(preference.icon, color: context.brand.accent),

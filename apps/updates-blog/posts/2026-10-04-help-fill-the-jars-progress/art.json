@@ -1,0 +1,30 @@
+{
+  "accent": "blue",
+  "motif": "dots",
+  "eyebrow": "Website · Progress",
+  "title": "Help fill the jars.",
+  "lede": "A public page tracks our community's progress toward launch across ten heritage categories.",
+  "tags": [
+    "Glass jars",
+    "Horizontal tanks",
+    "Ten categories"
+  ],
+  "hero": [
+    "fill-the-jars-vertical.jpg",
+    "progress-mobile-view.jpg"
+  ],
+  "figures": {
+    "fill-the-jars-vertical.jpg": {
+      "title": "Jars that fill as we contribute",
+      "note": "Vertical jars at different levels."
+    },
+    "progress-horizontal-tanks.jpg": {
+      "title": "Or watch the tanks",
+      "note": "Horizontal tanks with advancing liquid."
+    },
+    "progress-mobile-view.jpg": {
+      "title": "On your phone",
+      "note": "The segmented switch and honest target states at 390px."
+    }
+  }
+}

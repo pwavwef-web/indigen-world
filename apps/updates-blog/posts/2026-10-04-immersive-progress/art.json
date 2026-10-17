@@ -1,0 +1,30 @@
+{
+  "accent": "violet",
+  "motif": "rings",
+  "eyebrow": "Website · Progress",
+  "title": "The whole screen for our progress.",
+  "lede": "Header and footer step aside, and popups keep the details one tap away.",
+  "tags": [
+    "Full screen",
+    "Popups",
+    "Live"
+  ],
+  "hero": [
+    "progress-fullscreen-desktop.png",
+    "progress-popup-mobile.png"
+  ],
+  "figures": {
+    "progress-fullscreen-desktop.png": {
+      "title": "Room to see every vessel",
+      "note": "A compact toolbar and animated liquid."
+    },
+    "progress-popup-mobile.png": {
+      "title": "Explanations in popups",
+      "note": "A clearly labelled popup on a phone."
+    },
+    "progress-live-traditional-pots.jpg": {
+      "title": "Live: traditional pots",
+      "note": "The verified live page on a phone."
+    }
+  }
+}

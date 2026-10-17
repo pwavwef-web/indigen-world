@@ -13,8 +13,8 @@ Status: **Unpublished article. Backend and web hosting deployed and verified on 
 
 ## Images and credits
 
-- `images/dictionary-and-training.png` (1400 × 820): conceptual workflow illustration created for this post from the accompanying SVG. Credit: Indigen World. It is not a screenshot or evidence of deployment. Recreate with `node -e "const fs=require('fs'); const {Resvg}=require('@resvg/resvg-js'); fs.writeFileSync('apps/updates-blog/posts/2026-10-02-dictionary-words-and-training/images/dictionary-and-training.png',new Resvg(fs.readFileSync('apps/updates-blog/posts/2026-10-02-dictionary-words-and-training/images/dictionary-and-training.svg')).render().asPng())"` from the repository root.
-- `images/contributor-sign-in.jpg` (1264 × 802): screenshot of the actual revised TribeStudio sign-in page, captured October 2 from the local Vite application at `/contributor`, with empty fields. Credit: Indigen World product screenshot. Its decorative background is the existing AI-generated conceptual `language-studio.webp` artwork documented in `apps/tribestudio/src/contributor/assets/README.md`; it is not a photograph of cultural evidence.
+- `screens/dictionary-and-training.png` (1400 × 820): conceptual workflow illustration created for this post from the accompanying SVG. Credit: Indigen World. It is not a screenshot or evidence of deployment. Recreate with `node -e "const fs=require('fs'); const {Resvg}=require('@resvg/resvg-js'); fs.writeFileSync('apps/updates-blog/posts/2026-10-02-dictionary-words-and-training/images/dictionary-and-training.png',new Resvg(fs.readFileSync('apps/updates-blog/posts/2026-10-02-dictionary-words-and-training/images/dictionary-and-training.svg')).render().asPng())"` from the repository root.
+- `screens/contributor-sign-in.jpg` (1264 × 802): screenshot of the actual revised TribeStudio sign-in page, captured October 2 from the local Vite application at `/contributor`, with empty fields. Credit: Indigen World product screenshot. Its decorative background is the existing AI-generated conceptual `language-studio.webp` artwork documented in `apps/tribestudio/src/contributor/assets/README.md`; it is not a photograph of cultural evidence.
 - Upload both image assets through Blogger **Insert image → Upload from computer**. In HTML view replace each relative `src` with that image’s Blogger URL. Keep the alt text, dimensions and captions. The SVG is source material; upload the PNG. Actual image assets are included.
 
 ## Implementation and evidence
@@ -39,3 +39,10 @@ Preparation does not authorize external publication or messaging. Chinedum owns 
 ## Confirmed release evidence
 
 Implementation commit: `a1e5098109e44e86fcd7ca15c82c4fd46e256690`. All seven function updates and Hosting releases for TribeStudio, indigen-world and kasem-dictionary succeeded. Live asset hashes, including the contributor agreement chunk, matched the release build on default URLs and the TribeStudio/public-site custom domains. The website's existing advertising configuration was verified. Private recovery evidence is retained under ignored production-backups and .labs-local paths documented in the product runbook. Existing app clients need a refresh/sync; no new Android binary has been distributed.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/dictionary-and-training.jpg`, `images/contributor-sign-in.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-02-dictionary-words-and-training`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.

@@ -8,6 +8,7 @@ import 'package:indigen_world_mobile/features/community/data/chat_providers.dart
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/local_alerts.dart';
+import 'package:indigen_world_mobile/features/notifications/notification_actions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Preference key remembering whether the member has agreed to push alerts.
@@ -137,6 +138,7 @@ final pushRegistrationProvider = Provider<void>((ref) {
   final uid = ref.watch(currentUidProvider);
   final repository = ref.watch(notificationsRepositoryProvider);
   if (uid == null || repository == null) return;
+  unawaited(NotificationActions.retry().catchError((Object _) {}));
 
   final subscriptions = <StreamSubscription<Object?>>[];
   var disposed = false;

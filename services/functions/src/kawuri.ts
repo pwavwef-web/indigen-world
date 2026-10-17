@@ -8,6 +8,8 @@ import { lessonContextFor, parseLessonRequest } from './kawuri-lessons.js';
 import { type UnverifiedWord } from './language-loop.js';
 import { groundedAnswerFor, localGroundingPlan, parseGroundingPlan, renderGroundedLesson, type GroundingPlan } from './kawuri-grounding.js';
 import { benefitsForUid } from './subscriptions.js';
+import { isGemini4, readTextModelConfig, textModelEndpoint } from './gemini-text-policy.js';
+import { thinkingConfigFor } from './kawuri-media-policy.js';
 
 /**
  * Kawuri — the assistant behind the Learn tab's floating button.
@@ -52,13 +54,7 @@ export const RATE_LIMIT_PER_MINUTE = 20;
  */
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
-const MODEL = process.env.KAWURI_MODEL || 'gemini-2.5-flash';
-
-/**
- * Vertex region. Kept separate from the functions region so the model can be
- * moved without redeploying anything else.
- */
-const LOCATION = process.env.KAWURI_LOCATION || 'us-central1';
+const { model: MODEL, location: LOCATION } = readTextModelConfig();
 
 /** The provider returns a request plan, never text that is displayed. */
 const SYSTEM_INSTRUCTION = `Interpret the user's request for Indigen World. Return only JSON:
@@ -184,10 +180,17 @@ export function replyFromGemini(payload: unknown): string {
 
 /** The Vertex AI `generateContent` endpoint for this project and model. */
 export function vertexEndpoint(project: string): string {
-  return (
-    `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${project}` +
-    `/locations/${LOCATION}/publishers/google/models/${MODEL}:generateContent`
-  );
+  return textModelEndpoint(project, MODEL, LOCATION);
+}
+
+export function plannerGenerationConfig(model = MODEL): Record<string, unknown> {
+  return {
+    // Gemini 4 counts thinking against this ceiling and rejects thinkingBudget.
+    maxOutputTokens: isGemini4(model) ? 2048 : 512,
+    ...(isGemini4(model) ? {} : { temperature: 0 }),
+    thinkingConfig: thinkingConfigFor(model),
+    responseMimeType: 'application/json',
+  };
 }
 
 /**
@@ -230,14 +233,14 @@ export async function askKawuri(
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
           contents: turns.map(turn => ({ role: turn.role, parts: [{ text: turn.text }] })),
-          generationConfig: { temperature: 0, maxOutputTokens: 512,
-            thinkingConfig: { thinkingBudget: 0 }, responseMimeType: 'application/json' },
+          generationConfig: plannerGenerationConfig(),
         }),
       });
       if (response.ok) {
         const payload = await response.json();
         if (finishReasonFromGemini(payload) !== 'MAX_TOKENS') {
           plan = parseGroundingPlan(JSON.parse(replyFromGemini(payload)));
+          if (plan) logger.info('Kawuri request plan accepted', { model: MODEL, location: LOCATION });
         }
       } else logger.warn('Kawuri request planner unavailable', { status: response.status });
     } catch (error) {

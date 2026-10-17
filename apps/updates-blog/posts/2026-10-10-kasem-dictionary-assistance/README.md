@@ -40,8 +40,8 @@ The legacy-key migration scanned 289 dictionary contributions and filled 155 mis
 
 Actual product screenshots from the existing local contributor preview, with synthetic text and controlled dictionary responses:
 
-- `images/dictionary-assistance-desktop.png`
-- `images/dictionary-assistance-mobile.png`
+- `screens/dictionary-assistance-desktop.png`
+- `screens/dictionary-assistance-mobile.png`
 
 Interface and screenshot credit: Indigen World / TribeStudio. These product screenshots show test fixtures, not live contributions or illustrations. Captions state this explicitly.
 
@@ -54,3 +54,16 @@ Interface and screenshot credit: Indigen World / TribeStudio. These product scre
 5. Publish when ready, then replace `[PUBLISHED ARTICLE URL]` in `share.md`.
 
 Repository preparation and platform deployment do not publish the Blogger article or send community messages. Publication and sharing remain with Chinedum.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/dictionary-assistance-desktop.jpg`, `images/dictionary-assistance-mobile.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-10-kasem-dictionary-assistance`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/kasem-dictionary-assistance.html

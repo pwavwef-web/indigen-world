@@ -1,0 +1,21 @@
+{
+  "verifiedAt": "2026-10-15T11:08:53.026Z",
+  "project": "project-kassena-7e026",
+  "functions": [
+    { "name": "postZemBotarebuDaily", "state": "ACTIVE", "revision": "postzembotarebudaily-00003-niw" },
+    { "name": "recoverCommunityAutomation", "state": "ACTIVE", "revision": "recovercommunityautomation-00005-cow" }
+  ],
+  "scheduler": { "state": "ENABLED", "schedule": "0 7 * * *", "timeZone": "Africa/Accra", "lastAttemptTime": "2026-10-15T11:08:34.643759Z" },
+  "postUrl": "https://indigen-world.web.app/post/daily_zem-botarebu_2026-10-15",
+  "word": "di",
+  "meaning": "to eat",
+  "model": "gemini-3.1-flash-image",
+  "imageAttempts": 1,
+  "imageStatus": 200,
+  "imageContentType": "image/png",
+  "imageDimensions": [1024, 1024],
+  "visuallyInspected": true,
+  "policyTestsPassed": 10,
+  "emulatorTestsPassed": 12,
+  "bloggerPublished": false
+}

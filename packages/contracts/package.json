@@ -10,6 +10,10 @@
   "main": "./index.mjs",
   "types": "./index.d.ts",
   "exports": {
+    "./contributor-details": {
+      "types": "./contributor-details.d.ts",
+      "default": "./contributor-details.mjs"
+    },
     "./kasem-spelling": {
       "types": "./kasem-spelling.d.ts",
       "default": "./kasem-spelling.mjs"
@@ -40,6 +44,8 @@
     }
   },
   "files": [
+    "contributor-details.mjs",
+    "contributor-details.d.ts",
     "kasem-spelling.mjs",
     "kasem-spelling.d.ts",
     "labs.mjs",

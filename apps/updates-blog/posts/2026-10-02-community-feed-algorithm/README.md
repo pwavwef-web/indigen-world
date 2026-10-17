@@ -31,7 +31,7 @@ instrumentation remains future work. Share events represent share intent.
 
 - `images/feed-pipeline.svg`: original vector workflow illustration created for
   this update. Credit: **Indigen World — original workflow illustration, 2026**.
-- `images/feed-pipeline.png`: raster rendering of that illustration for Blogger.
+- `screens/feed-pipeline.png`: raster rendering of that illustration for Blogger.
   It contains no member content, externally sourced photography or app screenshot.
 - Both files explicitly identify the development-preview status. The article's
   caption identifies the illustration. No image placeholders are used.
@@ -40,8 +40,8 @@ instrumentation remains future work. Share events represent share intent.
 
 1. Create a Blogger draft with the title, labels, search description and permalink.
 2. Paste `post.html` into Blogger's HTML editor.
-3. Upload the actual `images/feed-pipeline.png` asset using Blogger's image control.
-4. Replace `images/feed-pipeline.png` with the uploaded Blogger image URL. Keep
+3. Upload the actual `screens/feed-pipeline.png` asset using Blogger's image control.
+4. Replace `screens/feed-pipeline.png` with the uploaded Blogger image URL. Keep
    the descriptive alt text, caption and responsive width.
 5. Preview desktop and mobile layouts. Preserve the development-preview wording
    unless deployment and app-release evidence has been verified.
@@ -71,3 +71,10 @@ before enforcing it for consuming clients.
 The user explicitly authorized GitHub push and Firebase deployment. Those steps
 were completed. The Blogger article remains unpublished, and no sharing messages
 were sent. Mobile/store rollout remains a separate release step.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/feed-pipeline.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-02-community-feed-algorithm`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.

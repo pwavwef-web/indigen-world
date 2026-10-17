@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900">
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#f3f8ff"/><stop offset="1" stop-color="#dbeafe"/></linearGradient></defs>
+  <rect width="900" height="900" rx="36" fill="url(#bg)"/>
+  <circle cx="760" cy="120" r="220" fill="#bfdbfe" opacity=".4"/>
+  <text x="64" y="90" font-family="Segoe UI,Arial,sans-serif" font-size="23" font-weight="700" fill="#1d4ed8" letter-spacing="3">INDIGEN WORLD</text>
+  <text x="62" y="318" font-family="Segoe UI,Arial,sans-serif" font-size="205" font-weight="800" fill="#142c64">4</text>
+  <text x="62" y="405" font-family="Segoe UI,Arial,sans-serif" font-size="62" font-weight="700" fill="#142c64">Gemini 4 Argon</text>
+  <rect x="64" y="457" width="772" height="2" fill="#adc5e8"/>
+  <text x="64" y="522" font-family="Segoe UI,Arial,sans-serif" font-size="31" fill="#254675">Kawuri request interpretation</text>
+  <text x="64" y="578" font-family="Segoe UI,Arial,sans-serif" font-size="31" fill="#254675">Community text and checks</text>
+  <text x="64" y="634" font-family="Segoe UI,Arial,sans-serif" font-size="31" fill="#254675">Optional English story assistance</text>
+  <rect x="64" y="692" width="772" height="108" rx="20" fill="#142c64"/>
+  <text x="94" y="738" font-family="Segoe UI,Arial,sans-serif" font-size="29" font-weight="600" fill="white">Reviewed Kasem records</text>
+  <text x="94" y="775" font-family="Segoe UI,Arial,sans-serif" font-size="25" fill="#bedaff">remain the language reference.</text>
+  <text x="64" y="850" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#48658b">EDITORIAL ILLUSTRATION · NOT AN APP SCREENSHOT</text>
+</svg>

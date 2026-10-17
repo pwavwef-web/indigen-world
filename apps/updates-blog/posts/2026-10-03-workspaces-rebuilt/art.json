@@ -1,0 +1,39 @@
+{
+  "accent": "blue",
+  "motif": "dots",
+  "eyebrow": "TribeStudio · Workspaces",
+  "title": "A clearer home for creating, contributing and reviewing.",
+  "tsize": 42,
+  "lede": "Clearer navigation, task guides and consistent controls across the three workspaces.",
+  "tags": [
+    "Creators",
+    "Contributors",
+    "Validators"
+  ],
+  "hero": [
+    "creator-overview.jpg",
+    "contributor-mobile.jpg"
+  ],
+  "figures": {
+    "creator-overview.jpg": {
+      "title": "Start creating from one place",
+      "note": "Labelled actions and test records."
+    },
+    "contributor-workspace.jpg": {
+      "title": "Your assignment and progress",
+      "note": "The contributor workspace, with test records."
+    },
+    "validator-review.jpg": {
+      "title": "Review with the record beside it",
+      "note": "The validator queue filtered to local test writing records."
+    },
+    "creator-editor-mobile.png": {
+      "title": "The editor on a phone",
+      "note": "A saved local test project."
+    },
+    "contributor-mobile.jpg": {
+      "title": "Contribute from your phone",
+      "note": "The current task and contribution summary."
+    }
+  }
+}

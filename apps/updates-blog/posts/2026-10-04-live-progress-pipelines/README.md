@@ -53,9 +53,9 @@ Server rules live in `services/functions/src/public-progress.ts` (`countsToward`
 
 Credit: Indigen World. All five images are actual product screenshots captured in headless Chrome. None shows private contributor information.
 
-- `images/approval-travelling-live.jpg` and `images/approval-arriving-live.jpg` (October 4): 1440 × 1060, the page running against a local Firestore emulator (`website-emulators` preview) with **labelled test data**; the approval was written, then counted by the real trigger handler and delivered to the page's real snapshot listener.
-- `images/pipelines-jars-live.jpg` (October 5, after release): 1440 × 1060, the **live production page** at `https://indigenworld.com/progress` reading “Live”, with real totals.
-- `images/pipelines-tanks-sample.jpg` (1440 × 1000) and `images/pipelines-jars-mobile-sample.jpg` (390 × 844), October 4: development preview with **sample counts and targets**; the sample notice or “Sample data” label is visible.
+- `screens/approval-travelling-live.jpg` and `screens/approval-arriving-live.jpg` (October 4): 1440 × 1060, the page running against a local Firestore emulator (`website-emulators` preview) with **labelled test data**; the approval was written, then counted by the real trigger handler and delivered to the page's real snapshot listener.
+- `screens/pipelines-jars-live.jpg` (October 5, after release): 1440 × 1060, the **live production page** at `https://indigenworld.com/progress` reading “Live”, with real totals.
+- `screens/pipelines-tanks-sample.jpg` (1440 × 1000) and `screens/pipelines-jars-mobile-sample.jpg` (390 × 844), October 4: development preview with **sample counts and targets**; the sample notice or “Sample data” label is visible.
 
 Blogger: Insert image → Upload from computer for each image. Replace each relative `src` in `post.html` with its Blogger URL, keep every alt text and caption (including the test-data and sample-data labels), and preview at desktop and phone widths.
 
@@ -96,3 +96,16 @@ Machine-readable evidence: `deployment-verification.json`.
 4. Replace the published-article URL placeholder in `share.md` before sharing.
 
 Preparing these files does not publish externally or send messages.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/approval-travelling-live.jpg`, `images/approval-arriving-live.jpg`, `images/pipelines-jars-live.jpg`, `images/pipelines-tanks-sample.jpg`, `images/pipelines-jars-mobile-sample.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-04-live-progress-pipelines`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/live-progress-pipelines.html

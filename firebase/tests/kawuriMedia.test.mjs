@@ -231,6 +231,7 @@ test('model knowledge: image ratios, video durations, prices and thinking settin
   assert.equal(vertexVideoRateUsdPerSecond('gen4.5'), null);
   assert.equal(VIDEO_SPEND_LIMITS.creatorDailySpendCents, 2000, 'the Studio ceiling is shared, not restated');
   assert.deepEqual(thinkingConfigFor('gemini-3.8-flash'), { thinkingLevel: 'LOW' });
+  assert.deepEqual(thinkingConfigFor('gemini-4-argon'), { thinkingLevel: 'LOW' });
   assert.deepEqual(thinkingConfigFor('gemini-2.5-flash'), { thinkingBudget: 0 });
   assert.equal(thinkingConfigFor('gemini-2.5-flash-image'), undefined);
 });

@@ -14,6 +14,8 @@ Project Kassena is Indigen World’s flagship Kasem-language programme and the f
 
 ## Quality requirements
 
+The next data milestone is [one question-and-evidence cycle](person-meaning-pilot/README.md): documentary inspection, natural speech, scoped reconciliation, reviewed records and unseen Kawuri tests. Complete that pilot before expanding collection or preparing a training run. Its local tooling and targets do not imply a completed study or a live release.
+
 - Raw submissions remain separate from approved production content.
 - Every promoted entry records validation status and validator reference.
 - Dialect variants are preserved rather than overwritten into one supposedly universal form.

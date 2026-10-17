@@ -1,0 +1,14 @@
+{
+  "accent": "green", "motif": "weave",
+  "eyebrow": "Community · Word of the day",
+  "title": "See the word.\nRemember the meaning.",
+  "lede": "Gemini illustrations bring the daily Kasem word to life. Exact dictionary text stays in the post.",
+  "tags": ["Actions", "Objects", "Ideas"],
+  "hero": [{ "file": "live-word-illustration.png", "kind": "card" }],
+  "figures": {
+    "live-word-illustration.png": {
+      "kind": "card", "title": "A picture of the meaning",
+      "note": "Actual AI-generated artwork from the deployed word-of-the-day account. Illustration, not cultural documentation."
+    }
+  }
+}

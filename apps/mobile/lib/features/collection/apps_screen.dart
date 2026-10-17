@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:indigen_world_mobile/features/collection/discovery_session.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/ads/admob_native.dart';
@@ -16,12 +17,36 @@ import 'package:url_launcher/url_launcher.dart';
 /// Every card is a link out to a store, not something installed from here.
 /// The directory is admin-curated, so an empty list means nobody has listed
 /// anything yet rather than that something is broken — and it says so.
-class AppsCollectionScreen extends ConsumerWidget {
+class AppsCollectionScreen extends ConsumerStatefulWidget {
   const AppsCollectionScreen({super.key});
+  @override
+  ConsumerState<AppsCollectionScreen> createState() =>
+      _AppsCollectionScreenState();
+}
+
+class _AppsCollectionScreenState extends ConsumerState<AppsCollectionScreen> {
+  String _query = '', _sort = 'editorial', _category = '';
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final apps = ref.watch(directoryAppsProvider);
+  Widget build(BuildContext context) {
+    final source = ref.watch(directoryAppsProvider);
+    final apps = source.whenData((items) {
+      final found = items
+          .where(
+            (a) =>
+                (_category.isEmpty || a.category == _category) &&
+                '${a.name} ${a.developer} ${a.description}'
+                    .toLowerCase()
+                    .contains(_query.toLowerCase()),
+          )
+          .toList();
+      if (_sort == 'name')
+        found.sort((a, b) {
+          final byName = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          return byName == 0 ? a.id.compareTo(b.id) : byName;
+        });
+      return found;
+    });
     return Scaffold(
       appBar: AppBar(title: const Text('Apps')),
       body: ScreenContainer(
@@ -37,6 +62,22 @@ class AppsCollectionScreen extends ConsumerWidget {
                 child: BrandHeader(
                   eyebrow: 'Collection · Apps',
                   title: 'Kasem on every screen.',
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: CollectionBrowserBar(
+                  hint: 'Search apps or developers',
+                  onSearch: (v) => setState(() => _query = v),
+                  sort: _sort,
+                  onSort: (v) => setState(() => _sort = v),
+                  filters:
+                      source.asData?.value
+                          .map((a) => a.category)
+                          .where((s) => s.isNotEmpty)
+                          .toList() ??
+                      [],
+                  filter: _category,
+                  onFilter: (v) => setState(() => _category = v),
                 ),
               ),
               ...switch (apps) {
@@ -160,6 +201,43 @@ class _AppCard extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 10),
+                if (app.screenshots.isNotEmpty)
+                  SizedBox(
+                    height: 150,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: app.screenshots.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) => GestureDetector(
+                        onTap: () => showDialog<void>(
+                          context: context,
+                          builder: (_) => Dialog(
+                            child: InteractiveViewer(
+                              child: CachedNetworkImage(
+                                imageUrl: app.screenshots[index]['url'] ?? '',
+                                errorWidget: (_, _, _) =>
+                                    const Icon(Icons.broken_image_outlined),
+                              ),
+                            ),
+                          ),
+                        ),
+                        child: SizedBox(
+                          width: 100,
+                          child: CachedNetworkImage(
+                            imageUrl: app.screenshots[index]['url'] ?? '',
+                            fit: BoxFit.cover,
+                            imageBuilder: (_, provider) => Image(
+                              image: provider,
+                              fit: BoxFit.cover,
+                              semanticLabel: app.screenshots[index]['alt'],
+                            ),
+                            errorWidget: (_, _, _) =>
+                                const Icon(Icons.broken_image_outlined),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 Row(
                   children: [
                     if (app.category.isNotEmpty) ...[

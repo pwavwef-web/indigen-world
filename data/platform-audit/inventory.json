@@ -1,0 +1,1352 @@
+{
+  "generatedAt": "2026-10-15T23:30:03.662Z",
+  "head": "167fc6af4e0674ad280f2dd01e5bdf88e735e638",
+  "branch": "main",
+  "headDate": "2026-10-10T19:07:34Z",
+  "scope": "Repository metadata inventory only; file inclusion does not mean semantic review. No production database, private records, credentials or correspondence read.",
+  "dirtyPaths": 787,
+  "files": [
+    {
+      "path": ".github/workflows/mobile-checks.yml",
+      "sha256": "3a5a5387a435f26cdb84406438554c5921fcb252a7122a40303fcfc911bd1e2c",
+      "lines": 198
+    },
+    {
+      "path": ".github/workflows/monorepo-checks.yml",
+      "sha256": "2136143ea3701701a25fdec0f18d43c94b47ce8829db8b618dd641c2a9cd7e9b",
+      "lines": 50
+    },
+    {
+      "path": ".github/workflows/repository-checks.yml",
+      "sha256": "4eb41f865fafd4a7a1c52f7f715cfece9bc27b4580c0b659e85af0e47aa67bb8",
+      "lines": 60
+    },
+    {
+      "path": "README.md",
+      "sha256": "5445cd90f8cd176b105a63f6da0628036dae53f8f1184b433372acea2380d757",
+      "lines": 122
+    },
+    {
+      "path": "apps/admin/README.md",
+      "sha256": "1341f8e990f24574e88d5247ea4ef2325441f585bf4368759da2dc9e1e153013",
+      "lines": 129
+    },
+    {
+      "path": "apps/admin/package.json",
+      "sha256": "d914e0ef5babcd6987d1c3b1f08ac258541662c04f09cd70b7baa65dabf6372d",
+      "lines": 34
+    },
+    {
+      "path": "apps/kasem-dictionary/package.json",
+      "sha256": "cd6207c14fe63f30aac3b2bcadadfe4cc8b30553f41c118ca0e964f04ae1a55c",
+      "lines": 32
+    },
+    {
+      "path": "apps/mobile/README.md",
+      "sha256": "d75843d0c79fcde9e94ef88c43b09ebf0199c87c7f8c69c511ed1b482eefc138",
+      "lines": 438
+    },
+    {
+      "path": "apps/team-websites/README.md",
+      "sha256": "e3b7dd53a5a5b181a9b47d21a8b1c28b4917fb5b5fa5a04df958a828c5fb5b34",
+      "lines": 54
+    },
+    {
+      "path": "apps/tribestudio/README.md",
+      "sha256": "a11c9347bc429c65ab3d0c18c8679eb4db593b4cb267b507915cef409b2c125e",
+      "lines": 112
+    },
+    {
+      "path": "apps/tribestudio/package.json",
+      "sha256": "e207e6b6ef1701b1f72f467811c7dc647642ce9d7f7627de1f2c1a1e52136ec1",
+      "lines": 37
+    },
+    {
+      "path": "apps/updates-blog/README.md",
+      "sha256": "caaa453b924463354a9edfa2cea0f8d27186535c0e895b89c96ba380c1f1f52e",
+      "lines": 325
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-13-kasem-dictionary-new-look/README.md",
+      "sha256": "1dec7464582bd8e804d4627f6e198a8580da561d09627b15b40cd2f3a978b896",
+      "lines": 32
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-14-kawuri-creates/README.md",
+      "sha256": "3ba0a279d6dda59fa8406373c13da80b0fb1f6547176f286f9688bddf41fc48d",
+      "lines": 57
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-14-learn-dashboard/README.md",
+      "sha256": "11770a76fb96876e565565d469c84267f5e76c0642048b2f8d194861badb8932",
+      "lines": 63
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-14-reels-that-explain-themselves/README.md",
+      "sha256": "b902f0002c568c4adbfc9c6fe8cf4bbc793ae7f052d1d50abc1c0aa04a2d9ea1",
+      "lines": 36
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-16-app-themes/README.md",
+      "sha256": "ab10c071b22f32166a64e35e6c40296bd830a88cb9608e9d6e60060aa5c0e7b2",
+      "lines": 65
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-16-beyond-the-reef/README.md",
+      "sha256": "68d034a9a93145d04b030b64b3a32aedf674509e8a35ab097ca4d50cf8d5430e",
+      "lines": 85
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-16-beyond-the-reef/share.md",
+      "sha256": "e9a72651a170848044f7ae58c7f23e79e95a30b8ed20e7d20c3e32184e91a32d",
+      "lines": 27
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-16-contributor-guidance-and-activation/README.md",
+      "sha256": "12c9c21188d334dd812af7ce28c73788ebc543b367b26d8766ea9ffd86f85a28",
+      "lines": 24
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-16-contributor-guidance-and-activation/share.md",
+      "sha256": "718ef26a72f3069637ac87fcd033584b46e769cd3766395cd7903c77e1a55810",
+      "lines": 8
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-16-contributor-portal/README.md",
+      "sha256": "128213d2be295ed49fd3a6f3597b34a49b1323136ced65b6c25c82df7804b026",
+      "lines": 64
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-16-contributor-portal/share.md",
+      "sha256": "477cabd107bd731b71433d0b49872f7a4eb94ce736ef5498ce833173c6e72537",
+      "lines": 25
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-16-production-access-and-paystack/README.md",
+      "sha256": "7d7474ff9680d172290530542dbc36ceaa1b0d1e6c3769e9554ae06eb88c33d4",
+      "lines": 69
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-17-contributor-management/README.md",
+      "sha256": "c2773cd062f1b29a7c38d36719591452b337c3547caefacf4b847e3bb616f7ae",
+      "lines": 57
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-17-contributor-management/share.md",
+      "sha256": "486a09438cd035f2074d24e23b80035f1018e5f7d3b676b0818bbee5ef37fe3c",
+      "lines": 19
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-17-contributor-sms-invitations/README.md",
+      "sha256": "2417dd37ec57c2d5464171166505786093ad5d3b311de8f816619a3f2377ceea",
+      "lines": 34
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-17-contributor-sms-invitations/share.md",
+      "sha256": "bedb032c971a6fddc24618bf08232106e33c7810f2c4f89037917f60c53827f6",
+      "lines": 10
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-17-contributor-workspace-redesign/README.md",
+      "sha256": "2388da0409bcd52b3ab3e61131d80bbd94abfe813ac015275d54a0df4b6fffdf",
+      "lines": 32
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-17-contributor-workspace-redesign/share.md",
+      "sha256": "edc2f8c20049e5fd404083c0e6d3b1f28a1ad1917f1cbf373ca2cf0b056fe849",
+      "lines": 10
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-20-mobile-admob-fallback/README.md",
+      "sha256": "88cc797061d13af66b5126669ddce1a84b01fcaa6a9301bbe3a69b07c0c2530b",
+      "lines": 37
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-20-mobile-admob-fallback/share.md",
+      "sha256": "6bb407df8ef9faf824a13b8140f0e4d83a7ce106fbd92f4a1cd4462c60340815",
+      "lines": 25
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-21-kasem-contribution-context/README.md",
+      "sha256": "95f8923c5db2b40f6fa2d09f94cb30c51b34d2b7d77547b277d16cfa125e0392",
+      "lines": 37
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-21-kasem-contribution-context/share.md",
+      "sha256": "e51fd7bbaffc0f1ad6cb9d9df85cbb0559893b62ddf3a21381eabde5fd44e3d0",
+      "lines": 8
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-23-contributor-issue-reporting/README.md",
+      "sha256": "44f4211045907e53e3c6004dca691a039256b1d2528fc13f6d1116651f78c915",
+      "lines": 32
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-23-contributor-issue-reporting/share.md",
+      "sha256": "4a549e447690c89bf23bb8c8a83afab880d0cee6e019169627f1ff9c4bb28ee8",
+      "lines": 5
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-23-contributor-payment-profile/README.md",
+      "sha256": "4710d623c9e982e68e7e8a3e1344b53f862ec5a4e1ebe1a7a3e1c523919633d6",
+      "lines": 36
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-23-contributor-payment-profile/share.md",
+      "sha256": "0be0aa6842caad873f5b1cb7817ac8a1f7258c93ab3cf414ba941ff6135b69b7",
+      "lines": 9
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-23-contributor-workspace-rebuild/README.md",
+      "sha256": "6fe5c86fade33d3f931578e8e6802d980071e957c72a32df5a60724a575d8e99",
+      "lines": 97
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-23-contributor-workspace-rebuild/share.md",
+      "sha256": "046468e8ae072544afd18becaacace6e4e092a0d6d47f4db181a210a71b845e2",
+      "lines": 29
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-23-de-n-lei-kasem-song/README.md",
+      "sha256": "a2541080880cfae6bfa885086f964f88bf7e25c826be9aed07961089b6249d59",
+      "lines": 33
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-23-de-n-lei-kasem-song/share.md",
+      "sha256": "dd735b1316e7a797201e5eb684b931b4d83bd698aee173aac67aeb70e3745529",
+      "lines": 16
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-24-android-startup-fix/README.md",
+      "sha256": "b8b171ea50a791bf21a036a6a98ad55240f0711677db950e4b143b119fc88904",
+      "lines": 28
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-24-android-startup-fix/share.md",
+      "sha256": "23718c0ac088f84de59fd79e355df553f4115899defea38271e4371dcee3a7ce",
+      "lines": 14
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-24-music-player-bubble/README.md",
+      "sha256": "e80a32bd6960fd3d8f79cd40301965d75d1ca6e9912016d832afd7a0c159f347",
+      "lines": 74
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-24-music-player-bubble/share.md",
+      "sha256": "35cda93a4a7c5ac05294280d932a62c3fb0f938f17de50f99a39b8994dd00d1a",
+      "lines": 31
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-24-music-reimagined/README.md",
+      "sha256": "541ed2d3b6e6b16041466ffed82ed439d15364d194206a5116b2b8243a34b0bb",
+      "lines": 81
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-24-music-reimagined/share.md",
+      "sha256": "130884e1818a48ec7338fe6726296c51204fb86381c3605a4df1ded101d7417d",
+      "lines": 31
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-25-contributor-expression-points/README.md",
+      "sha256": "c3353e26c7b5e21cd2066d0265d74c069a98e413b69bf76c9e67745f7847691c",
+      "lines": 13
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-25-contributor-expression-points/share.md",
+      "sha256": "a38e0b3507bb50f0cbccd9cc32ca66d86c63934d59c3564ba7bad1d5dcc40ec3",
+      "lines": 4
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-25-contributor-streaks/README.md",
+      "sha256": "07b878f2b83b2c5011fbf61373f2b6e44870b4d1d42f2c7e18bb9ebaa85e1c4b",
+      "lines": 13
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-25-contributor-streaks/share.md",
+      "sha256": "e12a34e36e60ea0cccb67ffac9ff8cb34c3242c6fc71759fc78e1b5ecd15f4e9",
+      "lines": 4
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-approved-expression-rewards/README.md",
+      "sha256": "fd884bf616461ccf09396cf6ffe026dbf1c10439085ef2b4c5a771e51787d20c",
+      "lines": 48
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-approved-expression-rewards/share.md",
+      "sha256": "f0e27b514f323de16177bb7119d97357cc29d026a110709aeed844d93a8a1e26",
+      "lines": 6
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-branded-emails/README.md",
+      "sha256": "0bcc978899752d2a4339aeadd8a2851f5b8667be90d3dac1503c8aaa8495e9cc",
+      "lines": 32
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-branded-emails/share.md",
+      "sha256": "77c46262b33b9bdb164ec64de428694a931aada4613fdb89cace30707930a1ad",
+      "lines": 8
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-contributor-redemption-history/README.md",
+      "sha256": "27a37d9638fda87e608aef37b29454de51c930e56df7705c2eb77f6b8b993985",
+      "lines": 13
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-contributor-redemption-history/share.md",
+      "sha256": "2bfcdeaa144d9edb48223708e49d7ba42fc27b879780c7181882462f28f8b591",
+      "lines": 4
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-contributor-studio-refresh/README.md",
+      "sha256": "67307bfdc096448966133dc58d18622f7d7824a2f6eab6d310f3c44090220481",
+      "lines": 51
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-contributor-studio-refresh/share.md",
+      "sha256": "b9fafbd06052efe1d3b0363e6514209ee6658868a6b5983ca9ce832b6d051758",
+      "lines": 12
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-contributor-support/README.md",
+      "sha256": "719975f9b64ab0003e39b4b49fa58639981ca4ec3325e27110ea7f67f169cf26",
+      "lines": 31
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-contributor-support/share.md",
+      "sha256": "20b2f44dbf592874264c2ff44a2488b10691caafe9c8f8d24961831751f17db9",
+      "lines": 10
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-contributor-workspace-updates/README.md",
+      "sha256": "03b5620bad5ebcbb93cd88890268fde353d4dc5dbfc9c1e114dd2e8869f13314",
+      "lines": 13
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-contributor-workspace-updates/share.md",
+      "sha256": "0c7d90781f26b69a1ce31dde2a2cb9e0d2e8b3f372baff8f34e440a0e125c574",
+      "lines": 6
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-daily-contributor-tasks/README.md",
+      "sha256": "25e5e90b7c6930ccf2f97b3c4f27d2eb8932aa876127179730ed43c9bb66c202",
+      "lines": 45
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-daily-contributor-tasks/share.md",
+      "sha256": "0c932ee4f2bddf1fd419666c0b80c11d06a4880f63416c7873e938a0e3574691",
+      "lines": 8
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-easier-contributor-workspace/README.md",
+      "sha256": "49643c5eb509fd65bcd867dd4f461870680d7e6276d3b5000c1d6ebf8a522e69",
+      "lines": 40
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-easier-contributor-workspace/share.md",
+      "sha256": "cb70269191ccad9594cea3959a5018f0b22a238e2f647b1ac595aefe9c902a0d",
+      "lines": 8
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-points-redesigned/README.md",
+      "sha256": "1cf4a4d28a6b413f9a428d647fb8f41366acb07baa5f1ff720be901ff947a50f",
+      "lines": 35
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-points-redesigned/share.md",
+      "sha256": "dba23565f24611b93e8d6e8fcaca13e38427b328c754548bcffbe82831b0a802",
+      "lines": 24
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-visible-contributor-submit/README.md",
+      "sha256": "c5a7bb612633b4ee2e0d25a67a3cf19e3d96ea4282951553875f5ce3d83ed532",
+      "lines": 34
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-26-visible-contributor-submit/share.md",
+      "sha256": "f73cf6b319af6eebfca89e909f26061b273db834668f6e3f6f8ca422f26202ab",
+      "lines": 8
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-27-explore-and-my-space/README.md",
+      "sha256": "d8d3bcf2588c71ad703093a357365563a872e0039c68900e3fc43bc21e4819b9",
+      "lines": 79
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-27-explore-and-my-space/share.md",
+      "sha256": "ce6a6167b3234050ffbec3c3324f63da179282f8ae2427e8a65cdc2855644aed",
+      "lines": 32
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-27-kasem-tone-and-meaning/README.md",
+      "sha256": "e1cf4f35677128b18cea500041c81b35133d8072bdfc69d52748188779e24c18",
+      "lines": 48
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-27-kasem-tone-and-meaning/share.md",
+      "sha256": "5ac6e2ecd5437221bec32212012f151c7f6a452ff801b9c6f54f8894b021d289",
+      "lines": 8
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-27-knowledge-workspace/share.md",
+      "sha256": "f22fa488efe7741399e9f2843cbfbbb5678e88bc99f569bab0418facb584cd46",
+      "lines": 16
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-27-more-reviewed-kasem-pronunciations/README.md",
+      "sha256": "ed300c5d99d907cb0db8cb3efbb2788cf06d2d5861f50dcd2da039f19b185673",
+      "lines": 53
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-27-more-reviewed-kasem-pronunciations/share.md",
+      "sha256": "70bb579a15f4bbe4d79fbd3f212f43dd0fbdbb37bfa9e3ff53d4258405433b3d",
+      "lines": 10
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-27-reviewed-kasem-pronunciations/README.md",
+      "sha256": "f23bddedfdddde7ec94eb4e1461f3fab31329631bb1cd6e37084f350d5648a05",
+      "lines": 50
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-27-reviewed-kasem-pronunciations/share.md",
+      "sha256": "46189a19f67b63f66d60ce900f029a8cdc93c242f9c0c82b62b4f844790bc4a9",
+      "lines": 10
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-27-share-an-expression/README.md",
+      "sha256": "f64e962cbc9b264fcad1bbd3367032470ea92dfc124aea2f6cdc9717a21960fd",
+      "lines": 127
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-27-share-an-expression/share.md",
+      "sha256": "57a27891966f82d557fbdbbd5ccbd2774c008f0ec066780d2858a815a3e94833",
+      "lines": 29
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-28-help-the-dictionary/README.md",
+      "sha256": "051ff04337e74be654ccb335c6bbb5efe577002737854db46ee760857d16dd40",
+      "lines": 94
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-28-help-the-dictionary/share.md",
+      "sha256": "6fdd95379a4228864726c3c57fccfcc506fc96591776f6d27d3f47dbc663a085",
+      "lines": 29
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-28-kasem-words-and-meanings/README.md",
+      "sha256": "a95a89ff3fba1db5e833f4c748d33c19fc5f8b263ac3fea18563fae0cb2e48de",
+      "lines": 47
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-28-kasem-words-and-meanings/share.md",
+      "sha256": "727f0f398a61ffa08bf5bd5261122c87abc55ba77ff964ac6546ed0e582f12a5",
+      "lines": 10
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-28-tribestudio-video-editor/README.md",
+      "sha256": "4cb1d8e139462b953a8ebed335c81d84086c7a8d37a7785454d95465734cf624",
+      "lines": 87
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-28-tribestudio-video-editor/share.md",
+      "sha256": "043760b12c6732b62701ce711318aa34d1e3b44dc3287e62e6226fb0c7f6e6eb",
+      "lines": 22
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-30-contributor-review-desk/README.md",
+      "sha256": "52a0155c81682a50ae9d861d48360711b056264c67a60cab441a3b2ba854288c",
+      "lines": 47
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-30-contributor-review-desk/share.md",
+      "sha256": "ac5c981c1aa9a12f1e281d37cce8e7123ab4622e9c676be2ba38addfe2e6168b",
+      "lines": 8
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-30-indigen-world-labs/README.md",
+      "sha256": "7ce34189a9753792b86fe0573f7f675358b802b853df86bd841590fb75bd4a04",
+      "lines": 59
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-30-indigen-world-labs/share.md",
+      "sha256": "dfd932fcc7bcbb3f09ea82aab8ac3285334b49704a9da498b48f1134fbb04866",
+      "lines": 8
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-30-language-review-and-video-editor/README.md",
+      "sha256": "13ba2025218170caef9556bd9310ce1a9052055675aaf83dbe10367d8ae8bb36",
+      "lines": 19
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-09-30-language-review-and-video-editor/share.md",
+      "sha256": "494e7a0fa2a31261ea9cfda72a24a4231af24878a549280e510b4787d1d8c8a5",
+      "lines": 4
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-01-culture-quest/README.md",
+      "sha256": "753babf848671672e730ca2fc51b1a9d3c50eb9b785b1682a26acc41f9bfa6bc",
+      "lines": 57
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-01-culture-quest/share.md",
+      "sha256": "275a2934c6b102251af382bd383e1aacebde84befc7f3aef807d6ac20eaa9ee0",
+      "lines": 8
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-02-community-feed-algorithm/README.md",
+      "sha256": "55c4869d4129867d0fef44c7e9b0ea7de22c5cd0ef43a403728417de348c3d40",
+      "lines": 81
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-02-community-feed-algorithm/share.md",
+      "sha256": "49a81f099332fd72afee4c4020a1a8e4c3a3f58b821d84d43425c278e339d135",
+      "lines": 12
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-02-dictionary-words-and-training/README.md",
+      "sha256": "74637787bb65dee38e34727b9db9ac393fcedcaf5de66cc2094bb2a796cb9463",
+      "lines": 49
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-02-dictionary-words-and-training/share.md",
+      "sha256": "0041e14d719a3c25fe07834a227a042b44da89e09a6b28c6891fbac1c443655b",
+      "lines": 8
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-02-ecosystem-privacy-notice/README.md",
+      "sha256": "265b87e2fc8e58554ac87f5d7afd3b32bbb9a124fae9699f203c311d1714dc38",
+      "lines": 93
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-02-ecosystem-privacy-notice/share.md",
+      "sha256": "9d6b28c174f434b17be2e823935c164ba443a8472c4f4ed45586bdbfbfb78c66",
+      "lines": 21
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-02-public-website-in-motion/README.md",
+      "sha256": "e19f8e1b8eb096bad79ddbd0d13bbe8057b0f87b7988239a4b854d5809341cb9",
+      "lines": 61
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-02-public-website-in-motion/share.md",
+      "sha256": "c4eb1d060c3636779728a1a24b008f8af69eb6edb1b25c755bc9314915b4bd78",
+      "lines": 12
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-02-word-trail/README.md",
+      "sha256": "0b2f7eaea5ffdd3793f69e5c822ac68df3ec056f600ea5cfeebd52bc6c8ce4b0",
+      "lines": 63
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-02-word-trail/share.md",
+      "sha256": "7da460d68f83b2271f2db26271ddef5280b5ef8069ab4f0e412dc5fff34ebbf3",
+      "lines": 14
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-03-kawuri-corpus-workspace/README.md",
+      "sha256": "a0e362a89a5ee19c861dc54030d544221848960e243ac2c417b8cd0a93647325",
+      "lines": 66
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-03-kawuri-corpus-workspace/share.md",
+      "sha256": "b330ae032fcd21572a62f54f996ee5ab11d055024d3466bc16d74886178ebf85",
+      "lines": 12
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-03-kawuri-reviewed-answers/README.md",
+      "sha256": "2e0979ea1e083332da9368dce43bb83cb3d9d7eec34225be8b123a7ceebe83d6",
+      "lines": 54
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-03-kawuri-reviewed-answers/share.md",
+      "sha256": "a88f0d58d88492675fa1f57920a0c1f0d0b558fb8196bc88716183f833a9cae7",
+      "lines": 8
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-03-literature-category-tabs/README.md",
+      "sha256": "d03791fe1c6f5c2157bd4f00102c0b23cbfb4e09390dfa095f31c7896763fa1c",
+      "lines": 88
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-03-literature-category-tabs/share.md",
+      "sha256": "f67b29826e37ff1e8f5a3d649bef22fe36b4dbb89cae7f95fa3157985f048187",
+      "lines": 12
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-03-workspaces-rebuilt/README.md",
+      "sha256": "d3608a933d41791b8b13be57deb340be305c495cdbba27ba3bcb594c4f61de4a",
+      "lines": 54
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-03-workspaces-rebuilt/share.md",
+      "sha256": "82bb3d54c89e7fc6819224d138a7309d36f574bdb53c7844bb94009174fdf434",
+      "lines": 14
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-04-clear-website-headers/README.md",
+      "sha256": "d44a0cba8216605f9db75d47a22dd95b1d0c1f0d6db09827a4023963b3c99989",
+      "lines": 59
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-04-clear-website-headers/share.md",
+      "sha256": "d8c4ec3f7666b04033fe8ddf0100b992fa39be5db69b1ea8d9caf3dfedf389b6",
+      "lines": 12
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-04-dictionary-steady-scrolling/README.md",
+      "sha256": "3086b198a77f68a1b36e66e437859fd666a91576d24cc809aac8ed4351ecdb53",
+      "lines": 141
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-04-dictionary-steady-scrolling/share.md",
+      "sha256": "8649d2271c62be6610c297fb4002d3eee6cc72765f24207132fa79b73c17692c",
+      "lines": 14
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-04-floating-progress-vessels/README.md",
+      "sha256": "bd0bc49999cc5e9559a9c7d194b67bd10dc3d94c3e9203a0ee8aecb90bea5485",
+      "lines": 69
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-04-floating-progress-vessels/share.md",
+      "sha256": "fc9d0f1e4323d3a42752eae970f6d1bc682c74341b3a7c692bbc4df613c8add1",
+      "lines": 18
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-04-help-fill-the-jars-progress/README.md",
+      "sha256": "278356cfdcba9384740a755141ca91065643df4adc6988085be4ba859e965cc6",
+      "lines": 57
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-04-help-fill-the-jars-progress/share.md",
+      "sha256": "9ef6c649d4744786873e286b0c180255e7be44445fd62e5bab2769a27e441e44",
+      "lines": 16
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-04-immersive-progress/README.md",
+      "sha256": "cca23058e0dd71b0968ad4949dccda18c1dd7ad4cc3517cc748a07160d116d21",
+      "lines": 63
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-04-immersive-progress/share.md",
+      "sha256": "75f90a3d99bb4059ddf10102ffb0b403c71fa2a78ed7810ced7921e8e161725e",
+      "lines": 16
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-04-live-progress-pipelines/README.md",
+      "sha256": "c2d1033e6d75962c5ccce16b95546f71eaa4a764430bb02b918cad94a4c83bd6",
+      "lines": 112
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-04-live-progress-pipelines/share.md",
+      "sha256": "def1cf6c9845b8de0c9cfaa8244de76f35df3e29e40a28b72cbe26eb41fed0d2",
+      "lines": 18
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-04-one-design-for-every-workspace/README.md",
+      "sha256": "51887240dd5507a36fef6a5735a5aa57de6624dee94e195bdf648ed0cf0ba77b",
+      "lines": 74
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-04-one-design-for-every-workspace/share.md",
+      "sha256": "b12a35165c67b70d38d449d7a95982311b458311e8aef770b7210938e6961996",
+      "lines": 14
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-04-progress-fullscreen-popups/README.md",
+      "sha256": "dbee6b001a28abbd402af42c87fc64e82f08565d4c192b81b064ea006cf42cce",
+      "lines": 66
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-04-progress-fullscreen-popups/share.md",
+      "sha256": "b91917f618c0489e43bb3b4398af8e69bdd01a483844cc778001c30df7ce9627",
+      "lines": 16
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-07-mobile-listening-and-community/README.md",
+      "sha256": "398891759d87e3fda492ef28560084eafeb5b29bc87bb0d7fff3d448d508aebf",
+      "lines": 53
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-07-mobile-listening-and-community/share.md",
+      "sha256": "b1037095996785eaf503e113961a81bc0f72e40c322844a2e4227d499e749a98",
+      "lines": 14
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-08-kasem-basic-grammar-book/README.md",
+      "sha256": "b6b474901ca495ccd6c63b91a00e69eee81381837f769cd6eeafc851e33eaf0e",
+      "lines": 104
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-08-kasem-basic-grammar-book/share.md",
+      "sha256": "28f09e715309ef34d178cdf8138357d4ae9cd74287ca404e531406bc0834ee15",
+      "lines": 13
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-08-kasem-orthography-book/README.md",
+      "sha256": "3c373ba4a30725146b363db5c7b63dcc2251dc2bc4cdfc606abd371ac44d452e",
+      "lines": 62
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-08-kasem-orthography-book/share.md",
+      "sha256": "f71f59f4674c0bda68e24f11a06b949a3ab1a28c8e50ef07804f5131d03f6528",
+      "lines": 10
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-09-consolidated-app-release/README.md",
+      "sha256": "ed325da4307e73d8455fb00f2f307b9d46cbb7c9aad9ebe42afdbd8f132410a4",
+      "lines": 46
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-09-consolidated-app-release/share.md",
+      "sha256": "6e1c9298de64332a6cc962dc3c979b6f5b0dd9fafab111e0e06ba7d97d2bddb5",
+      "lines": 10
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-09-reliable-contribution-and-reference-workflows/README.md",
+      "sha256": "c71dd5471ffc0fa345f9c6b85ea8f54f24cdf43f9370f5e74a9e13dc333c38d4",
+      "lines": 70
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-09-reliable-contribution-and-reference-workflows/share.md",
+      "sha256": "570cd1532306c55431ae282f7ec463aad2a503bff2f92a372e5df3b036799a10",
+      "lines": 12
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-10-easier-kasem-discovery/README.md",
+      "sha256": "bb846c62cc4e3c5289fb7c4a5fa0c2765e5457a345235cd0446ca227f05cd3f6",
+      "lines": 124
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-10-easier-kasem-discovery/share.md",
+      "sha256": "59e82c737874d92b4ba0ec6e956354a56b79a2bd99bb1e93dc7559e159caf378",
+      "lines": 20
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-10-heritage-frame-correspondence/README.md",
+      "sha256": "38f9e5bb0242286015619970c94408b3c2957276cbad7a50980571e29ac66b6a",
+      "lines": 52
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-10-heritage-frame-correspondence/share.md",
+      "sha256": "299a2c2bf8769b6f8275402c17545e89eb241c3c7ea71101968db01264f0e995",
+      "lines": 12
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-10-kasem-dictionary-assistance/README.md",
+      "sha256": "53c81b24ec55cfe0d984bb26c9cdcfff6d488e9afa6c06d19465de85131293f7",
+      "lines": 70
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-10-kasem-dictionary-assistance/share.md",
+      "sha256": "aa0ffa1cc5dd9ed44d8ed6236fbaab27ca244c2bb804ccbe2bf938c50f73f9c7",
+      "lines": 8
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-10-more-reviewed-kasem-word-audio/README.md",
+      "sha256": "355377085d0ad6d9aa6f27786f34f4a53421412bcdf53c76448c45d7d06ca09f",
+      "lines": 43
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-10-more-reviewed-kasem-word-audio/share.md",
+      "sha256": "9cea49d43fe053432bbf0efda19a3e759233f653a3f7367702915fc20ddb2460",
+      "lines": 7
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-10-points-and-rewards/README.md",
+      "sha256": "dddd834f85dc188a45a509373400b4793f51d52bc32389da174eaf80031ba7b5",
+      "lines": 117
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-10-points-and-rewards/share.md",
+      "sha256": "9271806fb817866311e1a0ad997d3889ee374acf8d9d5ca31c9b7cb6b71eef3f",
+      "lines": 28
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-11-kasem-question-evidence-cycle/README.md",
+      "sha256": "a6101897cab36fabd2c2c667436e83b9bcb6723aa85388a42b03d0386b97ab36",
+      "lines": 38
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-11-kasem-question-evidence-cycle/share.md",
+      "sha256": "b5e7fc429af3a1c4d20d7043a036066ef3c477a2416597389c51716126136794",
+      "lines": 8
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-11-updates-blog-redesign/README.md",
+      "sha256": "0ae8a51922339f45b40ea879fbc94bcb0ba37f386ce8660bc30d068c648acfea",
+      "lines": 63
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-11-updates-blog-redesign/share.md",
+      "sha256": "09f565f1804c867e2eb83890d56f8df8be6eeb9032352806e40219b3d3a76950",
+      "lines": 6
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-13-contribution-studio/README.md",
+      "sha256": "0647bac402d68455839c478e94080a144e0e408796e0208f245d5291bba44252",
+      "lines": 83
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-13-contribution-studio/share.md",
+      "sha256": "c78474a7238dee0c39217739d7e0e5793d5ae42d3a50dcb02a64070ca62c6f1f",
+      "lines": 15
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-14-word-trail-blue-horizon/README.md",
+      "sha256": "83c9df291c425bd2559b5952f96ca6e2d412ecee0264efa1fe56949054f3c6fd",
+      "lines": 63
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-14-word-trail-blue-horizon/share.md",
+      "sha256": "79f4db8d9681cf60aac822ba5eddf67449bf8776f724e976142d083c984e9fde",
+      "lines": 8
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-15-gemini-4-text-upgrade/README.md",
+      "sha256": "0c2baddfca97478c6dcad641db167e78ebc50f0eacb2bea83097ecb5a954d47b",
+      "lines": 40
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-15-gemini-4-text-upgrade/share.md",
+      "sha256": "22a77e4eca16a500ad3670013af20990e6915740cd06d79fbffca9b54592dbc4",
+      "lines": 6
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-15-word-of-the-day-illustrations/README.md",
+      "sha256": "ef858abc5f9b5b078e18ba0e9188708c7c3bf6a2f77833c42405f81d6884bc67",
+      "lines": 33
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-15-word-of-the-day-illustrations/share.md",
+      "sha256": "6d48dd9571ea3aeb96ee8d28f0f3e3a7ce07db50980aa902a5d6baf81bcbe368",
+      "lines": 4
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-15-zem-ghana-headlines/README.md",
+      "sha256": "9d977f4beef8b6bdafe362885747e17dbcd053a11c33c951951df5af813df608",
+      "lines": 30
+    },
+    {
+      "path": "apps/updates-blog/posts/2026-10-15-zem-ghana-headlines/share.md",
+      "sha256": "0c4a540753dfafdc212ee010d007509763b491bd069d1770baefef5365fcf75f",
+      "lines": 4
+    },
+    {
+      "path": "apps/website/README.md",
+      "sha256": "9078ba6f5d0876f46fa6e608f671457abcd71f9adaff623ccb0eb266a8d4d8dd",
+      "lines": 160
+    },
+    {
+      "path": "apps/website/package.json",
+      "sha256": "d5d7335b2fa7e014cb29fe6415186d0c00453b0cf04147198eee542583a68c2c",
+      "lines": 39
+    },
+    {
+      "path": "docs/architecture/community-automation.md",
+      "sha256": "88e3fdc5c469b4ffb9094d3c5ad71363a66ac8e70b845de22c3530858ee0e1cf",
+      "lines": 94
+    },
+    {
+      "path": "docs/architecture/correspondence-verification.md",
+      "sha256": "4ac0be0ff8fe6871a4ec28a4a8e21555d5b699ffaaed5beab0e96b1446a8f02d",
+      "lines": 70
+    },
+    {
+      "path": "docs/architecture/correspondence.md",
+      "sha256": "2522106a3ee6efe8b8019b1af2f85e7489b31c1aee329db1c29aaeb0bc622c0d",
+      "lines": 201
+    },
+    {
+      "path": "docs/architecture/gemini-text.md",
+      "sha256": "24c6dce11e11a3c8dde4697290b7389c4115d1b0a70f332689b451b594d72d71",
+      "lines": 80
+    },
+    {
+      "path": "docs/architecture/hosting-and-domains.md",
+      "sha256": "356282fc6bb8c772ad61c0cdbec463f76edca37e2e27ba43ef6f8d3640954f28",
+      "lines": 52
+    },
+    {
+      "path": "docs/architecture/kawuri-vertex-media.md",
+      "sha256": "0b4adf35b5c3672ffe635022cccd18d51a8b63712b2873979e79a95e27714191",
+      "lines": 268
+    },
+    {
+      "path": "docs/architecture/repository-structure.md",
+      "sha256": "98430adde39036e0075ec42f07ede052efc67974c80cc96abd9a1466d55bc23c",
+      "lines": 90
+    },
+    {
+      "path": "docs/architecture/sms-notifications.md",
+      "sha256": "7e9ef23217b5ec92cb346295f8ee6b2bbb93b634161f65641276f0a1a95fa642",
+      "lines": 77
+    },
+    {
+      "path": "docs/architecture/transactional-email.md",
+      "sha256": "14b44c2d69f9c73f9e5841288104b9079d82c30a2205db5e8e636064293b648f",
+      "lines": 145
+    },
+    {
+      "path": "docs/architecture/tribestudio-video-generation.md",
+      "sha256": "d443be7004339d37be477a3a90dba907cfe9c5dd9f48759544f58a096ced4863",
+      "lines": 282
+    },
+    {
+      "path": "docs/decisions/0001-adopt-monorepo-architecture.md",
+      "sha256": "3db4b8a2a765725ddcd69a98009d9d6e7d21069f006c0bd8849faf006d4d36e8",
+      "lines": 49
+    },
+    {
+      "path": "docs/decisions/0002-adopt-firebase-authority-with-digitalocean-api.md",
+      "sha256": "a969bbe761f9be4bc9c1b6612a91f53cb4023356f45cdf9d5da5248089cf6c0b",
+      "lines": 105
+    },
+    {
+      "path": "docs/decisions/0003-add-governed-knowledge-workspace.md",
+      "sha256": "d9ffabad8fb51ff74b349db33fd335713faefe8bde46d1d56d674ae010e245fe",
+      "lines": 30
+    },
+    {
+      "path": "docs/decisions/0003-contributor-support-cases.md",
+      "sha256": "a85a316d628cd608b56b65d48e9e238c0454912a4e1ad305bc3136238a71f4b3",
+      "lines": 27
+    },
+    {
+      "path": "docs/governance/data-safety.md",
+      "sha256": "9cf8ea2e8b961220d013367c78e0e6a0fe5605689ccf0b6eb8b712b22da6499a",
+      "lines": 49
+    },
+    {
+      "path": "docs/governance/licensing-status.md",
+      "sha256": "61c92b3bc66901c125b7583c9f7f9a2f85507f6ffd6a9cb22b83febab166051b",
+      "lines": 19
+    },
+    {
+      "path": "docs/operations/contributor-support.md",
+      "sha256": "22729a8b23d3fda0717d306d0bb3406b9b7ae1e5ad4ecce6e6a5513a5706a049",
+      "lines": 53
+    },
+    {
+      "path": "docs/operations/correspondence-deployment-2026-10-10.md",
+      "sha256": "3ebc7abbb9ff07e0e2a5c6f4dc3652baedc341da9e07d0b208270f80a80f5d5e",
+      "lines": 88
+    },
+    {
+      "path": "docs/operations/kawuri-candidate-rollout.md",
+      "sha256": "522a386f1618a75122c2b06465969788d9c3bc3c736254600be7ac3b722103cc",
+      "lines": 47
+    },
+    {
+      "path": "docs/operations/kawuri-corpus-runbook.md",
+      "sha256": "7e4fe19d3e03f7c970ad1d783de296a980412cc2c9473cec567616335c997271",
+      "lines": 48
+    },
+    {
+      "path": "docs/operations/release-0.1.31-40.md",
+      "sha256": "649b88ea947ee92acb7b7a53bc07b9f95f2300e87d2cd882b351a479493d0951",
+      "lines": 125
+    },
+    {
+      "path": "docs/operations/ten-improvements-resume.md",
+      "sha256": "2a17bccf048a1be2f4d0903fd760aa9ffcae85cadac2b6618b4cddecef671926",
+      "lines": 229
+    },
+    {
+      "path": "docs/operations/ten-improvements-verification.md",
+      "sha256": "57c9b9a66febb216cb5b564da210ca9e0799fa9d1240375d4a8b252729d2fefb",
+      "lines": 142
+    },
+    {
+      "path": "docs/product/community-feed-deployment.json",
+      "sha256": "82c302da33c68bca52fe6677c6cc73afeb2503604d391235f70a7ac8fe2af080",
+      "lines": 229
+    },
+    {
+      "path": "docs/product/community-recommendations.md",
+      "sha256": "d23c2acfc03d4738ec7447989ae5c0d16531c61a4eb12ce1979b2b4b92278f4e",
+      "lines": 563
+    },
+    {
+      "path": "docs/product/contribution-studio.md",
+      "sha256": "97244c5af4243a9761776689bf783ce184cb11f812c90675fbed69dec61c2351",
+      "lines": 105
+    },
+    {
+      "path": "docs/product/contributor-portal.md",
+      "sha256": "223e96c6a0d2c902727a39ce0c640db1a9c2df085d57f86635bba78902fd33b7",
+      "lines": 196
+    },
+    {
+      "path": "docs/product/contributor-rewards.md",
+      "sha256": "21d9826ba3406946d91fc4b848f4f73429e2419ab9fa9cc0866248516c1a7af6",
+      "lines": 299
+    },
+    {
+      "path": "docs/product/dictionary-duplicate-cleanup.md",
+      "sha256": "85e3f8dfd410aa961f276e44af6ea985ca2444d15679b67fd7f3ba7a9d2d7f17",
+      "lines": 67
+    },
+    {
+      "path": "docs/product/dictionary-editing-and-merging.md",
+      "sha256": "a84b2ad00187164c7696cb3e31310f54c93ffe749f086f8f2d78540a8df22841",
+      "lines": 163
+    },
+    {
+      "path": "docs/product/dictionary-entry-model.md",
+      "sha256": "0fb4c08a124d4f86223ff699bd5ea44b8e3a80ef2b70750f14d998d967278bca",
+      "lines": 166
+    },
+    {
+      "path": "docs/product/dictionary-screen.md",
+      "sha256": "18ae76b9238ba4ac040a0e29d54e5daa32bc7f8f87131bbd1538611ae422f92f",
+      "lines": 147
+    },
+    {
+      "path": "docs/product/dictionary-training-consolidation.md",
+      "sha256": "023cc906082f123b0fe2b6a801e31873957cee998b636430680733cde0927b49",
+      "lines": 59
+    },
+    {
+      "path": "docs/product/dictionary-word-scope-and-training.md",
+      "sha256": "3dfd123d2199b739c7c85ff783f01eeeaf7764fc2cd610299719d64e82350a4e",
+      "lines": 62
+    },
+    {
+      "path": "docs/product/everyday-expressions.md",
+      "sha256": "cf41b3fd3b9dd79c17f3abe1b274e4a05457a13984b8e9d7f69fa3cd0f6a91f8",
+      "lines": 94
+    },
+    {
+      "path": "docs/product/explore-feed.md",
+      "sha256": "75760b0a21c4e5ef7e41e6521788040f8b3c3a2553dff147fffcd127a902b671",
+      "lines": 116
+    },
+    {
+      "path": "docs/product/google-sign-in-diagnosis.md",
+      "sha256": "1b3bf6abe21004440347b237042c9057fffd853552388c7b6293a8a6891f2a08",
+      "lines": 162
+    },
+    {
+      "path": "docs/product/indigen-world-labs.md",
+      "sha256": "90c1f73247fd54419a249ad382066fbe3fb450c52e6c13140c95872220f622f5",
+      "lines": 88
+    },
+    {
+      "path": "docs/product/kasem-corpus-contribution-alignment.md",
+      "sha256": "c988909829e34d1fc6dddc23be4ccf910f8f22b2d2de133efef9f94b71486686",
+      "lines": 33
+    },
+    {
+      "path": "docs/product/kasem-evidence-operations.md",
+      "sha256": "e611f86381d53400f7003644497837709a2b7915c0ab0627a3a030198ae5ed54",
+      "lines": 110
+    },
+    {
+      "path": "docs/product/kasem-keyboard-review.md",
+      "sha256": "c236ba39be284a644dcd5c198b1f19334e2f59d4611f53d58411a3c34a99a06b",
+      "lines": 192
+    },
+    {
+      "path": "docs/product/kasem-orthography-book-import.md",
+      "sha256": "60f251718d2887b499da5b0ac7af92f0b7687889a890a216437cf180cbea9aae",
+      "lines": 44
+    },
+    {
+      "path": "docs/product/kasem-training-data-implementation-plan.md",
+      "sha256": "d7d1090d29c58dc19799946b64f27d53ea23fd4afc4317f96ded023d7fc7d1f5",
+      "lines": 143
+    },
+    {
+      "path": "docs/product/kawuri-corpus-implementation.md",
+      "sha256": "27e8d15fb3f3ec663fcd599d4acb6aff4f20df4eaee1af12cc379f3608719028",
+      "lines": 75
+    },
+    {
+      "path": "docs/product/kawuri-grounded-answers.md",
+      "sha256": "d48785e82f2e91a374132919da6db630824c998f7b549d4194e29d98651e09a3",
+      "lines": 54
+    },
+    {
+      "path": "docs/product/kawuri-multimodal-upgrade.md",
+      "sha256": "57f6f3f28db7fb48545e403430e75cad0730500eb19babba7834adde4c4c28ea",
+      "lines": 94
+    },
+    {
+      "path": "docs/product/knowledge-workspace-api.md",
+      "sha256": "20ec41ff0cb6ae6678cae8d064992d78eff1884001ed2b0386df5a03de6b86b7",
+      "lines": 56
+    },
+    {
+      "path": "docs/product/language-loop.md",
+      "sha256": "be0f289fdbde945f42ba3cb822127ee5201d0e2cd09d7032f5b228d5c41078ef",
+      "lines": 131
+    },
+    {
+      "path": "docs/product/learn-dashboard.md",
+      "sha256": "dacd657029641828ebdc21aad511c9478c1a087634b5d62aef9249005c86bd44",
+      "lines": 151
+    },
+    {
+      "path": "docs/product/learn-tab-curation-plan.md",
+      "sha256": "4412bfb543594aaf83fcf89bb09c32d40ad379f3634baebae7cea5c2124c850b",
+      "lines": 309
+    },
+    {
+      "path": "docs/product/media-library.md",
+      "sha256": "c7c08cc0715d462ab97efa4bd9c22b5695abfcf730937906805d3c487bec4027",
+      "lines": 79
+    },
+    {
+      "path": "docs/product/mobile-admob-integration.md",
+      "sha256": "dc29ba34f412c2cd46454004eaf6c524180f7203554e4a4a4cda717ff75c3bae",
+      "lines": 381
+    },
+    {
+      "path": "docs/product/music-collection-upgrade.md",
+      "sha256": "34fe2a6637a2d272f7a5e1acc1fc003bc51853c71e10f8cd4d6858230badc3ba",
+      "lines": 437
+    },
+    {
+      "path": "docs/product/next-five-upgrades.md",
+      "sha256": "ec80814a7a03282402f1a0bb552a14f2cda1bf96657e611c774686cd6c712d2c",
+      "lines": 190
+    },
+    {
+      "path": "docs/product/play-data-safety-2026-09.md",
+      "sha256": "8859f17dd8e26ce85e5dbd08d214279b3d13515952fd6076417fbf17745b75c9",
+      "lines": 87
+    },
+    {
+      "path": "docs/product/play-integrity-and-billing.md",
+      "sha256": "1605e4451b1283cf9a42132f4780b2a12e20b276f6c210a23732305f164ed919",
+      "lines": 474
+    },
+    {
+      "path": "docs/product/play-technical-quality-2027.md",
+      "sha256": "3cf01179b71c70421e392cf1afa5e5d2b79387c9b574343500099fe81e33b961",
+      "lines": 261
+    },
+    {
+      "path": "docs/product/privacy-notice-evidence.md",
+      "sha256": "bb1669837277b117126a399ec855fc5143a96fe0ee56a56817f4c5240706b3c4",
+      "lines": 87
+    },
+    {
+      "path": "docs/product/product-boundaries.md",
+      "sha256": "a2163661fc1ff18671de5a911cf6e567690b78531cf098158e2508d2ee67c0d0",
+      "lines": 90
+    },
+    {
+      "path": "docs/product/progress-pipelines.md",
+      "sha256": "2d8bd4e5e78830e50e2d343f623c4290f40efbe31f603452ded58a5139046984",
+      "lines": 98
+    },
+    {
+      "path": "docs/product/reel-creation.md",
+      "sha256": "34c82b3024c6c9fd53fe0d24333aa8c04c07616b3c2346ad270223885960d042",
+      "lines": 175
+    },
+    {
+      "path": "docs/product/releases/0.1.10+19.md",
+      "sha256": "1acfdd715253bfad4db6c2ab2662ed566b9a1be5378e658d6abcd7c42c5e1ab2",
+      "lines": 169
+    },
+    {
+      "path": "docs/product/releases/0.1.11+20.md",
+      "sha256": "4c8732c199115073f0251d86bde2271ce83290972401f8e26fb1505765160761",
+      "lines": 260
+    },
+    {
+      "path": "docs/product/releases/0.1.12+21.md",
+      "sha256": "c55823743796df549ce5fe80e56fdba1b0241a5015ed5c44d2d5b154077e5e25",
+      "lines": 430
+    },
+    {
+      "path": "docs/product/releases/0.1.13+22.md",
+      "sha256": "f34402a7279c1a9bb77f667e033297be948b6a5382deeead9b496b64589eccdc",
+      "lines": 555
+    },
+    {
+      "path": "docs/product/releases/0.1.14+23.md",
+      "sha256": "47f42b07ab674c0a03d5e0a58185986c3008ae8d98b466a9b2acca1830286d08",
+      "lines": 463
+    },
+    {
+      "path": "docs/product/releases/0.1.15+24.md",
+      "sha256": "3fe9b7622f3936af41a4161e10e4455cdc00be188f1a29c609e9db092ef9a335",
+      "lines": 410
+    },
+    {
+      "path": "docs/product/releases/0.1.16+25.md",
+      "sha256": "92c0bdfe83cb13d6afaca3ea7400b2231a1bae178eb396c2809c8496db6bcd54",
+      "lines": 426
+    },
+    {
+      "path": "docs/product/releases/0.1.17+26.md",
+      "sha256": "c8731c401fb08d1c3a65b90d9e105c0610e16365e151a7eb4bca1d7bc5b12ee8",
+      "lines": 334
+    },
+    {
+      "path": "docs/product/releases/0.1.18+27.md",
+      "sha256": "e44e7e944ebf3086c74df42fa56f93348ecc026c5a60c098e9b41c3023be71a4",
+      "lines": 348
+    },
+    {
+      "path": "docs/product/releases/0.1.19+28.md",
+      "sha256": "83da8ef7e2a49cf8f6b49122cfcfa96bd3ec83ee302c629902996496dd4a2dc1",
+      "lines": 241
+    },
+    {
+      "path": "docs/product/releases/0.1.2+9.md",
+      "sha256": "cd0f2d30d32dc6e7deef8828fe7c7e2cb17783be63b69d01eb00fbcbc1ec7104",
+      "lines": 64
+    },
+    {
+      "path": "docs/product/releases/0.1.20+29.md",
+      "sha256": "1a2bfd733a93cab93fab8601ab263f73de43a386ba10778af685d2ed0b1ceab7",
+      "lines": 183
+    },
+    {
+      "path": "docs/product/releases/0.1.21+30.md",
+      "sha256": "a203a0c18519e1feb110bdacf972ef4f449687d7abe3f6c3f335d2fbb50f7e98",
+      "lines": 192
+    },
+    {
+      "path": "docs/product/releases/0.1.22+31.md",
+      "sha256": "0cb884f9a8b87a46066f6468f9ccd3adf7e736dc15cd77b16a5dd649169a8bec",
+      "lines": 159
+    },
+    {
+      "path": "docs/product/releases/0.1.23+32.md",
+      "sha256": "6e9a9a8c6f5b648e00b519d817367863981b6e011d67820337ffad569579a5ac",
+      "lines": 226
+    },
+    {
+      "path": "docs/product/releases/0.1.24+33.md",
+      "sha256": "7323500011b52c8cdf2d9537959f569058055e5c0aa6dc7f424f95c5326f46ba",
+      "lines": 155
+    },
+    {
+      "path": "docs/product/releases/0.1.25+34.md",
+      "sha256": "3017cbb9fc9b2c09f9a1b7f8128efbdcb3531b5dc794449544f15925fe62cfc5",
+      "lines": 48
+    },
+    {
+      "path": "docs/product/releases/0.1.26+35.md",
+      "sha256": "6b024b9d7bfe9f0e78e5b2cb7f1973b38ce8b7b34e84ec7e0b711578a4e1ed44",
+      "lines": 46
+    },
+    {
+      "path": "docs/product/releases/0.1.27+36.md",
+      "sha256": "651faf7dd8655416fd87236cb6c5154fdfa85878b686ca8c1f9f3f2fc85dd09d",
+      "lines": 62
+    },
+    {
+      "path": "docs/product/releases/0.1.28+37.md",
+      "sha256": "80ef93da4aa19392a0beb05b32b47e6de2c10f1331ce268ea6ab2ab28bf1c715",
+      "lines": 91
+    },
+    {
+      "path": "docs/product/releases/0.1.29+38.md",
+      "sha256": "71f6bb5b583654d971a0b867a21fb9edc7e83c577c368b59e8679f4c10a3eb83",
+      "lines": 120
+    },
+    {
+      "path": "docs/product/releases/0.1.31+40.md",
+      "sha256": "6454b168e0583b54db8d8e72405e52c5bdc837229ae1efa33522125527d1f8df",
+      "lines": 48
+    },
+    {
+      "path": "docs/product/releases/0.1.32+41.md",
+      "sha256": "06fc73402e6ebf5163c8ed6c2426881a7c790ee2ddb8e1f5aefb5d85bb306b47",
+      "lines": 55
+    },
+    {
+      "path": "docs/product/releases/0.1.6+13.md",
+      "sha256": "954eb7b5f2c205e752526f3747e0592b247e243886aeb7734882df084da301fd",
+      "lines": 167
+    },
+    {
+      "path": "docs/product/releases/0.1.7+14.md",
+      "sha256": "afe609ce8623059c1055c4812bf8c9d8916c64b53bcba0f573feefdbdc1ccd55",
+      "lines": 155
+    },
+    {
+      "path": "docs/product/releases/0.1.8+17.md",
+      "sha256": "c0c91eaa4c67ba73382e46736d07bd7608457d07eef918f134922b76c9e51ae3",
+      "lines": 102
+    },
+    {
+      "path": "docs/product/releases/0.1.9+18.md",
+      "sha256": "479c2e9b15c8af8c00d598799841ea10aa1662c2328ca9bcefbe51f982efc80f",
+      "lines": 125
+    },
+    {
+      "path": "docs/product/shared-post-links.md",
+      "sha256": "b4d33ccf677f43afbe51567507a10a2ab4dd18304da0f476367186e1d13545c9",
+      "lines": 186
+    },
+    {
+      "path": "docs/product/tester-readiness-runbook.md",
+      "sha256": "48344be5ad9037f0a1b94ba77247c4d7ec9de4f37c375952a92fb0eb2480e971",
+      "lines": 405
+    },
+    {
+      "path": "docs/product/video-editor.md",
+      "sha256": "8a87120583fa2c9ddb5cb4551628c3d8d496fb8f59e740531dd6882667065a5d",
+      "lines": 127
+    },
+    {
+      "path": "docs/product/website-freshness-audit-2026-09-15.md",
+      "sha256": "367813ac18f3103f83b1738e29d7ec86d7d6f5ebadc5330a451e05d30a4c54cf",
+      "lines": 44
+    },
+    {
+      "path": "docs/product/website-improvement-plan-2026-10-10.md",
+      "sha256": "f3ae7c880592d77d2ee9449eeb90ba5f0ce1663c1e2048d3cf1051c39f47a97c",
+      "lines": 121
+    },
+    {
+      "path": "docs/product/website-sitemap.md",
+      "sha256": "3d0844edd9d17f4abc49d08f75bef929fc90949325461930254b0da44729b5a4",
+      "lines": 74
+    },
+    {
+      "path": "docs/product/workspace-reconstruction-2026-10-03.md",
+      "sha256": "d9e9dc7134b5272a87969d586df930ac27cc7e77bac555fa17eef2690edc0879",
+      "lines": 115
+    },
+    {
+      "path": "firebase.json",
+      "sha256": "f23f4a6ac55a24b1b400e14bf80902858d3d4005917ca3764706c062f7ef2e6c",
+      "lines": 265
+    },
+    {
+      "path": "package.json",
+      "sha256": "a3ed5a39cda36dd9285c35b443b127f0c5c9d787e4bdd45af75869c03c0963c9",
+      "lines": 102
+    },
+    {
+      "path": "services/ai/README.md",
+      "sha256": "dbcc32a4328c84fc11addd9b6dabb86e7b6e7de6fd6437a135be98eb7228dc7c",
+      "lines": 47
+    },
+    {
+      "path": "services/assessment-worker/README.md",
+      "sha256": "abf1fb753aa02c0f09e35028720736cbe7017297b9774f7a4a2d8f8989991c1c",
+      "lines": 78
+    },
+    {
+      "path": "services/functions/README.md",
+      "sha256": "564d5a278aaf3d95891354da99cb40ca49950042c3651380c4d252ef3e045371",
+      "lines": 37
+    },
+    {
+      "path": "services/functions/package.json",
+      "sha256": "909a2852e8fd49b47f4eba28436ebb682e27a16e375da44a7a255d250a98ea5f",
+      "lines": 38
+    }
+  ],
+  "releasePostCount": 79,
+  "releaseNoteCount": 27
+}

@@ -13,11 +13,25 @@ void main() {
         for (final preference in NotificationPreference.values) {
           expect(
             preferences.isOn(preference),
-            isTrue,
-            reason: '$preference was off for $source',
+            !preference.optIn,
+            reason: '$preference for $source',
           );
         }
       }
+    });
+
+    test('promotions stay off until explicitly switched on', () {
+      expect(
+        NotificationPreferences.fromField(const <String, dynamic>{})
+            .isOn(NotificationPreference.promotions),
+        isFalse,
+      );
+      expect(
+        NotificationPreferences.fromField(const <String, dynamic>{
+          'promotions': true,
+        }).isOn(NotificationPreference.promotions),
+        isTrue,
+      );
     });
 
     test('an empty map is not the same as everything switched off', () {
@@ -57,7 +71,7 @@ void main() {
     test('the everything-on constant behaves like an absent field', () {
       const all = NotificationPreferences.all();
       for (final preference in NotificationPreference.values) {
-        expect(all.isOn(preference), isTrue);
+        expect(all.isOn(preference), !preference.optIn);
       }
       expect(all.mutedCount, 0);
     });
@@ -78,6 +92,7 @@ void main() {
           'likes',
           'mentions',
           'milestones',
+          'promotions',
           'reelComments',
           'streakReminders',
           'threadReplies',

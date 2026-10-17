@@ -1,0 +1,26 @@
+{
+  "accent": "blue",
+  "motif": "dots",
+  "eyebrow": "TribeStudio · Kawuri corpus",
+  "title": "Kasem knowledge with sources, rights and history.",
+  "tsize": 46,
+  "lede": "Each word, expression, story or recording keeps its source, permissions and review history.",
+  "tags": [
+    "Sources",
+    "Revision history",
+    "Human review"
+  ],
+  "hero": [
+    "corpus-workspace.png"
+  ],
+  "figures": {
+    "corpus-workspace.png": {
+      "title": "One workspace for every kind",
+      "note": "Contribution counts and navigation in TribeStudio."
+    },
+    "submission-receipt.png": {
+      "title": "A receipt you can follow",
+      "note": "A synthetic expression with its durable receipt and revisions."
+    }
+  }
+}

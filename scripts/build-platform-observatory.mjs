@@ -1,0 +1,11 @@
+import {spawnSync} from 'node:child_process';
+import {existsSync} from 'node:fs';
+import {homedir} from 'node:os';
+import {dirname,resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+const plugin=process.env.DATA_ANALYTICS_PLUGIN_ROOT??resolve(homedir(),'.codex/plugins/cache/openai-curated-remote/data-analytics/1.0.11');
+const cli=resolve(plugin,'scripts/data-app.mjs');
+if(!existsSync(cli)) throw new Error('Installed Data build helper missing. Set DATA_ANALYTICS_PLUGIN_ROOT to the installed plugin directory.');
+const result=spawnSync(process.execPath,[cli,'build','--project-dir',resolve(root,'tools/platform-observatory'),'--separate-data'],{cwd:root,stdio:'inherit'});
+process.exitCode=result.status??1;

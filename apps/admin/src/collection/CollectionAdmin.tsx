@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ImageField, MediaPicker } from './MediaPicker';
 import { Badge, Button, PageHeader, SearchField, Select, cx } from '../ui/primitives';
 import { Icon } from '../ui/icons';
 import { confirmAction } from '../ui/dialogs';
@@ -248,12 +249,8 @@ function AppEditor({
           />
         </label>
         <label className="collection-grid__wide">
-          Icon URL
-          <input
-            value={app.iconUrl}
-            onChange={(e) => update({ iconUrl: e.target.value })}
-            placeholder="https://…"
-          />
+          <ImageField label="App icon" value={app.iconUrl} onChange={(iconUrl) => update({ iconUrl })} />
+          <MediaPicker label="App screenshots" multiple value={app.screenshots ?? []} onChange={(screenshots) => update({ screenshots })} />
         </label>
         <label className="collection-grid__wide">
           Description
@@ -684,16 +681,7 @@ function AudiobookEditor({
         }
         onPick={receive}
       />
-      <UploadSlot
-        label="Cover"
-        hint="Optional artwork for the player — JPEG, PNG or WebP, under 8 MB."
-        accept="image/*"
-        file={cover}
-        slot="cover"
-        progress={progress}
-        disabled={busy || !book.title.trim()}
-        onPick={receive}
-      />
+      <MediaPicker label="Cover artwork" value={book.coverUrl ? [{ id: book.coverAssetId ?? book.coverUrl, url: book.coverUrl, alt: book.title, rights: book.licenceDisplay, credit: book.author, status: 'published' }] : []} onChange={(assets) => { const asset = assets[0]; update({ coverUrl: asset?.url ?? '', coverAssetId: asset?.status === 'published' ? asset.id : undefined }); setCover(null); }} />
 
       {restoring ? <p className="muted">Looking up the files already uploaded&hellip;</p> : null}
       {notice ? <p className="notice-line">{notice}</p> : null}
@@ -987,12 +975,7 @@ function ProductEditor({
           />
         </label>
         <label className="collection-grid__wide">
-          Image URL
-          <input
-            value={product.imageUrl}
-            onChange={(e) => update({ imageUrl: e.target.value })}
-            placeholder="https://…"
-          />
+          <ImageField label="Product image" value={product.imageUrl} onChange={(imageUrl) => update({ imageUrl })} />
         </label>
         <label className="collection-grid__wide">
           One-line summary
@@ -1314,11 +1297,7 @@ function HeroEditor({
           <input value={hero.birthplace} onChange={(e) => update({ birthplace: e.target.value })} />
         </label>
         <label>
-          Portrait URL
-          <input
-            value={hero.portraitUrl}
-            onChange={(e) => update({ portraitUrl: e.target.value })}
-          />
+          <ImageField label="Portrait" value={hero.portraitUrl} onChange={(portraitUrl) => update({ portraitUrl })} />
         </label>
         <label className="collection-grid__wide">
           Summary

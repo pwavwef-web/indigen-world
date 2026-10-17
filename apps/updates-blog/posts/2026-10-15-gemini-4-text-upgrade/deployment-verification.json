@@ -1,0 +1,132 @@
+{
+  "checkedAt": "2026-10-15T20:35:53.995Z",
+  "project": "project-kassena-7e026",
+  "model": "gemini-4-argon",
+  "location": "global",
+  "bundleSha256": "08a4ca56e897f68e147df41558b0e82a39557528a0607eca87f2e48441fb80b0",
+  "functions": [
+    {
+      "name": "postZemBotarebuDaily",
+      "state": "ACTIVE",
+      "revision": "postzembotarebudaily-00004-kop",
+      "updateTime": "2026-10-15T20:34:40.042835444Z",
+      "runtime": "nodejs22",
+      "textConfig": {}
+    },
+    {
+      "name": "labsApi",
+      "state": "ACTIVE",
+      "revision": "labsapi-00008-vuh",
+      "updateTime": "2026-10-15T20:34:46.811656668Z",
+      "runtime": "nodejs22",
+      "textConfig": {}
+    },
+    {
+      "name": "kawuriChat",
+      "state": "ACTIVE",
+      "revision": "kawurichat-00036-hil",
+      "updateTime": "2026-10-15T20:34:40.413386684Z",
+      "runtime": "nodejs22",
+      "textConfig": {}
+    },
+    {
+      "name": "postKasemPracticeDaily",
+      "state": "ACTIVE",
+      "revision": "postkasempracticedaily-00004-nuz",
+      "updateTime": "2026-10-15T20:34:40.112245993Z",
+      "runtime": "nodejs22",
+      "textConfig": {}
+    },
+    {
+      "name": "postZemGhanaNews",
+      "state": "ACTIVE",
+      "revision": "postzemghananews-00004-rah",
+      "updateTime": "2026-10-15T20:34:11.951595136Z",
+      "runtime": "nodejs22",
+      "textConfig": {}
+    },
+    {
+      "name": "onCommunityEnquiryReply",
+      "state": "ACTIVE",
+      "revision": "oncommunityenquiryreply-00003-wad",
+      "updateTime": "2026-10-15T20:34:28.059732943Z",
+      "runtime": "nodejs22",
+      "textConfig": {}
+    },
+    {
+      "name": "recoverCommunityAutomation",
+      "state": "ACTIVE",
+      "revision": "recovercommunityautomation-00006-veq",
+      "updateTime": "2026-10-15T20:34:40.004126548Z",
+      "runtime": "nodejs22",
+      "textConfig": {}
+    },
+    {
+      "name": "postAmoYeiKasemDaily",
+      "state": "ACTIVE",
+      "revision": "postamoyeikasemdaily-00005-niq",
+      "updateTime": "2026-10-15T20:34:39.686843934Z",
+      "runtime": "nodejs22",
+      "textConfig": {}
+    },
+    {
+      "name": "onCommunityKawuriMention",
+      "state": "ACTIVE",
+      "revision": "oncommunitykawurimention-00027-bos",
+      "updateTime": "2026-10-15T20:34:51.966304673Z",
+      "runtime": "nodejs22",
+      "textConfig": {}
+    },
+    {
+      "name": "postNNaYeiriSeNBweiDaily",
+      "state": "ACTIVE",
+      "revision": "postnnayeirisenbweidaily-00004-jur",
+      "updateTime": "2026-10-15T20:34:48.616606746Z",
+      "runtime": "nodejs22",
+      "textConfig": {}
+    },
+    {
+      "name": "postIndigenGuideDaily",
+      "state": "ACTIVE",
+      "revision": "postindigenguidedaily-00004-lez",
+      "updateTime": "2026-10-15T20:34:40.409412663Z",
+      "runtime": "nodejs22",
+      "textConfig": {}
+    }
+  ],
+  "lookupStartedAt": "2026-10-15T20:35:40.457Z",
+  "trace": "cde3955c9ea810987b45254861468277",
+  "productionLookup": {
+    "status": 200,
+    "result": {
+      "configured": true,
+      "reply": "The published dictionary records:\n\n1. Recorded meaning: water\nKasem: na\nRecorded dialect: Navrongo\nSource: published dictionary.\n\n2. Recorded meaning: water\nKasem: Nia\nRecorded dialect: Project Kasena example\nSource: published dictionary.",
+      "verified": [
+        {
+          "entryId": "ABSpJBFtXDULHbeToD48",
+          "kasem": "na",
+          "english": "water"
+        },
+        {
+          "entryId": "project_kasena_px001",
+          "kasem": "Nia",
+          "english": "water"
+        }
+      ]
+    }
+  },
+  "tests": {
+    "focusedUnit": 145,
+    "communityEmulator": 16,
+    "groundingEmulator": 5,
+    "blogTheme": 29
+  },
+  "runtimeModelLog": {
+    "timestamp": "2026-10-15T20:35:51.783836Z",
+    "revision": "kawurichat-00036-hil",
+    "model": "gemini-4-argon",
+    "location": "global",
+    "message": "Kawuri request plan accepted"
+  },
+  "runtimeVerifiedAt": "2026-10-15T20:36:07.848Z"
+}

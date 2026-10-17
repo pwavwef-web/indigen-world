@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,11 +21,31 @@ Future<void> open(WidgetTester tester, Widget screen) async {
   addTearDown(tester.view.resetDevicePixelRatio);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [isSignedInProvider.overrideWithValue(true)],
+      overrides: [
+        isSignedInProvider.overrideWithValue(true),
+        // Drafts are kept per account (AccountDraftSession), so the screen
+        // needs a signed-in uid to save one at all.
+        authStateProvider.overrideWith((ref) => Stream.value(_TestUser())),
+      ],
       child: MaterialApp(home: screen),
     ),
   );
   await tester.pumpAndSettle();
+}
+
+class _TestUser implements User {
+  @override
+  String get uid => 'test-uid';
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// The saved draft for [area], as AccountDraftSession writes it.
+Future<Map<dynamic, dynamic>> _savedDraft(String area) async {
+  final raw = (await SharedPreferences.getInstance()).getString(
+    'indigen:draft:v1:test-uid:${Uri.encodeComponent(area)}',
+  );
+  return (jsonDecode(raw!) as Map)['value'] as Map;
 }
 
 void main() {
@@ -50,9 +71,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Save draft'));
       await tester.pumpAndSettle();
-      final prefs = await SharedPreferences.getInstance();
-      final draft =
-          jsonDecode(prefs.getString('kasem-evidence-v2-offline-new')!) as Map;
+      final draft = await _savedDraft('evidence:new');
       final example = (draft['examples'] as List).single as Map;
       expect(example['literal'], '');
       expect(
@@ -64,13 +83,10 @@ void main() {
           expect(grant.value, false);
         }
       }
-      await tester.enterText(field('Sentence in Kasem'), 'unsaved edit');
-      await tester.tap(find.text('Restore draft'));
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<TextField>(field('Sentence in Kasem')).controller!.text,
-        'synthetic mo sentence',
-      );
+      // Drafts autosave per account now (AccountDraftSession), so later typing
+      // is itself kept rather than thrown away by a restore. What matters here
+      // is that the saved copy carries the sentence that was written.
+      expect(jsonEncode(draft), contains('synthetic mo sentence'));
       expect(tester.takeException(), isNull);
     },
   );
@@ -114,11 +130,7 @@ void main() {
       expect(find.text('Version 3'), findsOneWidget);
       await tester.tap(find.text('Save draft'));
       await tester.pumpAndSettle();
-      final draft = jsonDecode(
-        (await SharedPreferences.getInstance()).getString(
-          'kasem-evidence-v2-offline-existing',
-        )!,
-      ) as Map;
+      final draft = await _savedDraft('evidence:existing');
       expect((draft['examples'] as List).length, 3);
       for (var i = 0; i < 3; i++) {
         final row = (draft['examples'] as List)[i] as Map;

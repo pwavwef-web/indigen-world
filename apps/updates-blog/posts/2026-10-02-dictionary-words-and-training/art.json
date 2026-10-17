@@ -1,0 +1,30 @@
+{
+  "accent": "blue",
+  "motif": "dots",
+  "eyebrow": "Dictionary · Training data",
+  "title": "Words in the dictionary, expressions for learning.",
+  "tsize": 46,
+  "lede": "Single words and whole expressions now have separate homes, and contributors learn the purpose before they start.",
+  "tags": [
+    "Dictionary",
+    "Expressions",
+    "TribeStudio"
+  ],
+  "hero": [
+    {
+      "file": "dictionary-and-training.png",
+      "kind": "card"
+    }
+  ],
+  "figures": {
+    "dictionary-and-training.png": {
+      "title": "Two homes for language data",
+      "note": "Dictionary words on one side, whole expressions for model learning on the other.",
+      "kind": "card"
+    },
+    "contributor-sign-in.jpg": {
+      "title": "Purpose first, then sign in",
+      "note": "The TribeStudio sign-in explains how contributor submissions are used."
+    }
+  }
+}

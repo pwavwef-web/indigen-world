@@ -1,0 +1,26 @@
+# Platform observatory verification
+
+Research started 15 October 2026 UTC; final local build and browser review completed 16 October. Evidence assertions are a bounded snapshot of the reviewed sources, not a live production census.
+
+## Checks actually completed
+
+- Canonical Data build/content-integrity verification passed using installed prebuilt runtime SHA-256 `9e3ede84b28aded3c7379b6e6a5611f0d95b9977eb0f781e279ceefabfcbd27e`. Original artifact ID retained: `dashboard:9ca5c0f1-2d2e-481c-a2c2-d08477ef1bb2`. Final authoring indicator is complete; browser header shows Updated 16 Oct 2026 rather than Creating.
+- Fresh contracts: 23/23 fixtures across 27 schemas. Website typecheck exit 0. Reviewed source/reference integrity exit 0 with 47 capabilities, 66 excerpts, 13 decisions, 13 selected release milestones and 12 gaps. Scoped Git whitespace check passed. Historical full-suite counts in the research are not fresh reruns.
+- Five public HTTP GET checks returned 200 around 23:29 UTC on 15 October. No authentication, backend transaction, asset acceptance or production readiness follows from these page-shell checks.
+- All six authored views loaded in the connected Edge browser: overview; platform map; capability ledger; next decisions; release evidence; sources/limits. Their principal headings and reviewed records were inspected. Browser console showed no uncaught app errors in the checked states. Remotion emits its standard licensing notice; its terms were not accepted or suppressed by this task.
+- Architecture product buttons and the public-website drill-down selected Discovery in the ledger (one reviewed capability). Ledger All restored 47; Governance returned four; Governance + Planned returned one; Clear all restored 47. Search `offline` returned two applicable records (including the offline research ledger mention), `institutional` returned the export record, and an unmatched search showed a deliberate empty state. Source/copy/download counts follow the matching rows.
+- Selected capability detail displayed implementation, test evidence, release limits, next proof and its exact source excerpts. The shared source inspector loaded overview/data-preview/evidence-flow controls with the selected source-row scope. Search and selected capability, plus the decision priority cut, participate in the supported view URL state.
+- The decision queue showed 13 proposed items; P0 returned five. Release evidence rendered three current local check summaries, five HTTP observations, 13 dated milestones and 12 conflict/gap records. Source-path search `ExportManager` returned one of 66 excerpts; clearing it restored the register.
+- Overview's stacked implementation plot rendered 39 bar rectangles (13 domains × three states, including zero-length categories) with nonzero SVG geometry. Values reconcile to the 47 curated rows. Counts describe the mixed-granularity review inventory, not a completion score.
+- The Remotion player rendered the five actual scenes; chapter 3 sought to the evidence scene; play and pause controls changed state. Final chapter seek opens readable scene content beyond its introduction fade. The first paused frame shows the opening title. A full transcript is present.
+- Normal browser viewport was approximately 1234px wide (1219px content including scrollbar allocation); phone emulation was 390×844. The document did not overflow horizontally in inspected overview/map states (phone document width 375px). Product map cards stack and retain readable labels. The phone chart had visible marks and domain labels. Dense ledger tables scroll within their container.
+- Phone QA found the player iframe clipped the final chapter row. It was repaired and rechecked: final iframe client height 340px, body scroll height 326px, all five chapter buttons visible. The browser viewport override was reset before handoff.
+- Actual unaltered local preview captures are saved under the release post's `screens/`; cover/framed figure assets are generated from those captures with source credits.
+
+## Limits and actions not performed
+
+- In-app browser attachment initially timed out and the app's browser handoff was queued. Edge provided actual rendered verification. Some navigation/input acknowledgements timed out even when the next visible state showed the action completed; those states were checked before continuing.
+- The browser download-event capture timed out; no downloaded-file receipt was captured. The matching-row download payload is implemented and its scoped count/source binding was inspected, but a successful file download is not claimed as an automated test result.
+- Presentation drag/resize, every possible filter combination, all themes, every chart setting, full keyboard/screen-reader accessibility, Safari/iOS and physical phones were not exhaustively tested.
+- No full platform helper/emulator/mobile suite was rerun, and no provider/Play/finance/production data access or authenticated production journey was attempted. No product security/rights/release gate was changed to fill a research gap.
+- No production deployment, external article publication, messages, imports, backfills, model training or scheduled refresh was performed. This is a local manual research artifact.

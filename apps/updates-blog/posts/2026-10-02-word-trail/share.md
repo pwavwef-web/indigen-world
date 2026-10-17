@@ -8,4 +8,6 @@ Word Trail brings a three-lane runner to Indigen World Labs. Dodge obstacles and
 
 Play: https://indigenworld.com/labs/word-trail
 
-Read the story: **[PUBLISHED ARTICLE URL — replace after Blogger publication]**
+Read the story: https://updates.indigenworld.com/2026/10/word-trail.html
+
+Published article: https://updates.indigenworld.com/2026/10/word-trail.html

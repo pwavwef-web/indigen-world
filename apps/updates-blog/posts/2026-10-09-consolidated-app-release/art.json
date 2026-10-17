@@ -1,0 +1,30 @@
+{
+  "accent": "blue",
+  "motif": "rings",
+  "eyebrow": "Android · 0.1.32 (41)",
+  "title": "One release with the latest improvements.",
+  "lede": "Community navigation, offline Downloads, recovered drafts, Black appearance and Kasem references.",
+  "tags": [
+    "Community",
+    "Downloads",
+    "Draft recovery"
+  ],
+  "hero": [
+    "community-feeds.png",
+    "mobile-downloads-test.png"
+  ],
+  "figures": {
+    "community-feeds.png": {
+      "title": "For You, Following, joined",
+      "note": "The Community page."
+    },
+    "mobile-downloads-test.png": {
+      "title": "Downloads you can repair",
+      "note": "A labelled synthetic offline track."
+    },
+    "draft-recovery-phone.png": {
+      "title": "Recover unfinished work",
+      "note": "TribeStudio offers explicit recovery of an unfinished contribution."
+    }
+  }
+}

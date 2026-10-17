@@ -13,7 +13,7 @@ Status: **Unpublished article. Backend deployed and verified on 2026-10-03. No n
 
 ## Images and credits
 
-- images/reviewed-answer-path.png (1400 × 820): original conceptual workflow illustration authored as the accompanying SVG and rendered with resvg. Credit: Indigen World. It is clearly labelled as an illustration, not a screenshot or deployment evidence.
+- screens/reviewed-answer-path.png (1400 × 820): original conceptual workflow illustration authored as the accompanying SVG and rendered with resvg. Credit: Indigen World. It is clearly labelled as an illustration, not a screenshot or deployment evidence.
 - Upload the PNG with Blogger Insert image → Upload from computer. Replace the relative src in post.html with the uploaded Blogger image URL. Keep the descriptive alt text, dimensions and caption. The SVG is editable source; use the actual PNG for Blogger.
 
 ## Implementation and verification
@@ -38,3 +38,16 @@ The fix also preserves the governed corpus destination resolver from the concurr
 ## Final reconciled production evidence
 
 Final reconciled rollout completed on 2026-10-03 from source commit dd3bbf2. Revisions: kawuriChat kawurichat-00031-muk; onCommunityKawuriMention oncommunitykawurimention-00023-kof. Both are ACTIVE. All 20 original application settings were preserved. Both downloaded source archives (src/kawuri.ts, src/kawuri-grounding.ts and lib/bundle.mjs) matched the tested reconciled checkout. The same four public callable regression checks passed again at 2026-10-03T20:59:47.716Z. Final evidence: ignored .labs-local/kawuri-grounding-final-deploy.log and kawuri-final-verification.json. No corpus policy, release or reviewer grant was created in production. PR: https://github.com/pwavwef-web/indigen-world/pull/30.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/reviewed-answer-path.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-03-kawuri-reviewed-answers`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/kawuri-reviewed-language-answers.html

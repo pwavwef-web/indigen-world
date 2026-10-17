@@ -1,0 +1,45 @@
+{
+  "checkedAt": "2026-10-14T12:50:42.744Z",
+  "origin": "https://indigenworld.com",
+  "checks": [
+    {
+      "asset": "labs/index.html",
+      "sha256": "c9e9d45f3c430c7a7e53569f48e27076f07fb65dd16cb2087263cdcac942c594",
+      "bytes": 2520
+    },
+    {
+      "asset": "assets/word-trail/gameplay.png",
+      "sha256": "1bc1750a27257c55fe46b6e4738d766a7f7253cafb0bea8fe48cf743839a1b80",
+      "bytes": 179978
+    },
+    {
+      "asset": "assets/word-trail/THIRD-PARTY-NOTICES.txt",
+      "sha256": "5d5dad8147523d59bc15cca838ae0bdaae7075230ec49132c551a1d18e7b3412",
+      "bytes": 1102
+    },
+    {
+      "asset": "assets/LabsPage-BMq_0Mtc.js",
+      "sha256": "da1b35690ceff91110188a9bbcffa9cf418577228cfd3f597de9ca99dc7eb538",
+      "bytes": 190087
+    },
+    {
+      "asset": "assets/LabsPage-C9vidhBX.css",
+      "sha256": "69136757b3fc7e5c1ebafd7c2d3373a10f4bd07c04410060599eda49c64ae2ab",
+      "bytes": 50947
+    },
+    {
+      "asset": "assets/runner-m3_nSXCt.css",
+      "sha256": "4ab76b14448169de77b17d45a96a8b43c476b919a6ad0c72e18f6e11a89139bd",
+      "bytes": 14791
+    },
+    {
+      "asset": "assets/runner-M8p6QM6-.js",
+      "sha256": "11b72c23fdcb11c5cf8aa5dcdf21e8d70fe896a8bb22e7bb35a934675a66827c",
+      "bytes": 593963
+    },
+    {
+      "check": "Live signed-out phone practice, countdown, rendering, pause and exit",
+      "passed": true
+    }
+  ]
+}

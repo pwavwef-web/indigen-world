@@ -16,3 +16,7 @@ Each subject below was generated twice with these prompts:
 - **NNaYeiri SeNBwei** (`nnayeiri-senbwei`): two interlocking friendly speech bubbles with a small question symbol. Palette: indigo, cream, coral.
 - **Kasem Practice** (`kasem-practice`): a cheerful notebook, pencil and a small leafy branch. Palette: teal, warm cream, sunflower yellow.
 - **Indigen Guide** (`indigen-guide`): a friendly compass with a small glowing path through an open doorway. Palette: plum, warm cream, amber.
+
+## Zem Ghana (`zem-ghana`)
+
+Added 2026-10-15. Unlike the five accounts above, Zem Ghana's avatar.png and cover.png are not AI illustrations. `services/functions/scripts/zem-ghana-art.mjs` renders them from `zemGhanaAvatarSvg` / `zemGhanaCoverSvg` in `community-news-policy.ts`, using the exact Indigen World mark (roof, bars and sun) in Ghana's flag colours. Re-run that script after changing the artwork. Headline cards are also drawn in code, with bundled Noto Sans. AI-generated imagery is deliberately never used for news.

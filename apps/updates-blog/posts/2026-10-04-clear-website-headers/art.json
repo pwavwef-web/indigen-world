@@ -1,0 +1,30 @@
+{
+  "accent": "teal",
+  "motif": "chevrons",
+  "eyebrow": "Website · Layout",
+  "title": "Headers with room to read.",
+  "lede": "Text, buttons and search keep their own space; the illustration sits beside or below, never over.",
+  "tags": [
+    "Wide screens",
+    "Phones",
+    "13 layouts"
+  ],
+  "hero": [
+    "contribute-desktop.png",
+    "dictionary-mobile.png"
+  ],
+  "figures": {
+    "contribute-desktop.png": {
+      "title": "Illustration beside the content",
+      "note": "The Contribute page on a wide screen."
+    },
+    "dictionary-mobile.png": {
+      "title": "Content first on phones",
+      "note": "The Dictionary page, with its illustration below."
+    },
+    "ecosystem-desktop.png": {
+      "title": "Ecosystem header",
+      "note": "A heading and paragraph beside a separate illustration."
+    }
+  }
+}

@@ -8,7 +8,7 @@ Status: **Draft held at the owner's request until the mobile update is deployed.
 | Labels | `Feature`, `Mobile app`, `Literature`, `Collection` |
 | Search description | Browse Kasem folktales, drama, poetry, and food recipes with new category tabs in the Indigen World Literature collection. |
 | Custom permalink | `kasem-literature-category-tabs` |
-| Cover | `images/literature-folktales.png` |
+| Cover | `screens/literature-folktales.png` |
 
 ## What is implemented
 
@@ -49,8 +49,8 @@ GitHub accepted the push, but [Mobile checks](https://github.com/pwavwef-web/ind
 
 | Asset | Size | Purpose |
 |---|---|---|
-| `images/literature-folktales.png` | 780×1688 | Actual Flutter screen rendered with Folktales selected and the existing story’s local metadata and cover. |
-| `images/literature-recipes-empty.png` | 780×1688 | Actual Flutter screen rendered with Food & recipes selected and no recipes in the fixture. |
+| `screens/literature-folktales.png` | 780×1688 | Actual Flutter screen rendered with Folktales selected and the existing story’s local metadata and cover. |
+| `screens/literature-recipes-empty.png` | 780×1688 | Actual Flutter screen rendered with Food & recipes selected and no recipes in the fixture. |
 
 These are **local renders of the implemented interface**, not screenshots from a released or live-connected app. The fixture contains only the existing folktale, not invented publications. No live Firebase requests are used; the cover is served from the local repository while rendering.
 
@@ -72,3 +72,16 @@ Publication is on hold by the owner's instruction on 2026-10-03. Resume only aft
 4. Upload both PNG files to Blogger. Replace each relative `src="images/..."` in HTML with its uploaded Blogger URL, or replace the image in Compose view in the same position. Preserve the descriptive alt text and captions; retain Folktales as the first image.
 5. Paste `post.html` in a new Blogger post’s HTML view. Enter the title, labels, search description, and custom permalink above. Preview before publishing.
 6. After a future authorized publication, replace `[PUBLISHED_ARTICLE_URL]` in `share.md` before sharing. Sending community announcements remains a handoff to Chinedum.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/literature-folktales.jpg`, `images/literature-recipes-empty.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-03-literature-category-tabs`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/kasem-literature-category-tabs.html

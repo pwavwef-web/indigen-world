@@ -8,7 +8,7 @@ Status: **Deployed October 4, 2026; public assets and all 13 shared banner layou
 - Custom permalink: clear-website-headers
 - Article: `post.html`
 - Sharing copy: `share.md`
-- Images: `images/contribute-desktop.png`, `images/dictionary-mobile.png`, `images/ecosystem-desktop.png`
+- Images: `screens/contribute-desktop.png`, `screens/dictionary-mobile.png`, `screens/ecosystem-desktop.png`
 
 ## Implementation and availability
 
@@ -43,3 +43,16 @@ Preparing this repository post does not publish it or send community messages.
 - All 13 shared banner routes were checked on the public domain at 1440 and 360 pixels. Every complete content container is separate from its artwork; no horizontal overflow occurs, and visible enabled links and form controls are reachable.
 - A fresh 390-pixel reduced-motion dictionary visit keeps the illustration separate, has no playback button, accepts a search term and clears it through the header search control.
 - Only website Hosting was released. Backend functions, database rules and mobile releases were not changed. The Blogger article and community sharing remain with Chinedum.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/contribute-desktop.jpg`, `images/dictionary-mobile.jpg`, `images/ecosystem-desktop.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-04-clear-website-headers`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/clear-website-headers.html

@@ -111,7 +111,7 @@ void main() {
     expect(find.text('Mute everything'), findsOneWidget);
     expect(
       find.text(
-        'All ${NotificationPreference.values.length} kinds can wake you',
+        'All ${NotificationPreference.optOut.length} kinds can wake you',
       ),
       findsOneWidget,
     );

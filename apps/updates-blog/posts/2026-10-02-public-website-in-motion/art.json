@@ -1,0 +1,34 @@
+{
+  "accent": "violet",
+  "motif": "rings",
+  "eyebrow": "Website · Motion",
+  "title": "A little movement, with a purpose.",
+  "lede": "Page headers now move around their subject, and stay still for anyone who prefers it.",
+  "tags": [
+    "Themed headers",
+    "Scroll reveals",
+    "Motion preferences"
+  ],
+  "hero": [
+    "home-desktop.png",
+    "practice-mobile.png"
+  ],
+  "figures": {
+    "home-desktop.png": {
+      "title": "Strands come together",
+      "note": "The homepage header, in a local preview."
+    },
+    "ecosystem-desktop.png": {
+      "title": "Connections form",
+      "note": "The ecosystem page, with connected points in a dark illustration."
+    },
+    "labs-desktop.png": {
+      "title": "Labs in orbit",
+      "note": "An animated orbital illustration beside the Labs introduction."
+    },
+    "practice-mobile.png": {
+      "title": "The Practice Lab on a phone",
+      "note": "A narrow local preview of the Kasem Practice Lab."
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "accent": "blue",
+  "motif": "rings",
+  "eyebrow": "Kawuri · Community · Labs",
+  "title": "Gemini 4.\nGrounded in our records.",
+  "tsize": 48,
+  "lede": "A new text model behind familiar tools. Reviewed Kasem records remain the reference.",
+  "tags": ["Gemini 4 Argon", "Verified sources"],
+  "hero": [{ "file": "model-card.png", "kind": "card" }],
+  "figures": {
+    "model-card.png": {
+      "kind": "card",
+      "title": "New model,\nreviewed sources",
+      "note": "Editorial illustration. Kawuri still returns language answers from verified records, with an explicit refusal when evidence is missing."
+    }
+  }
+}

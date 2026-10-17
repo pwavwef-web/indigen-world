@@ -1,3 +1,78 @@
+# Blog theme audit — 11 October 2026
+
+Audit of the live blog (`updates.indigenworld.com`, homepage and two posts fetched
+and screenshotted headless at 1366 px and 390 px, light and dark) against the
+editorial standard of The Pwavwe Papers theme. 29 changes, in
+`theme/indigen-world-updates.xml` unless noted. The theme has **not** been uploaded
+to Blogger; see "Scope" below.
+
+## Defects found on the live blog
+
+| # | Finding | Change |
+|---|---|---|
+| 1 | Every post showed its cover twice: the theme's `.iw-cover` (from `featuredImage`) and the same image at the top of the body, which release posts keep so Blogger uses it as the share card. | `has-cover` class on the article; CSS hides the body's first-image wrapper before paint (also through the `<article>` wrapper); the script removes the first body image when its Blogger image key matches the cover, keeps text-bearing paragraphs, and moves a figure caption onto the cover. |
+| 2 | A Featured Post gadget retained by Blogger rendered the newest cover a third time under the homepage grid (hidden only by late JS). | `.iw-layout--index:has(.iw-card) #FeaturedPost1` hides it before first paint; README tells the owner to remove it in Layout. |
+| 3 | Covers, cards and the lead card cropped 1200×630 art to 16:9, cutting off the headline inside the art. The lead card stretched it to the text height. | All `featuredImage` crops use `1200:630`; card media is `aspect-ratio:40/21`; the article cover is resized without a crop; the lead cover sits inset at full shape. |
+| 4 | Paragraphs had zero spacing: posts wrap the body in one `<article>` and the rhythm rule only targeted direct children. | Rhythm reaches through a single `article`/`div` wrapper (19.6 px measured, was 0). |
+| 5 | `snippet()` cut inside `<em>` (orthography-book card); the open tag was re-opened by the parser in every later element, italicising the sidebar and footer. | Snippets render inside a `<template>` (a parsing boundary) and are copied as plain text. |
+| 6 | Bylines printed the Blogger profile display name, which belongs to another blog. | Byline, author box and JSON-LD author are the Indigen World organisation. |
+| 7 | Archive entries read "October27": Blogger emits the count with no space, and the month had no year. | Count styled as a pill; `monthPattern` is `MMMM yyyy`. |
+| 8 | Older-posts pages are search views with no query and showed an empty `“”` title. | They get "Earlier updates"; label/archive views get a one-line description. |
+
+## Editorial upgrade
+
+| # | Change |
+|---|---|
+| 9 | Noto Serif Display for hero, view, card, article, section and prose `h2`/`h3` headlines, exposed as a Theme Designer variable. Its latin-ext subset covers Kasem's IPA letters and tone marks. |
+| 10 | Homepage masthead: a purpose headline instead of repeating the header's blog title, an accent rule, the search-description lede, and a three-line rail saying what posts cover. Staggered entrance animation that respects reduced motion. |
+| 11 | "Latest updates" section bar above the grid; the hero button targets it. |
+| 12 | Label, archive and search sub-mastheads in the display face, with "Filed under / From the archive / Search results" eyebrows and a result count for searches. |
+| 13 | Article header: a kicker of at most three ranked topics in place of up to seven chips; a 4rem display title; the post's search description as a summary. |
+| 14 | Cover slightly wider than the reading column on desktop, with a caption slot. |
+| 15 | Card labels ranked: product areas (`AREAS` list) first, two per card, instead of the first two alphabetically. |
+| 16 | Sidebar topics trimmed from 60+ chips to the twelve busiest, with a "Show all N topics" toggle. |
+| 17 | Below 1180 px the contents fold into one "On this page · N sections" line, closing again after a jump. The cover leads straight into the prose. |
+| 18 | Named share buttons (X, LinkedIn, WhatsApp, Facebook, Copy link, More). "Copied" feedback is announced; a fallback covers in-app browsers without the async clipboard. The share title uses the post title, not the document title. |
+| 19 | "Follow what we ship next" card with RSS and website links after the author box. |
+| 20 | Related updates as three cover cards (1200:630 thumbnails from the feed) chosen by the top-ranked topic, which the heading names. |
+| 21 | Comments load on request behind a gate. Scripts replay in order so the Blogger iframe works; `#c…`/`#comments` links open it automatically. |
+| 22 | `Ctrl`/`⌘`+`K` and `/` open search. |
+| 23 | 404 view with an eyebrow, display headline and its own search box. |
+| 24 | Blockquotes as display-face pull quotes. |
+| 25 | Prose images carry a tinted background, so a lazy image still loading reads as a placeholder rather than a white hole. |
+| 26 | Header strapline fixed to "Release notes & field notes". The blog description no longer gets squeezed into the header bar. The follow card is excluded from print. |
+
+## Tooling
+
+| # | Change |
+|---|---|
+| 27 | `scripts/validate-theme.mjs`: seven new checks. Six cover the regressions: 1200:630 crops, contained snippets, no profile byline, body cover hidden, Featured Post hidden, and rhythm through the wrapper. The seventh checks that both theme scripts compile. All six regression checks fail on the previous theme. Total: 28 checks. |
+| 28 | `scripts/build-preview.mjs` reproduces the live defects: a duplicate body cover inside `<article>`, an `<em>`-cut snippet, the Featured Post gadget, 35 labels, Blogger archive markup and multi-label posts. Plates are now 1200×630 with headline text, so crops show. |
+| 29 | README and the release post `posts/2026-10-11-updates-blog-redesign/` document the changes. |
+
+## Verification
+
+- `npm run build:updates-blog-preview`: all 28 validator checks passed and six previews were generated.
+- Headless Chrome on the previews: one visible cover; the Featured Post gadget computed `display:none`; no `em` leaks and the sidebar and footer computed `font-style:normal`; card chips were product areas first; 23 of 35 topics were folded; cover ratio was 1.906; no horizontal overflow at 1366 or 390 px in light or dark; the mobile contents started folded and sat before the prose; comments mounted after opening; and the BlogPosting and BreadcrumbList JSON-LD were present.
+- The real post `2026-10-10-easier-kasem-discovery` was rendered with its real images. Its body cover was removed and all four screenshot figures were kept. A variant with Blogger-style URLs and a captioned cover figure moved the caption onto the theme cover. The cover matcher was unit-checked on `img/b/R29vZ2xl/<key>/…` and `img/a/<key>=s…` URLs, with resized variants matching and different images not matching.
+
+## Install fix (same day)
+
+Blogger rejected the first upload with `InvalidVariableException`. A CSS comment
+in the skin mentioned `<article>` and `<div>`, and Blogger reads tag-like text
+anywhere in `b:skin` into its SkinVariables XML. The comment no longer uses angle
+brackets. A 29th validator check fails on any tag-like text after the variable
+block (it was confirmed to fail on the broken version).
+
+## Scope
+
+Blogger's template engine, the hosted comment iframe, `resizeImage` output and
+widget data (`data:post.allowComments`, `data:blog.metaDescription` on item pages)
+can only be confirmed after the theme is pasted into Blogger. The release post's
+README lists the four checks to make right after installing.
+
+---
+
 # Blog theme audit — 5 September 2026
 
 The local Blogger theme has been corrected and its previews rebuilt. The

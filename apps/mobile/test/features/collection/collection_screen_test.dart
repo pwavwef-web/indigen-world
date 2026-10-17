@@ -228,7 +228,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
   });
 
-  testWidgets('literature genres find the portal and open its category tabs', (
+  testWidgets('literature opens as a channel with genres and blogs on its rail', (
     tester,
   ) async {
     await _pumpCollection(tester);
@@ -236,15 +236,9 @@ void main() {
     await tester.tap(find.text('Literature'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
-    expect(find.byKey(const Key('literature-category-tabs')), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('literature-tab-folktales')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('literature-tab-recipes')),
-      findsOneWidget,
-    );
+    // Literature is a channel now: its genres are a destination on the rail.
+    expect(find.text('Genres'), findsOneWidget);
+    expect(find.text('Blogs'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });

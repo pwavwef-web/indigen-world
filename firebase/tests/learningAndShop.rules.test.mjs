@@ -558,3 +558,21 @@ test('an order needs a way to reach the person who placed it', async () => {
     setDoc(doc(db(buyer), 'shopOrders/order-5'), makeOrder(LEARNER, { items: [] })),
   );
 });
+
+test('discovery history is the member\'s own, bounded, and nobody else\'s', async () => {
+  const owner = env.authenticatedContext(LEARNER);
+  const other = env.authenticatedContext(OTHER);
+  const admin = env.authenticatedContext(ADMIN.sub, { role: ADMIN.role });
+  const path = `discoveryHistory/${LEARNER}`;
+  const valid = { uid: LEARNER, scopes: { music: { 'reel-1': new Date() } } };
+  await assertSucceeds(setDoc(doc(db(owner), path), valid));
+  await assertSucceeds(getDoc(doc(db(owner), path)));
+  await assertFails(getDoc(doc(db(other), path)));
+  await assertFails(getDoc(doc(db(admin), path)));
+  await assertFails(setDoc(doc(db(other), path), valid));
+  // Only the three known fields, and the uid must be the owner's.
+  await assertFails(setDoc(doc(db(owner), path), { ...valid, watchedSeconds: 30 }));
+  await assertFails(setDoc(doc(db(owner), path), { ...valid, uid: OTHER }));
+  const tooMany = Object.fromEntries(Array.from({ length: 13 }, (_, i) => [`scope${i}`, {}]));
+  await assertFails(setDoc(doc(db(owner), path), { uid: LEARNER, scopes: tooMany }));
+});

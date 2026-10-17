@@ -32,6 +32,7 @@ function AnimatedApp() {
   // Global accessibility keyboard shortcut listener ('?' for shortcuts modal)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.querySelector(".trail-shell")) return;
       if (e.key === "?" && !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)) {
         e.preventDefault();
         setShowShortcuts((s) => !s);

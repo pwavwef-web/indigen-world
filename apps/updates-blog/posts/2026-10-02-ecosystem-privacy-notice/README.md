@@ -41,16 +41,16 @@ feature-availability limits in the article. Legal approval is not claimed.
 - Live JS, CSS, JPEG and MP4 returned HTTP 200 and SHA-256 hashes matched the production build.
 - Desktop and phone-width (390 px) layouts had no horizontal overflow. Header video loaded; pause/play and offscreen pause worked. The keyboard deep link and Contact privacy-request route were verified.
 - Reduced-motion, Save-Data handling and video-failure fallback were verified locally before release; this post does not claim they were all retested on production.
-- `images/privacy-live.jpg` is an actual screenshot of the released custom-domain page.
+- `screens/privacy-live.jpg` is an actual screenshot of the released custom-domain page.
 
 No Blogger article has been published or message sent.
 
 ## Images and credit
 
-- `images/privacy-live.jpg`: released custom-domain desktop header screenshot.
-- `images/privacy-desktop.jpg`: local desktop header screenshot.
-- `images/privacy-sections.jpg`: local full-notice reading screenshot.
-- `images/privacy-mobile.jpg`: local phone-width header with reduced motion.
+- `screens/privacy-live.jpg`: released custom-domain desktop header screenshot.
+- `screens/privacy-desktop.jpg`: local desktop header screenshot.
+- `screens/privacy-sections.jpg`: local full-notice reading screenshot.
+- `screens/privacy-mobile.jpg`: local phone-width header with reduced motion.
 
 Screenshot credit: **Indigen World — verified production and local website screenshots,
 2 October 2026.** Captions identify each environment.
@@ -77,3 +77,16 @@ Generation prompt and provenance: `tools/privacy-header/generation.json`.
 6. Replace the marked published-article URL placeholder in `share.md`.
 
 Older posts remain intact. Repository preparation is not external publication.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/privacy-live.jpg`, `images/privacy-desktop.jpg`, `images/privacy-sections.jpg`, `images/privacy-mobile.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-02-ecosystem-privacy-notice`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/ecosystem-privacy-notice.html

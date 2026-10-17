@@ -61,14 +61,14 @@ Phone numbers are test numbers. Credit: Indigen World product interface.
 
 | Asset | Content |
 | --- | --- |
-| `images/contributor-rewards-desktop.png` | Points & rewards page with an opened award explanation and the redeem card. |
-| `images/contributor-awards-mobile.png` | Recent awards on a phone, including an estimate and a clarification. |
-| `images/contributor-rewards-mobile.png` | Redeem card on a phone: 900 points → GH₵15.50. |
-| `images/contributor-confirm-desktop.png` | Server quote confirmation dialog. |
-| `images/validator-rewards-desk.png` | Validator Rewards desk with gates, automatic checks and the decision form. |
-| `images/finance-overview.png` | Admin Finance overview with liability and rollout state. |
-| `images/finance-reconcile.png` | A redemption awaiting reconciliation. |
-| `images/finance-policies.png` | Redemption rate editor with example quotes. |
+| `screens/contributor-rewards-desktop.png` | Points & rewards page with an opened award explanation and the redeem card. |
+| `screens/contributor-awards-mobile.png` | Recent awards on a phone, including an estimate and a clarification. |
+| `screens/contributor-rewards-mobile.png` | Redeem card on a phone: 900 points → GH₵15.50. |
+| `screens/contributor-confirm-desktop.png` | Server quote confirmation dialog. |
+| `screens/validator-rewards-desk.png` | **Not used: the capture is a TribeStudio loading screen, so the figure was removed from the article. Recapture the desk before reinstating it.** Intended content: | Validator Rewards desk with gates, automatic checks and the decision form. |
+| `screens/finance-overview.png` | Admin Finance overview with liability and rollout state. |
+| `screens/finance-reconcile.png` | A redemption awaiting reconciliation. |
+| `screens/finance-policies.png` | Redemption rate editor with example quotes. |
 
 ## Blogger handoff
 
@@ -101,3 +101,16 @@ Phone numbers are test numbers. Credit: Indigen World product interface.
   `ASSESSMENT_KAWURI=vertex`. Not invoked until `assessmentWorker` is switched on.
 - Not yet: Finance rate review, finance permission granted, flags switched,
   signed-in production checks, Blogger publication date and URL.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/contributor-rewards-desktop.jpg`, `images/contributor-awards-mobile.jpg`, `images/contributor-rewards-mobile.jpg`, `images/contributor-confirm-desktop.jpg`, `images/finance-overview.jpg`, `images/finance-reconcile.jpg`, `images/finance-policies.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-10-points-and-rewards`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/points-and-rewards.html

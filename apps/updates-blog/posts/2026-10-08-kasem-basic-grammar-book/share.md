@@ -5,6 +5,8 @@ also adds 363 new dictionary entries and references on existing words.
 
 Grammar guide: https://kasem-dictionary.web.app/grammar-guide.html
 
-**PUBLISHED ARTICLE URL — replace after Blogger publication:** [PASTE PUBLISHED ARTICLE URL HERE]
+**Published article URL:** https://updates.indigenworld.com/2026/10/kasem-basic-grammar-book.html
 
 Check the release README for confirmed website and Kawuri availability before sharing.
+
+Published article: https://updates.indigenworld.com/2026/10/kasem-basic-grammar-book.html

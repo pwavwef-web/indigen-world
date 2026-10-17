@@ -1,0 +1,46 @@
+{
+  "accent": "amber",
+  "motif": "weave",
+  "eyebrow": "TribeStudio · Rewards",
+  "title": "Clearer points, fairer rewards.",
+  "lede": "Validator-confirmed awards show their calculation, and you choose how many points to redeem.",
+  "tags": [
+    "Shown calculations",
+    "Flexible redemptions",
+    "Finance ledger"
+  ],
+  "hero": [
+    "contributor-rewards-desktop.png",
+    "contributor-awards-mobile.png"
+  ],
+  "figures": {
+    "contributor-rewards-desktop.png": {
+      "title": "Every award shows its sum",
+      "note": "Labelled test account."
+    },
+    "contributor-awards-mobile.png": {
+      "title": "Estimates until confirmed",
+      "note": "Pending points cannot be spent yet."
+    },
+    "contributor-rewards-mobile.png": {
+      "title": "Redeem on your phone",
+      "note": "900 points of airtime entered."
+    },
+    "contributor-confirm-desktop.png": {
+      "title": "Confirm the exact amount",
+      "note": "900 points of MTN airtime with its base value."
+    },
+    "finance-overview.png": {
+      "title": "Finance overview",
+      "note": "Pending, awaiting top-up and needs-reconciliation counts."
+    },
+    "finance-reconcile.png": {
+      "title": "Reconcile each redemption",
+      "note": "A request that needs reconciliation."
+    },
+    "finance-policies.png": {
+      "title": "Policies in one place",
+      "note": "Base points, bonus bands and limits."
+    }
+  }
+}

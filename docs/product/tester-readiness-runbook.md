@@ -159,7 +159,9 @@ about how Indigen World works and declines to guess at Kasem. That is a usable
 internal-testing state, so testers are never blocked on this.
 
 Optional overrides (plain env vars, no secrets): `KAWURI_MODEL`
-(default `gemini-2.5-flash`), `KAWURI_LOCATION` (default `us-central1`).
+(default `gemini-4-argon`), `KAWURI_LOCATION` (default `global`). Gemini 4 uses
+the unprefixed `aiplatform.googleapis.com` host and LOW thinking; token-budget
+settings are not supported. See [Gemini text configuration](../architecture/gemini-text.md).
 
 ---
 

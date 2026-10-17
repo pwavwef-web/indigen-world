@@ -345,13 +345,13 @@ export function readKawuriMediaConfig(
 /**
  * Thinking settings per model family.
  *
- * Gemini 3 takes a level, and rejects MINIMAL on Flash; Gemini 2.5 takes a
+ * Gemini 3 and 4 take a level; Gemini 4 rejects token budgets. Gemini 2.5 takes a
  * token budget. Transcription and structured analysis are recall, not
  * multi-step reasoning, so both are kept low — which also stops reasoning
  * tokens eating the output ceiling, the trap `kawuri.ts` documents.
  */
 export function thinkingConfigFor(model: string): Record<string, unknown> | undefined {
-  if (/^gemini-3/.test(model)) return { thinkingLevel: 'LOW' };
+  if (/^gemini-[34](?:[.-]|$)/.test(model)) return { thinkingLevel: 'LOW' };
   if (/^gemini-2\.5-(flash|pro)(?!-image)/.test(model)) return { thinkingBudget: 0 };
   return undefined;
 }

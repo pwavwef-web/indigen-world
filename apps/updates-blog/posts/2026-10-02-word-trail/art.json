@@ -1,0 +1,26 @@
+{
+  "accent": "green",
+  "motif": "chevrons",
+  "eyebrow": "Labs · Word Trail",
+  "title": "Run the trail, share a word.",
+  "lede": "A three-lane runner whose checkpoints ask for real Kasem translations from the word queue.",
+  "tags": [
+    "Three lanes",
+    "Real word queue",
+    "Duplicate protection"
+  ],
+  "hero": [
+    "word-trail-desktop.png",
+    "word-trail-checkpoint-mobile.png"
+  ],
+  "figures": {
+    "word-trail-desktop.png": {
+      "title": "Dodge, jump, collect",
+      "note": "Three lanes, three lives, and faster sections."
+    },
+    "word-trail-checkpoint-mobile.png": {
+      "title": "A checkpoint asks for a word",
+      "note": "An English prompt from the queue, with Kasem answer entry (simulated test queue)."
+    }
+  }
+}

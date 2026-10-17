@@ -17,16 +17,20 @@
  * separately when present). "Submitted" never means "approved".
  */
 
+import type { ContributorDetails } from '@indigen-world/contracts/contributor-details';
+
 export interface Item {
   id: string;
   expression: string;
   translation: string;
   alternatives: string[];
   context?: string;
+  details?: ContributorDetails;
   revision: number;
   status: string;
   unsure?: boolean;
   submissionId?: string;
+  revisionOf?: string;
   feedback?: string;
   submittedAt?: string;
   reviewedAt?: string | null;
@@ -47,6 +51,7 @@ export interface Work {
 
 /** One review round the contributor sent, read from their own `submissions`. */
 export interface SubmissionRound {
+  translation?: string;
   id: string;
   work: string;
   item: string;
@@ -60,12 +65,17 @@ export interface SubmissionRound {
 
 export type Status = 'Not started' | 'Drafts' | 'Submitted' | 'Needs revision' | 'I’m not sure';
 
+function hasDraft(item: Item) {
+  return Boolean(item.translation.trim() || item.alternatives?.some(value => value.trim()) || item.context?.trim()
+    || (item.details && Object.entries(item.details).some(([key, value]) => key !== 'uncertainty' && (typeof value === 'string' ? value.trim() : Array.isArray(value) && value.some(Boolean)))));
+}
+
 /** The filters the assignment workspace has always used. */
 export function contributionState(item: Item): Status {
   if (item.unsure) return 'I’m not sure';
   if (['needs_revision', 'rejected'].includes(item.status)) return 'Needs revision';
   if (item.submissionId) return 'Submitted';
-  return item.translation.trim() || item.alternatives?.some((value) => value.trim()) ? 'Drafts' : 'Not started';
+  return hasDraft(item) ? 'Drafts' : 'Not started';
 }
 
 export function expressionView(item: Item): 'untranslated' | 'translated' | 'reviewed' {
@@ -107,7 +117,7 @@ export function itemStatus(item: Item): ItemStatus {
     return 'awaiting_review';
   }
   if (item.unsure) return 'unsure';
-  return item.translation.trim() || item.alternatives?.some((value) => value.trim()) ? 'draft' : 'not_started';
+  return hasDraft(item) ? 'draft' : 'not_started';
 }
 
 export const STATUS_META: Record<ItemStatus, { label: string; tone: 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'violet'; description: string }> = {

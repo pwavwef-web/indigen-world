@@ -1,0 +1,54 @@
+{
+  "accent": "blue",
+  "motif": "chevrons",
+  "eyebrow": "Indigen World app · In development",
+  "title": "A shop, a reading room\nand a calmer inbox.",
+  "lede": "The shop and Literature now use the app's own navigation bar, the blog comes into the app, and notifications take up less space.",
+  "tags": [
+    "Shop redesign",
+    "Literature + Blogs",
+    "Explore adverts"
+  ],
+  "hero": [
+    "shop-home-scrolled.png",
+    "literature-blogs.png"
+  ],
+  "figures": {
+    "shop-home-scrolled.png": {
+      "title": "A shop that feels like the app",
+      "note": "Actual Flutter screen. Sample products made for this picture, not real listings."
+    },
+    "shop-product.png": {
+      "title": "Every photo, every option, one clear button",
+      "note": "Actual product page with a sample product and licensed place photographs."
+    },
+    "shop-cart.png": {
+      "title": "Your cart, with the wishlist underneath",
+      "note": "Sample cart. The store confirms prices, stock and delivery before payment."
+    },
+    "shop-categories.png": {
+      "title": "Shelves you can see at a glance",
+      "note": "Sample categories using images already bundled with the app."
+    },
+    "notifications.png": {
+      "title": "More alerts on one screen",
+      "note": "Actual inbox with sample alerts. Swipe right to mark read, left to delete."
+    },
+    "literature-genres.png": {
+      "title": "Genres, all on one screen",
+      "note": "Actual Literature screen with sample pieces. The genre tabs moved to the bottom rail."
+    },
+    "literature-blogs.png": {
+      "title": "Our blog, inside Literature",
+      "note": "Real posts from updates.indigenworld.com, read through Blogger's public feed."
+    },
+    "comment-ad.png": {
+      "title": "One sponsored entry, above the first reply",
+      "note": "Sample Indigen World promotion in an actual thread with sample members."
+    },
+    "explore-ad.png": {
+      "title": "Video adverts in Explore, done properly",
+      "note": "Sample Indigen World promotion. Plays muted on its own; no invented like or repost counts."
+    }
+  }
+}

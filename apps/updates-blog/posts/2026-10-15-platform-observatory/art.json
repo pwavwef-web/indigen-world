@@ -1,0 +1,11 @@
+{
+  "accent":"green",
+  "motif":"rings",
+  "eyebrow":"Research · Evidence · Next decisions",
+  "title":"The full platform.\nAn honest picture.",
+  "lede":"A local observatory of ambition, implementation and the proof still needed.",
+  "tags":["47 capabilities","13 domains","66 source excerpts"],
+  "hero":[{"file":"platform-map-desktop.jpg","kind":"browser"}],
+  "figures":{"platform-map-desktop.jpg":{"kind":"browser","title":"One ecosystem,\ndistinct responsibilities","note":"Actual local dashboard preview. Three public products plus internal administration; release readiness is assessed separately."}},
+  "renderer":"scripts/platform-observatory-art.mjs"
+}

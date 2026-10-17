@@ -1,0 +1,30 @@
+{
+  "accent": "blue",
+  "motif": "weave",
+  "eyebrow": "Community · New account",
+  "title": "Meet Zem Ghana.\nHeadlines, with sources.",
+  "lede": "A new automated account brings Ghana's news into the community feed four times a day, always linked to the original report.",
+  "tags": [
+    "Four times daily",
+    "Linked sources",
+    "Branded cards"
+  ],
+  "hero": [
+    {
+      "file": "headline-card.png",
+      "kind": "card"
+    }
+  ],
+  "figures": {
+    "headline-card.png": {
+      "kind": "card",
+      "title": "One headline, one branded card",
+      "note": "Zem Ghana's first live post, 15 October 2026: a MyJoyOnline economy headline on the account's code-drawn card."
+    },
+    "profile-cover.png": {
+      "kind": "card",
+      "title": "A clearly labelled account",
+      "note": "Zem Ghana's profile cover: the Indigen World mark in Ghana's colours, drawn in code."
+    }
+  }
+}

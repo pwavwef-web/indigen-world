@@ -1,0 +1,34 @@
+{
+  "accent": "green",
+  "motif": "weave",
+  "eyebrow": "Kasem · Grammar",
+  "title": "Kasem grammar, straight from the book.",
+  "lede": "Nine chapters, 56 rules and printed examples from Hewer's A Basic Grammar of Kasem.",
+  "tags": [
+    "56 rules",
+    "421 word records",
+    "Noun and verb forms"
+  ],
+  "hero": [
+    "grammar-guide-desktop.png",
+    "grammar-guide-mobile.png"
+  ],
+  "figures": {
+    "grammar-guide-desktop.png": {
+      "title": "Nine chapters, 56 rules",
+      "note": "The grammar guide on the website."
+    },
+    "dictionary-word.png": {
+      "title": "A word with its book source",
+      "note": "The published badwoni entry, meaning friend, with its source paragraph."
+    },
+    "future-continuous-rule.png": {
+      "title": "Rules with printed examples",
+      "note": "An expanded future continuous rule."
+    },
+    "grammar-guide-mobile.png": {
+      "title": "The reference on a phone",
+      "note": "Chapters and records at phone width."
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/gestures.dart' show kDoubleTapSlop, kDoubleTapTimeout;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,6 +35,7 @@ import 'package:indigen_world_mobile/features/explore/reel_engagement.dart';
 import 'package:indigen_world_mobile/features/explore/reel_media.dart';
 import 'package:indigen_world_mobile/features/explore/reel_overflow_menu.dart';
 import 'package:indigen_world_mobile/features/explore/reel_rail.dart';
+import 'package:indigen_world_mobile/features/explore/sponsored_reel_panel.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:video_player/video_player.dart';
@@ -2014,6 +2016,32 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
     final chrome = widget.chrome;
 
     if (reel.adSlot case final slot?) {
+      // On Android, Google's advert is drawn by the registered full-screen
+      // layout (ExploreNativeAdFactory.kt), in the same shape as a
+      // first-party advert. Elsewhere it keeps the template, centred.
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        return ColoredBox(
+          color: Colors.black,
+          child: UnifiedAdSlot(
+            slot: slot,
+            firstPartyBuilder: (context, ad) =>
+                SponsoredCard(ad: ad, slot: 'explore-${slot.index}'),
+            loading: const Center(child: _ExploreAdLoading()),
+            onDark: true,
+            keepAdMobAlive: false,
+            adMobFactoryId: 'exploreFullscreen',
+            adMobCustomOptions: {
+              'topInset': (MediaQuery.paddingOf(context).top + 64).round(),
+              'bottomInset':
+                  (widget.bottomInset + MediaQuery.paddingOf(context).bottom)
+                      .round(),
+            },
+            onAdMobUnavailable: () => ref
+                .read(collapsedAdMobSlotsProvider.notifier)
+                .collapse(slot.key),
+          ),
+        );
+      }
       return ColoredBox(
         color: Colors.black,
         child: SafeArea(
@@ -2089,6 +2117,57 @@ class _ReelCardState extends ConsumerState<_ReelCard> {
     // The words and the rail clear the nav bar, the device's own gesture
     // area, and the strip the progress bar runs along between them.
     final lift = bottom + MediaQuery.paddingOf(context).bottom + 22;
+
+    // A first-party advert is laid out as a video advert, not as a member's
+    // reel: creative across the middle, then the panel. See
+    // [SponsoredReelPanel] for what it copies from other feeds and what not.
+    if (reel.servedAd case final ad?) {
+      return Semantics(
+        container: true,
+        label: 'Sponsored. ${reel.title}.',
+        child: ColoredBox(
+          color: Colors.black,
+          child: Column(
+            children: [
+              SizedBox(height: MediaQuery.paddingOf(context).top + 64),
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: _onTapUp,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      media,
+                      if (_opening)
+                        Center(child: _ReelSpinner(slow: _slow))
+                      else if (widget.isActive && _failed)
+                        Center(
+                          child: _MediaUnavailable(
+                            message: 'This video cannot be played right now.',
+                            onRetry: _retry,
+                          ),
+                        )
+                      else if (reel.isVideo && widget.userPaused)
+                        const Center(child: _PausedMark()),
+                    ],
+                  ),
+                ),
+              ),
+              SponsoredReelPanel(
+                ad: ad,
+                controller: widget.isActive ? ready : null,
+                playing: widget.isPlaying && !widget.userPaused,
+                muted: widget.soundMuted,
+                onTogglePlay: widget.onTapMedia,
+                onToggleSound: widget.onToggleSound,
+                onMore: widget.onMore,
+              ),
+              SizedBox(height: bottom + MediaQuery.paddingOf(context).bottom),
+            ],
+          ),
+        ),
+      );
+    }
     return Semantics(
       // One node per reel, so a screen reader moves through a reel's parts —
       // its words, its rail — rather than hearing them run together.

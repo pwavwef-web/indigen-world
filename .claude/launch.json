@@ -113,6 +113,20 @@
         "--strictPort"
       ],
       "port": 5194
+    },
+    {
+      "name": "email-previews",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5321",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "C:/Users/DELL/.codex/worktrees/email-theme/indigen-world/output/email-previews"
+      ],
+      "port": 5321
     }
   ]
 }

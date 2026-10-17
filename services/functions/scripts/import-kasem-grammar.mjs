@@ -10,6 +10,7 @@ import { resolve, join } from 'node:path';
 import { applicationDefault, initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { fileURLToPath } from 'node:url';
+import { sourceEntryIndex, matchSourceEntry } from './source-entry-matches.mjs';
 
 const root = resolve(fileURLToPath(new URL('../../../', import.meta.url)));
 const book = JSON.parse(readFileSync(join(root, 'data/grammar-book-seed/book.json'), 'utf8'));
@@ -70,13 +71,12 @@ async function main() {
     const db = getFirestore();
     const dictionary = await db.collection('dictionaryEntries').get();
     const expressions = await db.collection('expressionEntries').get();
-    const existing = new Map([...dictionary.docs, ...expressions.docs].map(doc => [norm(doc.get('kasemText') || doc.get('headword')) + '|' + norm(doc.get('englishText') || doc.get('translation')), doc]));
+    const existing = sourceEntryIndex([...dictionary.docs, ...expressions.docs]);
     const plan = [];
     for (const entry of book.entries) {
       const phrase = /\s/.test(entry.headword);
       const collection = phrase ? 'expressionEntries' : 'dictionaryEntries';
-      const candidate = (phrase ? expressions : dictionary).docs.find(doc => doc.id === entry.id) ?? existing.get(norm(entry.headword) + '|' + norm(entry.translation));
-      const matched = candidate?.ref.parent.id === collection ? candidate : undefined;
+      const matched = matchSourceEntry(existing, collection, entry);
       const ref = matched?.ref ?? db.collection(collection).doc(entry.id);
       const data = {
         headword: entry.headword, kasemText: entry.headword, englishText: entry.translation, translation: entry.translation,

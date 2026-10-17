@@ -86,6 +86,7 @@ export const SECTIONS: SectionDef[] = [
       { id: 'ledger', slug: 'ledger', label: 'Points ledger', icon: 'list', hint: 'Every points movement and reasoned adjustments', access: 'admin' },
       { id: 'audit', slug: 'audit', label: 'Audit history', icon: 'archive', hint: 'Policy, flag, decision and adjustment history', access: 'admin' },
       { id: 'payouts', slug: 'payouts', label: 'Payout records', icon: 'bank', hint: 'Payout verification and contributor payment requests', access: 'finance' },
+      { id: 'shop', slug: 'shop', label: 'Shop transactions', icon: 'bank', hint: 'Verified store payments, refunds and exceptions', access: 'finance' },
     ],
   },
   {
@@ -96,6 +97,7 @@ export const SECTIONS: SectionDef[] = [
       { id: 'names', slug: 'names', label: 'Names', icon: 'user', hint: 'Kasem names and meanings', access: 'admin' },
       { id: 'apps', slug: 'apps', label: 'Apps', icon: 'grid', hint: 'The app directory', access: 'admin' },
       { id: 'audiobooks', slug: 'audiobooks', label: 'Audiobooks', icon: 'headphones', hint: 'Recordings, files and publication', access: 'admin' },
+      { id: 'media', slug: 'media', label: 'Collection artwork', icon: 'book', hint: 'Music, literature, audiobook and film covers', access: 'admin' },
       { id: 'shop', slug: 'shop', label: 'Shop', icon: 'bag', hint: 'Products in the community shop', access: 'admin' },
       { id: 'orders', slug: 'orders', label: 'Orders', icon: 'doc', hint: 'Shop orders and fulfilment', access: 'admin' },
     ],
@@ -108,6 +110,7 @@ export const SECTIONS: SectionDef[] = [
       { id: 'correspondence', slug: 'correspondence', label: 'Correspondence', icon: 'mail', hint: 'Letters, Word and PDF downloads, and email', access: 'admin' },
       { id: 'groups', slug: 'groups', label: 'Contact groups', icon: 'users', hint: 'Saved recipient groups', access: 'admin' },
       { id: 'history', slug: 'history', label: 'Campaign history', icon: 'doc', hint: 'Sent and scheduled announcements', access: 'admin' },
+      { id: 'push', slug: 'push', label: 'Push notifications', icon: 'message', hint: 'Images, saved review, test-to-self and scheduled push announcements', access: 'admin' },
       { id: 'test', slug: 'test', label: 'Test SMS', icon: 'flask', hint: 'Send one test message', access: 'admin' },
     ],
   },
@@ -120,6 +123,7 @@ export const SECTIONS: SectionDef[] = [
       { id: 'profiles', slug: 'profiles', label: 'Creator profiles', icon: 'user', hint: 'Memberships, suspension and revocation', access: 'validator' },
       { id: 'members', slug: 'members', label: 'Members', icon: 'users', hint: 'Community members and verification marks', access: 'validator' },
       { id: 'campaigns', slug: 'campaigns', label: 'Campaigns', icon: 'flag', hint: 'Campaign status and visibility', access: 'validator' },
+      { id: 'house-ads', slug: 'house-promotions', label: 'House promotions', icon: 'flag', hint: 'Indigen-owned advertising identity and campaigns', access: 'admin' },
     ],
   },
   {

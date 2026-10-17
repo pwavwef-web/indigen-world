@@ -2185,6 +2185,18 @@ service cloud.firestore {
     // guest; this is what makes a finished unit survive a new phone once there
     // is an account to attach it to. Nobody but the owner may read it — what
     // somebody has and has not learned is theirs.
+    // Bounded "seen recently" history for collection discovery: item ids and
+    // timestamps per collection, readable and writable only by the member.
+    match /discoveryHistory/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.keys().hasOnly(['uid', 'scopes', 'updatedAt'])
+        && request.resource.data.scopes is map
+        && request.resource.data.scopes.size() <= 12;
+      allow delete: if isOwner(uid);
+    }
+
     match /learnProgress/{uid} {
       allow read: if isOwner(uid);
       allow create, update: if isOwner(uid)
@@ -2312,8 +2324,29 @@ service cloud.firestore {
     // ---- Shop catalogue: public read, admin-managed --------------------------
     match /shopProducts/{productId} {
       allow read: if resource.data.get('published', false) == true || isStaff();
-      allow write: if isAdmin();
+      allow write: if isAdmin() && (request.auth.token.get('shopScopes', null) == null || request.auth.token.get('shopScopes', []).hasAny(['catalogue']));
     }
+    match /shopOrdersV2/{orderId} {
+      allow read, write: if false; // owner/staff projections through shop callables
+      match /{document=**} { allow read, write: if false; }
+    }
+    match /shopCustomers/{uid} {
+      allow read, write: if false;
+      match /{document=**} { allow read, write: if false; }
+    }
+    match /shopInventory/{id} { allow read, write: if false; }
+    match /shopTransactions/{id} { allow read, write: if false; }
+    match /shopRefunds/{id} { allow read, write: if false; }
+    match /shopPaymentAuthorizations/{id} { allow read, write: if false; }
+    match /shopInquiries/{id} { allow read, write: if false; }
+    match /shopPromotions/{id} { allow read, write: if false; }
+    match /shopDelivery/{id} { allow read, write: if false; }
+    match /shopCategories/{id} { allow read, write: if false; }
+    match /shopSettings/{id} { allow read, write: if false; }
+    match /collectionMediaAssets/{id} { allow read: if isAdmin(); allow write: if false; }
+    match /advertiserProfiles/{id} { allow read, write: if false; }
+    match /houseAdCampaigns/{id} { allow read, write: if false; }
+    match /notificationCampaigns/{id} { allow read, write: if false; }
 
     // ---- Shop orders: a member places one, staff fulfil it ------------------
     // No payment is taken in the app. An order is a request to buy, answered by

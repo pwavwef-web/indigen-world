@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
-import { before, after, test } from 'node:test';
+import { before, beforeEach, after, test } from 'node:test';
 import { initializeApp, deleteApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
+import { setGenAiFactoryForTests } from '../../services/functions/lib/kawuri-vertex.js';
 import { AUTOMATION_ACCOUNTS, automationDate, dailyPostId } from '../../services/functions/lib/community-automation-policy.js';
-import { answerEnquiryReply, ensureAutomationProfile, publishAutomationPost, setCommunityAutomationToolingClient } from '../../services/functions/lib/community-automation.js';
+import { answerEnquiryReply, ensureAutomationProfile, publishAutomationPost, refreshWordAutomationIllustration, setCommunityAutomationToolingClient } from '../../services/functions/lib/community-automation.js';
 
 if (!process.env.FIRESTORE_EMULATOR_HOST || process.env.GCLOUD_PROJECT !== 'demo-indigen-world') throw new Error('Emulator-only test');
 const app = initializeApp({ projectId: 'demo-indigen-world', storageBucket: 'demo-indigen-world.appspot.com' });
@@ -21,7 +23,78 @@ before(async () => {
     await db.collection('communityAutomationAccounts').doc(bot.id).set({ enabled: true, repliesEnabled: bot.kind === 'enquiry' });
   }
 });
-after(async () => { setCommunityAutomationToolingClient(null); await db.terminate(); await deleteApp(app); });
+beforeEach(() => { responseFor = () => ({ text: 'Which dictionary improvement would help you most?' }); });
+after(async () => { setCommunityAutomationToolingClient(null); setGenAiFactoryForTests(null); await db.terminate(); await deleteApp(app); });
+
+const imagePng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC';
+test('word publication buys a real image response, uploads it and retries idempotently', async () => {
+  const bot = AUTOMATION_ACCOUNTS[0];
+  await db.collection('dictionaryEntries').doc('word_run').set({ isPublished: true, kasemText: 'test-run', englishText: 'to run', partOfSpeech: 'verb' });
+  responseFor = () => ({ entryId: 'word_run', invitationId: 0 });
+  let images = 0;
+  setGenAiFactoryForTests((project, location) => ({ models: { async generateContent(input) {
+    images++;
+    assert.equal(location, 'global');
+    assert.deepEqual(input.config.responseModalities, ['IMAGE']);
+    assert.match(input.contents[0].parts[0].text, /"partOfSpeech":"verb"/);
+    return { candidates: [{ finishReason: 'STOP', content: { parts: [{ inlineData: { mimeType: 'image/png', data: imagePng } }] } }] };
+  } } }));
+  const date = new Date('2027-01-01T07:00:00Z');
+  const result = await publishAutomationPost(bot, date);
+  assert.equal(result.status, 'published');
+  const post = await db.collection('communityPosts').doc(result.postId).get();
+  assert.match(post.get('text'), /AI-generated illustration with Gemini/);
+  const media = post.get('media')[0];
+  assert.equal(media.isAiGenerated, true);
+  assert.match(media.altText, /to run/);
+  const [bytes] = await getStorage().bucket().file(media.storagePath).download();
+  assert.equal(bytes.toString('base64'), imagePng);
+  assert.equal((await publishAutomationPost(bot, date)).status, 'already-published');
+  assert.equal(images, 1);
+});
+test('missing generated picture fails closed; completed uploads survive publication retries', async () => {
+  const bot = AUTOMATION_ACCOUNTS[0];
+  responseFor = () => ({ entryId: 'word_run', invitationId: 1 });
+  const date = new Date('2027-01-02T07:00:00Z');
+  let images = 0;
+  setGenAiFactoryForTests(() => ({ models: { async generateContent() { images++; return { candidates: [{ finishReason: 'IMAGE_SAFETY' }] }; } } }));
+  await assert.rejects(publishAutomationPost(bot, date), /did not return a word illustration/);
+  const postRef = db.collection('communityPosts').doc(dailyPostId(bot, automationDate(date)));
+  assert.equal((await postRef.get()).exists, false);
+  setGenAiFactoryForTests(() => ({ models: { async generateContent() {
+    images++;
+    await db.collection('communityAutomationAccounts').doc(bot.id).update({ enabled: false });
+    return { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: imagePng } }] } }] };
+  } } }));
+  await assert.rejects(publishAutomationPost(bot, date), /Publication cancelled/);
+  assert.equal((await postRef.get()).exists, false);
+  await db.collection('communityAutomationAccounts').doc(bot.id).update({ enabled: true });
+  assert.equal((await publishAutomationPost(bot, date)).status, 'published');
+  assert.equal(images, 2, 'third attempt reuses the uploaded second-attempt image');
+});
+test('existing card upgrades once, preserves counters and never recreates a removed post', async () => {
+  const bot = AUTOMATION_ACCOUNTS[0];
+  const date = '2027-01-03';
+  const id = dailyPostId(bot, date);
+  await db.collection('communityPosts').doc(id).set({ dictionaryEntryId: 'word_run', text: 'Word of the day: test-run — to run.\n\nPublished dictionary · Automated with Vertex AI.', media: [{ url: 'old-card' }], likeCount: 12 });
+  await db.collection('communityAutomationRuns').doc(id).set({ status: 'published' });
+  let images = 0;
+  setGenAiFactoryForTests(() => ({ models: { async generateContent() {
+    images++;
+    return { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: imagePng } }] } }] };
+  } } }));
+  assert.equal((await publishAutomationPost(bot, new Date(`${date}T07:00:00Z`))).status, 'illustration-updated');
+  assert.equal(await refreshWordAutomationIllustration(date), id);
+  assert.equal(images, 1);
+  const post = await db.collection('communityPosts').doc(id).get();
+  assert.equal(post.get('likeCount'), 12);
+  assert.equal(post.get('media')[0].isAiGenerated, true);
+  const revisions = await db.collection('communityAutomationRuns').doc(id).collection('imageRevisions').get();
+  assert.equal(revisions.docs[0].get('media')[0].url, 'old-card');
+  await post.ref.delete();
+  await assert.rejects(refreshWordAutomationIllustration(date), /No enabled published word post/);
+  assert.equal((await post.ref.get()).exists, false);
+});
 
 test('daily retry publishes once and never restores a moderated-away post', async () => {
   const bot = AUTOMATION_ACCOUNTS[2];

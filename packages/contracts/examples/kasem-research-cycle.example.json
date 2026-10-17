@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "id": "synthetic-cycle",
+  "version": 1,
+  "as_of": "2026-10-11T00:00:00.000Z",
+  "targets": {
+    "patterns": 1,
+    "examples_per_pattern": 1,
+    "evaluation_items": 1,
+    "rationale": "Synthetic software fixture only."
+  },
+  "sources": [
+    {
+      "id": "synthetic-publication",
+      "title": "Synthetic source; no language claim",
+      "kind": "publication",
+      "permissions": {
+        "display": "unknown",
+        "retrieval": "unknown",
+        "training": "unknown"
+      },
+      "access_note": "Synthetic validation fixture."
+    }
+  ],
+  "patterns": [
+    {
+      "id": "synthetic-pattern",
+      "question_id": "synthetic-question",
+      "question": "Which wording fits this synthetic situation?",
+      "speaker_tasks": [
+        "Describe a synthetic situation in your own words."
+      ],
+      "follow_up_forms": [],
+      "application_behavior": "Ask a focused question where necessary."
+    }
+  ],
+  "records": [
+    {
+      "id": "synthetic-question",
+      "type": "question",
+      "pattern_id": "synthetic-pattern",
+      "original_text": "Which wording fits this synthetic situation?",
+      "reviewed_text": null,
+      "meaning_in_context": null,
+      "literal_gloss": null,
+      "grammatical_features": {},
+      "usage_context": {
+        "situation": null,
+        "speaker_relationship": null,
+        "community_or_variety": null,
+        "register": null
+      },
+      "related_record_ids": [],
+      "support_record_ids": [],
+      "evidence": [],
+      "review_status": "candidate",
+      "review_history": [],
+      "unresolved_questions": [],
+      "audio_id": null,
+      "permissions": {
+        "display": "unknown",
+        "retrieval": "unknown",
+        "training": "unknown"
+      },
+      "origin": "AI_candidate",
+      "version": 1,
+      "scope": null,
+      "hypothesis": "An untested synthetic hypothesis.",
+      "next_speaker_task": "Describe a synthetic situation in your own words.",
+      "resolution": null
+    }
+  ],
+  "evaluations": []
+}

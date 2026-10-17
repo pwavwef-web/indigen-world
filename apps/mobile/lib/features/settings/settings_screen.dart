@@ -349,7 +349,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: 'Notification settings',
                 subtitle: mutedAlerts == 0
                     ? 'Push alerts, and what is allowed to wake you'
-                    : '$mutedAlerts of ${NotificationPreference.values.length} '
+                    : '$mutedAlerts of ${NotificationPreference.optOut.length} '
                           'kinds muted',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(

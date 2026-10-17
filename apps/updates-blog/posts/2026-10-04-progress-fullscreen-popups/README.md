@@ -25,8 +25,8 @@ This changes presentation. Existing progress data queries, category definitions 
 
 Actual product screenshots, visually inspected after capture:
 
-- `images/progress-fullscreen-desktop.png`: Desktop fullscreen progress gallery, captured from a 1440 × 1000 browser viewport as a full-page PNG.
-- `images/progress-popup-mobile.png`: Mobile explanation popup, captured from a 390 × 844 browser viewport.
+- `screens/progress-fullscreen-desktop.png`: Desktop fullscreen progress gallery, captured from a 1440 × 1000 browser viewport as a full-page PNG.
+- `screens/progress-popup-mobile.png`: Mobile explanation popup, captured from a 390 × 844 browser viewport.
 
 Credit: Indigen World. Both screenshots were captured from the actual locally served product at `http://127.0.0.1:5179/progress` on 2026-10-04 at 13:59 UTC, after the final popup copy cleanup. The page used live production aggregate counts, including 357 words and 105 expressions, without fixture or sample data. Motion was manually paused for these still captures. The captions identify them as local previews; the images do not themselves prove deployment of the redesign.
 
@@ -50,3 +50,16 @@ Blogger: choose Insert image → Upload from computer for both assets, replace e
 3. Set the title, labels, search description and custom permalink above. Preview desktop and phone layouts.
 4. Chinedum can publish the article and replace the clearly marked article URL placeholder in `share.md`.
 5. Share the announcement only after publication. Preparing repository content does not publish it externally or send messages.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/progress-fullscreen-desktop.jpg`, `images/progress-popup-mobile.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-04-progress-fullscreen-popups`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/progress-fullscreen-popups.html

@@ -1,0 +1,35 @@
+{
+  "accent": "blue",
+  "motif": "dots",
+  "eyebrow": "Mobile app · Development preview",
+  "title": "Community and offline listening, made clearer.",
+  "tsize": 46,
+  "lede": "Joined feeds, direct Downloads playback, searchable tags, a Black theme and clearer support.",
+  "tags": [
+    "Community",
+    "Downloads",
+    "Black theme"
+  ],
+  "hero": [
+    "community-feeds.png",
+    "downloads-listening.png"
+  ],
+  "figures": {
+    "community-feeds.png": {
+      "title": "Your communities in one place",
+      "note": "For You, Following and the communities you joined."
+    },
+    "downloads-listening.png": {
+      "title": "Play downloads directly",
+      "note": "A direct play button and collection controls."
+    },
+    "searchable-tags.png": {
+      "title": "Find a tag fast",
+      "note": "A searchable tag sheet for new posts."
+    },
+    "black-support.png": {
+      "title": "Black theme, clear support",
+      "note": "Contact Support in the pure black theme."
+    }
+  }
+}

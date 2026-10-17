@@ -70,6 +70,8 @@ export interface PaystackVerification {
   currency: string;
   paidAt: string | null;
   channel: string | null;
+  customerEmail: string;
+  authorization?: { code: string; last4: string; brand: string; expMonth: string; expYear: string; reusable: boolean };
   /** Whatever we attached at initialisation, echoed back. */
   metadata: Record<string, unknown>;
 }
@@ -138,6 +140,8 @@ export async function initializeTransaction(input: {
   amountPesewas: number;
   reference: string;
   metadata: Record<string, unknown>;
+  callbackUrl?: string;
+  channels?: string[];
 }): Promise<PaystackInitialisation> {
   const data = await call<{
     authorization_url: string;
@@ -150,10 +154,10 @@ export async function initializeTransaction(input: {
       amount: input.amountPesewas,
       currency: 'GHS',
       reference: input.reference,
-      callback_url: paystackCallbackUrl(),
+      callback_url: input.callbackUrl || paystackCallbackUrl(),
       metadata: input.metadata,
       // Mobile money is how most of Ghana pays, so it leads.
-      channels: ['mobile_money', 'card', 'bank', 'ussd'],
+      channels: input.channels ?? ['mobile_money', 'card', 'bank', 'ussd'],
     },
   });
 
@@ -176,6 +180,8 @@ export async function verifyTransaction(
     paid_at: string | null;
     channel: string | null;
     metadata: unknown;
+    customer?: { email?: string };
+    authorization?: { authorization_code?: string; last4?: string; brand?: string; card_type?: string; exp_month?: string; exp_year?: string; reusable?: boolean };
   }>(`/transaction/verify/${encodeURIComponent(reference)}`, { method: 'GET' });
 
   return {
@@ -185,11 +191,21 @@ export async function verifyTransaction(
     currency: String(data.currency ?? ''),
     paidAt: data.paid_at ?? null,
     channel: data.channel ?? null,
+    customerEmail: String(data.customer?.email ?? ''),
+    ...(data.authorization?.authorization_code && data.authorization.reusable && data.channel === 'card' ? { authorization: { code: data.authorization.authorization_code, last4: String(data.authorization.last4 ?? '').slice(-4), brand: String(data.authorization.brand || data.authorization.card_type || 'Card'), expMonth: String(data.authorization.exp_month ?? ''), expYear: String(data.authorization.exp_year ?? ''), reusable: true } } : {}),
     metadata:
       data.metadata && typeof data.metadata === 'object'
         ? (data.metadata as Record<string, unknown>)
         : {},
   };
+}
+
+/** Refund initiation is deliberately separate from refund settlement. */
+export async function initiateShopRefund(reference: string, amountMinor: number, refundId: string): Promise<{ id: number; status: string }> {
+  return call('/refund', { method: 'POST', body: { transaction: reference, amount: amountMinor, merchant_note: `shop:${refundId}` } });
+}
+export async function verifyShopRefund(providerId: string): Promise<Record<string, any>> {
+  return call(`/refund/${encodeURIComponent(providerId)}`, { method: 'GET' });
 }
 
 /**

@@ -1,0 +1,30 @@
+{
+  "accent": "blue",
+  "motif": "dots",
+  "eyebrow": "Indigen World Updates · Redesign",
+  "title": "A cleaner place to read our updates.",
+  "lede": "One cover per post, full-width cover art, readable spacing, clearer topics and easier sharing.",
+  "tags": [
+    "One cover",
+    "Editorial headlines",
+    "Named share buttons"
+  ],
+  "hero": [
+    "article-desktop.png",
+    "article-mobile-dark.png"
+  ],
+  "figures": {
+    "article-desktop.png": {
+      "title": "One cover, shown whole",
+      "note": "A real release post in the new theme, local preview."
+    },
+    "article-mobile-dark.png": {
+      "title": "Comfortable on a phone",
+      "note": "Dark mode, with the contents folded into one line."
+    },
+    "home-desktop.png": {
+      "title": "A homepage that says what it is for",
+      "note": "Local preview with sample posts."
+    }
+  }
+}

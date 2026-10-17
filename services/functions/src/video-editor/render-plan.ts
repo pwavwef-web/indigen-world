@@ -361,7 +361,8 @@ export function buildRenderPlan(spec: RenderSpec, settings: RenderSettings, inpu
     const len = clip.duration;
     const fi = Math.max(0.02, Math.min(clip.fadeIn, len / 2));
     const fo = Math.max(0.02, Math.min(clip.fadeOut, len / 2));
-    graph.push(`[${idx}:a]atrim=start=${n(clip.sourceIn)}:duration=${n(len)},asetpts=PTS-STARTPTS,aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo,volume=${n(level)},afade=t=in:st=0:d=${n(fi)},afade=t=out:st=${n(len - fo)}:d=${n(fo)},adelay=delays=${Math.round(clip.start * 1000)}:all=1[vo${k}]`);
+    const speed = clip.speed ?? 1;
+    graph.push(`[${idx}:a]atrim=start=${n(clip.sourceIn)}:duration=${n(len * speed)},asetpts=PTS-STARTPTS,${[...atempo(speed), 'aresample=48000'].join(',')},aformat=sample_fmts=fltp:channel_layouts=stereo,volume=${n(level)},afade=t=in:st=0:d=${n(fi)},afade=t=out:st=${n(len - fo)}:d=${n(fo)},adelay=delays=${Math.round(clip.start * 1000)}:all=1[vo${k}]`);
     audio.push(`vo${k}`);
     speech.push([clip.start, clip.start + len]);
   });

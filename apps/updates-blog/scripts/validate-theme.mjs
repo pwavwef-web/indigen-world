@@ -247,6 +247,46 @@ for (const [mode, overrides] of [["light", {}], ["dark", darkTokens]]) {
   check(`${mode} text and control contrast (${pairs.length} pairings)`, failures.length === 0, failures.join("\n    "));
 }
 
+/* Blogger builds its <SkinVariables> XML from tag-like text in the skin, not
+   only from the Theme Designer comment. One "<article>" in a CSS comment made
+   Blogger refuse to save or restore the theme with InvalidVariableException. */
+const skinAfterVariables = skin.slice(skin.indexOf("*/") + 2);
+const strayTags = skinAfterVariables.match(/<\/?[A-Za-z][^>]*>?/g) || [];
+check("no tag-like text in the skin outside the variable block", strayTags.length === 0, strayTags.slice(0, 5).join(", "));
+
+/* Regressions found on the live blog in the October 2026 audit. Each one
+   shipped once and was invisible to the structural checks above. */
+
+// Release covers are 1200x630 art with the headline inside; a 16:9 crop cut
+// the words off on the cover and on every card.
+const coverCrops = [...markup.matchAll(/resizeImage\(data:post\.featuredImage,\s*\d+,\s*"(\d+:\d+)"\)/g)]
+  .map((m) => m[1]).filter((ratio) => ratio !== "1200:630");
+check("featured images keep the 1200:630 cover shape", coverCrops.length === 0, coverCrops.join(", "));
+
+// snippet() keeps inline tags; cut inside an <em> it italicised the rest of
+// the page. Every snippet must sit inside a <template> parsing boundary.
+const looseSnippets = [...markup.matchAll(/<b:eval expr='snippet\([^']*'\/>/g)]
+  .filter((m) => !/<template\b[^>]*>\s*$/.test(markup.slice(Math.max(0, m.index - 200), m.index)));
+check("post snippets are contained in a template", looseSnippets.length === 0, `${looseSnippets.length} uncontained`);
+
+// The Blogger account's display name belongs to another blog.
+check("byline does not print the Blogger profile name", !/data:post\.author\.name/.test(markup));
+
+// The cover is shown once: the body's copy and the Featured Post gadget are hidden.
+check("body cover copy is hidden when the theme shows a cover",
+  /\.iw-article\.has-cover \.iw-prose > \.separator:first-child/.test(skin) && /name='has-cover'/.test(markup));
+check("Featured Post gadget cannot repeat the lead cover", /\.iw-layout--index:has\(\.iw-card\) #FeaturedPost1/.test(skin));
+
+// Posts wrap their body in one <article>; spacing must reach through it.
+check("prose rhythm reaches through a single wrapper", /\.iw-prose > :is\(article,div\):only-child > \* \+ \*/.test(skin));
+
+// Both theme scripts must at least compile.
+const scriptErrors = [];
+for (const m of src.matchAll(/<script>\/\/<!\[CDATA\[([\s\S]*?)\/\/\]\]><\/script>/g)) {
+  try { new Function(m[1]); } catch (error) { scriptErrors.push(error.message); }
+}
+check("theme scripts compile", scriptErrors.length === 0, scriptErrors.join("; "));
+
 /* ------------------------------------------------------------------ report */
 
 let failed = 0;

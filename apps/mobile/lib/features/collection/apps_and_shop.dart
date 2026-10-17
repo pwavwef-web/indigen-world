@@ -25,6 +25,7 @@ class DirectoryApp {
     this.description = '',
     this.category = '',
     this.iconUrl = '',
+    this.screenshots = const [],
     this.links = const <String, String>{},
   });
 
@@ -34,6 +35,7 @@ class DirectoryApp {
   final String description;
   final String category;
   final String iconUrl;
+  final List<Map<String, String>> screenshots;
 
   /// Store links keyed by platform: `android`, `ios`, `web`.
   final Map<String, String> links;
@@ -68,6 +70,17 @@ class DirectoryApp {
       description: _text(data['description']),
       category: _text(data['category']),
       iconUrl: _text(data['iconUrl']),
+      screenshots:
+          (data['screenshots'] is List ? data['screenshots'] as List : [])
+              .whereType<Map>()
+              .take(12)
+              .map(
+                (image) => {
+                  'url': _text(image['url']),
+                  'alt': _text(image['alt']),
+                },
+              )
+              .toList(),
       links: links,
     );
   }
@@ -181,6 +194,7 @@ class CollectionCatalogueRepository {
       .collection('collectionApps')
       .where('published', isEqualTo: true)
       .orderBy('order')
+      .limit(100)
       .snapshots()
       .map(
         (snapshot) =>
@@ -191,6 +205,7 @@ class CollectionCatalogueRepository {
       .collection('shopProducts')
       .where('published', isEqualTo: true)
       .orderBy('order')
+      .limit(24)
       .snapshots()
       .map(
         (snapshot) =>

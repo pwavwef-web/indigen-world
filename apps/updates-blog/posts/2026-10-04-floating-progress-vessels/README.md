@@ -53,3 +53,16 @@ The browser script accepts `PROGRESS_PREVIEW_URL`, `PLAYWRIGHT_PACKAGE` and `CHR
 4. Chinedum decides when to publish. Replace the clearly marked URL placeholder in `share.md` before sharing.
 
 Preparing these files does not publish externally or send messages.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/floating-jars-desktop.jpg`, `images/glowing-tanks-desktop.jpg`, `images/local-pots-desktop.jpg`, `images/floating-jars-mobile.jpg`, `images/category-popup-mobile.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-04-floating-progress-vessels`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/floating-progress-vessels.html

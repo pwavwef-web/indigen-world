@@ -1,3 +1,4 @@
+<div class="separator"><img alt="Cover for “Watch verified contributions flow into the jars.”: TribeStudio is the pump. Approvals travel down glass pipes into their collection&#x27;s jar." src="images/cover.png" width="1200" height="630"/></div>
 <div class="iw-release-post">
   <p>Our progress page now shows where verified contributions come from and where they go. TribeStudio sits at the top of the page as a pump, glass pipes run to every collection, and when a reviewer approves a contribution you can watch it travel down the pipe into its own jar.</p>
   <p>The update went live on October 5, 2026.</p>
@@ -6,14 +7,14 @@
   <p>Every contribution to Indigen World is made and reviewed in TribeStudio. On the progress page, TribeStudio is now the pump that feeds the whole network. Select it to open the studio.</p>
   <p>When an approval is published, a short pulse of blue liquid leaves the pump, runs along the pipes and drops into the matching collection. Only that collection’s jar receives it. The jars share a supply line, but no liquid ever passes from one collection to another: each one fills on its own.</p>
   <figure>
-    <img src="images/approval-travelling-live.jpg" alt="Progress page with the TribeStudio pump at the top, a Live status label, glass pipes leading to ten jars, and a pulse of blue liquid travelling along the pipe toward the Everyday Expressions jar, whose count already reads 11." style="width:100%;height:auto;" />
+    <img src="images/approval-travelling-live.jpg" alt="Progress page with the TribeStudio pump at the top, a Live status label, glass pipes leading to ten jars, and a pulse of blue liquid travelling along the pipe toward the Everyday Expressions jar, whose count already reads 11." width="1600" height="1000"/>
     <figcaption>An approval on its way to Everyday Expressions. Actual product screenshot using labelled test data in a local Firestore emulator; the approval was committed and counted by the real backend code. The new number appears at once, and the liquid catches up as it arrives.</figcaption>
   </figure>
 
   <h2>An approval arriving</h2>
   <p>When the liquid reaches the jar, it pours in, a ripple spreads across the surface and a small “+1 approved” label appears beside the inlet. The fill then rises to the new total. If several approvals for the same collection arrive close together, the page shows them as one truthful batch, such as “+3 approved”.</p>
   <figure>
-    <img src="images/approval-arriving-live.jpg" alt="The same page a moment later: a thin stream pours from the inlet into the Everyday Expressions jar, with a +1 approved label beside the inlet and the other jars unchanged." style="width:100%;height:auto;" />
+    <img src="images/approval-arriving-live.jpg" alt="The same page a moment later: a thin stream pours from the inlet into the Everyday Expressions jar, with a +1 approved label beside the inlet and the other jars unchanged." width="1600" height="1000"/>
     <figcaption>The arrival: a jet into the jar, a ripple and “+1 approved”. Every other jar stays still. Actual product screenshot with labelled emulator test data.</figcaption>
   </figure>
   <p>The numbers never wait for the animation. A count updates the moment the approval is recorded, and if you switch views, lose your connection or come back to a hidden tab, the page simply shows the correct totals. Approvals counted before you opened the page are history: they are never replayed as if they were happening now.</p>
@@ -21,7 +22,7 @@
   <h2>Honest numbers, even when they are small</h2>
   <p>Our launch targets are ambitious, so most collections are still a small fraction of one percent. Each jar now fills to exactly its approved total divided by its target, and percentages keep enough precision to tell a little progress from none. 357 words of 200,000 shows as 0.18%. Two grammar patterns of 5,000 now shows as 0.04%, where the page used to round it to 0%. A jar is never given a fake minimum fill to look busier.</p>
   <figure>
-    <img src="images/pipelines-jars-live.jpg" alt="The live progress page reading Live beside the TribeStudio pump, with ten jars and their real counts: 357 words at 0.18 percent, 109 expressions at 10.9 percent, 1 story at 1 percent, 2 grammar patterns at 0.04 percent, 93 pronunciation recordings at 0.02 percent, and 0 in the other collections." style="width:100%;height:auto;" />
+    <img src="images/pipelines-jars-live.jpg" alt="The live progress page reading Live beside the TribeStudio pump, with ten jars and their real counts: 357 words at 0.18 percent, 109 expressions at 10.9 percent, 1 story at 1 percent, 2 grammar patterns at 0.04 percent, 93 pronunciation recordings at 0.02 percent, and 0 in the other collections." width="1600" height="1000"/>
     <figcaption>The live page on October 5, 2026, with the real totals at release. Small numbers keep their true size: two grammar patterns fill 0.04% of their jar, and 93 pronunciation recordings fill 0.02% of theirs.</figcaption>
   </figure>
 
@@ -38,14 +39,14 @@
   <h2>Tanks, pots and the table</h2>
   <p>The horizontal tanks are connected too: one trunk runs down the left side, with a branch into the end of each tank, and the liquid fills from left to right. Local pots and the data table keep their own layouts and show the same verified totals; in those views an approval briefly highlights its collection instead of travelling.</p>
   <figure>
-    <img src="images/pipelines-tanks-sample.jpg" alt="Horizontal tanks view with the TribeStudio pump at the top left, a trunk pipe running down the left side and a branch into the left end of each tank, each filled with blue liquid to its level." style="width:100%;height:auto;" />
+    <img src="images/pipelines-tanks-sample.jpg" alt="Horizontal tanks view with the TribeStudio pump at the top left, a trunk pipe running down the left side and a branch into the left end of each tank, each filled with blue liquid to its level." width="1600" height="1000"/>
     <figcaption>The tank network. Actual local screenshot using clearly labelled sample counts and targets to show the fill levels; these are not live totals.</figcaption>
   </figure>
 
   <h2>On your phone</h2>
   <p>On a phone, all ten jars sit in two columns with a slim supply pipe down the side, so you can see every collection without swiping sideways. Tanks become compact rows with their numbers underneath.</p>
   <figure>
-    <img src="images/pipelines-jars-mobile-sample.jpg" alt="Phone-width view with a Sample data label above the TribeStudio pump, a slim pipe down the left edge and two columns of jars fed from pipes above each row." style="max-width:390px;width:100%;height:auto;" />
+    <img src="images/pipelines-jars-mobile-sample.jpg" alt="Phone-width view with a Sample data label above the TribeStudio pump, a slim pipe down the left edge and two columns of jars fed from pipes above each row." width="1600" height="1000"/>
     <figcaption>Phone layout at 390 pixels wide. Actual local screenshot with labelled sample data.</figcaption>
   </figure>
 

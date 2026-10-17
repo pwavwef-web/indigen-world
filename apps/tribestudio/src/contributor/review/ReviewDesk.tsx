@@ -10,6 +10,7 @@ import { fetchHeadwordMatches, type PublishedHeadword } from '../../creator/dict
 import { DESKS, DECISION_LABELS, DIMENSIONS, TARGETS, decisionsFor, decisionRequest, safeUrl, targetProblem, type Desk, type ReviewRecord } from './model';
 import { reviewNav } from './nav';
 import { RewardAssessmentPanel } from './RewardAssessment';
+import { CommunityGoalControl } from './CommunityGoalControl';
 import './review.css';
 
 /** Only the authorized child mounts Firestore subscriptions. Direct URLs use the same guard. */
@@ -140,6 +141,7 @@ function AuthorizedDesk() {
           ]} />}
         />
 
+        {!selected && desk === 'contributions' ? <CommunityGoalControl /> : null}
         <div className="rv-queues">
           <div className="ts-chips ts-chips--scroll" role="group" aria-label="Queue status">
             {config.queues.map(([value, label]) => (

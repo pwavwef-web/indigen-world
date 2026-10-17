@@ -176,7 +176,9 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
           PendingUpload(path: path, isVideo: _looksLikeVideo(path)),
       ...recovered,
     ];
-    if (draft.text.trim().isEmpty && staged.isEmpty) {
+    if (draft.text.trim().isEmpty &&
+        staged.isEmpty &&
+        draft.videoProjectId == null) {
       await store.clear();
       return;
     }
@@ -197,6 +199,9 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
           quoteTo: quoteTo,
           initialText: draft.text,
           initialCategory: draft.category,
+          community: draft.community,
+          initialVideoProjectId: draft.videoProjectId,
+          initialVideoSourcePath: draft.videoSourcePath,
           initialAttachments: staged,
         ),
       ),

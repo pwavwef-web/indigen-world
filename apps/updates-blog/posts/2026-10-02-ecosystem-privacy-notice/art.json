@@ -1,0 +1,34 @@
+{
+  "accent": "green",
+  "motif": "weave",
+  "eyebrow": "Website · Privacy",
+  "title": "A clearer privacy notice for the whole ecosystem.",
+  "tsize": 46,
+  "lede": "One notice covers the website, dictionary, app, TribeStudio, contributor workspaces and Labs.",
+  "tags": [
+    "Live now",
+    "Plain language",
+    "Every product"
+  ],
+  "hero": [
+    "privacy-live.jpg"
+  ],
+  "figures": {
+    "privacy-live.jpg": {
+      "title": "Now live on the website",
+      "note": "The expanded notice with its animated header."
+    },
+    "privacy-desktop.jpg": {
+      "title": "Your information, our responsibility",
+      "note": "Local preview of the new header and introduction."
+    },
+    "privacy-sections.jpg": {
+      "title": "Find your answer fast",
+      "note": "A section index beside the detailed notice."
+    },
+    "privacy-mobile.jpg": {
+      "title": "Readable on a phone",
+      "note": "The header at phone width, with a still courtyard image."
+    }
+  }
+}

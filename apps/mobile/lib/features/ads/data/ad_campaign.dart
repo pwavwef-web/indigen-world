@@ -22,18 +22,21 @@ String cedis(int pesewas) =>
 enum AdPlacement {
   community,
   explore,
-  collection;
+  collection,
+  post_comments;
 
   String get label => switch (this) {
     AdPlacement.community => 'Community feed',
     AdPlacement.explore => 'Explore reels',
     AdPlacement.collection => 'Collection',
+    AdPlacement.post_comments => 'Post comments',
   };
 
   IconData get icon => switch (this) {
     AdPlacement.community => Icons.forum_rounded,
     AdPlacement.explore => Icons.play_circle_fill_rounded,
     AdPlacement.collection => Icons.collections_bookmark_rounded,
+    AdPlacement.post_comments => Icons.chat_bubble_outline_rounded,
   };
 
   static AdPlacement? fromName(String value) {

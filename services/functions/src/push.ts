@@ -42,6 +42,8 @@ export const ACCOUNT_CHANNEL_ID = 'indigen_account';
 export interface PushMessage {
   title: string;
   body: string;
+  imageUrl?: string;
+  richActions?: boolean;
   /**
    * Body used instead on devices whose owner turned lock-screen previews off.
    *
@@ -73,6 +75,7 @@ export interface PushMessage {
 interface DeviceRow {
   token: string;
   previews: boolean;
+  platform: string;
 }
 
 /** The devices [uid] can be reached on, with each one's preview preference. */
@@ -88,6 +91,7 @@ async function devicesFor(
   return snapshot.docs
     .map((doc) => ({
       token: doc.get('token'),
+      platform: String(doc.get('platform') ?? 'android'),
       // Absent on rows written by older builds, which predate the preference.
       // Previews were what those devices already did, so that is what absence
       // has to mean — anything else silently changes their behaviour.
@@ -121,45 +125,38 @@ export async function pushToUser(
   db: FirebaseFirestore.Firestore,
   uid: string,
   message: PushMessage,
-): Promise<void> {
-  if (!uid) return;
+): Promise<{ status: string; accepted: number; failed: number }> {
+  if (!uid) return { status: 'skipped', accepted: 0, failed: 0 };
 
   try {
     const devices = await devicesFor(db, uid);
-    if (devices.length === 0) return;
+    if (devices.length === 0) return { status: 'no_devices', accepted: 0, failed: 0 };
 
-    const groups =
-      message.redactedBody === undefined
-        ? [{ body: message.body, tokens: devices.map((device) => device.token) }]
-        : [
-            {
-              body: message.body,
-              tokens: devices.filter((d) => d.previews).map((d) => d.token),
-            },
-            {
-              body: message.redactedBody,
-              tokens: devices.filter((d) => !d.previews).map((d) => d.token),
-            },
-          ];
+    const groups = [true, false].flatMap((previews) => [true, false].map((local) => ({
+      previews, local,
+      body: previews ? message.body : message.redactedBody ?? 'Open Indigen World to view this update.',
+      tokens: devices.filter((d) => d.previews === previews && (message.richActions === true && d.platform === 'android') === local).map((d) => d.token),
+    })));
 
     const stale: string[] = [];
+    let accepted = 0, failed = 0;
     for (const group of groups) {
       if (group.tokens.length === 0) continue;
       const response = await getMessaging().sendEachForMulticast({
         tokens: group.tokens,
-        notification: { title: message.title, body: group.body },
-        data: message.data,
+        ...(group.local ? {} : { notification: { title: group.previews ? message.title : 'Indigen World', body: group.body } }),
+        data: { ...message.data, title: group.previews ? message.title : 'Indigen World', body: group.body, imageUrl: group.previews ? message.imageUrl ?? '' : '', previews: String(group.previews), ...(group.local ? { renderLocally: 'true' } : {}) },
         android: {
           priority: 'high',
           ...(message.collapseKey ? { collapseKey: message.collapseKey } : {}),
-          notification: {
+          ...(group.local ? {} : { notification: {
             channelId: message.channelId,
             clickAction: 'FLUTTER_NOTIFICATION_CLICK',
             ...(message.tag ? { tag: message.tag } : {}),
-          },
+          } }),
         },
         apns: {
-          payload: { aps: { sound: 'default' } },
+          payload: { aps: { sound: 'default', category: ['like', 'reply', 'quote', 'mention', 'post', 'thread_reply'].includes(message.data.type) ? 'community_actions' : 'notification_read', ...(group.previews && message.imageUrl && process.env.IOS_RICH_MEDIA_ENABLED === 'true' ? { mutableContent: true } : {}) } },
           ...(message.collapseKey
             ? { headers: { 'apns-collapse-id': message.collapseKey } }
             : {}),
@@ -167,6 +164,7 @@ export async function pushToUser(
       });
 
       response.responses.forEach((result, index) => {
+        if (result.success) accepted++; else failed++;
         const code = result.error?.code;
         if (
           code === 'messaging/registration-token-not-registered' ||
@@ -178,9 +176,11 @@ export async function pushToUser(
     }
 
     await pruneStale(db, stale);
+    return { status: failed > 0 ? (accepted > 0 ? 'partially_accepted' : 'failed') : 'accepted_by_provider', accepted, failed };
   } catch (error) {
     logger.error('Push fan-out failed', {
       errorType: error instanceof Error ? error.name : 'unknown',
     });
+    return { status: 'failed', accepted: 0, failed: 1 };
   }
 }

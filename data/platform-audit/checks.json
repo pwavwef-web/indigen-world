@@ -1,0 +1,5 @@
+[
+ {"id":"contracts","command":"npm run test:contracts","result":"Passed: 23/23 fixtures valid across 27 schemas.","scope":"Current local contracts and creator guidelines; synthetic fixtures do not validate linguistic accuracy or deployed access.","recordedAt":"2026-10-15T23:52:24Z"},
+ {"id":"website-types","command":"npm run typecheck:website","result":"Passed with exit code 0.","scope":"Current website TypeScript build graph; not browser, Functions, mobile or production acceptance.","recordedAt":"2026-10-15T23:52:24Z"},
+ {"id":"evidence-integrity","command":"node scripts/platform-audit.mjs --check","result":"Passed: 47 capabilities, 66 sources, 13 decisions, 13 releases, 12 gaps; no missing references or reviewed-file drift at this check.","scope":"Claim/source references, uniqueness and file SHA-256; this is a structural check, not independent semantic verification.","recordedAt":"2026-10-15T23:52:24Z"}
+]

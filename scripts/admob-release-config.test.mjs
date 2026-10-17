@@ -25,6 +25,14 @@ const good = {
   ADMOB_EXPLORE_NATIVE_AD_UNIT_ID: `ca-app-pub-${PUBLISHER}/3333333333`,
   ADMOB_COLLECTION_NATIVE_AD_UNIT_ID: `ca-app-pub-${PUBLISHER}/4444444444`,
 };
+test('optional comment native unit stays off when missing and rejects reused inventory', () => {
+  assert.deepEqual(validate(good), []);
+  assert.equal(dartDefines(good).some((v) => v.includes('POST_COMMENTS_ADS_ENABLED')), false);
+  assert.ok(validate({ ...good, ADMOB_POST_COMMENTS_NATIVE_AD_UNIT_ID: good.ADMOB_COLLECTION_NATIVE_AD_UNIT_ID }).some((v) => v.includes('same ad unit')));
+  const configured = { ...good, ADMOB_POST_COMMENTS_NATIVE_AD_UNIT_ID: `ca-app-pub-${PUBLISHER}/5555555555` };
+  assert.deepEqual(validate(configured), []);
+  assert.ok(dartDefines(configured).includes('--dart-define=POST_COMMENTS_ADS_ENABLED=true'));
+});
 
 test('a complete, consistent configuration has nothing wrong with it', () => {
   assert.deepEqual(validate(good), []);

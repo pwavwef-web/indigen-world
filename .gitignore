@@ -118,3 +118,6 @@ admob.local.json
 # Disposable Labs emulator configuration; production uses firebase.json.
 /.labs-local/
 /.labs-local.firebase.json
+
+# Local build cache for the vendored Android thumbnail plugin.
+/apps/mobile/third_party/video_thumbnail/android/.gradle/

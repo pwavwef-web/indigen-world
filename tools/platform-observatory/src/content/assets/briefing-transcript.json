@@ -1,0 +1,62 @@
+[
+  {
+    "label": "Vision",
+    "title": "A whole cultural ecosystem.",
+    "body": "Indigen World brings language preservation, learning, storytelling, creators and community-governed heritage together. Project Kassena is the first Kasem language cell.",
+    "items": [
+      "Public website",
+      "TribeStudio",
+      "Everyday mobile app",
+      "Internal Admin"
+    ],
+    "limit": "Three public products plus internal administration. Other language cells remain an ambition."
+  },
+  {
+    "label": "The loop",
+    "title": "Discovery becomes contribution.",
+    "body": "People find language and culture, contribute with context and permissions, receive review and corrections, then use eligible published knowledge to learn and create.",
+    "items": [
+      "Discover and use",
+      "Contribute with context",
+      "Review and correct",
+      "Publish eligible work"
+    ],
+    "limit": "Everyday non-campaign posts use a separate open-publication route with reactive moderation."
+  },
+  {
+    "label": "Evidence",
+    "title": "Every claim needs its own proof.",
+    "body": "This bounded review covers 47 curated capabilities across 13 domains. Source code, tests, release receipts and user outcomes answer different questions.",
+    "items": [
+      "Code: behavior exists",
+      "Tests: named cases",
+      "Release: dated scope",
+      "Outcomes: measured benefit"
+    ],
+    "limit": "These inventory counts are not a completion score. Historical test results were not rerun in this audit."
+  },
+  {
+    "label": "Next proof",
+    "title": "Close the trust and release gaps.",
+    "body": "Start with the generic export clearance gap and environment isolation. Prove a signed-in contribution journey, current Play distribution and real-device behavior.",
+    "items": [
+      "Trusted safe exports",
+      "Complete live journeys",
+      "Play and device proof",
+      "Executed remote CI"
+    ],
+    "limit": "HTTP page reachability does not prove authenticated behavior, permissions or production readiness."
+  },
+  {
+    "label": "Community",
+    "title": "Let authority and outcomes guide growth.",
+    "body": "Qualified reviewers, explicit source rights, finance and support capacity, and independent learner evidence make the next language cell and future voice models credible.",
+    "items": [
+      "Community authority",
+      "Purpose-specific rights",
+      "Reconciled rewards",
+      "Measured learning"
+    ],
+    "limit": "Retrieval and third-party AI assistance do not establish a trained production Kasem model."
+  }
+]

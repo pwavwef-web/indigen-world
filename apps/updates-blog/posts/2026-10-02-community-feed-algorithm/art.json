@@ -1,0 +1,25 @@
+{
+  "accent": "teal",
+  "motif": "chevrons",
+  "eyebrow": "Community · Development preview",
+  "title": "A feed built around culture and choice.",
+  "lede": "Opt-in ranking that makes room for unfamiliar cultures and emerging voices. Backend deployed; app rollout pending.",
+  "tags": [
+    "Opt-in",
+    "Distinct-actor trends",
+    "Cultural diversity"
+  ],
+  "hero": [
+    {
+      "file": "feed-pipeline.png",
+      "kind": "card"
+    }
+  ],
+  "figures": {
+    "feed-pipeline.png": {
+      "title": "From public posts to your feed",
+      "note": "The Community recommendation pipeline, step by step.",
+      "kind": "card"
+    }
+  }
+}

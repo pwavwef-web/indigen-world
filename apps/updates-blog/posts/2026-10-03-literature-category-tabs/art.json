@@ -1,0 +1,26 @@
+{
+  "accent": "amber",
+  "motif": "weave",
+  "eyebrow": "Mobile app · Literature",
+  "title": "Browse Kasem literature by category.",
+  "lede": "Folktales, drama, poetry and food recipes get their own tabs. Arrives with the next app release.",
+  "tags": [
+    "Folktales",
+    "Poetry",
+    "Recipes"
+  ],
+  "hero": [
+    "literature-folktales.png",
+    "literature-recipes-empty.png"
+  ],
+  "figures": {
+    "literature-folktales.png": {
+      "title": "Folktales, one tap away",
+      "note": "Folktales selected, with a count of one."
+    },
+    "literature-recipes-empty.png": {
+      "title": "Honest empty states",
+      "note": "Food and recipes shows zero published pieces."
+    }
+  }
+}

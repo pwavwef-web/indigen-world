@@ -9,3 +9,5 @@ A clearer Indigen World app is here: switch between your joined communities, lis
 ## Development preview, if sharing before release is authorised
 
 We are preparing a mobile update for Indigen World: joined community feeds, direct offline listening from Downloads, searchable tags, Black theme and clearer controls. Release and phone checks are still pending. Preview: [PUBLISHED_ARTICLE_URL]
+
+Published article: https://updates.indigenworld.com/2026/10/mobile-community-and-offline-listening.html

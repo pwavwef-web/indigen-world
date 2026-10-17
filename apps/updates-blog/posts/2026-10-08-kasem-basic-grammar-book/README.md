@@ -29,11 +29,11 @@ navigation updates, and both Kawuri functions published and verified October
 
 ## Images and credits
 
-- `images/grammar-guide-desktop.png` (1440 × 1050): actual deployed grammar guide.
-- `images/grammar-guide-mobile.png` (390 × 844): actual guide at phone width.
-- `images/future-continuous-rule.png` (1008 × 492): actual expanded rule,
+- `screens/grammar-guide-desktop.png` (1440 × 1050): actual deployed grammar guide.
+- `screens/grammar-guide-mobile.png` (390 × 844): actual guide at phone width.
+- `screens/future-continuous-rule.png` (1008 × 492): actual expanded rule,
   explanation, source examples and citation.
-- `images/dictionary-word.png` (1440 × 1000): actual live new `badwoni` / friend
+- `screens/dictionary-word.png` (1440 × 1000): actual live new `badwoni` / friend
   entry with its paradigm context and the Grammar guide navigation link.
 - Credit: Indigen World product screenshots, October 8, 2026, captured from
   `https://kasem-dictionary.web.app`. Source text credit: P. L. Hewer / GILLBT.
@@ -88,3 +88,16 @@ No Blogger publication or external message has been sent.
 - No Android bundle or Google Play rollout is part of this content update.
 
 Reproducible extraction and import notes: [source README](../../../../data/grammar-book-seed/README.md).
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/grammar-guide-desktop.jpg`, `images/dictionary-word.jpg`, `images/future-continuous-rule.jpg`, `images/grammar-guide-mobile.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-08-kasem-basic-grammar-book`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/kasem-basic-grammar-book.html

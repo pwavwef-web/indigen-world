@@ -12,14 +12,16 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { Resvg } from '@resvg/resvg-js';
 import { AUTOMATION_ACCOUNTS, AUTOMATION_TIME_ZONE, automationDate, dailyPostId, wordCardSvg } from '../lib/community-automation-policy.js';
-import { ensureAutomationProfile, refreshCultureAutomationPost, searchCultureInternet } from '../lib/community-automation.js';
+import { ensureAutomationProfile, refreshCultureAutomationPost, refreshWordAutomationIllustration, searchCultureInternet } from '../lib/community-automation.js';
+import { ZEM_GHANA, dueNewsSlot, newsPostId } from '../lib/community-news-policy.js';
+import { fetchGhanaHeadlines, prepareNewsDraft, renderNewsCard } from '../lib/community-news.js';
 
 const project = 'project-kassena-7e026';
 const REGION = 'us-central1';
 const bucketName = `${project}.firebasestorage.app`;
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const mode = process.argv[2] || '--inspect';
-if (!['--inspect', '--prepare', '--publish', '--verify', '--preview-art', '--research-check', '--refresh-culture'].includes(mode)) throw new Error('Unknown mode');
+if (!['--inspect', '--prepare', '--publish', '--verify', '--preview-art', '--research-check', '--refresh-culture', '--refresh-word-image', '--run-word', '--verify-word', '--news-dry-run', '--news-prepare', '--news-publish', '--news-verify'].includes(mode)) throw new Error('Unknown mode');
 const require = createRequire(resolve(root, 'package.json'));
 const cliAuth = require('firebase-tools/lib/auth.js');
 const account = cliAuth.getGlobalDefaultAccount();
@@ -40,8 +42,90 @@ process.on('exit', () => {
 initializeApp({ projectId: project, storageBucket: bucketName, credential: applicationDefault() });
 const db = getFirestore();
 const bucket = getStorage().bucket();
+const NEWS_JOB = `projects/${project}/locations/${REGION}/jobs/firebase-schedule-postZemGhanaNews-${REGION}`;
+const newsOut = resolve(root, '.tooling/zem-ghana');
 
-if (mode === '--preview-art') {
+if (mode === '--news-dry-run') {
+  // Real feeds and real Vertex calls, but nothing is written to Firestore or Storage.
+  const { items, sources } = await fetchGhanaHeadlines();
+  const runs = await db.collection('communityAutomationRuns').where('accountId', '==', ZEM_GHANA.id).get();
+  const draft = await prepareNewsDraft(items, runs.docs.map(doc => doc.data()).filter(row => row.status === 'published'));
+  await mkdir(newsOut, { recursive: true });
+  await writeFile(resolve(newsOut, 'dry-run-card.png'), renderNewsCard(draft.item, draft.category));
+  await writeFile(resolve(newsOut, 'dry-run.json'), JSON.stringify({ checkedAt: new Date().toISOString(), sources, draft }, null, 2) + '\n');
+  console.log(JSON.stringify({ sources, category: draft.category, text: draft.text, length: draft.text.length }, null, 2));
+} else if (mode === '--news-prepare') {
+  const [handle, profile] = await Promise.all([db.collection('communityUsernames').doc(ZEM_GHANA.username).get(), db.collection('communityProfiles').doc(ZEM_GHANA.uid).get()]);
+  if (handle.exists && handle.get('uid') !== ZEM_GHANA.uid) throw new Error(`Handle collision: ${ZEM_GHANA.username}`);
+  if (profile.exists && profile.get('automationAccountId') !== ZEM_GHANA.id) throw new Error(`Profile collision: ${ZEM_GHANA.uid}`);
+  const existing = await getAuth().getUser(ZEM_GHANA.uid).catch(error => { if (error.code === 'auth/user-not-found') return null; throw error; });
+  if (existing && existing.customClaims?.automationAccountId !== ZEM_GHANA.id) throw new Error(`Auth identity collision: ${ZEM_GHANA.uid}`);
+  const urls = {};
+  for (const kind of ['avatar', 'cover']) {
+    const path = `${kind === 'avatar' ? 'community-avatars' : 'community-banners'}/${ZEM_GHANA.uid}/${kind}.png`;
+    const file = bucket.file(path);
+    const [exists] = await file.exists();
+    const [oldMetadata] = exists ? await file.getMetadata() : [{}];
+    const token = oldMetadata.metadata?.firebaseStorageDownloadTokens?.split(',')[0] || randomUUID();
+    await file.save(await readFile(resolve(root, `assets/community-automation/${ZEM_GHANA.id}/${kind}.png`)), {
+      resumable: false, contentType: 'image/png', metadata: { cacheControl: 'public,max-age=86400', metadata: { firebaseStorageDownloadTokens: token, credit: 'Indigen World mark and Ghana colours, rendered in code (zem-ghana-art.mjs)' } },
+    });
+    urls[kind === 'avatar' ? 'avatarUrl' : 'bannerUrl'] = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
+  }
+  if (!existing) await getAuth().createUser({ uid: ZEM_GHANA.uid, displayName: ZEM_GHANA.name, photoURL: urls.avatarUrl, disabled: true });
+  else await getAuth().updateUser(ZEM_GHANA.uid, { displayName: ZEM_GHANA.name, photoURL: urls.avatarUrl, disabled: true });
+  await getAuth().setCustomUserClaims(ZEM_GHANA.uid, { isAutomated: true, automationAccountId: ZEM_GHANA.id });
+  await ensureAutomationProfile(ZEM_GHANA, urls);
+  const configRef = db.collection('communityAutomationAccounts').doc(ZEM_GHANA.id);
+  const config = await configRef.get();
+  await configRef.set({ accountId: ZEM_GHANA.id, uid: ZEM_GHANA.uid, enabled: config.get('enabled') === true, repliesEnabled: false,
+    schedule: '0,30 7-21 * * * (slots 07, 11, 15, 19)', timeZone: AUTOMATION_TIME_ZONE, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+  console.log(`Prepared ${ZEM_GHANA.name}: @${ZEM_GHANA.username} (posting stays off until --news-publish)`);
+} else if (mode === '--news-publish') {
+  const token = await cliToken();
+  const headers = { Authorization: `Bearer ${token.access_token}` };
+  const fn = await fetch(`https://cloudfunctions.googleapis.com/v2/projects/${project}/locations/${REGION}/functions/postZemGhanaNews`, { headers });
+  if (!fn.ok || (await fn.json()).state !== 'ACTIVE') throw new Error('Deploy postZemGhanaNews and confirm it is ACTIVE before enabling posting');
+  const profile = await db.collection('communityProfiles').doc(ZEM_GHANA.uid).get();
+  if (!profile.get('avatarUrl') || !profile.get('bannerUrl')) throw new Error('Run --news-prepare first');
+  await db.collection('communityAutomationAccounts').doc(ZEM_GHANA.id).set({ enabled: true, activatedAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+  const due = dueNewsSlot();
+  if (!due) { console.log('Enabled. No slot is due right now; the next one posts at 07:00, 11:00, 15:00 or 19:00 Ghana time.'); process.exit(0); }
+  const started = await fetch(`https://cloudscheduler.googleapis.com/v1/${NEWS_JOB}:run`, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}' });
+  if (!started.ok) throw new Error(`Cannot start the Zem Ghana job: HTTP ${started.status}`);
+  const id = newsPostId(due.date, due.slot);
+  const deadline = Date.now() + 8 * 60_000;
+  while (Date.now() < deadline) {
+    const run = await db.collection('communityAutomationRuns').doc(id).get();
+    if (run.get('status') === 'published') { console.log(JSON.stringify({ status: 'published', postId: id, text: run.get('text') }, null, 2)); process.exit(0); }
+    if (run.get('status') === 'failed') console.log(JSON.stringify({ status: 'failed', attempts: run.get('attempts'), lastError: run.get('lastError') }));
+    await new Promise(done => setTimeout(done, 10_000));
+  }
+  throw new Error(`Zem Ghana post ${id} is still pending; the half-hourly job retries within the slot`);
+} else if (mode === '--news-verify') {
+  const token = await cliToken();
+  const headers = { Authorization: `Bearer ${token.access_token}` };
+  const [identity, profile, config, runs] = await Promise.all([getAuth().getUser(ZEM_GHANA.uid), db.collection('communityProfiles').doc(ZEM_GHANA.uid).get(),
+    db.collection('communityAutomationAccounts').doc(ZEM_GHANA.id).get(), db.collection('communityAutomationRuns').where('accountId', '==', ZEM_GHANA.id).get()]);
+  const latest = runs.docs.map(doc => doc.data()).filter(row => row.status === 'published').sort((a, b) => String(b.postId).localeCompare(String(a.postId)))[0];
+  const post = latest ? await db.collection('communityPosts').doc(latest.postId).get() : null;
+  const media = post?.get('media')?.[0];
+  const fn = await (await fetch(`https://cloudfunctions.googleapis.com/v2/projects/${project}/locations/${REGION}/functions/postZemGhanaNews`, { headers })).json();
+  const job = await (await fetch(`https://cloudscheduler.googleapis.com/v1/${NEWS_JOB}`, { headers })).json();
+  const evidence = { verifiedAt: new Date().toISOString(), project, uid: identity.uid, automatedClaim: identity.customClaims?.isAutomated === true, signInDisabled: identity.disabled,
+    enabled: config.get('enabled'), profileReady: !!profile.get('avatarUrl') && !!profile.get('bannerUrl'), function: { state: fn.state, updateTime: fn.updateTime },
+    scheduler: { state: job.state, schedule: job.schedule, timeZone: job.timeZone, lastAttemptTime: job.lastAttemptTime }, latestPostId: latest?.postId ?? null,
+    posted: !!post?.exists, text: post?.get('text') ?? null, lastError: config.get('lastError') ?? null };
+  await mkdir(newsOut, { recursive: true });
+  if (media?.url) {
+    const response = await fetch(media.url, { signal: AbortSignal.timeout(30_000) });
+    evidence.cardStatus = response.status;
+    if (response.ok) await writeFile(resolve(newsOut, 'live-card.png'), Buffer.from(await response.arrayBuffer()));
+  }
+  await writeFile(resolve(newsOut, 'live-verification.json'), JSON.stringify(evidence, null, 2) + '\n');
+  console.log(JSON.stringify(evidence, null, 2));
+  if (!evidence.automatedClaim || !evidence.signInDisabled || !evidence.profileReady || evidence.function.state !== 'ACTIVE' || evidence.scheduler.state !== 'ENABLED') process.exitCode = 1;
+} else if (mode === '--preview-art') {
   const rows = [];
   for (const [i, bot] of AUTOMATION_ACCOUNTS.entries()) {
     const data = {};
@@ -154,6 +238,44 @@ if (mode === '--preview-art') {
     for (const bot of AUTOMATION_ACCOUNTS.slice(1)) await runJob(bot);
     await waitForPosts(AUTOMATION_ACCOUNTS.slice(1));
   }
+} else if (mode === '--run-word') {
+  const token = await cliToken();
+  const name = `projects/${project}/locations/${REGION}/jobs/firebase-schedule-postZemBotarebuDaily-${REGION}`;
+  const response = await fetch(`https://cloudscheduler.googleapis.com/v1/${name}:run`, { method: 'POST', headers: { Authorization: `Bearer ${token.access_token}` } });
+  if (!response.ok) throw new Error(`Word Scheduler invocation failed: ${response.status}`);
+  console.log(JSON.stringify({ invoked: name, status: response.status }));
+} else if (mode === '--verify-word') {
+  const id = dailyPostId(AUTOMATION_ACCOUNTS[0], automationDate());
+  const [post, run] = await Promise.all([db.collection('communityPosts').doc(id).get(), db.collection('communityAutomationRuns').doc(id).get()]);
+  const media = post.get('media')?.[0];
+  const out = resolve(root, '.tooling/community-automation');
+  await mkdir(out, { recursive: true });
+  const evidence = { verifiedAt: new Date().toISOString(), project, postId: id, text: post.get('text') ?? null,
+    status: run.get('status') ?? null, media: media ?? null, imageAttempts: run.get('imageAttempts') ?? 0,
+    lastError: run.get('lastError') ?? null };
+  const token = await cliToken();
+  const headers = { Authorization: `Bearer ${token.access_token}` };
+  evidence.functions = await Promise.all(['postZemBotarebuDaily', 'recoverCommunityAutomation'].map(async name => {
+    const response = await fetch(`https://cloudfunctions.googleapis.com/v2/projects/${project}/locations/${REGION}/functions/${name}`, { headers });
+    if (!response.ok) throw new Error(`Function verification failed: ${response.status}`);
+    const fn = await response.json();
+    return { name, state: fn.state, updateTime: fn.updateTime, revision: fn.serviceConfig?.revision, runtime: fn.buildConfig?.runtime };
+  }));
+  const schedulerResponse = await fetch(`https://cloudscheduler.googleapis.com/v1/projects/${project}/locations/${REGION}/jobs/firebase-schedule-postZemBotarebuDaily-${REGION}`, { headers });
+  if (!schedulerResponse.ok) throw new Error(`Scheduler verification failed: ${schedulerResponse.status}`);
+  const scheduler = await schedulerResponse.json();
+  evidence.scheduler = { state: scheduler.state, schedule: scheduler.schedule, timeZone: scheduler.timeZone, lastAttemptTime: scheduler.lastAttemptTime, status: scheduler.status };
+  if (media?.url) {
+    const response = await fetch(media.url, { signal: AbortSignal.timeout(30_000) });
+    evidence.imageStatus = response.status;
+    evidence.contentType = response.headers.get('content-type');
+    if (response.ok) await writeFile(resolve(out, 'live-word-illustration.png'), Buffer.from(await response.arrayBuffer()));
+  }
+  await writeFile(resolve(out, 'word-illustration-verification.json'), JSON.stringify(evidence, null, 2) + '\n');
+  console.log(JSON.stringify(evidence, null, 2));
+  if (!post.exists || !media?.isAiGenerated || evidence.imageStatus !== 200 || evidence.functions.some(fn => fn.state !== 'ACTIVE') || evidence.scheduler.state !== 'ENABLED') process.exitCode = 1;
+} else if (mode === '--refresh-word-image') {
+  console.log(JSON.stringify({ refreshedPostId: await refreshWordAutomationIllustration() }));
 } else if (mode === '--refresh-culture') {
   console.log(JSON.stringify({ refreshedPostId: await refreshCultureAutomationPost() }));
 } else {

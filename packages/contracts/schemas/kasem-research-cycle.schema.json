@@ -1,0 +1,967 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.indigen-world.org/v1/kasem-research-cycle.schema.json",
+  "title": "Kasem research cycle",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "targets": {
+      "type": "object",
+      "properties": {
+        "patterns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "examples_per_pattern": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "evaluation_items": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "patterns",
+        "examples_per_pattern",
+        "evaluation_items",
+        "rationale"
+      ],
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "publication",
+              "speaker_session"
+            ]
+          },
+          "permissions": {
+            "type": "object",
+            "properties": {
+              "display": {
+                "type": "string",
+                "enum": [
+                  "unknown",
+                  "allowed",
+                  "denied"
+                ]
+              },
+              "retrieval": {
+                "type": "string",
+                "enum": [
+                  "unknown",
+                  "allowed",
+                  "denied"
+                ]
+              },
+              "training": {
+                "type": "string",
+                "enum": [
+                  "unknown",
+                  "allowed",
+                  "denied"
+                ]
+              }
+            },
+            "required": [
+              "display",
+              "retrieval",
+              "training"
+            ],
+            "additionalProperties": false
+          },
+          "access_note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "documentary_representation": {
+            "type": "string",
+            "enum": [
+              "editable_copy",
+              "scan",
+              "publication"
+            ]
+          },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "kind",
+          "permissions",
+          "access_note"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 200,
+      "uniqueItems": true
+    },
+    "patterns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+          },
+          "question_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+          },
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "speaker_tasks": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "maxItems": 40,
+            "uniqueItems": true,
+            "minItems": 1
+          },
+          "follow_up_forms": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "maxItems": 40,
+            "uniqueItems": true
+          },
+          "application_behavior": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "id",
+          "question_id",
+          "question",
+          "speaker_tasks",
+          "follow_up_forms",
+          "application_behavior"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 20,
+      "uniqueItems": true,
+      "minItems": 1
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "lexeme",
+              "sense",
+              "construction",
+              "example",
+              "question"
+            ]
+          },
+          "pattern_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+          },
+          "original_text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "reviewed_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meaning_in_context": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "literal_gloss": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grammatical_features": {
+            "type": "object",
+            "maxProperties": 40
+          },
+          "usage_context": {
+            "type": "object",
+            "properties": {
+              "situation": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "speaker_relationship": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "community_or_variety": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "register": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "situation",
+              "speaker_relationship",
+              "community_or_variety",
+              "register"
+            ],
+            "additionalProperties": false
+          },
+          "related_record_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+            },
+            "maxItems": 40,
+            "uniqueItems": true
+          },
+          "support_record_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+            },
+            "maxItems": 40,
+            "uniqueItems": true
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "source_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+                },
+                "locator": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                },
+                "evidence_type": {
+                  "type": "string",
+                  "enum": [
+                    "publication",
+                    "speaker_example",
+                    "speaker_judgement"
+                  ]
+                },
+                "transcription_status": {
+                  "type": "string",
+                  "enum": [
+                    "unchecked",
+                    "scan_checked",
+                    "editable_checked",
+                    "speaker_checked"
+                  ]
+                },
+                "checked_by": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "checked_at": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "note_id": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "note_revision": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "example_index": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 5
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "source_id",
+                "locator",
+                "evidence_type",
+                "transcription_status",
+                "checked_by",
+                "checked_at",
+                "note_id",
+                "note_revision",
+                "example_index"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 40,
+            "uniqueItems": true
+          },
+          "review_status": {
+            "type": "string",
+            "enum": [
+              "candidate",
+              "submitted",
+              "curated",
+              "reviewed",
+              "approved",
+              "disputed",
+              "rejected",
+              "superseded"
+            ]
+          },
+          "review_history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "enum": [
+                    "candidate",
+                    "submitted",
+                    "curated",
+                    "reviewed",
+                    "approved",
+                    "disputed",
+                    "rejected",
+                    "superseded"
+                  ]
+                },
+                "to": {
+                  "type": "string",
+                  "enum": [
+                    "candidate",
+                    "submitted",
+                    "curated",
+                    "reviewed",
+                    "approved",
+                    "disputed",
+                    "rejected",
+                    "superseded"
+                  ]
+                },
+                "actor": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "curator",
+                    "qualified_language_reviewer"
+                  ]
+                },
+                "date": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "scope": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                },
+                "evidence_source_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+                  },
+                  "maxItems": 40,
+                  "uniqueItems": true,
+                  "minItems": 1
+                },
+                "uses": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "display",
+                      "retrieval",
+                      "training"
+                    ]
+                  },
+                  "maxItems": 3,
+                  "uniqueItems": true
+                },
+                "decision": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "from",
+                "to",
+                "actor",
+                "role",
+                "date",
+                "version",
+                "scope",
+                "evidence_source_ids",
+                "uses",
+                "decision"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 200,
+            "uniqueItems": true
+          },
+          "unresolved_questions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+            },
+            "maxItems": 40,
+            "uniqueItems": true
+          },
+          "audio_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "permissions": {
+            "type": "object",
+            "properties": {
+              "display": {
+                "type": "string",
+                "enum": [
+                  "unknown",
+                  "allowed",
+                  "denied"
+                ]
+              },
+              "retrieval": {
+                "type": "string",
+                "enum": [
+                  "unknown",
+                  "allowed",
+                  "denied"
+                ]
+              },
+              "training": {
+                "type": "string",
+                "enum": [
+                  "unknown",
+                  "allowed",
+                  "denied"
+                ]
+              }
+            },
+            "required": [
+              "display",
+              "retrieval",
+              "training"
+            ],
+            "additionalProperties": false
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "human",
+              "publication",
+              "AI_candidate"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hypothesis": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_speaker_task": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "pattern_id",
+          "original_text",
+          "reviewed_text",
+          "meaning_in_context",
+          "literal_gloss",
+          "grammatical_features",
+          "usage_context",
+          "related_record_ids",
+          "support_record_ids",
+          "evidence",
+          "review_status",
+          "review_history",
+          "unresolved_questions",
+          "audio_id",
+          "permissions",
+          "origin",
+          "version",
+          "scope",
+          "hypothesis",
+          "next_speaker_task",
+          "resolution"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 500,
+      "uniqueItems": true
+    },
+    "evaluations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+          },
+          "pattern_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "ownership",
+              "occupancy",
+              "parenthood",
+              "person",
+              "variant",
+              "misleading_prompt",
+              "unsupported",
+              "source_conflict"
+            ]
+          },
+          "situation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "expected_behavior": {
+            "type": "string",
+            "enum": [
+              "supported_example",
+              "clarification",
+              "abstention",
+              "conflict"
+            ]
+          },
+          "held_out_record_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "model_version": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "prompt_version": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "response": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "response_kind": {
+                    "type": "string",
+                    "enum": [
+                      "supported_example",
+                      "clarification",
+                      "abstention",
+                      "conflict"
+                    ]
+                  },
+                  "grounding_record_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+                    },
+                    "maxItems": 40,
+                    "uniqueItems": true
+                  },
+                  "cited_source_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+                    },
+                    "maxItems": 40,
+                    "uniqueItems": true
+                  },
+                  "scope": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "judgments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "reviewer": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,149}$"
+                        },
+                        "dialect_competent": {
+                          "type": "boolean"
+                        },
+                        "meaning": {
+                          "anyOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "number": {
+                          "anyOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "spelling": {
+                          "anyOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "context": {
+                          "anyOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "source_fidelity": {
+                          "anyOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "useful_uncertainty": {
+                          "anyOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "fabricated_source": {
+                          "type": "boolean"
+                        },
+                        "systematic_meaning_confusion": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "reviewer",
+                        "dialect_competent",
+                        "meaning",
+                        "number",
+                        "spelling",
+                        "context",
+                        "source_fidelity",
+                        "useful_uncertainty",
+                        "fabricated_source",
+                        "systematic_meaning_confusion"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "maxItems": 20,
+                    "uniqueItems": true
+                  }
+                },
+                "required": [
+                  "model_version",
+                  "prompt_version",
+                  "date",
+                  "response",
+                  "response_kind",
+                  "grounding_record_ids",
+                  "cited_source_ids",
+                  "scope",
+                  "judgments"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "pattern_id",
+          "category",
+          "situation",
+          "expected_behavior",
+          "held_out_record_id",
+          "run"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 500,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "version",
+    "as_of",
+    "targets",
+    "sources",
+    "patterns",
+    "records",
+    "evaluations"
+  ],
+  "additionalProperties": false
+}

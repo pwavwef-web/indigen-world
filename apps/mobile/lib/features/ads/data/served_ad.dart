@@ -37,6 +37,8 @@ class ServedAd {
     this.startsAt,
     this.endsAt,
     this.active = true,
+    this.advertiserName = '',
+    this.advertiserLogoUrl = '',
   });
 
   /// The campaign this advert belongs to — the id `recordAdEvent` counts
@@ -68,6 +70,8 @@ class ServedAd {
   /// The backend's own switch: paused, cancelled and rejected campaigns are
   /// written `false` rather than deleted, so the row keeps its history.
   final bool active;
+  final String advertiserName;
+  final String advertiserLogoUrl;
 
   bool get isVideo => mediaType == 'video';
 
@@ -131,6 +135,8 @@ class ServedAd {
     startsAt: _date(data['startsAt']),
     endsAt: _date(data['endsAt']),
     active: data['active'] != false,
+    advertiserName: _text(data['advertiserName']),
+    advertiserLogoUrl: _text(data['advertiserLogoUrl']),
   );
 }
 

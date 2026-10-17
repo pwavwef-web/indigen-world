@@ -6,6 +6,9 @@ import type { Item, SubmissionRound, Work } from './model';
 import type { AssistResult, PaymentsView, PortalPaths, SelfView, Settings, WorkspaceData, WorkspaceServices } from './types';
 import { MOMO_NETWORKS } from './types';
 import './contributor.css';
+import './collection-studio.css';
+import { DEFAULT_JOURNEY, type Journey } from './journeyModel';
+import type { ContributorDetails } from '@indigen-world/contracts/contributor-details';
 
 
 /**
@@ -132,9 +135,13 @@ export function ContributorPreview() {
   previewData.current = { works, items };
   const payments = useRef<PaymentsView>(initialPayments());
   const self = useRef<SelfView>(SELF);
+  const journey = useRef<Journey>({ ...DEFAULT_JOURNEY, participationDays: [new Date().toISOString().slice(0, 10)], communityGoal: { target: 30, day: new Date().toISOString().slice(0, 10) } });
   const pendingCode = useRef('');
 
   const services = useMemo<WorkspaceServices>(() => ({
+    async findExpressionMatches() { await wait(200); return { matches: [] }; },
+    async loadJourney() { await wait(100); return journey.current; },
+    async saveJourney(value) { await wait(150); journey.current = value; },
     unlockDailyPreview() {
       setDailyUnlocked(true);
       setItems(current=>current['daily-preview-extra']?current:{...current,'daily-preview-extra':DAILY_EXTRA.map((expression,index)=>({id:'extra-'+index,expression,translation:'',alternatives:[],revision:0,status:'draft',updatedAt:new Date().toISOString()}))});
@@ -148,7 +155,8 @@ export function ContributorPreview() {
         [String(data.work)]: current[String(data.work)].map((item) => item.id === data.item ? {
           ...item, unsure: data.skip === true, translation: String(data.translation), alternatives: data.alternatives as string[],
           context: typeof data.context === 'string' ? data.context : item.context, revision, updatedAt: new Date().toISOString(),
-          ...(submissionId ? { submissionId, submittedAt: new Date().toISOString(), status: 'submitted', feedback: '', reviewedAt: null } : {}),
+          details: data.details ? data.details as ContributorDetails : item.details,
+          ...(submissionId ? { submissionId, revisionOf: item.submissionId ?? '', submittedAt: new Date().toISOString(), status: 'submitted', feedback: '', reviewedAt: null } : {}),
         } : item),
       }));
       return { data: { revision, submissionId } };
@@ -246,7 +254,7 @@ export function ContributorPreview() {
     worksState: 'ready',
     items,
     itemsState: 'ready',
-    rounds: ROUNDS,
+    rounds: [...ROUNDS, ...Object.entries(items).flatMap(([work, rows]) => rows.filter(item => item.submissionId && !ROUNDS.some(round => round.id === item.submissionId)).map(item => ({ id: item.submissionId!, work, item: item.id, expression: item.expression, translation: item.translation, createdAt: item.submittedAt ?? item.updatedAt ?? '', decidedAt: '', feedback: '', revisionOf: ROUNDS.find(round => round.work === work && round.item === item.id)?.id ?? '', status: 'SUBMITTED' })))],
     roundsState: 'ready',
     paymentNotices: [{ id: 'n1', title: 'Your bank account needs attention', body: 'The account number is cut off at the edge of the photo.', createdAt: iso(8) }],
     pulse: {

@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:indigen_world_mobile/features/collection/discovery_session.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/ads/admob_native.dart';
@@ -12,12 +13,37 @@ import 'package:indigen_world_mobile/features/heroes/heroes_data.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
 
 /// Collection → Heroes: the people the Kassena remember.
-class HeroesCollectionScreen extends ConsumerWidget {
+class HeroesCollectionScreen extends ConsumerStatefulWidget {
   const HeroesCollectionScreen({super.key});
+  @override
+  ConsumerState<HeroesCollectionScreen> createState() =>
+      _HeroesCollectionScreenState();
+}
+
+class _HeroesCollectionScreenState
+    extends ConsumerState<HeroesCollectionScreen> {
+  String _query = '', _sort = 'editorial', _field = '';
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final heroes = ref.watch(kasemHeroesProvider);
+  Widget build(BuildContext context) {
+    final source = ref.watch(kasemHeroesProvider);
+    final heroes = source.whenData((items) {
+      final found = items
+          .where(
+            (h) =>
+                (_field.isEmpty || h.field == _field) &&
+                '${h.name} ${h.alsoKnownAs} ${h.field} ${h.birthplace}'
+                    .toLowerCase()
+                    .contains(_query.toLowerCase()),
+          )
+          .toList();
+      if (_sort == 'name')
+        found.sort((a, b) {
+          final byName = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          return byName == 0 ? a.id.compareTo(b.id) : byName;
+        });
+      return found;
+    });
     return Scaffold(
       appBar: AppBar(title: const Text('Heroes')),
       body: ScreenContainer(
@@ -36,6 +62,22 @@ class HeroesCollectionScreen extends ConsumerWidget {
                   subtitle:
                       'Chiefs, linguists, musicians and elders — the people '
                       'Kassena history is carried by.',
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: CollectionBrowserBar(
+                  hint: 'Search names, fields or places',
+                  onSearch: (v) => setState(() => _query = v),
+                  sort: _sort,
+                  onSort: (v) => setState(() => _sort = v),
+                  filters:
+                      source.asData?.value
+                          .map((h) => h.field)
+                          .where((s) => s.isNotEmpty)
+                          .toList() ??
+                      [],
+                  filter: _field,
+                  onFilter: (v) => setState(() => _field = v),
                 ),
               ),
               ...switch (heroes) {

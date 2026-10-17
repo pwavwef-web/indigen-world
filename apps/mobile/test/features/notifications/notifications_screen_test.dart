@@ -96,7 +96,10 @@ void main() {
         notification(id: 'same'),
       ],
     );
-    expect(find.text('Amina liked your post'), findsOneWidget);
+    expect(
+      find.textContaining('Amina liked your post', findRichText: true),
+      findsOneWidget,
+    );
   });
 
   testWidgets('groups rows under the day they happened', (tester) async {
@@ -122,11 +125,17 @@ void main() {
       ],
     );
 
-    expect(find.text('TODAY'), findsOneWidget);
-    expect(find.text('THIS WEEK'), findsOneWidget);
-    expect(find.text('EARLIER'), findsOneWidget);
-    expect(find.text('Amina liked your post'), findsOneWidget);
-    expect(find.text('Nyaaba replied to you'), findsOneWidget);
+    expect(find.text('Today'), findsOneWidget);
+    expect(find.text('This week'), findsOneWidget);
+    expect(find.text('Earlier'), findsOneWidget);
+    expect(
+      find.textContaining('Amina liked your post', findRichText: true),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Nyaaba replied to you', findRichText: true),
+      findsOneWidget,
+    );
     expect(find.text('Ko gara.'), findsOneWidget);
   });
 
@@ -136,7 +145,9 @@ void main() {
     await pump(tester, feed: [notification(id: 'a')], unread: 1);
 
     expect(find.byTooltip('Mark all read'), findsOneWidget);
-    expect(find.byTooltip('Delete notification'), findsOneWidget);
+    // Rows are swiped (right to mark read, left to delete) rather than
+    // carrying a delete button each.
+    expect(find.byType(Dismissible), findsOneWidget);
   });
 
   testWidgets('offers to clear the whole notification history', (tester) async {
@@ -162,7 +173,42 @@ void main() {
       feed: [notification(id: 'a', postPreview: 'De zaanem. Ko gara.')],
     );
 
-    expect(find.text('De zaanem. Ko gara.'), findsOneWidget);
+    expect(find.textContaining('De zaanem. Ko gara.'), findsOneWidget);
+  });
+
+  testWidgets('only alerts about something you can react to offer Like', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      feed: [
+        notification(id: 'liked'),
+        notification(
+          id: 'reply',
+          kind: NotificationKind.reply,
+          title: 'Nyaaba replied to you',
+        ),
+      ],
+    );
+
+    // A "liked your post" alert has nothing to like back; the reply does.
+    expect(find.text('Like'), findsOneWidget);
+    expect(find.text('Reply'), findsOneWidget);
+  });
+
+  test('order alerts open their order page', () {
+    IndigenNotification target(String route) => IndigenNotification(
+      id: 'order',
+      recipientId: 'me',
+      kind: NotificationKind.announcement,
+      title: 'Your order has been packed',
+      route: route,
+    );
+    expect(
+      notificationDestination(target('/shop/order/abc123')),
+      '/shop/order/abc123',
+    );
+    expect(notificationDestination(target('/shop/order/a/b')), isNull);
   });
 
   testWidgets('an empty centre explains what will land here', (tester) async {

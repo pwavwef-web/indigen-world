@@ -98,6 +98,7 @@ class _Factory implements AdMobNativeFactory {
   int creates = 0;
   _Handle? lastHandle;
   NativeAdPalette? lastPalette;
+  String? lastFactoryId;
 
   @override
   AdMobNativeHandle create({
@@ -105,8 +106,11 @@ class _Factory implements AdMobNativeFactory {
     required NativeAdPalette palette,
     required VoidCallback onLoaded,
     required VoidCallback onFailed,
+    String? factoryId,
+    Map<String, Object>? customOptions,
   }) {
     creates++;
+    lastFactoryId = factoryId;
     lastPalette = palette;
     return lastHandle = _Handle(
       onLoaded: onLoaded,

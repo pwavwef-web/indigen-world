@@ -63,6 +63,7 @@ export const REQUIRED_KEYS = [
   { key: 'ADMOB_EXPLORE_NATIVE_AD_UNIT_ID', pattern: UNIT_ID, kind: 'unit' },
   { key: 'ADMOB_COLLECTION_NATIVE_AD_UNIT_ID', pattern: UNIT_ID, kind: 'unit' },
 ];
+export const OPTIONAL_KEYS = [{ key: 'ADMOB_POST_COMMENTS_NATIVE_AD_UNIT_ID', pattern: UNIT_ID, kind: 'unit' }];
 
 /**
  * The last four digits, which is enough to tell two records apart in a log and
@@ -113,9 +114,10 @@ export function readLocalFile(path = process.env.ADMOB_RELEASE_CONFIG || LOCAL_C
 export function resolveConfig({ env = process.env, file } = {}) {
   const local = file ?? readLocalFile();
   const values = {};
-  for (const { key } of REQUIRED_KEYS) {
+  for (const { key } of [...REQUIRED_KEYS, ...OPTIONAL_KEYS]) {
     const fromEnv = String(env[key] ?? '').trim();
     const fromFile = String(local[key] ?? '').trim();
+    if (!fromEnv && !fromFile && OPTIONAL_KEYS.some((entry) => entry.key === key)) continue;
     values[key] = fromEnv || fromFile;
   }
   return values;
@@ -134,7 +136,7 @@ export function validate(values) {
   const problems = [];
   const publishers = new Set();
 
-  for (const { key, pattern, kind } of REQUIRED_KEYS) {
+  for (const { key, pattern, kind } of [...REQUIRED_KEYS, ...OPTIONAL_KEYS.filter(({ key }) => values[key])]) {
     const value = values[key] ?? '';
     if (!value) {
       problems.push(`${key} is missing.`);
@@ -162,7 +164,7 @@ export function validate(values) {
     );
   }
 
-  const units = REQUIRED_KEYS.filter((entry) => entry.kind === 'unit');
+  const units = [...REQUIRED_KEYS, ...OPTIONAL_KEYS].filter((entry) => entry.kind === 'unit');
   const seen = new Map();
   for (const { key } of units) {
     const value = values[key];
@@ -185,7 +187,7 @@ export function validate(values) {
  * string that could end up in a log.
  */
 export function dartDefines(values) {
-  return REQUIRED_KEYS.map(({ key }) => `--dart-define=${key}=${values[key]}`);
+  return [...REQUIRED_KEYS, ...OPTIONAL_KEYS.filter(({ key }) => values[key])].map(({ key }) => `--dart-define=${key}=${values[key]}`).concat(values.ADMOB_POST_COMMENTS_NATIVE_AD_UNIT_ID ? ['--dart-define=POST_COMMENTS_ADS_ENABLED=true'] : []);
 }
 
 /** The subset Gradle reads, to merge into a child process's environment. */

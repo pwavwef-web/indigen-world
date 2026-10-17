@@ -102,7 +102,12 @@
 
 <link crossorigin='anonymous' href='https://fonts.gstatic.com' rel='preconnect'/>
 <link href='https://fonts.googleapis.com' rel='preconnect'/>
-<link href='https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;family=Noto+Serif:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap' rel='stylesheet'/>
+<b:comment>
+  Noto Serif Display carries the editorial headlines. Like the rest of the Noto
+  family its latin-ext subset includes the IPA letters Kasem uses (e, o, eng
+  and their tone marks), so a Kasem title never falls back to a second font.
+</b:comment>
+<link href='https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;family=Noto+Serif:ital,wght@0,400;0,500;0,600;1,400&amp;family=Noto+Serif+Display:wght@500;600;700&amp;display=swap' rel='stylesheet'/>
 
 <b:comment>Applies the saved colour scheme before first paint so there is no flash.</b:comment>
 <script>//<![CDATA[
@@ -126,6 +131,7 @@
 <Group description="Typography" selector="body">
   <Variable name="type.ui" description="Interface font" type="font" default="normal normal 16px 'Noto Sans', system-ui, sans-serif" value="normal normal 16px 'Noto Sans', system-ui, sans-serif"/>
   <Variable name="type.body" description="Article body font" type="font" default="normal normal 17px 'Noto Serif', Georgia, serif" value="normal normal 17px 'Noto Serif', Georgia, serif"/>
+  <Variable name="type.display" description="Headline font" type="font" default="normal normal 40px 'Noto Serif Display', 'Noto Serif', Georgia, serif" value="normal normal 40px 'Noto Serif Display', 'Noto Serif', Georgia, serif"/>
 </Group>
 
 <Group description="Layout" selector="body">
@@ -211,6 +217,7 @@
 
   --font-ui:$(type.ui.family);
   --font-body:$(type.body.family);
+  --font-display:$(type.display.family);
   --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --fs-ui:$(type.ui.size);
   --fs-body:$(type.body.size);
@@ -574,7 +581,30 @@ table{border-collapse:collapse}
     linear-gradient(125deg,transparent 0 65%,rgba(142,180,255,.12) 65.2% 65.5%,transparent 65.7%);
   background-size:22px 22px,auto;
 }
-.iw-hero__in{position:relative;z-index:1;padding:calc(var(--head-h) + 56px) 0 64px}
+.iw-hero__in{position:relative;z-index:1;padding:calc(var(--head-h) + 64px) 0 72px}
+.iw-hero__grid{display:grid;gap:36px;align-items:end}
+@media (min-width:900px){.iw-hero__grid{grid-template-columns:minmax(0,1fr) minmax(220px,280px);gap:clamp(40px,6vw,88px)}}
+.iw-hero__mark{display:block;width:64px;height:3px;margin:26px 0 22px;border-radius:2px;background:linear-gradient(90deg,var(--gold),var(--terracotta))}
+.iw-hero__rail{display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.16)}
+.iw-hero__rail span{
+  position:relative;padding:15px 0 15px 20px;border-bottom:1px solid rgba(255,255,255,.16);
+  font-size:.84rem;font-weight:650;line-height:1.45;color:rgba(255,255,255,.8);
+}
+.iw-hero__rail span::before{
+  content:"";position:absolute;left:0;top:21px;width:7px;height:7px;border-radius:50%;
+  background:var(--gold);box-shadow:0 0 0 4px rgba(34,211,238,.14);
+}
+@keyframes iw-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.iw-hero .iw-eyebrow,.iw-hero__title,.iw-hero__mark,.iw-hero__lede,.iw-hero__actions,.iw-hero__rail span{
+  animation:iw-rise .6s cubic-bezier(.22,.61,.36,1) both;
+}
+.iw-hero__title{animation-delay:.07s}
+.iw-hero__mark{animation-delay:.14s}
+.iw-hero__lede{animation-delay:.2s}
+.iw-hero__actions{animation-delay:.26s}
+.iw-hero__rail span:nth-child(1){animation-delay:.3s}
+.iw-hero__rail span:nth-child(2){animation-delay:.37s}
+.iw-hero__rail span:nth-child(3){animation-delay:.44s}
 .iw-eyebrow{
   display:inline-flex;align-items:center;gap:9px;margin-bottom:16px;
   font-size:.73rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
@@ -585,8 +615,8 @@ table{border-collapse:collapse}
   background:var(--gold);box-shadow:0 0 0 4px rgba(34,211,238,.14);
 }
 .iw-hero__title{
-  font-size:clamp(2.15rem,6vw,3.4rem);line-height:1.08;letter-spacing:-.01em;
-  font-weight:800;color:#fff;text-wrap:balance;max-width:20ch;
+  font-family:var(--font-display);font-size:clamp(2.5rem,7vw,5.2rem);line-height:.98;letter-spacing:-.025em;
+  font-weight:600;color:#fff;text-wrap:balance;max-width:16ch;
 }
 .iw-hero__lede{
   margin-top:16px;max-width:56ch;font-size:clamp(1rem,2.1vw,1.13rem);
@@ -636,20 +666,30 @@ table{border-collapse:collapse}
 }
 
 /* View header for label, archive and search pages */
+.iw-hero__mark + .iw-hero__lede{margin-top:0}
 .iw-viewhead{
-  margin-bottom:30px;padding-bottom:22px;border-bottom:1px solid var(--line);
+  margin-bottom:34px;padding-bottom:26px;border-bottom:1px solid var(--line);
 }
-.iw-viewhead .iw-eyebrow{color:var(--accent-ink);margin-bottom:10px}
+.iw-viewhead .iw-eyebrow{color:var(--accent-ink);margin-bottom:12px}
 .iw-viewhead__title{
-  font-size:clamp(1.6rem,4vw,2.3rem);line-height:1.12;letter-spacing:-.015em;font-weight:800;
+  font-family:var(--font-display);font-size:clamp(2.2rem,6vw,3.8rem);line-height:1;
+  letter-spacing:-.025em;font-weight:600;text-wrap:balance;
 }
-.iw-viewhead__count{margin-top:8px;color:var(--ink-mute);font-size:.9rem}
+.iw-viewhead__count{margin-top:12px;max-width:60ch;color:var(--ink-mute);font-size:.95rem}
+.iw-viewhead__count:empty{display:none}
+
+/* Section bar above the homepage grid */
+.iw-sectionbar{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}
+.iw-sectionbar h2{font-family:var(--font-display);font-size:clamp(1.8rem,4vw,2.6rem);font-weight:600;line-height:1;letter-spacing:-.02em}
+.iw-sectionbar span{color:var(--ink-mute);font-size:.82rem;font-weight:700}
 
 .iw-empty{
   padding:56px 24px;text-align:center;border:1px dashed var(--line-2);
   border-radius:var(--radius);background:var(--surface);
 }
-.iw-empty h2{font-size:1.25rem;font-weight:800;margin-bottom:8px}
+.iw-empty h2{font-family:var(--font-display);font-size:clamp(1.6rem,4vw,2.3rem);font-weight:600;line-height:1.1;margin-bottom:10px}
+.iw-empty .iw-eyebrow{color:var(--accent-ink)}
+.iw-empty .iw-sidesearch{max-width:420px;margin:22px auto 0}
 .iw-empty p{color:var(--ink-mute);max-width:44ch;margin-inline:auto}
 
 /* ==========================================================================
@@ -721,7 +761,9 @@ table{border-collapse:collapse}
 .iw-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-2);border-color:rgba(47,107,255,.35)}
 .iw-card:focus-within{box-shadow:var(--shadow-2)}
 
-.iw-card__media{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--surface-2)}
+/* Release covers are designed at 1200x630 with the headline set inside the
+   art, so every slot keeps that shape. A 16:9 crop cut the words off. */
+.iw-card__media{position:relative;aspect-ratio:40/21;overflow:hidden;background:var(--surface-2)}
 .iw-card__media img{width:100%;height:100%;object-fit:cover;transition:transform 420ms var(--ease)}
 .iw-card:hover .iw-card__media img{transform:scale(1.035)}
 
@@ -734,7 +776,7 @@ table{border-collapse:collapse}
 .iw-card__motif .iw-mark{width:52px;height:52px;opacity:.92}
 
 .iw-card__body{display:flex;flex-direction:column;gap:11px;padding:20px 20px 22px;flex:1 1 auto}
-.iw-card__title{font-size:1.16rem;line-height:1.28;font-weight:800;letter-spacing:-.012em;text-wrap:balance}
+.iw-card__title{font-family:var(--font-display);font-size:1.42rem;line-height:1.14;font-weight:600;letter-spacing:-.012em;text-wrap:balance}
 .iw-card__title a{transition:color var(--dur) var(--ease)}
 .iw-card__title a::after{content:"";position:absolute;inset:0;z-index:1}
 .iw-card:hover .iw-card__title a{color:var(--link)}
@@ -753,9 +795,12 @@ table{border-collapse:collapse}
 .iw-card:hover .iw-card__more::after{transform:translateX(3px)}
 
 /* Blogger sometimes retains a Featured Post gadget while restoring a theme.
-   If Blog1 cannot render, this becomes a full-size emergency lead card rather
-   than Blogger's default long excerpt with a fixed 72px thumbnail. Runtime JS
-   hides it whenever the real .iw-grid is present. */
+   It repeats the newest post's cover under the grid, so whenever the real
+   grid has cards it is removed by CSS before first paint (no script needed).
+   Only if Blog1 cannot render does it become a full-size emergency lead card
+   rather than Blogger's default long excerpt with a fixed 72px thumbnail. */
+.iw-layout--index:has(.iw-card) #FeaturedPost1,
+.iw-layout--index:has(.iw-card) .FeaturedPost{display:none!important}
 .iw-layout--index #FeaturedPost1{overflow:hidden;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow-1)}
 .iw-layout--index #FeaturedPost1 .widget-content > [role="feed"]{display:block}
 .iw-layout--index #FeaturedPost1 .post-content{display:grid;grid-template-columns:minmax(0,1fr)}
@@ -782,10 +827,17 @@ table{border-collapse:collapse}
   .iw-card--lead,.iw-grid > .iw-card:first-child{grid-column:1/-1}
 }
 @media (min-width:860px){
-  .iw-card--lead,.iw-grid > .iw-card:first-child{flex-direction:row;align-items:stretch}
-  .iw-card--lead .iw-card__media,.iw-grid > .iw-card:first-child .iw-card__media{flex:0 0 52%;aspect-ratio:auto}
-  .iw-card--lead .iw-card__body,.iw-grid > .iw-card:first-child .iw-card__body{padding:30px 30px 32px;justify-content:center;gap:13px}
-  .iw-card--lead .iw-card__title,.iw-grid > .iw-card:first-child .iw-card__title{font-size:1.6rem;line-height:1.2}
+  .iw-card--lead,.iw-grid > .iw-card:first-child{flex-direction:row;align-items:center}
+  /* The lead cover sits inset in the card at its own shape, so the art is
+     never stretched or cropped to match the height of the text beside it. */
+  .iw-card--lead .iw-card__media,.iw-grid > .iw-card:first-child .iw-card__media{
+    flex:0 0 58%;margin:14px 0 14px 14px;border-radius:calc(var(--radius) - 6px);
+  }
+  .iw-card--lead .iw-card__snippet,.iw-grid > .iw-card:first-child .iw-card__snippet{
+    display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3;
+  }
+  .iw-card--lead .iw-card__body,.iw-grid > .iw-card:first-child .iw-card__body{padding:30px 32px 32px;justify-content:center;gap:14px}
+  .iw-card--lead .iw-card__title,.iw-grid > .iw-card:first-child .iw-card__title{font-size:clamp(1.6rem,2.1vw,1.95rem);line-height:1.08}
   .iw-card--lead .iw-card__snippet,.iw-grid > .iw-card:first-child .iw-card__snippet{font-size:1rem}
 }
 
@@ -793,21 +845,42 @@ table{border-collapse:collapse}
    9. Article
    ========================================================================== */
 
-.iw-article__head{margin-bottom:26px}
-.iw-article__head .iw-chips{margin-bottom:14px}
+.iw-article__head{margin-bottom:30px}
+/* A kicker of at most three topics replaces the wall of chips; the article
+   footer still lists every label. */
+.iw-kicker{
+  display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-bottom:16px;
+  color:var(--accent-ink);font-size:.74rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+}
+.iw-kicker a{transition:color var(--dur) var(--ease)}
+.iw-kicker a:hover{color:var(--ink)}
+.iw-kicker a + a::before{content:"\00b7";margin-right:10px;color:var(--ink-mute)}
 .iw-article__title{
-  font-size:clamp(1.85rem,4.6vw,2.75rem);line-height:1.1;letter-spacing:-.02em;
-  font-weight:800;text-wrap:balance;
+  font-family:var(--font-display);font-size:clamp(2.3rem,6.4vw,4rem);line-height:1.02;letter-spacing:-.025em;
+  font-weight:600;text-wrap:balance;
+}
+.iw-article__dek{
+  margin-top:16px;max-width:60ch;color:var(--ink-soft);
+  font-family:var(--font-body);font-size:clamp(1.05rem,2vw,1.2rem);line-height:1.6;text-wrap:pretty;
 }
 .iw-meta{
-  display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:18px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:20px;
   font-size:.85rem;color:var(--ink-mute);
 }
-.iw-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid var(--line)}
+.iw-meta__mark{
+  display:grid;place-items:center;width:34px;height:34px;border-radius:50%;flex:0 0 auto;background:var(--hero-bg);
+}
+.iw-meta__mark .iw-mark{width:20px;height:20px}
 .iw-meta__author{font-weight:700;color:var(--ink)}
 
-.iw-cover{margin:0 0 30px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow-1)}
-.iw-cover img{width:100%;aspect-ratio:16/9;object-fit:cover}
+/* The cover is the release art at its designed 1200x630 shape. It is wider
+   than the reading column on large screens, like a magazine lead image. */
+.iw-cover{margin:0 0 34px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow-2);background:var(--surface-2)}
+.iw-cover img{width:100%;height:auto}
+.iw-cover figcaption{padding:10px 16px 12px;background:var(--surface);color:var(--ink-mute);font-size:.8rem;line-height:1.5;text-align:center}
+@media (min-width:1180px){
+  .iw-layout--article .iw-cover{margin-inline:-28px}
+}
 
 /* --- Prose ------------------------------------------------------------- */
 
@@ -815,8 +888,23 @@ table{border-collapse:collapse}
   font-family:var(--font-body);font-size:var(--fs-body);line-height:1.75;
   color:var(--ink);
 }
-.iw-prose > * + *{margin-top:1.15em}
+/* Release posts wrap their body in one article element (and Blogger's editor
+   sometimes in one div), so the vertical rhythm has to reach through that
+   single wrapper or every paragraph sits flush against the next. */
+.iw-prose > * + *,
+.iw-prose > :is(article,div):only-child > * + *{margin-top:1.15em}
 .iw-prose p{text-wrap:pretty}
+
+/* The theme already shows the post's first image as the cover. Release posts
+   also open with that same cover so Blogger can pick it as the share image;
+   hide the body copy before first paint. The script removes it for good,
+   including figure versions, and moves any caption onto the cover. */
+.iw-article.has-cover .iw-prose > .separator:first-child,
+.iw-article.has-cover .iw-prose > :is(article,div):only-child > .separator:first-child,
+.iw-article.has-cover .iw-prose > p:first-child:has(> img:only-child),
+.iw-article.has-cover .iw-prose > p:first-child:has(> a:only-child > img:only-child),
+.iw-article.has-cover .iw-prose > :is(article,div):only-child > p:first-child:has(> img:only-child),
+.iw-article.has-cover .iw-prose > :is(article,div):only-child > p:first-child:has(> a:only-child > img:only-child){display:none}
 .iw-prose a{
   color:var(--link);text-decoration:underline;
   text-decoration-color:rgba(47,107,255,.45);text-decoration-thickness:2px;text-underline-offset:3px;
@@ -828,12 +916,13 @@ table{border-collapse:collapse}
   font-family:var(--font-ui);font-weight:800;letter-spacing:-.015em;
   line-height:1.22;text-wrap:balance;scroll-margin-top:96px;
 }
-.iw-prose h2{font-size:1.55em;margin-top:2em;padding-top:.15em}
+.iw-prose h2,.iw-prose h3{font-family:var(--font-display);font-weight:600;letter-spacing:-.02em;line-height:1.12}
+.iw-prose h2{font-size:1.85em;margin-top:2em;padding-top:.15em}
 .iw-prose h2::after{
   content:"";display:block;width:46px;height:3px;border-radius:2px;
   margin-top:.42em;background:linear-gradient(90deg,var(--gold),var(--terracotta));
 }
-.iw-prose h3{font-size:1.22em;margin-top:1.8em}
+.iw-prose h3{font-size:1.4em;margin-top:1.8em}
 .iw-prose h4{font-size:1.05em;margin-top:1.6em;color:var(--ink-soft)}
 .iw-prose h5,.iw-prose h6{font-size:1em;margin-top:1.5em;color:var(--ink-soft)}
 .iw-prose dd{margin-left:1.35em}
@@ -853,13 +942,14 @@ table{border-collapse:collapse}
 .iw-prose li > ul,.iw-prose li > ol{margin-top:.42em}
 
 .iw-prose blockquote{
-  margin-inline:0;padding:18px 22px;border-left:3px solid var(--terracotta);
-  border-radius:0 var(--radius-sm) var(--radius-sm) 0;
-  background:var(--surface-2);color:var(--ink-soft);font-style:italic;
+  margin-inline:0;padding:.2em 0 .2em 1em;border-left:4px solid var(--terracotta);
+  font-family:var(--font-display);font-size:1.45em;font-weight:500;line-height:1.3;color:var(--ink);
 }
 .iw-prose blockquote p + p{margin-top:.8em}
 
-.iw-prose img{border-radius:var(--radius-sm);box-shadow:var(--shadow-1);margin-inline:auto}
+/* Release images carry width and height, so they reserve their space; the
+   tint shows where a lazy image is still on its way instead of a white hole. */
+.iw-prose img{border-radius:var(--radius-sm);box-shadow:var(--shadow-1);margin-inline:auto;background:var(--surface-2)}
 .iw-prose figure{margin-block:1.6em}
 .iw-prose figcaption,.iw-prose .separator + br{font-family:var(--font-ui)}
 .iw-prose figcaption{
@@ -955,16 +1045,29 @@ table{border-collapse:collapse}
 .iw-postfoot__row{display:flex;flex-wrap:wrap;align-items:center;gap:16px;justify-content:space-between}
 .iw-share{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
 .iw-share__label{font-size:.72rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-mute)}
+/* Named share buttons: a reader should not have to decode four bare icons. */
 .iw-share button,.iw-share a{
-  display:grid;place-items:center;width:36px;height:36px;border-radius:50%;
+  display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:7px 13px 7px 11px;border-radius:var(--pill);
   border:1px solid var(--line-2);background:var(--surface);color:var(--ink-soft);
+  font-size:.78rem;font-weight:700;white-space:nowrap;
   transition:background var(--dur) var(--ease),color var(--dur) var(--ease),border-color var(--dur) var(--ease),transform var(--dur) var(--ease);
 }
 .iw-share button:hover,.iw-share a:hover{
   background:var(--action-bg);border-color:var(--action-bg);color:var(--action-ink);transform:translateY(-2px);
 }
-.iw-share svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.iw-share svg{width:16px;height:16px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .iw-share .is-copied,.iw-share .is-copied:hover{background:var(--success-bg);border-color:var(--success-bg);color:#fff}
+
+/* Follow card after the article */
+.iw-follow{
+  --focus:var(--gold-soft);
+  position:relative;isolation:isolate;overflow:hidden;margin-top:34px;padding:28px;
+  border-radius:var(--radius);background:var(--hero-bg);color:var(--on-dark);
+}
+.iw-follow::after{content:"";position:absolute;inset:0;z-index:-1;opacity:.12;background-image:var(--dots);background-size:22px 22px}
+.iw-follow h2{font-family:var(--font-display);font-size:clamp(1.5rem,3.4vw,2rem);font-weight:600;line-height:1.1;color:#fff}
+.iw-follow p{margin-top:8px;max-width:52ch;color:rgba(255,255,255,.78);font-size:.95rem;line-height:1.6}
+.iw-follow .iw-hero__actions{margin-top:18px}
 
 .iw-author{
   display:flex;gap:16px;align-items:flex-start;margin-top:30px;padding:22px;
@@ -977,7 +1080,7 @@ table{border-collapse:collapse}
   background:var(--hero-bg);
 }
 .iw-author__mark .iw-mark{width:30px;height:30px}
-.iw-author__name{font-weight:800;font-size:1rem}
+.iw-author__name{font-family:var(--font-display);font-weight:600;font-size:1.3rem;line-height:1.1}
 .iw-author__role{margin-top:3px;font-size:.87rem;color:var(--ink-mute);line-height:1.55}
 
 .iw-pager{display:grid;gap:12px;margin-top:34px;grid-template-columns:minmax(0,1fr)}
@@ -998,38 +1101,53 @@ table{border-collapse:collapse}
   font-size:.76rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
   color:var(--ink-mute);margin-bottom:18px;
 }
-.iw-related__list{display:grid;gap:12px}
+/* Related updates are small cards with their release covers, not 64px
+   squares that shrink the designed art to an unreadable crop. */
+.iw-related__list{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:560px){.iw-related__list{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .iw-related__item{
-  display:flex;gap:14px;align-items:center;padding:12px;
+  display:flex;flex-direction:column;overflow:hidden;min-width:0;
   border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);
-  transition:border-color var(--dur) var(--ease),transform var(--dur) var(--ease);
+  transition:border-color var(--dur) var(--ease),transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease);
 }
-.iw-related__item:hover{border-color:rgba(47,107,255,.35);transform:translateX(3px)}
+.iw-related__item:hover{border-color:rgba(47,107,255,.35);transform:translateY(-2px);box-shadow:var(--shadow-1)}
 .iw-related__thumb{
-  width:64px;height:64px;flex:0 0 auto;border-radius:8px;object-fit:cover;
-  background:var(--surface-2);
+  display:block;width:100%;height:auto;aspect-ratio:40/21;object-fit:cover;background:var(--surface-2);
 }
-.iw-related__text{min-width:0;display:block}
-.iw-related__t{display:block;font-weight:700;font-size:.95rem;line-height:1.35}
-.iw-related__d{display:block;margin-top:3px;font-size:.78rem;color:var(--ink-mute)}
+.iw-related__text{min-width:0;display:block;padding:12px 14px 14px}
+.iw-related__t{display:block;font-family:var(--font-display);font-weight:600;font-size:1.06rem;line-height:1.22}
+.iw-related__d{display:block;margin-top:6px;font-size:.76rem;color:var(--ink-mute)}
 .iw-related__motif{
-  width:64px;height:64px;flex:0 0 auto;border-radius:8px;
-  display:grid;place-items:center;background:var(--hero-bg);
+  width:100%;aspect-ratio:40/21;display:grid;place-items:center;background:var(--hero-bg);
 }
-.iw-related__motif .iw-mark{width:30px;height:30px}
+.iw-related__motif .iw-mark{width:40px;height:40px}
 
 /* Table of contents rail, built from the article's own headings. */
 .iw-rail{position:sticky;top:calc(var(--head-h) + 22px);max-height:calc(100vh - var(--head-h) - 44px);overflow-y:auto}
 .iw-rail[hidden]{display:none}
 .iw-share-rail{position:sticky;top:calc(var(--head-h) + 22px)}
 .iw-share-rail[hidden]{display:none}
-.iw-share-rail .iw-share{flex-direction:column;align-items:center;padding:14px 10px;border:1px solid var(--line);border-radius:var(--pill);background:var(--surface);box-shadow:var(--shadow-1)}
-.iw-share-rail .iw-share__label{margin-bottom:3px;writing-mode:vertical-rl;transform:rotate(180deg)}
+.iw-share-rail .iw-share{flex-direction:column;align-items:stretch;width:150px;gap:8px}
+.iw-share-rail .iw-share__label{margin-bottom:4px}
+.iw-share-rail .iw-share a,.iw-share-rail .iw-share button{justify-content:flex-start}
 @media (max-width:1179px){
   .iw-layout--article .iw-rail{
     position:static;max-height:none;max-width:var(--article-w);width:100%;margin:0 auto 26px;
-    padding:18px 20px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);
+    border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);
   }
+  .iw-layout--article .iw-rail .iw-toc__title{margin:0;padding:15px 20px;cursor:pointer}
+  .iw-layout--article .iw-rail .iw-toc__list{margin:0 20px 18px}
+}
+/* On small screens the contents fold into one line, so the cover leads
+   straight into the prose instead of a five-row list between them. */
+.iw-toc details > summary{list-style:none;display:flex;align-items:center;gap:8px}
+.iw-toc details > summary::-webkit-details-marker{display:none}
+.iw-toc details > summary::after{content:"\2304";margin-left:auto;transition:transform var(--dur) var(--ease)}
+.iw-toc details[open] > summary::after{transform:rotate(180deg)}
+.iw-toc__count{color:var(--ink-mute);font-weight:600;letter-spacing:.04em;text-transform:none}
+@media (min-width:1180px){
+  .iw-toc details > summary{pointer-events:none}
+  .iw-toc details > summary::after,.iw-toc__count{display:none}
 }
 .iw-toc__title{
   font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
@@ -1050,6 +1168,19 @@ table{border-collapse:collapse}
    ========================================================================== */
 
 .iw-comments{margin-top:48px;padding-top:32px;border-top:1px solid var(--line)}
+/* Blogger's comment iframe, reCAPTCHA and scripts load only once a reader
+   opens the discussion, so a post page stays light. */
+.iw-comments__gate{border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
+.iw-comments__gate > summary{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-height:56px;padding:15px 20px;
+  cursor:pointer;list-style:none;font-weight:800;color:var(--ink);
+}
+.iw-comments__gate > summary::-webkit-details-marker{display:none}
+.iw-comments__gate > summary::after{content:"\2304";margin-left:auto;color:var(--accent-ink);transition:transform var(--dur) var(--ease)}
+.iw-comments__gate[open] > summary{border-bottom:1px solid var(--line)}
+.iw-comments__gate[open] > summary::after{transform:rotate(180deg)}
+.iw-comments__hint{color:var(--ink-mute);font-size:.78rem;font-weight:600}
+.iw-comments__mount{padding:20px}
 .iw-comments h3,.iw-comments h4,.iw-comments .comments h4{
   font-size:1.1rem;font-weight:800;margin-bottom:18px;
 }
@@ -1108,6 +1239,14 @@ table{border-collapse:collapse}
 /* Labels */
 .iw-labels{display:flex;flex-wrap:wrap;gap:7px}
 .iw-labels__count{color:var(--ink-mute);font-size:.68rem}
+/* The blog has dozens of labels. The sidebar shows the busiest topics and
+   keeps the rest one click away rather than a sixty-chip wall. */
+.iw-labels.is-trimmed .iw-chip.is-extra{display:none}
+.iw-labels__more{
+  display:inline-flex;align-items:center;min-height:30px;padding:4px 12px;margin-top:4px;border-radius:var(--pill);
+  border:1px dashed var(--line-2);color:var(--accent-ink);font-size:.74rem;font-weight:800;
+}
+.iw-labels__more:hover{border-style:solid;border-color:var(--terracotta)}
 
 /* Popular posts */
 .iw-pp{display:flex;flex-direction:column;gap:14px}
@@ -1129,6 +1268,14 @@ table{border-collapse:collapse}
   border:1px solid var(--control-border);background:var(--surface-2);
 }
 .iw-side .BlogArchive .toggle{margin-right:6px;color:var(--ink-mute)}
+/* Blogger writes the month and its count with no space between them
+   ("October27"); give the count its own quiet pill. */
+.iw-side .BlogArchive li a{display:flex;align-items:center;gap:8px}
+.iw-side .BlogArchive .post-count{
+  margin-left:auto;min-width:26px;padding:1px 8px;border-radius:var(--pill);
+  background:var(--surface-2);color:var(--ink-mute);font-size:.72rem;font-weight:700;text-align:center;
+  font-variant-numeric:tabular-nums;
+}
 
 /* Search widget */
 .iw-sidesearch{display:flex;gap:7px}
@@ -1275,7 +1422,7 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
 
 @media print{
   .iw-head,.iw-searchpane,.iw-side,.iw-rail,.iw-top,.iw-progress,
-  .iw-share,.iw-share-rail,.iw-pager,.iw-related,.iw-comments,.iw-foot,.iw-hero{display:none!important}
+  .iw-share,.iw-share-rail,.iw-pager,.iw-related,.iw-comments,.iw-foot,.iw-hero,.iw-follow{display:none!important}
   :root,:root[data-theme],:root:not([data-theme]){
     color-scheme:light;--bg:#fff;--bg-alt:#fff;--surface:#fff;--surface-2:#f3f3f3;
     --ink:#000;--ink-soft:#333;--ink-mute:#444;--line:#ccc;--line-2:#aaa;
@@ -1332,11 +1479,7 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
             </svg>
             <span class='iw-brand__text'>
               <strong><data:title/></strong>
-              <b:if cond='data:description'>
-                <small><data:description/></small>
-              <b:else/>
-                <small>Culture belongs in the future</small>
-              </b:if>
+              <small>Release notes &amp; field notes</small>
             </span>
           </a>
         </b:includable>
@@ -1425,25 +1568,38 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
   </div>
 </div>
 
+<b:comment>
+  The homepage masthead. The header bar already names the blog, so the
+  headline says what the blog is for instead of repeating the title, and the
+  rail states the three things every reader can expect from a post.
+</b:comment>
 <b:if cond='data:view.isHomepage'>
   <section class='iw-hero'>
-    <div class='iw-shell iw-hero__in'>
-      <p class='iw-eyebrow'>Release notes and field notes</p>
-      <h1 class='iw-hero__title'><data:blog.title/></h1>
-      <b:if cond='data:blog.metaDescription'>
-        <p class='iw-hero__lede'><data:blog.metaDescription/></p>
-      <b:else/>
-        <p class='iw-hero__lede'>What we are building, shipping and learning across the Indigen World ecosystem &#8212; the website, TribeStudio, the mobile app and Project Kassena.</p>
-      </b:if>
-      <div class='iw-hero__actions'>
-        <a class='iw-btn iw-btn--primary' href='#iw-content'>
-          Browse updates
-          <svg aria-hidden='true' focusable='false' viewBox='0 0 24 24'><path d='M12 5v14M6 13l6 6 6-6'/></svg>
-        </a>
-        <a class='iw-btn iw-btn--ghost' expr:href='data:blog.homepageUrl + "feeds/posts/default"'>
-          <svg aria-hidden='true' focusable='false' viewBox='0 0 24 24'><path d='M5 18.5a1 1 0 102 0 1 1 0 00-2 0'/><path d='M5 12a7 7 0 017 7M5 6a13 13 0 0113 13'/></svg>
-          Subscribe by RSS
-        </a>
+    <div class='iw-shell iw-hero__in iw-hero__grid'>
+      <div>
+        <p class='iw-eyebrow'><data:blog.title/></p>
+        <h1 class='iw-hero__title'>What we are building for Indigen World.</h1>
+        <span aria-hidden='true' class='iw-hero__mark'></span>
+        <b:if cond='data:blog.metaDescription'>
+          <p class='iw-hero__lede'><data:blog.metaDescription/></p>
+        <b:else/>
+          <p class='iw-hero__lede'>Release notes and field notes from across the ecosystem &#8212; the website, TribeStudio, the mobile app, the Kasem Dictionary and Project Kassena.</p>
+        </b:if>
+        <div class='iw-hero__actions'>
+          <a class='iw-btn iw-btn--primary' href='#iw-latest'>
+            Latest updates
+            <svg aria-hidden='true' focusable='false' viewBox='0 0 24 24'><path d='M12 5v14M6 13l6 6 6-6'/></svg>
+          </a>
+          <a class='iw-btn iw-btn--ghost' expr:href='data:blog.homepageUrl + "feeds/posts/default"'>
+            <svg aria-hidden='true' focusable='false' viewBox='0 0 24 24'><path d='M5 18.5a1 1 0 102 0 1 1 0 00-2 0'/><path d='M5 12a7 7 0 017 7M5 6a13 13 0 0113 13'/></svg>
+            Subscribe by RSS
+          </a>
+        </div>
+      </div>
+      <div class='iw-hero__rail'>
+        <span>Website, TribeStudio and the mobile app</span>
+        <span>Kasem language work, from dictionary to recordings</span>
+        <span>Each post says what is live and what is still in preview</span>
       </div>
     </div>
   </section>
@@ -1478,8 +1634,14 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
 
             <b:if cond='data:view.isError'>
               <div class='iw-empty'>
+                <p class='iw-eyebrow'>Error 404</p>
                 <h2>This page has wandered off</h2>
-                <p>The update you were looking for has moved or never existed. Try the latest posts instead.</p>
+                <p>The update you were looking for has moved or never existed. Search for it, or start from the latest posts.</p>
+                <form class='iw-sidesearch' expr:action='data:blog.homepageUrl + "search"' method='get' role='search'>
+                  <label class='iw-sr' for='iw-404q'>Search this blog</label>
+                  <input autocomplete='off' id='iw-404q' name='q' placeholder='Search updates' type='search'/>
+                  <button type='submit'>Search</button>
+                </form>
                 <p style='margin-top:18px'>
                   <a class='iw-btn iw-btn--primary' expr:href='data:blog.homepageUrl'>Back to the latest updates</a>
                 </p>
@@ -1491,11 +1653,18 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
               <b:if cond='not data:view.isHomepage'>
                 <div class='iw-viewhead'>
                   <p class='iw-eyebrow'>
-                    <b:if cond='data:view.isLabelSearch'>Topic<b:elseif cond='data:view.isArchive'/>Archive<b:elseif cond='data:view.isSearch'/>Search results<b:else/>Updates</b:if>
+                    <b:if cond='data:view.isLabelSearch'>Filed under<b:elseif cond='data:view.isArchive'/>From the archive<b:elseif cond='data:view.search.query'/>Search results<b:else/>Updates</b:if>
                   </p>
+                  <b:comment>Older-posts pages are search views with no query; they get a title instead of empty quotes.</b:comment>
                   <h1 class='iw-viewhead__title'>
-                    <b:if cond='data:view.isLabelSearch'><data:view.search.label/><b:elseif cond='data:view.isSearch'/><data:view.search.query/><b:else/><data:view.title/></b:if>
+                    <b:if cond='data:view.isLabelSearch'><data:view.search.label/><b:elseif cond='data:view.search.query'/>&#8220;<data:view.search.query/>&#8221;<b:elseif cond='data:view.isArchive'/><data:view.title/><b:else/>Earlier updates</b:if>
                   </h1>
+                  <p class='iw-viewhead__count' id='iw-viewcount'><b:if cond='data:view.isLabelSearch'>Every update tagged &#8220;<data:view.search.label/>&#8221;, newest first.<b:elseif cond='data:view.isArchive'/>Everything published in this period, newest first.</b:if></p>
+                </div>
+              <b:else/>
+                <div class='iw-sectionbar' id='iw-latest'>
+                  <h2>Latest updates</h2>
+                  <span>Newest first</span>
                 </div>
               </b:if>
             </b:if>
@@ -1571,7 +1740,7 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
                   The lead card is the largest-contentful paint on the index, so
                   it loads eagerly while the rest stay lazy.
                 </b:comment>
-                <img decoding='async' expr:alt='data:post.title' expr:src='resizeImage(data:post.featuredImage, 900, "16:9")' expr:srcset='resizeImage(data:post.featuredImage, 480, "16:9") + " 480w, " + resizeImage(data:post.featuredImage, 900, "16:9") + " 900w, " + resizeImage(data:post.featuredImage, 1400, "16:9") + " 1400w"' height='506' loading='lazy' sizes='(max-width: 640px) calc(100vw - 32px), (max-width: 1040px) calc(100vw - 56px), 620px' width='900'/>
+                <img decoding='async' expr:alt='data:post.title' expr:src='resizeImage(data:post.featuredImage, 900, "1200:630")' expr:srcset='resizeImage(data:post.featuredImage, 480, "1200:630") + " 480w, " + resizeImage(data:post.featuredImage, 900, "1200:630") + " 900w, " + resizeImage(data:post.featuredImage, 1400, "1200:630") + " 1400w"' height='473' loading='lazy' sizes='(max-width: 640px) calc(100vw - 32px), (max-width: 1040px) calc(100vw - 56px), 620px' width='900'/>
               <b:else/>
                 <span class='iw-card__motif'>
                   <svg aria-hidden='true' class='iw-mark' focusable='false' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'>
@@ -1591,7 +1760,15 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
                 </div>
               </b:if>
               <h2 class='iw-card__title'><a expr:href='data:post.url'><data:post.title/></a></h2>
-              <p class='iw-card__snippet'><b:eval expr='snippet(data:post.body, {length: 165, links: false, linebreaks: false, ellipsis: true})'/></p>
+              <b:comment>
+                snippet() keeps inline tags, and a cut inside an em leaves the
+                tag open: the browser then re-opens it in every element that
+                follows, which set the sidebar and footer in italics. A
+                template is a parsing boundary, so the fragment is contained;
+                the script copies its plain text into the paragraph.
+              </b:comment>
+              <p class='iw-card__snippet'></p>
+              <template class='iw-snippet-src'><b:eval expr='snippet(data:post.body, {length: 165, links: false, linebreaks: false, ellipsis: true})'/></template>
               <div class='iw-card__foot'>
                 <time expr:datetime='format(data:post.date, "yyyy-MM-dd")'><b:eval expr='format(data:post.date, "d MMM yyyy")'/></time>
                 <span class='iw-card__more'>Read update</span>
@@ -1602,30 +1779,37 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
           <b:includable id='iwPost' var='post'>
             <b:comment>-------- Full article --------</b:comment>
             <article class='iw-article'>
+              <b:class cond='data:view.isPost and data:post.featuredImage' name='has-cover'/>
 
               <header class='iw-article__head'>
                 <b:if cond='data:view.isPost'>
                   <b:if cond='data:post.labels'>
-                    <div class='iw-chips'>
+                    <div class='iw-kicker'>
                       <b:loop values='data:post.labels' var='label'>
-                        <a class='iw-chip' expr:data-label='data:label.name' expr:href='data:label.url'><data:label.name/></a>
+                        <a expr:data-label='data:label.name' expr:href='data:label.url'><data:label.name/></a>
                       </b:loop>
                     </div>
                   </b:if>
                 </b:if>
                 <h1 class='iw-article__title'><data:post.title/></h1>
                 <b:if cond='data:view.isPost'>
+                  <b:if cond='data:blog.metaDescription'>
+                    <p class='iw-article__dek'><data:blog.metaDescription/></p>
+                  </b:if>
+                  <b:comment>
+                    The byline is the publication, not the Blogger account that
+                    pressed Publish. That account's display name belongs to a
+                    different blog and was printed on every Indigen World post.
+                  </b:comment>
                   <div class='iw-meta'>
-                    <b:if cond='data:post.author.authorPhoto.image'>
-                      <img alt='' class='iw-avatar' expr:src='data:post.author.authorPhoto.image' height='34' loading='lazy' width='34'/>
-                    </b:if>
-                    <span class='iw-meta__author'>
-                      <b:if cond='data:post.author.profileUrl'>
-                        <a expr:href='data:post.author.profileUrl' rel='author'><data:post.author.name/></a>
-                      <b:else/>
-                        <data:post.author.name/>
-                      </b:if>
+                    <span aria-hidden='true' class='iw-meta__mark'>
+                      <svg aria-hidden='true' class='iw-mark' focusable='false' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'>
+                          <path class='iw-mark__frame' d='M15 47V23l17-9 17 9v24'/>
+                          <path class='iw-mark__line' d='M24 44V29m8 15V24m8 20V29'/>
+                          <circle class='iw-mark__sun' cx='32' cy='14' r='4'/>
+                        </svg>
                     </span>
+                    <span class='iw-meta__author'>Indigen World</span>
                     <span class='iw-dot'>&#183;</span>
                     <time expr:datetime='format(data:post.date, "yyyy-MM-dd")'><b:eval expr='format(data:post.date, "d MMMM yyyy")'/></time>
                     <span class='iw-dot' hidden='hidden' id='iw-rt-dot'>&#183;</span>
@@ -1636,13 +1820,16 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
 
               <b:if cond='data:view.isPost'>
                 <b:if cond='data:post.featuredImage'>
-                  <figure class='iw-cover'>
+                  <figure class='iw-cover' id='iw-cover'>
                     <b:comment>
                       The cover is the article's largest-contentful paint, so it
-                      loads eagerly, carries its own dimensions to reserve space
-                      before it arrives, and offers narrower crops to phones.
+                      loads eagerly and offers narrower files to phones. It is
+                      resized without a crop ratio: release covers are 1200x630
+                      art with the headline inside, which a 16:9 crop cut off.
+                      The same image opens the post body (it is what makes
+                      Blogger choose it as the share card); that copy is hidden.
                     </b:comment>
-                    <img decoding='async' expr:alt='data:post.title' expr:src='resizeImage(data:post.featuredImage, 1400, "16:9")' expr:srcset='resizeImage(data:post.featuredImage, 700, "16:9") + " 700w, " + resizeImage(data:post.featuredImage, 1080, "16:9") + " 1080w, " + resizeImage(data:post.featuredImage, 1400, "16:9") + " 1400w"' fetchpriority='high' height='788' loading='eager' sizes='(max-width: 700px) calc(100vw - 32px), 760px' width='1400'/>
+                    <img decoding='async' expr:alt='data:post.title' expr:src='resizeImage(data:post.featuredImage, 1400)' expr:srcset='resizeImage(data:post.featuredImage, 700) + " 700w, " + resizeImage(data:post.featuredImage, 1080) + " 1080w, " + resizeImage(data:post.featuredImage, 1400) + " 1400w"' fetchpriority='high' height='630' loading='eager' sizes='(max-width: 700px) calc(100vw - 32px), (max-width: 1179px) 760px, 816px' width='1200'/>
                   </figure>
                 </b:if>
               </b:if>
@@ -1667,26 +1854,34 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
                   </div>
 
                   <div class='iw-author'>
-                    <b:if cond='data:post.author.authorPhoto.image'>
-                      <img alt='' expr:src='data:post.author.authorPhoto.image' height='52' loading='lazy' width='52'/>
-                    <b:else/>
-                      <span class='iw-author__mark'>
-                        <svg aria-hidden='true' class='iw-mark' focusable='false' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'>
+                    <span class='iw-author__mark'>
+                      <svg aria-hidden='true' class='iw-mark' focusable='false' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'>
                           <path class='iw-mark__frame' d='M15 47V23l17-9 17 9v24'/>
                           <path class='iw-mark__line' d='M24 44V29m8 15V24m8 20V29'/>
                           <circle class='iw-mark__sun' cx='32' cy='14' r='4'/>
                         </svg>
-                      </span>
-                    </b:if>
+                    </span>
                     <div>
-                      <div class='iw-author__name'><data:post.author.name/></div>
-                      <p class='iw-author__role'>Writing for <b:eval expr='data:blog.title'/>. Follow along for release notes, feature updates and notes from the field.</p>
+                      <div class='iw-author__name'>Indigen World</div>
+                      <p class='iw-author__role'>A cultural technology ecosystem for language preservation, cultural learning, storytelling and creator enablement. <b:eval expr='data:blog.title'/> is where the team records what changed, who it helps and what is still to come.</p>
+                    </div>
+                  </div>
+
+                  <div class='iw-follow'>
+                    <h2>Follow what we ship next</h2>
+                    <p>New release notes arrive in the RSS feed as soon as they are published. The website has the full picture of the ecosystem.</p>
+                    <div class='iw-hero__actions'>
+                      <a class='iw-btn iw-btn--primary' expr:href='data:blog.homepageUrl + "feeds/posts/default"'>
+                        <svg aria-hidden='true' focusable='false' viewBox='0 0 24 24'><path d='M5 18.5a1 1 0 102 0 1 1 0 00-2 0'/><path d='M5 12a7 7 0 017 7M5 6a13 13 0 0113 13'/></svg>
+                        Subscribe by RSS
+                      </a>
+                      <a class='iw-btn iw-btn--ghost' href='https://indigenworld.com/'>Visit indigenworld.com</a>
                     </div>
                   </div>
                 </footer>
 
                 <section class='iw-related' hidden='hidden' id='iw-related'>
-                  <h2>More on this topic</h2>
+                  <h2>More from <span id='iw-related-topic'>this topic</span></h2>
                   <div class='iw-related__list' id='iw-related-list'></div>
                 </section>
 
@@ -1695,13 +1890,24 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
                   flat are different includables; picking the wrong one drops the
                   reply UI, so follow the blog's setting rather than assuming.
                 </b:comment>
-                <section class='iw-comments' id='iw-comments'>
-                  <b:if cond='data:post.showThreadedComments'>
-                    <b:include data='post' name='threaded_comments'/>
-                  <b:else/>
-                    <b:include data='post' name='comments'/>
-                  </b:if>
-                </section>
+                <b:if cond='data:post.allowComments'>
+                  <section class='iw-comments' id='iw-comments'>
+                    <details class='iw-comments__gate' id='iw-comments-gate'>
+                      <summary>
+                        <span>Read or leave a comment</span>
+                        <span class='iw-comments__hint'>Loads when opened</span>
+                      </summary>
+                      <div aria-live='polite' class='iw-comments__mount' id='iw-comments-mount'></div>
+                    </details>
+                    <template id='iw-comments-src'>
+                      <b:if cond='data:post.showThreadedComments'>
+                        <b:include data='post' name='threaded_comments'/>
+                      <b:else/>
+                        <b:include data='post' name='comments'/>
+                      </b:if>
+                    </template>
+                  </section>
+                </b:if>
               </b:if>
 
             </article>
@@ -1789,7 +1995,7 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
               <b:widget-setting name='showStyle'>FLAT</b:widget-setting>
               <b:widget-setting name='yearPattern'>yyyy</b:widget-setting>
               <b:widget-setting name='showWeekEnd'>true</b:widget-setting>
-              <b:widget-setting name='monthPattern'>MMMM</b:widget-setting>
+              <b:widget-setting name='monthPattern'>MMMM yyyy</b:widget-setting>
               <b:widget-setting name='dayPattern'>MMM dd</b:widget-setting>
               <b:widget-setting name='weekPattern'>MM/dd</b:widget-setting>
               <b:widget-setting name='chronological'>false</b:widget-setting>
@@ -1836,9 +2042,11 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
       </aside>
 
       <aside class='iw-rail' hidden='hidden' id='iw-rail'>
-        <nav class='iw-toc'>
-          <p class='iw-toc__title'>On this page</p>
-          <div class='iw-toc__list' id='iw-toc-list'></div>
+        <nav aria-label='On this page' class='iw-toc'>
+          <details id='iw-toc-details' open='open'>
+            <summary class='iw-toc__title'>On this page <span class='iw-toc__count' id='iw-toc-count'></span></summary>
+            <div class='iw-toc__list' id='iw-toc-list'></div>
+          </details>
         </nav>
       </aside>
 
@@ -2064,7 +2272,17 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
       }
     });
     doc.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Escape' && !searchPane.hasAttribute('hidden')) { closeSearch(); }
+      if (ev.key === 'Escape' && !searchPane.hasAttribute('hidden')) { closeSearch(); return; }
+      // Ctrl/Cmd+K anywhere, or "/" when not already typing, opens search.
+      var typing = /^(INPUT|TEXTAREA|SELECT)$/.test((doc.activeElement || {}).tagName || '') ||
+        (doc.activeElement && doc.activeElement.isContentEditable);
+      var shortcut = ((ev.ctrlKey || ev.metaKey) && (ev.key || '').toLowerCase() === 'k') ||
+        (ev.key === '/' && !typing && !ev.ctrlKey && !ev.metaKey && !ev.altKey);
+      if (shortcut) {
+        ev.preventDefault();
+        if (searchPane.hasAttribute('hidden')) { searchBtn.click(); }
+        else { var open = qs('#iw-q'); if (open) { open.focus(); } }
+      }
     });
     // A click outside the open panel closes it, the way the menu does.
     doc.addEventListener('click', function (ev) {
@@ -2130,6 +2348,85 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
     }
   }
 
+  /* ---- Card snippets -------------------------------------------------- *
+     The server snippet arrives inside a template (see the iwCard comment), so
+     a tag cut in half cannot leak. Only its plain text is shown. */
+  qsa('template.iw-snippet-src').forEach(function (tpl) {
+    var target = tpl.previousElementSibling;
+    var text = (tpl.content ? tpl.content.textContent : tpl.textContent) || '';
+    text = text.replace(/\s+/g, ' ').trim();
+    if (target && target.classList.contains('iw-card__snippet')) {
+      if (text) { target.textContent = text; } else { target.remove(); }
+    }
+    tpl.remove();
+  });
+
+  /* ---- Topic labels ---------------------------------------------------- *
+     Posts carry many labels in alphabetical order, so a card used to show
+     "Accessibility, Community feedback" for a dictionary release. Product
+     areas come first, then the most specific remaining topic. */
+  var AREAS = ['Mobile app', 'Android', 'Website', 'Public website', 'TribeStudio', 'Kasem Dictionary',
+    'Dictionary', 'Kawuri', 'Contributors', 'Validators', 'Admin', 'Correspondence', 'Music', 'Learning', 'Kasem'];
+  function rankLabels(links) {
+    var seen = {};
+    var unique = links.filter(function (a) {
+      var name = (a.textContent || '').trim().toLowerCase();
+      if (!name || seen[name]) { return false; }
+      seen[name] = true;
+      return true;
+    });
+    function area(a) {
+      var name = (a.textContent || '').trim().toLowerCase();
+      for (var i = 0; i < AREAS.length; i += 1) { if (AREAS[i].toLowerCase() === name) { return i; } }
+      return AREAS.length;
+    }
+    return unique.map(function (a, i) { return { a: a, rank: area(a), i: i }; })
+      .sort(function (x, y) { return x.rank - y.rank || x.i - y.i; })
+      .map(function (x) { return x.a; });
+  }
+  qsa('.iw-card .iw-chips').forEach(function (wrap) {
+    var ranked = rankLabels(qsa('a', wrap));
+    ranked.forEach(function (a, i) {
+      if (i < 2) { wrap.appendChild(a); } else { a.remove(); }
+    });
+  });
+  var kicker = qs('.iw-kicker');
+  if (kicker) {
+    rankLabels(qsa('a', kicker)).forEach(function (a, i) {
+      if (i < 3) { kicker.appendChild(a); } else { a.remove(); }
+    });
+  }
+
+  // The sidebar keeps the twelve busiest topics in view, the rest behind a toggle.
+  qsa('.iw-side .iw-labels').forEach(function (box) {
+    var chips = qsa('.iw-chip', box);
+    if (chips.length <= 14) { return; }
+    var count = function (a) { var c = qs('.iw-labels__count', a); return c ? parseInt(c.textContent, 10) || 0 : 0; };
+    chips.map(function (a, i) { return { a: a, n: count(a), i: i }; })
+      .sort(function (x, y) { return y.n - x.n || x.i - y.i; })
+      .forEach(function (x, rank) { if (rank >= 12) { x.a.classList.add('is-extra'); } });
+    box.classList.add('is-trimmed');
+    var more = doc.createElement('button');
+    more.type = 'button';
+    more.className = 'iw-labels__more';
+    more.setAttribute('aria-expanded', 'false');
+    more.textContent = 'Show all ' + chips.length + ' topics';
+    more.addEventListener('click', function () {
+      var open = box.classList.toggle('is-trimmed') === false;
+      more.setAttribute('aria-expanded', open ? 'true' : 'false');
+      more.textContent = open ? 'Show fewer topics' : 'Show all ' + chips.length + ' topics';
+    });
+    box.appendChild(more);
+  });
+
+  // Search results say how many updates matched on this page.
+  var viewCount = qs('#iw-viewcount');
+  if (viewCount && grid && !viewCount.textContent.trim() && /[?&]q=/.test(location.search)) {
+    var found = qsa('.iw-card', grid).length;
+    viewCount.textContent = found === 0 ? '' : found + (found === 1 ? ' update' : ' updates') +
+      (qs('.iw-pager__link--next') ? ' on this page' : '') + ', newest first.';
+  }
+
   /* ---- Sharper Popular Posts thumbnails -------------------------------- */
   qsa('.iw-pp__img').forEach(function (img) {
     var src = img.getAttribute('src') || '';
@@ -2147,6 +2444,51 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
       rt.textContent = mins + ' min read';
       rt.removeAttribute('hidden');
       if (rtDot) { rtDot.removeAttribute('hidden'); }
+    }
+
+    /* ---- One cover, not two ------------------------------------------- *
+       The theme renders the post's first image as the cover, and release
+       posts open with that same image so Blogger uses it for the share card.
+       Blogger rewrites the URL size segment (s1600, w1400-h787-...), so the
+       comparison uses the stable image key and the file name. */
+    var cover = qs('#iw-cover');
+    var coverImg = cover ? qs('img', cover) : null;
+    function imageKey(src) {
+      // .../img/b/R29vZ2xl/<key>/s1600/name.png and .../img/a/<key>=s1600
+      var m = (src || '').match(/\/img\/[a-z]\/(?:R29vZ2xl\/)?([^/=?]+)/i);
+      if (m) { return m[1]; }
+      // Anything else: the whole address without Blogger's size segments.
+      return (src || '').split('?')[0]
+        .replace(/\/(s\d+(-c)?|w\d+-h\d+[^/]*)\//, '/')
+        .replace(/=(s|w)\d+[^/]*$/, '');
+    }
+    if (coverImg) {
+      var coverKey = imageKey(coverImg.getAttribute('src'));
+      // Blogger's featured image is the first image in the post, so only the
+      // first body image can be the duplicate.
+      var firstImgs = qsa('img', body).slice(0, 1);
+      firstImgs.forEach(function (img) {
+        if (!coverKey || imageKey(img.getAttribute('src')) !== coverKey) { return; }
+        // Remove the smallest wrapper that holds nothing but this image, so
+        // a paragraph that also carries text keeps its words.
+        var box = img;
+        while (box.parentNode && box.parentNode !== body && body.contains(box.parentNode) &&
+               /^(A|P|DIV|FIGURE|ARTICLE)$/.test(box.parentNode.tagName)) {
+          var parent = box.parentNode;
+          var rest = Array.prototype.filter.call(parent.childNodes, function (n) {
+            if (n === box) { return false; }
+            if (n.nodeType === 3) { return n.textContent.trim() !== ''; }
+            if (n.nodeType !== 1) { return false; }
+            return n.tagName !== 'BR' && n.tagName !== 'FIGCAPTION';
+          });
+          if (rest.length || parent.tagName === 'ARTICLE') { break; }
+          box = parent;
+        }
+        var caption = box.tagName === 'FIGURE' ? qs('figcaption', box) : null;
+        if (caption && !qs('figcaption', cover)) { cover.appendChild(caption); }
+        if (img.alt && img.alt.length > coverImg.alt.length) { coverImg.alt = img.alt; }
+        box.remove();
+      });
     }
 
     // Lazy-load and tidy images that came from the post editor
@@ -2211,14 +2553,32 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
         tocList.appendChild(a);
       });
       rail.removeAttribute('hidden');
+      var tocCount = qs('#iw-toc-count');
+      var tocDetails = qs('#iw-toc-details');
+      if (tocCount) { tocCount.textContent = '\u00b7 ' + heads.length + ' sections'; }
 
       // Keep the contents beside the article on desktop and before the prose
       // on smaller screens, with keyboard order matching the visual order.
+      // Below the desktop breakpoint the list starts folded into one line.
       var articleLayout = rail.parentNode;
       var wideArticle = window.matchMedia('(min-width: 1180px)');
       function placeToc() {
         if (wideArticle.matches) { articleLayout.appendChild(rail); }
         else { body.parentNode.insertBefore(rail, body); }
+        if (tocDetails) {
+          tocDetails.open = wideArticle.matches;
+          var sum = qs('summary', tocDetails);
+          if (sum) { if (wideArticle.matches) { sum.setAttribute('tabindex', '-1'); } else { sum.removeAttribute('tabindex'); } }
+        }
+      }
+      if (tocDetails) {
+        tocDetails.addEventListener('toggle', function () {
+          if (wideArticle.matches && !tocDetails.open) { tocDetails.open = true; }
+        });
+        // Choosing a section on a phone folds the list away again.
+        tocList.addEventListener('click', function () {
+          if (!wideArticle.matches) { tocDetails.open = false; }
+        });
       }
       if (wideArticle.addEventListener) { wideArticle.addEventListener('change', placeToc); }
       placeToc();
@@ -2242,14 +2602,17 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
     var shareBox = qs('#iw-share');
     if (shareBox) {
       var url = (doc.querySelector('link[rel="canonical"]') || {}).href || location.href;
-      var title = doc.title;
+      var titleNode = qs('.iw-article__title');
+      var title = titleNode ? (titleNode.textContent || '').trim() : doc.title;
       var targets = [
         { name: 'X', href: 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(title),
           path: 'M4 4l16 16M20 4L4 20' },
         { name: 'LinkedIn', href: 'https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(url),
           path: 'M6 9v10M6 5.5v.01M11 19v-6a3 3 0 016 0v6' },
         { name: 'WhatsApp', href: 'https://api.whatsapp.com/send?text=' + encodeURIComponent(title + ' ' + url),
-          path: 'M21 12a9 9 0 01-13.4 7.8L3 21l1.3-4.4A9 9 0 1121 12z' }
+          path: 'M21 12a9 9 0 01-13.4 7.8L3 21l1.3-4.4A9 9 0 1121 12z' },
+        { name: 'Facebook', href: 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url),
+          path: 'M14 8h3V4h-3a4 4 0 00-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8z' }
       ];
       targets.forEach(function (t) {
         var a = doc.createElement('a');
@@ -2257,24 +2620,44 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
         a.target = '_blank';
         a.rel = 'noopener noreferrer';
         a.title = 'Share on ' + t.name;
-        a.innerHTML = '<span class="iw-sr">Share on ' + t.name + '</span>' +
-          '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="' + t.path + '"/></svg>';
+        a.setAttribute('aria-label', 'Share on ' + t.name);
+        a.innerHTML = '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="' + t.path + '"/></svg>' +
+          '<span>' + t.name + '</span>';
         shareBox.appendChild(a);
       });
 
       var copyBtn = doc.createElement('button');
       copyBtn.type = 'button';
       copyBtn.title = 'Copy link';
-      copyBtn.innerHTML = '<span class="iw-sr">Copy link</span>' +
-        '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">' +
+      copyBtn.innerHTML = '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">' +
         '<path d="M10 13a4 4 0 006 .5l2-2a4 4 0 00-5.7-5.7l-1 1"/>' +
-        '<path d="M14 11a4 4 0 00-6-.5l-2 2A4 4 0 009.7 18l1-1"/></svg>';
+        '<path d="M14 11a4 4 0 00-6-.5l-2 2A4 4 0 009.7 18l1-1"/></svg>' +
+        '<span aria-live="polite">Copy link</span>';
+      var copyLabel = copyBtn.querySelector('span');
+      function copied() {
+        copyBtn.classList.add('is-copied');
+        copyLabel.textContent = 'Copied';
+        setTimeout(function () { copyBtn.classList.remove('is-copied'); copyLabel.textContent = 'Copy link'; }, 1800);
+      }
+      // Older in-app browsers (WhatsApp, Facebook) lack the async clipboard.
+      function legacyCopy() {
+        var field = doc.createElement('textarea');
+        field.value = url;
+        field.setAttribute('readonly', '');
+        field.style.position = 'fixed';
+        field.style.opacity = '0';
+        doc.body.appendChild(field);
+        field.select();
+        var ok = false;
+        try { ok = doc.execCommand('copy'); } catch (e) {}
+        field.remove();
+        if (ok) { copied(); } else { window.prompt('Copy this link', url); }
+      }
       copyBtn.addEventListener('click', function () {
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(url).then(function () {
-            copyBtn.classList.add('is-copied');
-            setTimeout(function () { copyBtn.classList.remove('is-copied'); }, 1600);
-          }, function () {});
+          navigator.clipboard.writeText(url).then(copied, legacyCopy);
+        } else {
+          legacyCopy();
         }
       });
       shareBox.appendChild(copyBtn);
@@ -2283,10 +2666,9 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
         var nativeBtn = doc.createElement('button');
         nativeBtn.type = 'button';
         nativeBtn.title = 'Share';
-        nativeBtn.innerHTML = '<span class="iw-sr">Share</span>' +
-          '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">' +
+        nativeBtn.innerHTML = '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">' +
           '<circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/>' +
-          '<path d="M8.2 10.8l7.6-4M8.2 13.2l7.6 4"/></svg>';
+          '<path d="M8.2 10.8l7.6-4M8.2 13.2l7.6 4"/></svg><span>More</span>';
         nativeBtn.addEventListener('click', function () {
           navigator.share({ title: title, url: url }).catch(function () {});
         });
@@ -2315,9 +2697,11 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
     /* ---- Related posts, by the post's first label --------------------- */
     var relSection = qs('#iw-related');
     var relList = qs('#iw-related-list');
-    var firstChip = qs('.iw-article__head .iw-chip');
+    var firstChip = qs('.iw-kicker a');
     if (relSection && relList && firstChip) {
       var label = (firstChip.textContent || '').trim();
+      var relTopic = qs('#iw-related-topic');
+      if (relTopic) { relTopic.textContent = label; }
       var feed = location.origin + '/feeds/posts/summary/-/' +
         encodeURIComponent(label) + '?alt=json&max-results=7';
       fetch(feed, { credentials: 'omit' })
@@ -2327,20 +2711,23 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
           var current = location.pathname;
           var made = 0;
           json.feed.entry.forEach(function (en) {
-            if (made >= 4) { return; }
+            if (made >= 3) { return; }
             var link = (en.link || []).filter(function (l) { return l.rel === 'alternate'; })[0];
             if (!link) { return; }
             var a = doc.createElement('a');
             a.href = link.href;
             if (a.pathname === current) { return; }
             a.className = 'iw-related__item';
-            var thumb = en.media$thumbnail ? en.media$thumbnail.url.replace(/\/s\d+(-c)?\//, '/s160-c/') : '';
+            // Ask Blogger's image proxy for a cover-shaped crop.
+            var thumb = en.media$thumbnail ? en.media$thumbnail.url
+              .replace(/\/s\d+(-c)?\//, '/w480-h252-p-k-no-nu/')
+              .replace(/=s\d+(-c)?$/, '=w480-h252-p-k-no-nu') : '';
             var when = en.published ? new Date(en.published.$t) : null;
             var whenText = when ? when.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
             // Posts with no image get the woven mark, so every row lines up.
             a.innerHTML =
               (thumb
-                ? '<img class="iw-related__thumb" src="' + thumb + '" alt="" width="64" height="64" loading="lazy"/>'
+                ? '<img class="iw-related__thumb" src="' + thumb + '" alt="" width="480" height="252" loading="lazy"/>'
                 : '<span class="iw-related__motif">' +
                   '<svg aria-hidden="true" class="iw-mark" focusable="false" viewBox="0 0 64 64">' +
                   '<path class="iw-mark__frame" d="M15 47V23l17-9 17 9v24"/>' +
@@ -2360,6 +2747,52 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
         .catch(function () {});
     }
 
+    /* ---- Comments, loaded on request ----------------------------------- *
+       Scripts cloned out of a template are inert, so they are recreated in
+       document order, each external one finishing before the next inline one
+       runs; Blogger's iframe set-up otherwise runs before its library and
+       leaves a comment box that cannot be typed in. */
+    var gate = qs('#iw-comments-gate');
+    var gateSrc = qs('#iw-comments-src');
+    var gateMount = qs('#iw-comments-mount');
+    if (gate && gateSrc && gateMount) {
+      var loadComments = function () {
+        if (!gate.open || gate.getAttribute('data-loaded')) { return; }
+        gate.setAttribute('data-loaded', 'true');
+        var fragment = gateSrc.content.cloneNode(true);
+        qsa('iframe', fragment).forEach(function (frame) {
+          if (!frame.getAttribute('title')) { frame.setAttribute('title', 'Comments'); }
+        });
+        var scripts = qsa('script', fragment).map(function (old) {
+          var d = { attrs: [], text: old.textContent || '' };
+          Array.prototype.forEach.call(old.attributes, function (a) { d.attrs.push([a.name, a.value]); });
+          old.parentNode.removeChild(old);
+          return d;
+        });
+        gateMount.appendChild(fragment);
+        gateSrc.remove();
+        (function run(i) {
+          if (i >= scripts.length) { return; }
+          var el = doc.createElement('script');
+          scripts[i].attrs.forEach(function (a) { el.setAttribute(a[0], a[1]); });
+          if (el.src) {
+            el.onload = el.onerror = function () { run(i + 1); };
+            gateMount.appendChild(el);
+          } else {
+            el.text = scripts[i].text;
+            gateMount.appendChild(el);
+            run(i + 1);
+          }
+        }(0));
+      };
+      gate.addEventListener('toggle', loadComments);
+      // A link to a particular comment (#c123...) or to #comments opens it.
+      if (/^#(c\d+|comments|iw-comments|comment-form)/.test(location.hash)) {
+        gate.open = true;
+        loadComments();
+      }
+    }
+
     /* ---- Structured data, built from the page's own meta tags ---------
        Built here rather than in the template so a title carrying a quote or a
        backslash is escaped by JSON.stringify instead of breaking the JSON. */
@@ -2371,7 +2804,6 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
       var type = metaOf('property', 'og:type');
       if (type === 'article') {
         var timeEl = qs('.iw-meta time');
-        var authorEl = qs('.iw-meta__author');
         var titleEl = qs('.iw-article__title');
         var canonEl = doc.querySelector('link[rel="canonical"]');
         var canonical = (canonEl && canonEl.href) || metaOf('property', 'og:url') || location.href;
@@ -2394,13 +2826,13 @@ textarea:focus-visible,select:focus-visible,summary:focus-visible,
         if (desc) { ld.description = desc; }
         if (image) { ld.image = image; }
         if (published) { ld.datePublished = published; ld.dateModified = published; }
-        if (authorEl) { ld.author = { '@type': 'Person', name: (authorEl.textContent || '').trim() }; }
+        ld.author = { '@id': 'https://indigenworld.com/#organization' };
 
         var crumbs = [{
           '@type': 'ListItem', position: 1, name: 'Updates',
           item: location.origin + '/'
         }];
-        var firstChipEl = qs('.iw-article__head .iw-chip');
+        var firstChipEl = qs('.iw-kicker a');
         if (firstChipEl) {
           crumbs.push({
             '@type': 'ListItem', position: 2,

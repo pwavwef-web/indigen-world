@@ -2,6 +2,9 @@ import { initializeApp } from 'firebase-admin/app';
 
 // Initialise the Admin SDK once for all functions in this codebase.
 initializeApp();
+export { postZemBotarebuDaily, postAmoYeiKasemDaily, postNNaYeiriSeNBweiDaily, postKasemPracticeDaily,
+  postIndigenGuideDaily, recoverCommunityAutomation, onCommunityEnquiryReply } from './community-automation.js';
+export { postZemGhanaNews } from './community-news.js';
 export { correspondence } from './correspondence.js';
 export { getCommunityFeed, saveCommunityFeedPreferences, communityFeedFeedback, curateCommunityFeedPost,
   recordCommunityRecommendationEvent, indexCommunityFeedPost, updateCommunityFeedTrends } from './community-feed.js';
@@ -167,6 +170,7 @@ export {
   sweepVideoRenders,
   planVideoScenes,
   alignVideoCaptions,
+  getMobileEditedVideo,
 } from './video-editor/video-projects.js';
 export { startIntegrityCheck, verifyDeviceIntegrity } from './play-integrity.js';
 export {
@@ -200,6 +204,7 @@ export { onContributorPulseSubmissionWritten } from './contributor-pulse.js';
 export { kawuriContributorAssist } from './contributor-assist.js';
 export { getKnowledgeProgress, listKnowledgeRecords, getKnowledgeRecord, saveKnowledgeRecord, reviewKnowledgeRecord, withdrawKnowledgeRecord, readKnowledgeAudio } from './knowledge-workspace.js';
 export { prepareContributorDailyTasks, getContributorDailyTasks, requestMoreContributorTasks } from './contributor-daily-tasks.js';
+export { getContributorJourney, saveContributorJourney, setContributorCollectionGoal, getContributorCollectionGoal, findContributorExpressionMatches } from './contributor-journey.js';
 export { supportPortal, listSupportCases, getSupportCase, updateSupportCase, onSupportEmailCreated, supportEscalationSweep } from './support.js';
 // Firebase resolves all declared secrets during discovery, even for a filtered
 // deployment. Do not load this module until the owner finishes Meta onboarding.
@@ -219,3 +224,9 @@ export { releaseKnowledgeRecord, revokeKnowledgeRelease, resolveKnowledgeRecords
 export { configureKnowledgeGovernance } from './knowledge-governance.js';
 export { onDictionaryCandidate, onContributorCandidate, onKnowledgeCandidate, onSentenceCandidate, onGrammarCandidate, onExpressionCandidate, onEvidenceCandidate } from './kawuri-candidate-index.js';
 export { checkKasemSpelling, getKasemWordSubmissionStatus } from './kasem-spelling.js';
+export { shop, shopAdmin, reconcileShopOrders } from './shop.js';
+export { collectionMedia, processCollectionImage, cleanupCollectionUploads } from './collection-media.js';
+export { notificationAction } from './notification-actions.js';
+export { houseAdsAdmin } from './house-ads.js';
+export { notificationCampaignAdmin, dispatchNotificationCampaigns } from './notification-campaigns.js';
+export { notificationDeliveryPreferences, retryNotificationPushes } from './notification-dispatch.js';

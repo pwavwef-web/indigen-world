@@ -5,3 +5,5 @@ GitHub release: https://github.com/pwavwef-web/indigen-world/releases/tag/mobile
 Google Play availability is separate; confirm the rollout before inviting people to update through Play.
 
 Read the article: **[PUBLISHED_ARTICLE_URL] — replace with the published Blogger article URL before sharing.**
+
+Published article: https://updates.indigenworld.com/2026/10/indigen-world-0-1-32-release.html

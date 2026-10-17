@@ -70,6 +70,14 @@ enum NotificationPreference {
     'Streak reminders',
     'A nudge on a day your contributing streak is about to lapse',
     Icons.whatshot_rounded,
+  ),
+  // Opt-in, so it goes last and stays out of the muted count: nobody
+  // "muted" a promotion they never asked for.
+  promotions(
+    'promotions',
+    'Indigen updates and shop news',
+    'Optional promotional notifications; off until you choose to receive them',
+    Icons.campaign_outlined,
   );
 
   const NotificationPreference(
@@ -78,6 +86,15 @@ enum NotificationPreference {
     this.description,
     this.icon,
   );
+
+  /// Off until the member turns it on (promotional messages). Everything else
+  /// is on until they turn it off.
+  bool get optIn => this == NotificationPreference.promotions;
+
+  /// The kinds that are on by default — the ones "mute everything" and the
+  /// summary count are about.
+  static List<NotificationPreference> get optOut =>
+      values.where((preference) => !preference.optIn).toList(growable: false);
 
   /// The field name inside `notificationPrefs`.
   final String key;
@@ -105,7 +122,7 @@ class NotificationPreferences {
   final Map<String, bool> _values;
 
   bool isOn(NotificationPreference preference) =>
-      _values[preference.key] ?? true;
+      _values[preference.key] ?? !preference.optIn;
 
   /// Reads the `notificationPrefs` field off a profile document.
   ///
@@ -122,8 +139,11 @@ class NotificationPreferences {
     return NotificationPreferences(values);
   }
 
-  /// How many of the seven are switched off, for the summary line.
-  int get mutedCount => NotificationPreference.values
+  /// How many of the opt-out kinds are switched off, for the summary line.
+  ///
+  /// Promotions are left out: they start off, and counting them would tell
+  /// every member who has never opened this screen that they muted something.
+  int get mutedCount => NotificationPreference.optOut
       .where((preference) => !isOn(preference))
       .length;
 }

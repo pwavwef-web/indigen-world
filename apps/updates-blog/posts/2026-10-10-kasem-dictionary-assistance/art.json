@@ -1,0 +1,26 @@
+{
+  "accent": "rose",
+  "motif": "dots",
+  "eyebrow": "TribeStudio · Contributors",
+  "title": "Check Kasem spellings as you write.",
+  "lede": "A dotted underline means not yet in the dictionary, not wrong. Take a suggestion or submit the missing word.",
+  "tags": [
+    "Underlines",
+    "Suggestions",
+    "Reviewed submissions"
+  ],
+  "hero": [
+    "dictionary-assistance-desktop.png",
+    "dictionary-assistance-mobile.png"
+  ],
+  "figures": {
+    "dictionary-assistance-desktop.png": {
+      "title": "A dotted line, not an error",
+      "note": "The contributor workspace in a local preview."
+    },
+    "dictionary-assistance-mobile.png": {
+      "title": "A compact pop-up on phones",
+      "note": "Offering an approved suggestion."
+    }
+  }
+}

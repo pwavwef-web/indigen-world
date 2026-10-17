@@ -1,7 +1,5 @@
 import { randomUUID, createHash } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
 import { GoogleGenAI } from '@google/genai';
-import { Resvg } from '@resvg/resvg-js';
 import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { logger } from 'firebase-functions';
@@ -9,13 +7,16 @@ import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { googleProjectId } from './google-api-auth.js';
 import { thinkingConfigFor } from './kawuri-media-policy.js';
+import { isGemini4, readTextModelConfig } from './gemini-text-policy.js';
+import { generateImage } from './kawuri-vertex.js';
+import { readIllustrationConfig } from './learn-illustration-policy.js';
 import { AUTOMATION_ACCOUNTS, AUTOMATION_TIME_ZONE, GUIDE_TIPS, automationDate, dailyPostId,
-  cultureFactAddressesTopic, evidenceExcerpts, plainText, publishedBotWord, safePublicUrl, shouldAnswerEnquiry, stableOrder, wordCardSvg,
+  cultureFactAddressesTopic, evidenceExcerpts, plainText, publishedBotWord, safePublicUrl, shouldAnswerEnquiry, stableOrder,
+  WORD_ILLUSTRATION_INSTRUCTION, wordIllustrationPrompt,
   type AutomationAccount, type PublishedBotWord } from './community-automation-policy.js';
 
 const REGION = 'us-central1';
-const MODEL = process.env.COMMUNITY_AUTOMATION_MODEL || 'gemini-2.5-flash';
-const LOCATION = process.env.COMMUNITY_AUTOMATION_LOCATION || 'us-central1';
+const { model: MODEL, location: LOCATION } = readTextModelConfig(process.env, 'COMMUNITY_AUTOMATION');
 const MAX_ATTEMPTS = 3;
 const LEASE_MS = 12 * 60_000;
 const ENQUIRY = AUTOMATION_ACCOUNTS.find(account => account.kind === 'enquiry')!;
@@ -36,12 +37,13 @@ function client(): GoogleGenAI {
 const objectSchema = (properties: Record<string, unknown>) => ({ type: 'object', properties, required: Object.keys(properties), additionalProperties: false });
 const stringSchema = { type: 'string' };
 
-async function generate(prompt: string, properties: Record<string, unknown>): Promise<Record<string, unknown>> {
+export async function generate(prompt: string, properties: Record<string, unknown>, systemInstruction = COMMON_INSTRUCTION): Promise<Record<string, unknown>> {
   const response = await client().models.generateContent({
     model: MODEL,
     contents: prompt,
-    config: { systemInstruction: COMMON_INSTRUCTION, responseMimeType: 'application/json',
-      responseJsonSchema: objectSchema(properties), maxOutputTokens: 1800, temperature: 0.5,
+    config: { systemInstruction, responseMimeType: 'application/json',
+      responseJsonSchema: objectSchema(properties), maxOutputTokens: isGemini4(MODEL) ? 4096 : 1800,
+      ...(isGemini4(MODEL) ? {} : { temperature: 0.5 }),
       thinkingConfig: thinkingConfigFor(MODEL), httpOptions: { timeout: 90_000 },
       labels: { app: 'indigen-world', capability: 'community-automation' } },
   });
@@ -51,7 +53,10 @@ async function generate(prompt: string, properties: Record<string, unknown>): Pr
   return json as Record<string, unknown>;
 }
 
-export async function ensureAutomationProfile(account: AutomationAccount, assets?: { avatarUrl: string; bannerUrl: string }): Promise<void> {
+/** The identity fields every automated account shares, including the multi-slot news account. */
+export interface AutomationIdentity { id: string; uid: string; username: string; name: string; bio: string; hour: number; postingTime?: string; }
+export const AUTOMATION_MODEL = MODEL;
+export async function ensureAutomationProfile(account: AutomationIdentity, assets?: { avatarUrl: string; bannerUrl: string }): Promise<void> {
   const db = getFirestore();
   const ref = db.collection('communityProfiles').doc(account.uid);
   const handle = db.collection('communityUsernames').doc(account.username);
@@ -63,7 +68,7 @@ export async function ensureAutomationProfile(account: AutomationAccount, assets
     tx.set(ref, { uid: account.uid, username: account.username, displayName: account.name, displayNameLower: account.name.toLowerCase(),
       bio: account.bio, location: 'Ghana · UTC', dialect: '', isVerified: true, verifiedKind: 'project',
       isAssistant: true, isAutomated: true, automationAccountId: account.id, automationTimeZone: AUTOMATION_TIME_ZONE,
-      postingTime: `${String(account.hour).padStart(2, '0')}:00`, ...(assets ?? {}),
+      postingTime: account.postingTime ?? `${String(account.hour).padStart(2, '0')}:00`, ...(assets ?? {}),
       ...(!profile.exists ? { createdAt: FieldValue.serverTimestamp() } : {}), updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
     tx.set(handle, { uid: account.uid, username: account.username, reserved: true, isAutomated: true }, { merge: true });
@@ -137,7 +142,7 @@ async function prepareDraft(account: AutomationAccount, date: string, history: F
     const invitation = invitations[Number(chosen.invitationId)];
     if (!invitation) throw new Error('Invalid dictionary invitation');
     return { word, text: account.kind === 'word'
-      ? `Word of the day: ${word.kasem} — ${word.english}.\n\n${invitation}\n\nPublished dictionary · Automated with Vertex AI.`
+      ? `Word of the day: ${word.kasem} — ${word.english}.\n\n${invitation}\n\nPublished dictionary · AI-generated illustration with Gemini.`
       : `Daily practice: ${word.kasem}\n\nCan you recall its English meaning before checking?\nDictionary answer: ${word.english}.\n\n${invitation}\n\nAutomated practice · Published dictionary.` };
   }
   if (account.kind === 'culture') {
@@ -195,18 +200,83 @@ export async function refreshCultureAutomationPost(date = automationDate()): Pro
   return postRef.id;
 }
 
-async function uploadWordCard(account: AutomationAccount, postId: string, word: PublishedBotWord, date: string): Promise<Record<string, unknown>> {
-  const svg = wordCardSvg(account, word, date);
-  const png = new Resvg(svg, { font: { loadSystemFonts: false, fontFiles: [fileURLToPath(new URL('../assets/fonts/NotoSans-Regular.ttf', import.meta.url))], defaultFontFamily: 'Noto Sans' } }).render().asPng();
+export async function uploadWordIllustration(account: AutomationAccount, postId: string, word: PublishedBotWord): Promise<Record<string, unknown>> {
+  const prompt = wordIllustrationPrompt(word);
+  const hash = createHash('sha256').update(WORD_ILLUSTRATION_INSTRUCTION + prompt).digest('hex').slice(0, 24);
   const bucket = getStorage().bucket();
-  const path = `community-media/${account.uid}/${postId}/word-of-the-day.png`;
+  const path = `community-media/${account.uid}/${postId}/illustration-${hash}`;
+  const file = bucket.file(path);
+  const mediaFor = (token: string, model: string) => ({
+    url: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`,
+    type: 'image', storagePath: path, aspectRatio: 1, isAiGenerated: true, model,
+    altText: `AI-generated illustration of ${word.english}. Kasem word: ${word.kasem}.`,
+  });
+  // Reuse a completed upload after a publication failure, rather than paying to draw it again.
+  try {
+    const [metadata] = await file.getMetadata();
+    const saved = metadata.metadata;
+    if (saved?.firebaseStorageDownloadTokens && saved?.model) return mediaFor(String(saved.firebaseStorageDownloadTokens), String(saved.model));
+  } catch (error) { if (Number((error as { code?: number }).code) !== 404) throw error; }
+  const cfg = readIllustrationConfig(process.env, googleProjectId());
+  const { model, outcome } = await generateImage({ project: cfg.project, location: cfg.location,
+    models: cfg.standardModels, prompt, aspectRatio: '1:1', imageSize: '1K', reference: null,
+    systemInstruction: WORD_ILLUSTRATION_INSTRUCTION, capability: 'community_word_illustration' });
+  if (outcome.kind !== 'images') throw new Error('Gemini did not return a word illustration');
+  const image = outcome.images[0];
+  const bytes = Buffer.from(image.base64, 'base64');
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(image.mimeType) || !bytes.length || bytes.length > 20 * 1024 * 1024) throw new Error('Invalid word illustration image');
   const token = randomUUID();
-  await bucket.file(path).save(png, { resumable: false, contentType: 'image/png', metadata: { cacheControl: 'public,max-age=31536000', metadata: { firebaseStorageDownloadTokens: token, illustration: 'Deterministic dictionary word card' } } });
-  return { url: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`, type: 'image', storagePath: path, aspectRatio: 1,
-    altText: `Kasem word of the day: ${word.kasem}. English meaning: ${word.english}.` };
+  await file.save(bytes, { resumable: false, contentType: image.mimeType, metadata: { cacheControl: 'public,max-age=31536000',
+    metadata: { firebaseStorageDownloadTokens: token, illustration: 'AI-generated with Gemini', model, dictionaryEntryId: word.id } } });
+  return mediaFor(token, model);
 }
 
-function postDocument(account: AutomationAccount, id: string, text: string, avatarUrl: string, media: Record<string, unknown>[] = []): Record<string, unknown> {
+/** Upgrade today's existing image without making another post or recreating a removed one. */
+export async function refreshWordAutomationIllustration(date = automationDate()): Promise<string> {
+  const account = AUTOMATION_ACCOUNTS[0];
+  const db = getFirestore();
+  const id = dailyPostId(account, date);
+  const postRef = db.collection('communityPosts').doc(id);
+  const runRef = db.collection('communityAutomationRuns').doc(id);
+  const configRef = db.collection('communityAutomationAccounts').doc(account.id);
+  const owner = randomUUID();
+  const snapshot = await db.runTransaction(async tx => {
+    const [post, run, config] = await Promise.all([tx.get(postRef), tx.get(runRef), tx.get(configRef)]);
+    if (!post.exists || run.get('status') !== 'published' || config.get('enabled') !== true) throw new Error('No enabled published word post to update');
+    if (post.get('media')?.[0]?.isAiGenerated === true) return null;
+    if ((run.get('imageLeaseUntil')?.toMillis?.() ?? 0) > Date.now()) throw new Error('Word illustration is already being refreshed');
+    if (Number(run.get('imageAttempts') ?? 0) >= MAX_ATTEMPTS) throw new Error('Word illustration attempts exhausted');
+    tx.update(runRef, { imageLeaseOwner: owner, imageLeaseUntil: Timestamp.fromMillis(Date.now() + LEASE_MS), imageAttempts: Number(run.get('imageAttempts') ?? 0) + 1 });
+    return post;
+  });
+  if (!snapshot) return id;
+  try {
+    const entry = await db.collection('dictionaryEntries').doc(snapshot.get('dictionaryEntryId')).get();
+    const word = entry.exists ? publishedBotWord(entry.id, entry.data()!) : null;
+    if (!word) throw new Error('Published dictionary word is unavailable');
+    if (!String(snapshot.get('text')).startsWith(`Word of the day: ${word.kasem} — ${word.english}.`)) throw new Error('Dictionary meaning changed since the original word post');
+    const media = [await uploadWordIllustration(account, id, word)];
+    await db.runTransaction(async tx => {
+      const [post, run, config, current] = await Promise.all([tx.get(postRef), tx.get(runRef), tx.get(configRef), tx.get(entry.ref)]);
+      if (!post.exists || post.get('text') !== snapshot.get('text') || post.get('dictionaryEntryId') !== word.id
+        || config.get('enabled') !== true || run.get('imageLeaseOwner') !== owner
+        || JSON.stringify(publishedBotWord(current.id, current.data() ?? {})) !== JSON.stringify(word)) throw new Error('Word illustration update cancelled');
+      tx.create(runRef.collection('imageRevisions').doc(owner), { media: post.get('media') ?? [], text: post.get('text'), createdAt: FieldValue.serverTimestamp() });
+      const text = String(post.get('text')).replace('Automated with Vertex AI.', 'AI-generated illustration with Gemini.');
+      tx.update(postRef, { media, hasMedia: true, text, editedAt: FieldValue.serverTimestamp() });
+      tx.update(runRef, { illustration: media[0], text, contentHash: createHash('sha256').update(text).digest('hex'),
+        imageLeaseOwner: null, imageLeaseUntil: null, updatedAt: FieldValue.serverTimestamp() });
+    });
+    return id;
+  } finally {
+    await db.runTransaction(async tx => {
+      const run = await tx.get(runRef);
+      if (run.get('imageLeaseOwner') === owner) tx.update(runRef, { imageLeaseOwner: null, imageLeaseUntil: null });
+    });
+  }
+}
+
+export function postDocument(account: AutomationIdentity, id: string, text: string, avatarUrl: string, media: Record<string, unknown>[] = []): Record<string, unknown> {
   return { authorId: account.uid, author: { displayName: account.name, username: account.username, avatarUrl, isVerified: true, verifiedKind: 'project', isAutomated: true },
     text, media, hasMedia: media.length > 0, hasVideo: false, likeCount: 0, replyCount: 0, repostCount: 0, quoteCount: 0, viewCount: 0,
     parentId: null, rootId: id, isReply: false, quotedPostId: null, quotedPost: null, poll: null, kasemConfirmed: false,
@@ -232,14 +302,25 @@ export async function publishAutomationPost(account: AutomationAccount, now = ne
       attempts: Number(run.get('attempts') ?? 0) + 1, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     return 'acquired';
   });
-  if (acquired !== 'acquired') return { status: acquired, postId: id };
+  if (acquired !== 'acquired') {
+    if (acquired === 'already-published' && account.kind === 'word') {
+      const existing = await postRef.get();
+      if (existing.exists && existing.get('media')?.[0]?.isAiGenerated !== true) {
+        await refreshWordAutomationIllustration(date);
+        return { status: 'illustration-updated', postId: id };
+      }
+    }
+    return { status: acquired, postId: id };
+  }
   try {
     await ensureAutomationProfile(account);
     const history = await recentRuns(account);
-    const draft = await prepareDraft(account, date, history);
+    const saved = await runRef.get();
+    const draft: Draft = account.kind === 'word' && saved.get('wordDraft') ? saved.get('wordDraft') : await prepareDraft(account, date, history);
     if (draft.text.length > 500 || /@[a-z]/i.test(draft.text)) throw new Error('Post is outside community limits');
     if ((account.kind === 'guide' ? history.slice(0, 7) : history).some(row => row.text === draft.text)) throw new Error('Duplicate daily content');
-    const media = account.kind === 'word' && draft.word ? [await uploadWordCard(account, id, draft.word, date)] : [];
+    if (account.kind === 'word') await runRef.set({ wordDraft: draft }, { merge: true });
+    const media = account.kind === 'word' && draft.word ? [await uploadWordIllustration(account, id, draft.word)] : [];
     const profile = await db.collection('communityProfiles').doc(account.uid).get();
     await db.runTransaction(async tx => {
       const [config, run, post, entry] = await Promise.all([tx.get(configRef), tx.get(runRef), tx.get(postRef),
@@ -247,7 +328,7 @@ export async function publishAutomationPost(account: AutomationAccount, now = ne
       if (config.get('enabled') !== true || run.get('leaseOwner') !== owner || post.exists) throw new Error('Publication cancelled or already completed');
       if (draft.word) {
         const current = entry?.exists ? publishedBotWord(entry.id, entry.data()!) : null;
-        if (!current || current.kasem !== draft.word.kasem || current.english !== draft.word.english) throw new Error('Dictionary entry changed before publication');
+        if (!current || current.kasem !== draft.word.kasem || current.english !== draft.word.english || current.partOfSpeech !== draft.word.partOfSpeech) throw new Error('Dictionary entry changed before publication');
       }
       tx.create(postRef, { ...postDocument(account, id, draft.text, profile.get('avatarUrl'), media), automationDate: date,
         ...(draft.word ? { dictionaryEntryId: draft.word.id } : {}),
@@ -255,7 +336,7 @@ export async function publishAutomationPost(account: AutomationAccount, now = ne
       tx.set(runRef, { status: 'published', text: draft.text, postId: id, model: account.kind === 'guide' ? null : MODEL,
         dictionaryEntryId: draft.word?.id ?? null, sourceUrl: draft.sourceUrl ?? null, sourceQuote: draft.sourceQuote ?? null,
         searchQuery: draft.searchQuery ?? null, contentHash: createHash('sha256').update(draft.text).digest('hex'),
-        guideTipId: draft.guideTipId ?? null,
+        guideTipId: draft.guideTipId ?? null, ...(media.length ? { illustration: media[0] } : {}),
         leaseUntil: null, leaseOwner: null, publishedAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
       tx.set(configRef, { lastPostId: id, lastPublishedDate: date, lastPublishedAt: FieldValue.serverTimestamp(), lastError: null }, { merge: true });
     });

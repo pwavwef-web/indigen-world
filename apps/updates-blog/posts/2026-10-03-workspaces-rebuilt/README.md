@@ -38,3 +38,16 @@ Signed-in production journeys, real microphone hardware, paid AI, handset SMS an
 5. Replace the clearly marked article URL placeholder in share.md before sharing.
 
 The owner separately authorised this deployment. Preparing this article does not authorise Blogger publication or sending messages; those remain with Chinedum.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/creator-overview.jpg`, `images/contributor-workspace.jpg`, `images/validator-review.jpg`, `images/creator-editor-mobile.jpg`, `images/contributor-mobile.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-03-workspaces-rebuilt`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/workspaces-rebuilt-around-the-work.html

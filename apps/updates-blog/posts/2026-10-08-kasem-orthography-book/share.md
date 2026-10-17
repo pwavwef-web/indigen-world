@@ -2,6 +2,8 @@ All 646 vocabulary rows in our corrected Kasem orthography book are now represen
 
 Read the spelling guide: https://kasem-dictionary.web.app/spelling-guide.html
 
-**PUBLISHED ARTICLE URL — replace after Blogger publication:** [PASTE PUBLISHED ARTICLE URL HERE]
+**Published article URL:** https://updates.indigenworld.com/2026/10/kasem-orthography-book-spelling-guide%20.html
 
 Android keyboard availability depends on the next app release; check the release post before sharing a rollout claim.
+
+Published article: https://updates.indigenworld.com/2026/10/kasem-orthography-book-spelling-guide%20.html

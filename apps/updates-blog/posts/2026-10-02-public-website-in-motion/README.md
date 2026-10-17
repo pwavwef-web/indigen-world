@@ -8,7 +8,7 @@ Status: **Deployed October 2, 2026; production assets verified. Blogger publicat
 - Custom permalink: public-website-in-motion
 - Article: `post.html`
 - Sharing copy: `share.md`
-- Images: `images/home-desktop.png`, `images/ecosystem-desktop.png`, `images/labs-desktop.png`, `images/practice-mobile.png`
+- Images: `screens/home-desktop.png`, `screens/ecosystem-desktop.png`, `screens/labs-desktop.png`, `screens/practice-mobile.png`
 
 ## Implementation and availability
 
@@ -45,3 +45,16 @@ Credit: Indigen World, actual local production-preview screenshots, October 2, 2
 - The custom domain `https://indigenworld.com` returned HTTP 200 for the homepage, ecosystem, dictionary, contribute, privacy, Labs and Kasem Practice Lab. Its HTML references the exact deployed entry script. SHA-256 hashes of the served entry, Remotion artwork, page motion, SVG scene, motion context and privacy CSS/JavaScript match the local release build.
 - The complete browser motion suite also passed against `https://indigenworld.com`: all 25 routes at 1440 and 360 pixels, reachable controls, playback, saved pause across navigation/reload, scroll reveals, keyboard card motion, offscreen pause/resume, simulated tab visibility, live/fresh reduced-motion preferences and failed-download still fallback. The preserved privacy video advances, pauses, shares the saved preference across routes, resumes and switches to its still with reduced motion. This is frontend verification; authenticated service workflows and the independent Blogger feed remain outside its scope.
 - Website Hosting was released. No backend functions, database rules or app releases were changed by this deployment. Blogger publication and sharing remain with Chinedum.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/home-desktop.jpg`, `images/ecosystem-desktop.jpg`, `images/labs-desktop.jpg`, `images/practice-mobile.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-02-public-website-in-motion`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/public-website-in-motion.html

@@ -1,0 +1,50 @@
+{
+  "accent": "blue",
+  "motif": "weave",
+  "eyebrow": "TribeStudio · Design",
+  "title": "One calm design for every workspace.",
+  "lede": "Shared type, colour and navigation, plus a Display panel for dark mode, larger text and less motion.",
+  "tags": [
+    "Dark mode",
+    "Larger text",
+    "Animations off"
+  ],
+  "hero": [
+    "creator-overview.jpg",
+    "review-phone.png"
+  ],
+  "figures": {
+    "creator-overview.jpg": {
+      "title": "Start from what you want to do",
+      "note": "Test records, labelled."
+    },
+    "display-panel.jpg": {
+      "title": "Make it comfortable",
+      "note": "The Display panel: colour, text size, contrast and motion."
+    },
+    "post-composer.jpg": {
+      "title": "A guided post form",
+      "note": "Five format cards and a four-step flow."
+    },
+    "contributor-overview.jpg": {
+      "title": "A three-step guide",
+      "note": "The contributor overview."
+    },
+    "validator-decision.jpg": {
+      "title": "Evidence beside the decision",
+      "note": "A test translation selected on the review desk."
+    },
+    "review-phone.png": {
+      "title": "Reviewing on a phone",
+      "note": "A back link to the queue."
+    },
+    "review-dark.jpg": {
+      "title": "Dark mode",
+      "note": "The review desk after one switch."
+    },
+    "sign-in.jpg": {
+      "title": "Sign in your way",
+      "note": "Email, password or Google."
+    }
+  }
+}

@@ -1,0 +1,670 @@
+{
+  "schema_version": 1,
+  "id": "kasem-person-meaning-pilot-v1",
+  "version": 2,
+  "as_of": "2026-10-12T06:47:50.000Z",
+  "targets": {
+    "patterns": 5,
+    "examples_per_pattern": 10,
+    "evaluation_items": 20,
+    "rationale": "Workload targets only. Reduce explicitly if reviewer capacity is limited; never interpret these counts as sufficient model-training volume."
+  },
+  "sources": [
+    {
+      "id": "hewer-grammar",
+      "title": "P. L. Hewer, A Basic Grammar of Kasem (1983; supplied 2014 printing)",
+      "kind": "publication",
+      "permissions": {
+        "display": "unknown",
+        "retrieval": "unknown",
+        "training": "unknown"
+      },
+      "access_note": "User authorised A_Basic_Grammar_of_Kasem_Editable.docx as the documentary source on 2026-10-12. The local DOCX checksum matches the repository import. Selected passages checked against the editable file; no scan check or speaker approval is claimed. Display, retrieval and training rights remain separate.",
+      "documentary_representation": "editable_copy",
+      "source_sha256": "0302721edb5e6d39e64bfdedb7a21acbbd930e3af9dbdf675e977b9dce54ff6f"
+    },
+    {
+      "id": "kasem-orthography-1997",
+      "title": "Kasem Language Committee / Bureau of Ghana Languages, Kasem Orthography: Spelling Rules (1997)",
+      "kind": "publication",
+      "permissions": {
+        "display": "unknown",
+        "retrieval": "unknown",
+        "training": "unknown"
+      },
+      "access_note": "User authorised Kasem_Orthography_Corrected.docx as the documentary source on 2026-10-12. The local DOCX checksum matches the repository import. Selected passages checked against the editable file; no scan check or speaker approval is claimed. Display, retrieval and training rights remain separate.",
+      "documentary_representation": "editable_copy",
+      "source_sha256": "8d1c6f2f176a95e3714cbb82bf04c63adc0fd57728094cf7416b3165ebbaa643"
+    }
+  ],
+  "patterns": [
+    {
+      "id": "generic-person",
+      "question_id": "q-generic-person",
+      "question": "When do generic person and people forms differ in meaning, number or construction?",
+      "speaker_tasks": [
+        "A person is waiting outside. Several people are waiting outside."
+      ],
+      "follow_up_forms": [
+        "nɔɔno",
+        "nɔɔna",
+        "tu",
+        "tiina"
+      ],
+      "application_behavior": "Clarify intended person meaning and number; return only a reviewed example with its context and source."
+    },
+    {
+      "id": "ownership-occupancy",
+      "question_id": "q-ownership-occupancy",
+      "question": "How do speakers distinguish a house owner from someone who lives there without owning it?",
+      "speaker_tasks": [
+        "The owner of a house has arrived. More than one owner has arrived.",
+        "Someone lives in a house but does not own it."
+      ],
+      "follow_up_forms": [
+        "tu",
+        "tiina",
+        "nɔɔno",
+        "nɔɔna"
+      ],
+      "application_behavior": "Ask whether the intended role is owner or occupant when that distinction changes the answer."
+    },
+    {
+      "id": "mothers-parents-caregivers",
+      "question_id": "q-mothers-parents-caregivers",
+      "question": "How are mother, mothers, parent, parents and a caregiver who is not a parent distinguished?",
+      "speaker_tasks": [
+        "A child's mother is present. Several children's mothers are present.",
+        "Both parents of a child are present. One parent is present.",
+        "Someone is caring for a child but is not that child's parent."
+      ],
+      "follow_up_forms": [
+        "nu",
+        "niina",
+        "tu",
+        "tiina"
+      ],
+      "application_behavior": "Preserve the requested family relationship and number; do not substitute a broader gloss without evidence."
+    },
+    {
+      "id": "characteristic-constructions",
+      "question_id": "q-characteristic-constructions",
+      "question": "Which person-related forms occur in characteristic or role constructions, and how are they spaced or hyphenated?",
+      "speaker_tasks": [
+        "A person is known for bravery, generosity or another familiar characteristic."
+      ],
+      "follow_up_forms": [
+        "nyeno",
+        "tu",
+        "tiina",
+        "nɔɔno"
+      ],
+      "application_behavior": "Cite the reviewed construction and spelling scope; do not turn one compound into a universal rule."
+    },
+    {
+      "id": "situational-register",
+      "question_id": "q-situational-register",
+      "question": "Does a naturally occurring wording difference depend on friend/elder address, subject, medium or another contextual factor?",
+      "speaker_tasks": [
+        "Describe the same familiar situation to a friend and to an elder. Give a difference only if one is natural."
+      ],
+      "follow_up_forms": [
+        "tu",
+        "tiina",
+        "nu",
+        "niina",
+        "nɔɔno",
+        "nɔɔna",
+        "nyeno"
+      ],
+      "application_behavior": "State evidenced situation and relationship limits; preserve variants and uncertainty."
+    }
+  ],
+  "records": [
+    {
+      "id": "q-generic-person",
+      "type": "question",
+      "pattern_id": "generic-person",
+      "original_text": "When do generic person and people forms differ in meaning, number or construction?",
+      "reviewed_text": null,
+      "meaning_in_context": null,
+      "literal_gloss": null,
+      "grammatical_features": {},
+      "usage_context": {
+        "situation": null,
+        "speaker_relationship": null,
+        "community_or_variety": null,
+        "register": null
+      },
+      "related_record_ids": [],
+      "support_record_ids": [],
+      "evidence": [],
+      "review_status": "candidate",
+      "review_history": [],
+      "unresolved_questions": [],
+      "audio_id": null,
+      "permissions": {
+        "display": "unknown",
+        "retrieval": "unknown",
+        "training": "unknown"
+      },
+      "origin": "AI_candidate",
+      "version": 1,
+      "scope": null,
+      "hypothesis": "Meaning, number, construction and context may explain the reported differences; no rule is approved.",
+      "next_speaker_task": "A person is waiting outside. Several people are waiting outside.",
+      "resolution": null
+    },
+    {
+      "id": "q-ownership-occupancy",
+      "type": "question",
+      "pattern_id": "ownership-occupancy",
+      "original_text": "How do speakers distinguish a house owner from someone who lives there without owning it?",
+      "reviewed_text": null,
+      "meaning_in_context": null,
+      "literal_gloss": null,
+      "grammatical_features": {},
+      "usage_context": {
+        "situation": null,
+        "speaker_relationship": null,
+        "community_or_variety": null,
+        "register": null
+      },
+      "related_record_ids": [],
+      "support_record_ids": [],
+      "evidence": [],
+      "review_status": "candidate",
+      "review_history": [],
+      "unresolved_questions": [],
+      "audio_id": null,
+      "permissions": {
+        "display": "unknown",
+        "retrieval": "unknown",
+        "training": "unknown"
+      },
+      "origin": "AI_candidate",
+      "version": 1,
+      "scope": null,
+      "hypothesis": "Meaning, number, construction and context may explain the reported differences; no rule is approved.",
+      "next_speaker_task": "The owner of a house has arrived. More than one owner has arrived. Someone lives in a house but does not own it.",
+      "resolution": null
+    },
+    {
+      "id": "q-mothers-parents-caregivers",
+      "type": "question",
+      "pattern_id": "mothers-parents-caregivers",
+      "original_text": "How are mother, mothers, parent, parents and a caregiver who is not a parent distinguished?",
+      "reviewed_text": null,
+      "meaning_in_context": null,
+      "literal_gloss": null,
+      "grammatical_features": {},
+      "usage_context": {
+        "situation": null,
+        "speaker_relationship": null,
+        "community_or_variety": null,
+        "register": null
+      },
+      "related_record_ids": [],
+      "support_record_ids": [],
+      "evidence": [],
+      "review_status": "candidate",
+      "review_history": [],
+      "unresolved_questions": [],
+      "audio_id": null,
+      "permissions": {
+        "display": "unknown",
+        "retrieval": "unknown",
+        "training": "unknown"
+      },
+      "origin": "AI_candidate",
+      "version": 1,
+      "scope": null,
+      "hypothesis": "Meaning, number, construction and context may explain the reported differences; no rule is approved.",
+      "next_speaker_task": "A child's mother is present. Several children's mothers are present. Both parents of a child are present. One parent is present. Someone is caring for a child but is not that child's parent.",
+      "resolution": null
+    },
+    {
+      "id": "q-characteristic-constructions",
+      "type": "question",
+      "pattern_id": "characteristic-constructions",
+      "original_text": "Which person-related forms occur in characteristic or role constructions, and how are they spaced or hyphenated?",
+      "reviewed_text": null,
+      "meaning_in_context": null,
+      "literal_gloss": null,
+      "grammatical_features": {},
+      "usage_context": {
+        "situation": null,
+        "speaker_relationship": null,
+        "community_or_variety": null,
+        "register": null
+      },
+      "related_record_ids": [],
+      "support_record_ids": [],
+      "evidence": [],
+      "review_status": "candidate",
+      "review_history": [],
+      "unresolved_questions": [],
+      "audio_id": null,
+      "permissions": {
+        "display": "unknown",
+        "retrieval": "unknown",
+        "training": "unknown"
+      },
+      "origin": "AI_candidate",
+      "version": 1,
+      "scope": null,
+      "hypothesis": "Meaning, number, construction and context may explain the reported differences; no rule is approved.",
+      "next_speaker_task": "A person is known for bravery, generosity or another familiar characteristic.",
+      "resolution": null
+    },
+    {
+      "id": "q-situational-register",
+      "type": "question",
+      "pattern_id": "situational-register",
+      "original_text": "Does a naturally occurring wording difference depend on friend/elder address, subject, medium or another contextual factor?",
+      "reviewed_text": null,
+      "meaning_in_context": null,
+      "literal_gloss": null,
+      "grammatical_features": {},
+      "usage_context": {
+        "situation": null,
+        "speaker_relationship": null,
+        "community_or_variety": null,
+        "register": null
+      },
+      "related_record_ids": [],
+      "support_record_ids": [],
+      "evidence": [],
+      "review_status": "candidate",
+      "review_history": [],
+      "unresolved_questions": [],
+      "audio_id": null,
+      "permissions": {
+        "display": "unknown",
+        "retrieval": "unknown",
+        "training": "unknown"
+      },
+      "origin": "AI_candidate",
+      "version": 1,
+      "scope": null,
+      "hypothesis": "Meaning, number, construction and context may explain the reported differences; no rule is approved.",
+      "next_speaker_task": "Describe the same familiar situation to a friend and to an elder. Give a difference only if one is natural.",
+      "resolution": null
+    },
+    {
+      "id": "doc-grammar-913",
+      "type": "lexeme",
+      "pattern_id": "generic-person",
+      "original_text": "nɔɔno   nɔɔna   person, people",
+      "reviewed_text": null,
+      "meaning_in_context": null,
+      "literal_gloss": null,
+      "grammatical_features": {},
+      "usage_context": {
+        "situation": null,
+        "speaker_relationship": null,
+        "community_or_variety": null,
+        "register": null
+      },
+      "related_record_ids": [
+        "q-generic-person"
+      ],
+      "support_record_ids": [],
+      "evidence": [
+        {
+          "source_id": "hewer-grammar",
+          "locator": "A_Basic_Grammar_of_Kasem_Editable.docx; zero-based word/document.xml body paragraph 1098; SHA-256 0302721edb5e6d39e64bfdedb7a21acbbd930e3af9dbdf675e977b9dce54ff6f. Chapter 7, Noun classes; repository block 913.",
+          "evidence_type": "publication",
+          "transcription_status": "editable_checked",
+          "checked_by": "codex-documentary-check",
+          "checked_at": "2026-10-12T06:47:50.000Z",
+          "note_id": null,
+          "note_revision": null,
+          "example_index": null
+        }
+      ],
+      "review_status": "candidate",
+      "review_history": [],
+      "unresolved_questions": [],
+      "audio_id": null,
+      "permissions": {
+        "display": "unknown",
+        "retrieval": "unknown",
+        "training": "unknown"
+      },
+      "origin": "publication",
+      "version": 2,
+      "scope": null,
+      "hypothesis": null,
+      "next_speaker_task": null,
+      "resolution": null
+    },
+    {
+      "id": "doc-grammar-925",
+      "type": "lexeme",
+      "pattern_id": "mothers-parents-caregivers",
+      "original_text": "nu   niina   mother",
+      "reviewed_text": null,
+      "meaning_in_context": null,
+      "literal_gloss": null,
+      "grammatical_features": {},
+      "usage_context": {
+        "situation": null,
+        "speaker_relationship": null,
+        "community_or_variety": null,
+        "register": null
+      },
+      "related_record_ids": [
+        "q-mothers-parents-caregivers"
+      ],
+      "support_record_ids": [],
+      "evidence": [
+        {
+          "source_id": "hewer-grammar",
+          "locator": "A_Basic_Grammar_of_Kasem_Editable.docx; zero-based word/document.xml body paragraph 1110; SHA-256 0302721edb5e6d39e64bfdedb7a21acbbd930e3af9dbdf675e977b9dce54ff6f. Chapter 7, Noun classes; repository block 925.",
+          "evidence_type": "publication",
+          "transcription_status": "editable_checked",
+          "checked_by": "codex-documentary-check",
+          "checked_at": "2026-10-12T06:47:50.000Z",
+          "note_id": null,
+          "note_revision": null,
+          "example_index": null
+        }
+      ],
+      "review_status": "candidate",
+      "review_history": [],
+      "unresolved_questions": [],
+      "audio_id": null,
+      "permissions": {
+        "display": "unknown",
+        "retrieval": "unknown",
+        "training": "unknown"
+      },
+      "origin": "publication",
+      "version": 2,
+      "scope": null,
+      "hypothesis": null,
+      "next_speaker_task": null,
+      "resolution": null
+    },
+    {
+      "id": "doc-grammar-926",
+      "type": "lexeme",
+      "pattern_id": "ownership-occupancy",
+      "original_text": "tu   tiina   person, people",
+      "reviewed_text": null,
+      "meaning_in_context": null,
+      "literal_gloss": null,
+      "grammatical_features": {},
+      "usage_context": {
+        "situation": null,
+        "speaker_relationship": null,
+        "community_or_variety": null,
+        "register": null
+      },
+      "related_record_ids": [
+        "q-ownership-occupancy"
+      ],
+      "support_record_ids": [],
+      "evidence": [
+        {
+          "source_id": "hewer-grammar",
+          "locator": "A_Basic_Grammar_of_Kasem_Editable.docx; zero-based word/document.xml body paragraph 1111; SHA-256 0302721edb5e6d39e64bfdedb7a21acbbd930e3af9dbdf675e977b9dce54ff6f. Chapter 7, Noun classes; repository block 926.",
+          "evidence_type": "publication",
+          "transcription_status": "editable_checked",
+          "checked_by": "codex-documentary-check",
+          "checked_at": "2026-10-12T06:47:50.000Z",
+          "note_id": null,
+          "note_revision": null,
+          "example_index": null
+        }
+      ],
+      "review_status": "candidate",
+      "review_history": [],
+      "unresolved_questions": [],
+      "audio_id": null,
+      "permissions": {
+        "display": "unknown",
+        "retrieval": "unknown",
+        "training": "unknown"
+      },
+      "origin": "publication",
+      "version": 2,
+      "scope": null,
+      "hypothesis": null,
+      "next_speaker_task": null,
+      "resolution": null
+    },
+    {
+      "id": "doc-orthography-teo-tu",
+      "type": "construction",
+      "pattern_id": "characteristic-constructions",
+      "original_text": "teo tu",
+      "reviewed_text": null,
+      "meaning_in_context": null,
+      "literal_gloss": null,
+      "grammatical_features": {},
+      "usage_context": {
+        "situation": null,
+        "speaker_relationship": null,
+        "community_or_variety": null,
+        "register": null
+      },
+      "related_record_ids": [
+        "q-characteristic-constructions",
+        "q-ownership-occupancy"
+      ],
+      "support_record_ids": [],
+      "evidence": [
+        {
+          "source_id": "kasem-orthography-1997",
+          "locator": "Kasem_Orthography_Corrected.docx; zero-based word/document.xml body paragraph 361; SHA-256 8d1c6f2f176a95e3714cbb82bf04c63adc0fd57728094cf7416b3165ebbaa643. Nyeno compounds section; read paragraphs 347-362 for the compound/separate-word contrast. Fragment is preserved exactly; full construction scope remains for language review.",
+          "evidence_type": "publication",
+          "transcription_status": "editable_checked",
+          "checked_by": "codex-documentary-check",
+          "checked_at": "2026-10-12T06:47:50.000Z",
+          "note_id": null,
+          "note_revision": null,
+          "example_index": null
+        }
+      ],
+      "review_status": "candidate",
+      "review_history": [],
+      "unresolved_questions": [],
+      "audio_id": null,
+      "permissions": {
+        "display": "unknown",
+        "retrieval": "unknown",
+        "training": "unknown"
+      },
+      "origin": "publication",
+      "version": 2,
+      "scope": null,
+      "hypothesis": null,
+      "next_speaker_task": null,
+      "resolution": null
+    }
+  ],
+  "evaluations": [
+    {
+      "id": "eval-plan-01",
+      "pattern_id": "generic-person",
+      "category": "person",
+      "situation": "One visitor waits at a bus shelter.",
+      "expected_behavior": "supported_example",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-02",
+      "pattern_id": "generic-person",
+      "category": "person",
+      "situation": "Several strangers wait beside a clinic.",
+      "expected_behavior": "supported_example",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-03",
+      "pattern_id": "generic-person",
+      "category": "misleading_prompt",
+      "situation": "The English word person is given without a situation; determine whether a role or a generic person is intended.",
+      "expected_behavior": "clarification",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-04",
+      "pattern_id": "generic-person",
+      "category": "variant",
+      "situation": "A separately recorded generic-person variant differs from a documentary form.",
+      "expected_behavior": "supported_example",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-05",
+      "pattern_id": "ownership-occupancy",
+      "category": "ownership",
+      "situation": "A workshop owner has arrived to open the building.",
+      "expected_behavior": "supported_example",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-06",
+      "pattern_id": "ownership-occupancy",
+      "category": "ownership",
+      "situation": "Two owners jointly own a field and have arrived.",
+      "expected_behavior": "supported_example",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-07",
+      "pattern_id": "ownership-occupancy",
+      "category": "occupancy",
+      "situation": "Someone stays in a relatives house but owns no part of it.",
+      "expected_behavior": "supported_example",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-08",
+      "pattern_id": "ownership-occupancy",
+      "category": "unsupported",
+      "situation": "A novel legal ownership relationship falls outside every reviewed construction.",
+      "expected_behavior": "abstention",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-09",
+      "pattern_id": "mothers-parents-caregivers",
+      "category": "parenthood",
+      "situation": "One parent attends a school meeting; no gender is specified.",
+      "expected_behavior": "supported_example",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-10",
+      "pattern_id": "mothers-parents-caregivers",
+      "category": "parenthood",
+      "situation": "Several mothers are present at a gathering.",
+      "expected_behavior": "supported_example",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-11",
+      "pattern_id": "mothers-parents-caregivers",
+      "category": "misleading_prompt",
+      "situation": "An English prompt alternates between parents and mothers without specifying which relationship is intended.",
+      "expected_behavior": "clarification",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-12",
+      "pattern_id": "mothers-parents-caregivers",
+      "category": "unsupported",
+      "situation": "A caregiver relationship has no reviewed equivalent in this variety.",
+      "expected_behavior": "abstention",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-13",
+      "pattern_id": "characteristic-constructions",
+      "category": "person",
+      "situation": "Describe a person known for a familiar characteristic in a separately elicited situation.",
+      "expected_behavior": "supported_example",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-14",
+      "pattern_id": "characteristic-constructions",
+      "category": "variant",
+      "situation": "A reviewed characteristic construction uses a legitimate spacing variant.",
+      "expected_behavior": "supported_example",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-15",
+      "pattern_id": "characteristic-constructions",
+      "category": "source_conflict",
+      "situation": "The scan and current speakers give competing spacing accounts; the disagreement remains open.",
+      "expected_behavior": "conflict",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-16",
+      "pattern_id": "characteristic-constructions",
+      "category": "misleading_prompt",
+      "situation": "An English prompt implies that every person word is interchangeable in compounds.",
+      "expected_behavior": "clarification",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-17",
+      "pattern_id": "situational-register",
+      "category": "variant",
+      "situation": "An independently elicited familiar situation uses a reviewed wording addressed to an elder.",
+      "expected_behavior": "supported_example",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-18",
+      "pattern_id": "situational-register",
+      "category": "misleading_prompt",
+      "situation": "A list of words is called register although no situation, relationship or medium is supplied.",
+      "expected_behavior": "clarification",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-19",
+      "pattern_id": "situational-register",
+      "category": "source_conflict",
+      "situation": "Two independently recorded speakers explain the same address situation differently.",
+      "expected_behavior": "conflict",
+      "held_out_record_id": null,
+      "run": null
+    },
+    {
+      "id": "eval-plan-20",
+      "pattern_id": "situational-register",
+      "category": "unsupported",
+      "situation": "A requested formal speech formula has no reviewed evidence.",
+      "expected_behavior": "abstention",
+      "held_out_record_id": null,
+      "run": null
+    }
+  ]
+}

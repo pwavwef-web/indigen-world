@@ -4,6 +4,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugins.googlemobileads.GoogleMobileAdsPlugin
 import io.flutter.plugin.common.MethodChannel
 import java.security.MessageDigest
 
@@ -42,6 +43,9 @@ private const val DIAGNOSTICS_CHANNEL = "world.indigen.mobile/app_signature"
 class MainActivity : AudioServiceActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        val comments = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "world.indigen/comment_ad")
+        GoogleMobileAdsPlugin.registerNativeAdFactory(flutterEngine, "exploreFullscreen", ExploreNativeAdFactory(this))
+        GoogleMobileAdsPlugin.registerNativeAdFactory(flutterEngine, "postComments", CommentNativeAdFactory(this) { id, height -> comments.invokeMethod("height", mapOf("instanceId" to id, "height" to height)) })
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DIAGNOSTICS_CHANNEL)
             .setMethodCallHandler { call, result ->
                 if (call.method == "read") result.success(signature()) else result.notImplemented()

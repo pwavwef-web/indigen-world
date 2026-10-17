@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://indigenworld.com/",
+    "checkedAt": "2026-10-15T23:29:25.177Z",
+    "status": 200,
+    "finalUrl": "https://indigenworld.com/",
+    "title": "Indigen World — Culture belongs in the future",
+    "bytes": 2707,
+    "caveat": "HTTP shell only; no sign-in, backend transaction, permissions or asset/functionality proof."
+  },
+  {
+    "url": "https://indigenworld.com/ecosystem",
+    "checkedAt": "2026-10-15T23:29:27.568Z",
+    "status": 200,
+    "finalUrl": "https://indigenworld.com/ecosystem",
+    "title": "Ecosystem · Indigen World",
+    "bytes": 2638,
+    "caveat": "HTTP shell only; no sign-in, backend transaction, permissions or asset/functionality proof."
+  },
+  {
+    "url": "https://indigenworld.com/dictionary",
+    "checkedAt": "2026-10-15T23:29:27.577Z",
+    "status": 200,
+    "finalUrl": "https://indigenworld.com/dictionary",
+    "title": "Kasem Dictionary · Indigen World",
+    "bytes": 2658,
+    "caveat": "HTTP shell only; no sign-in, backend transaction, permissions or asset/functionality proof."
+  },
+  {
+    "url": "https://tribestudio.indigenworld.com/",
+    "checkedAt": "2026-10-15T23:29:27.579Z",
+    "status": 200,
+    "finalUrl": "https://tribestudio.indigenworld.com/",
+    "title": "TribeStudio — Indigen World",
+    "bytes": 8844,
+    "caveat": "HTTP shell only; no sign-in, backend transaction, permissions or asset/functionality proof."
+  },
+  {
+    "url": "https://admin.indigenworld.com/",
+    "checkedAt": "2026-10-15T23:29:27.583Z",
+    "status": 200,
+    "finalUrl": "https://admin.indigenworld.com/",
+    "title": "Indigen World Admin",
+    "bytes": 2285,
+    "caveat": "HTTP shell only; no sign-in, backend transaction, permissions or asset/functionality proof."
+  }
+]

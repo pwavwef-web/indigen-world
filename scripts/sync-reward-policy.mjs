@@ -11,11 +11,13 @@ const source = new URL('../services/functions/src/reward-policy.ts', import.meta
 const target = new URL('../apps/tribestudio/src/contributor/reward-policy.ts', import.meta.url);
 const header = '// GENERATED from services/functions/src/reward-policy.ts by scripts/sync-reward-policy.mjs.\n'
   + '// Do not edit here. Previews only: the server recomputes every award and quote.\n\n';
-const expected = header + readFileSync(source, 'utf8');
+// Line endings are normalised so a Windows checkout (CRLF) is not drift.
+const lf = (text) => text.replace(/\r\n/g, '\n');
+const expected = header + lf(readFileSync(source, 'utf8'));
 
 if (process.argv.includes('--check')) {
   let current = '';
-  try { current = readFileSync(target, 'utf8'); } catch { /* missing counts as drift */ }
+  try { current = lf(readFileSync(target, 'utf8')); } catch { /* missing counts as drift */ }
   if (current !== expected) {
     console.error('apps/tribestudio/src/contributor/reward-policy.ts is out of date. Run: node scripts/sync-reward-policy.mjs');
     process.exit(1);

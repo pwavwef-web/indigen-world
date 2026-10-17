@@ -29,6 +29,9 @@ export async function runnerAction(req: CallableRequest, data: Record<string, un
     const retry = initial.lastReceipt?.section === data.section;
     const wordId = retry ? initial.lastReceipt!.wordId : initial.word?.id;
     if (!wordId) throw new HttpsError("failed-precondition", "Get a checkpoint word before submitting.");
+    // New clients bind the answer to the prompt they actually displayed. Older clients remain compatible.
+    if (data.expectedWordId !== undefined && data.expectedWordId !== wordId)
+      throw new HttpsError("failed-precondition", "The checkpoint word changed. Reload the saved checkpoint before submitting. Your draft has been kept.");
     // Only these answer fields are accepted. Revision IDs, queue IDs and reward data are never client-controlled here.
     const payload = { wordId, translations: data.translations, partOfSpeech: data.partOfSpeech,
       dialect: data.dialect, notes: data.notes, kasemExample: data.kasemExample,

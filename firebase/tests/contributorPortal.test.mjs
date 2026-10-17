@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { runInNewContext } from 'node:vm';
 import { createHash } from 'node:crypto';
 import { HttpsError } from 'firebase-functions/v2/https';
+import { EMPTY_DETAILS, parseContributorDetails, detailsContext } from '@indigen-world/contracts/contributor-details';
 import { requireAuth, requireRole } from '../../services/functions/lib/auth.js';
 import { normalizeMsisdn } from '../../services/functions/lib/sms.js';
 import { auditEntry, guarded } from '../../services/functions/lib/contributor-common.js';
@@ -41,7 +42,7 @@ async function harness({ smsOk = true, configured = true } = {}) {
       data: () => records.get(ref.path), get: key => key.split('.').reduce((o,k) => o?.[k], records.get(ref.path)) }),
       set: (ref, data, options) => writes.push(() => records.set(ref.path, options?.merge ? { ...records.get(ref.path), ...data } : data)),
       create: (ref, data) => { assert.ok(!records.has(ref.path)); writes.push(() => records.set(ref.path, data)); },
-      update: (ref, data) => writes.push(() => { assert.ok(records.has(ref.path)); records.set(ref.path, { ...records.get(ref.path), ...data }); }),
+      update: (ref, data) => writes.push(() => { assert.ok(records.has(ref.path)); update(ref.path, data); }),
       delete: ref => writes.push(() => records.delete(ref.path)),
     });
     writes.forEach(fn => fn()); return result;
@@ -51,6 +52,7 @@ async function harness({ smsOk = true, configured = true } = {}) {
   const executable = code.replace(/^import[\s\S]*?;\n/gm, '').replace(/\bexport (?=(?:async )?function|const)/g, '');
   const api = runInNewContext(executable + '\n;({acceptContributorTrainingTerms,saveExpressionAnswer,onContributorExpressionReviewed,parseExpressionAnswer,assignContributorExpressions,assignmentInstructions,inviteExpressionContributor,activateExpressionContributor,resendContributorInvitation,contributorPhone,reportContributorIssue,updateContributorIssue})', {
     process, URL, createHash, HttpsError, requireAuth, requireRole, guarded, rewardSettings, getFirestore: () => db,
+    EMPTY_DETAILS, parseContributorDetails, detailsContext,
     loadRewardSystem, openLedger, post, commitLedger, entryId,
     ARKESEL_API_KEY: 'test-secret', normalizeMsisdn, isSmsConfigured: () => configured,
     sendSmsToMsisdn: async (to, message) => { messages.push({ to, message }); return { ok: smsOk, ...(smsOk ? { id: 'sms-1' } : { error: 'network' }) }; },
@@ -79,6 +81,55 @@ test('invitation ownership and active access are checked on draft writes', async
   await assert.rejects(h.saveExpressionAnswer(h.request({}, 'bob')), { code: 'permission-denied' });
   h.records.set('contributorAccounts/alice', { status: 'revoked' });
   await assert.rejects(h.saveExpressionAnswer(h.request()), { code: 'permission-denied' });
+});
+
+test('structured context survives old clients, reaches canonical review and training, and retries stay immutable', async () => {
+  const h = await harness();
+  const details = { ...EMPTY_DETAILS, variety: 'Navrongo', speaker: 'A host', listener: 'A neighbour', situation: 'Welcoming someone home', literalMeaning: 'Sit together', alternativeNotes: ['polite'] };
+  await h.saveExpressionAnswer(h.request({ details, context: 'A warm welcome.' }));
+  await h.saveExpressionAnswer(h.request({ revision: 1 }));
+  assert.equal(h.records.get(h.itemPath).details.variety, 'Navrongo');
+  const result = await h.saveExpressionAnswer(h.request({ revision: 2, submit: true, publicationPermission: true }));
+  const submission = h.records.get(`submissions/${result.submissionId}`);
+  assert.equal(submission.dialect, 'Navrongo');
+  assert.match(submission.usageContext, /Speaker: A host/);
+  assert.match(submission.translationNotes, /Another expression \(polite\)/);
+  assert.equal(submission.literalTranslation, 'Sit together');
+  assert.equal(h.records.get('contributorAccounts/alice').journey.participationDays.length, 1);
+  await h.saveExpressionAnswer(h.request({ revision: 3, details, submit: true, publicationPermission: true }));
+  assert.equal([...h.records.keys()].filter(key => key.startsWith('submissions/')).length, 1);
+  await assert.rejects(h.saveExpressionAnswer(h.request({ details: { ...details, variety: 'Changed' }, submit: true, publicationPermission: true })), { code: 'failed-precondition' });
+});
+
+test('alternative labels remain aligned after blank, duplicate and primary alternatives are removed', async () => {
+  const h = await harness();
+  const result = h.parseExpressionAnswer({ translation: 'Primary', alternatives: ['', 'Primary', 'One', 'One', 'Two'], details: { ...EMPTY_DETAILS, alternativeNotes: ['', '', 'polite', 'regional', 'informal'] } });
+  assert.deepEqual(JSON.parse(JSON.stringify(result.alternatives)), ['One', 'Two']);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.details.alternativeNotes)), ['polite', 'informal']);
+  assert.throws(() => h.parseExpressionAnswer({ translation: 'Primary', alternatives: [], details: { ...EMPTY_DETAILS, variety: 'x'.repeat(81) } }), { code: 'invalid-argument' });
+  assert.throws(() => h.parseExpressionAnswer({ translation: 'Primary', alternatives: [], details: { ...EMPTY_DETAILS, uncertainty: 'forged-value' } }), { code: 'invalid-argument' });
+});
+
+test('an oversized combined context remains a private draft and cannot be submitted', async () => {
+  const h = await harness();
+  const details = { ...EMPTY_DETAILS, situation: 'x'.repeat(300), literalMeaning: 'x'.repeat(300) };
+  await h.saveExpressionAnswer(h.request({ details, context: 'x'.repeat(1000) }));
+  await assert.rejects(h.saveExpressionAnswer(h.request({ revision: 1, details, context: 'x'.repeat(1000), submit: true, publicationPermission: true })), { code: 'failed-precondition' });
+  assert.equal(h.records.get(h.itemPath).revision, 1);
+  assert.equal([...h.records.keys()].some(key => key.startsWith('submissions/')), false);
+});
+
+test('a successful returned revision counts for participation once on its UTC day', async () => {
+  const h = await harness();
+  const first = await h.saveExpressionAnswer(h.request({ submit: true, publicationPermission: true }));
+  h.records.set(`submissions/${first.submissionId}`, { ...h.records.get(`submissions/${first.submissionId}`), status: 'NEEDS_REVISION' });
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  h.records.set('contributorAccounts/alice', { ...h.records.get('contributorAccounts/alice'), streakLastDay: yesterday, streakCount: 2, journey: { participationDays: [yesterday], weeklyGoal: 4 } });
+  await h.saveExpressionAnswer(h.request({ revision: 1, translation: 'Revised wording', submit: true, publicationPermission: true }));
+  const account = h.records.get('contributorAccounts/alice');
+  assert.equal(account.streakCount, 3);
+  assert.equal(account.journey.weeklyGoal, 4);
+  assert.equal(account.journey.participationDays.length, 2);
 });
 test('draft autosave persists alternatives and rejects stale revisions', async () => {
   const h = await harness();

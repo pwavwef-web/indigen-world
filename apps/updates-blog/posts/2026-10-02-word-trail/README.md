@@ -8,7 +8,7 @@ Status: **Deployed and verified October 2, 2026. Blogger publication pending.**
 - Custom permalink: word-trail
 - Article: `post.html`
 - Sharing copy: `share.md`
-- Images: `images/word-trail-desktop.png`, `images/word-trail-checkpoint-mobile.png`
+- Images: `screens/word-trail-desktop.png`, `screens/word-trail-checkpoint-mobile.png`
 
 ## Implemented behavior and limits
 
@@ -47,3 +47,16 @@ Firebase deployment completed October 2, 2026 from production `origin/main` comm
 `https://indigenworld.com/labs/word-trail` returned HTTP 200 with Word Trail metadata. Served `LabsPage-C9lDI-HP.js` SHA-256 `fb70cc6d4dac4bd5495b03a9a9c5a7abe4d844095022bb4e0ebf6092d3c7efdc` matched the release build. Public bootstrap confirmed the enabled, signed-in alpha registry. An authenticated disposable account started a trail, was refused an early checkpoint, received an actual queue word after 30 seconds, could not continue through the closed gate and could not submit an empty answer. All of that account's verification records were removed.
 
 An isolated release checkout kept unrelated mobile, wallpaper and community-post work out of this release. A task-local DNS resolver and GitHub Git database API were used to work around the host's DNS/Git transport problems; the uploaded tree and commit hashes exactly matched the reviewed local commit. Computer network settings were unchanged.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/word-trail-desktop.jpg`, `images/word-trail-checkpoint-mobile.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-02-word-trail`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/word-trail.html

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <rect width="1200" height="800" rx="28" fill="#f4f0e6"/>
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <text x="52" y="65" fill="#257462" font-size="18" font-weight="700" letter-spacing="3">KASEM RESEARCH · PLANNED PILOT</text>
+    <text x="52" y="116" fill="#173d34" font-size="38" font-weight="700">One question through to an unseen test</text>
+    <text x="52" y="150" fill="#52685f" font-size="21">A workflow illustration. Speaker collection and language review are pending.</text>
+    <g fill="#fffdf8" stroke="#d3dace" stroke-width="2">
+      <rect x="52" y="199" width="336" height="202" rx="18"/>
+      <rect x="432" y="199" width="336" height="202" rx="18"/>
+      <rect x="812" y="199" width="336" height="202" rx="18"/>
+      <rect x="52" y="460" width="336" height="202" rx="18"/>
+      <rect x="432" y="460" width="336" height="202" rx="18"/>
+      <rect x="812" y="460" width="336" height="202" rx="18"/>
+    </g>
+    <g stroke="#97aea0" stroke-width="3" fill="none">
+      <path d="M398 300h23m-8-7 8 7-8 7M778 300h23m-8-7 8 7-8 7"/>
+      <path d="M980 414v16H34v105h9m-7-7 7 7-7 7" stroke-dasharray="5 5"/>
+      <path d="M398 561h23m-8-7 8 7-8 7M778 561h23m-8-7 8 7-8 7"/>
+    </g>
+    <g fill="#257462" font-size="17" font-weight="700">
+      <text x="76" y="234">01 · QUESTION</text><text x="456" y="234">02 · DOCUMENTS</text><text x="836" y="234">03 · NATURAL SPEECH</text>
+      <text x="76" y="495">04 · RECONCILIATION</text><text x="456" y="495">05 · REVIEWED RECORDS</text><text x="836" y="495">06 · UNSEEN TESTS</text>
+    </g>
+    <g fill="#173d34" font-size="24" font-weight="700">
+      <text x="76" y="280">Which meaning?</text><text x="456" y="280">Read the source</text><text x="836" y="280">Let speakers lead</text>
+      <text x="76" y="541">Investigate differences</text><text x="456" y="541">Approve a stated use</text><text x="836" y="541">Test Kawuri</text>
+    </g>
+    <g fill="#52685f" font-size="18">
+      <text x="76" y="320">Person, owner, parent:</text><text x="76" y="345">meaning, number and context.</text>
+      <text x="456" y="320">Editable copies accepted.</text><text x="456" y="345">Language review is separate.</text>
+      <text x="836" y="320">Own wording before prompts.</text><text x="836" y="345">Context and consent matter.</text>
+      <text x="76" y="581">Ask for counterexamples.</text><text x="76" y="606">Record scope and uncertainty.</text>
+      <text x="456" y="581">Display, retrieval and training</text><text x="456" y="606">have separate permissions.</text>
+      <text x="836" y="581">Measure correctness + coverage.</text><text x="836" y="606">Keep held-out speech private.</text>
+    </g>
+    <rect x="52" y="704" width="1096" height="52" rx="12" fill="#173d34"/>
+    <text x="78" y="738" fill="#ffffff" font-size="21">Prepared: 5 questions · 20 evaluation situations. Actual speech and evaluation results: pending.</text>
+  </g>
+</svg>

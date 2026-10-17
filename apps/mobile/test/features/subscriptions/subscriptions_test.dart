@@ -53,11 +53,9 @@ ServedAd _ad(String id) => ServedAd(
   body: 'Body',
   creativeUrl: 'https://example.test/$id.jpg',
   mediaType: 'image',
-  placements: const [
-    AdPlacement.explore,
-    AdPlacement.community,
-    AdPlacement.collection,
-  ],
+  // Every placement, so the gates below are checked on each surface —
+  // including the comment slot added with post_comments.
+  placements: AdPlacement.values,
 );
 
 /// A container whose entitlement, advert stream and server benefits are all

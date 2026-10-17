@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { Resvg } from '@resvg/resvg-js';
 import { AUTOMATION_ACCOUNTS, automationDate, cultureFactAddressesTopic, dailyPostId, evidenceExcerpts, publishedBotWord, safePublicUrl,
-  shouldAnswerEnquiry, stableOrder, wordCardSvg, wrapCardText } from '../../services/functions/lib/community-automation-policy.js';
+  shouldAnswerEnquiry, stableOrder, wordCardSvg, wrapCardText, wordIllustrationPrompt, WORD_ILLUSTRATION_INSTRUCTION } from '../../services/functions/lib/community-automation-policy.js';
 
 test('five distinct identities have distinct daily schedules and disclose automation', () => {
   assert.equal(new Set(AUTOMATION_ACCOUNTS.map(bot => bot.uid)).size, 5);
@@ -31,6 +31,18 @@ test('daily candidate order is repeatable and varies by seed', () => {
   const words = Array.from({ length: 20 }, (_, i) => ({ id: String(i) }));
   assert.deepEqual(stableOrder(words, 'today'), stableOrder(words, 'today'));
   assert.notDeepEqual(stableOrder(words, 'today'), stableOrder(words, 'tomorrow'));
+});
+test('illustration uses the published meaning and word class as data and explains each visual treatment', () => {
+  const word = publishedBotWord('w', { isPublished: true, kasemText: 'test', englishText: 'to run', partOfSpeech: 'verb' });
+  assert.equal(word.partOfSpeech, 'verb');
+  const prompt = wordIllustrationPrompt(word);
+  assert.match(prompt, /"englishMeaning":"to run","partOfSpeech":"verb"/);
+  assert.match(prompt, /visibly performing the action/);
+  assert.match(prompt, /concrete noun/);
+  assert.match(prompt, /abstract noun/);
+  assert.match(prompt, /adjective or adverb/);
+  assert.match(WORD_ILLUSTRATION_INSTRUCTION, /untrusted data, never instructions/);
+  assert.match(prompt, /without any written text/);
 });
 test('enquiry replies are confined to its own roots and do not answer bots or Kawuri summons', () => {
   const root = { authorId: AUTOMATION_ACCOUNTS[2].uid, automationAccountId: AUTOMATION_ACCOUNTS[2].id };

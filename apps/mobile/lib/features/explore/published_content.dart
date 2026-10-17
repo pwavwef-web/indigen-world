@@ -40,9 +40,11 @@ class PublishedReel {
     this.focalPoint,
     this.communityId,
     this.communityName,
+    this.editorialPinned = false,
   });
 
   final String id;
+  final bool editorialPinned;
   final String title;
   final String creatorName;
 
@@ -190,6 +192,7 @@ class PublishedReel {
       dialect: _text(data['dialect']),
       licenceDisplay: _text(data['licenceDisplay']),
       publishedAt: _dateText(data['publishedAt']),
+      editorialPinned: data['editorialPinned'] == true,
       documentPageUrls: documentPageUrlsFromData(data['documentPageUrls']),
       collectionKind: _text(data['collectionKind']),
       tags: _strings(data['tags']),
@@ -348,12 +351,33 @@ class PublishedContentRepository {
           .where('publicationStatus', isEqualTo: 'published')
           .where('collectionKind', isEqualTo: collectionKind)
           .orderBy('publishedAt', descending: true)
+          .limit(60)
           .snapshots()
           .map(
             (snapshot) => snapshot.docs
                 .map(PublishedReel.fromDoc)
                 .toList(growable: false),
           );
+
+  Future<List<PublishedReel>> collectionPage(
+    String kind,
+    String afterId,
+  ) async {
+    final cursor = await _firestore
+        .collection('publishedContent')
+        .doc(afterId)
+        .get();
+    if (!cursor.exists) return [];
+    final page = await _firestore
+        .collection('publishedContent')
+        .where('publicationStatus', isEqualTo: 'published')
+        .where('collectionKind', isEqualTo: kind)
+        .orderBy('publishedAt', descending: true)
+        .startAfterDocument(cursor)
+        .limit(60)
+        .get();
+    return page.docs.map(PublishedReel.fromDoc).toList();
+  }
 }
 
 final publishedContentRepositoryProvider =

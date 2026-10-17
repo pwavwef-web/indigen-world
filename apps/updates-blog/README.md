@@ -39,8 +39,9 @@ npm run validate:updates-blog
    paste the whole file over it, then **Save**.
 4. Go to **Settings** and set the **Blog title** (shown in the header and hero)
    and the **Blog description**, then turn on **Meta tags → Enable search
-   description** and write one. The description becomes the hero subtitle and
-   the default social-share text. Under **Posts**, set **Max posts shown on main
+   description** and write one. The search description becomes the homepage
+   lede and the default social-share text; a post's own search description is
+   shown as the summary under its title. Under **Posts**, set **Max posts shown on main
    page** to **7**; Blogger must supply seven posts before the theme can render
    the seven-update homepage.
 5. Go to **Layout** and check the pre-built widgets. Everything is already
@@ -51,8 +52,9 @@ about box, topics, most-read, archive, and three footer columns — so the blog
 looks finished from the first post.
 
 The main **Blog Posts** widget renders the homepage cards. If Blogger retains
-an old **Featured Post** gadget during a restore, the theme hides it when the
-main feed succeeds. If Blogger rejects the feed markup, that gadget instead
+an old **Featured Post** gadget during a restore, it repeats the newest cover,
+so remove it in **Layout**. Until you do, CSS hides it before first paint
+whenever the main feed has cards. If Blogger rejects the feed markup, that gadget instead
 becomes a large-image fallback card rather than a long excerpt with a 72px
 thumbnail.
 
@@ -60,8 +62,20 @@ thumbnail.
 
 **Reading**
 
-- Editorial article layout with a 760px measure, Noto Serif body copy and a
-  sticky table of contents built from the post's own `h2`/`h3` headings.
+- Editorial article layout with a 760px measure, Noto Serif body copy,
+  Noto Serif Display headlines (it covers the IPA letters and tone marks
+  Kasem uses), a topic kicker of at most three labels, the post's search
+  description as a summary, and a table of contents built from the post's own
+  `h2`/`h3` headings — sticky on desktop, folded into one line on phones.
+- **One cover per post.** The post's first image is shown as the cover at its
+  own 1200×630 shape (never cropped to 16:9). Release posts also open with
+  that image so Blogger picks it for the share card; the theme hides that body
+  copy with CSS before first paint and the script removes it, moving any
+  figure caption onto the cover. Keep putting the cover first in new posts.
+- The byline and author box name **Indigen World**, not the Blogger account
+  that published the post.
+- Paragraph rhythm reaches through the single `<article>` wrapper release posts
+  use.
 - Estimated reading time and a reading-progress bar.
 - Styled callouts, code blocks with a copy button, scrollable tables, figures,
   blockquotes and a woven horizontal rule.
@@ -70,7 +84,14 @@ thumbnail.
 
 - Hero masthead in the website's home-hero style: navy into electric blue with
   a cyan glow and a faint dot grid, sitting under a floating glass header.
-- Card grid, with the most recent update promoted to a full-width lead card.
+- Card grid with cover-shaped (1200:630) media, the most recent update promoted
+  to a lead card with its cover inset at full shape. Card snippets are plain
+  text: Blogger's `snippet()` can cut inside an `<em>`, so it is rendered into a
+  `<template>` and copied as text, which stops the open tag italicising the
+  rest of the page.
+- Cards show the two most useful labels, product areas (Website, TribeStudio,
+  Mobile app, Dictionary, …) first; the list is `AREAS` in the theme script.
+  The sidebar shows the twelve busiest topics behind a "Show all" toggle.
 - A homepage showing the seven newest updates, led by the latest post and its
   featured image; label, search and archive views show all matching cards.
 - Posts with no image get a blue brand placeholder rather than a blank box.
@@ -83,9 +104,15 @@ thumbnail.
 - Colour-coded topic chips (see below).
 - A header filter populated from Blogger labels, so visitors can jump straight
   to updates for the mobile app, website, dictionary or any label you publish.
-- Related posts pulled from the blog's own feed by the post's first label.
-- Share row (X, LinkedIn, WhatsApp, copy link, and the native share sheet where
-  the device offers one). From 1180 CSS pixels it becomes a sticky left rail while
+- Related posts pulled from the blog's own feed by the post's first (ranked)
+  topic, shown as three cover cards.
+- Named share buttons (X, LinkedIn, WhatsApp, Facebook, Copy link with a
+  fallback for in-app browsers, and the native share sheet where the device
+  offers one), then a "Follow what we ship next" card linking the RSS feed.
+- Comments load only when the reader opens **Read or leave a comment** (or
+  arrives on a `#c…`/`#comments` link); Blogger's scripts are replayed in order
+  so the comment box works.
+- `Ctrl`/`⌘`+`K` or `/` opens search; a 404 page with its own search box. From 1180 CSS pixels it becomes a sticky left rail while
   the table of contents stays on the right; on smaller screens both return to
   the article flow.
 - Open Graph and Twitter card tags — with a real 1200×630 PNG fallback, and
@@ -108,7 +135,7 @@ thumbnail.
 | Group | What it changes |
 |---|---|
 | Brand palette | Royal blue, Deep navy, Cyan accent, Soft blue, Electric blue, Green, Page ground, Blue mist |
-| Typography | Interface font and article body font (family and size) |
+| Typography | Interface font, article body font and headline font (family and size) |
 | Layout | Page width, article column width, corner radius |
 
 The article body defaults to **Noto Serif** — the serif sibling of the

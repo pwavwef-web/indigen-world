@@ -16,6 +16,8 @@
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+A90000000000000000000006 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90000000000000000000003; };
+A90000000000000000000007 /* NotificationService.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A90000000000000000000002; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -26,6 +28,7 @@
 			remoteGlobalIDString = 97C146ED1CF9000F007C117D;
 			remoteInfo = Runner;
 		};
+A9000000000000000000000C = {isa = PBXContainerItemProxy; containerPortal = 97C146E61CF9000F007C117D; proxyType = 1; remoteGlobalIDString = A90000000000000000000001; remoteInfo = NotificationService; };
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -39,6 +42,7 @@
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+A9000000000000000000000E /* Embed App Extensions */ = {isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = ""; dstSubfolderSpec = 13; files = (A90000000000000000000007, ); name = "Embed App Extensions"; runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -62,6 +66,9 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+A90000000000000000000002 /* NotificationService.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+A90000000000000000000003 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+A90000000000000000000004 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +80,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+A90000000000000000000009 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -102,6 +110,7 @@
 		97C146E51CF9000F007C117D = {
 			isa = PBXGroup;
 			children = (
+A90000000000000000000005,
 				9740EEB11CF90186004384FC /* Flutter */,
 				97C146F01CF9000F007C117D /* Runner */,
 				97C146EF1CF9000F007C117D /* Products */,
@@ -112,6 +121,7 @@
 		97C146EF1CF9000F007C117D /* Products */ = {
 			isa = PBXGroup;
 			children = (
+A90000000000000000000002,
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
 			);
@@ -134,6 +144,7 @@
 			path = Runner;
 			sourceTree = "<group>";
 		};
+A90000000000000000000005 /* NotificationService */ = {isa = PBXGroup; children = (A90000000000000000000003, A90000000000000000000004, ); path = NotificationService; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -158,6 +169,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 97C147051CF9000F007C117D /* Build configuration list for PBXNativeTarget "Runner" */;
 			buildPhases = (
+A9000000000000000000000E,
 				9740EEB61CF901F6004384FC /* Run Script */,
 				97C146EA1CF9000F007C117D /* Sources */,
 				97C146EB1CF9000F007C117D /* Frameworks */,
@@ -168,6 +180,7 @@
 			buildRules = (
 			);
 			dependencies = (
+A9000000000000000000000D,
 			);
 			name = Runner;
 			packageProductDependencies = (
@@ -177,6 +190,7 @@
 			productReference = 97C146EE1CF9000F007C117D /* Runner.app */;
 			productType = "com.apple.product-type.application";
 		};
+A90000000000000000000001 /* NotificationService */ = {isa = PBXNativeTarget; buildConfigurationList = A9000000000000000000000B; buildPhases = (A90000000000000000000008, A90000000000000000000009, A9000000000000000000000A, ); buildRules = (); dependencies = (); name = NotificationService; productName = NotificationService; productReference = A90000000000000000000002; productType = "com.apple.product-type.app-extension"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -213,6 +227,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+A90000000000000000000001,
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
 			);
@@ -238,6 +253,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+A9000000000000000000000A = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
@@ -293,6 +309,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+A90000000000000000000008 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A90000000000000000000006, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -301,6 +318,7 @@
 			target = 97C146ED1CF9000F007C117D /* Runner */;
 			targetProxy = 331C8085294A63A400263BE5 /* PBXContainerItemProxy */;
 		};
+A9000000000000000000000D = {isa = PBXTargetDependency; target = A90000000000000000000001; targetProxy = A9000000000000000000000C; };
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
@@ -828,6 +846,18 @@
 			};
 			name = "Release-staging";
 		};
+A90000000000000000000064 /* Debug */ = {isa = XCBuildConfiguration; baseConfigurationReference = 9740EEB21CF90195004384FC; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)"; INFOPLIST_FILE = NotificationService/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 13.0; PRODUCT_BUNDLE_IDENTIFIER = world.indigen.mobile.NotificationService; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = "Debug"; };
+A90000000000000000000065 /* Release */ = {isa = XCBuildConfiguration; baseConfigurationReference = 7AFA3C8E1D35360C0083082E; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)"; INFOPLIST_FILE = NotificationService/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 13.0; PRODUCT_BUNDLE_IDENTIFIER = world.indigen.mobile.NotificationService; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = "Release"; };
+A90000000000000000000066 /* Profile */ = {isa = XCBuildConfiguration; baseConfigurationReference = 7AFA3C8E1D35360C0083082E; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)"; INFOPLIST_FILE = NotificationService/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 13.0; PRODUCT_BUNDLE_IDENTIFIER = world.indigen.mobile.NotificationService; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = "Profile"; };
+A90000000000000000000067 /* Debug-development */ = {isa = XCBuildConfiguration; baseConfigurationReference = F10000000000000000000001; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)"; INFOPLIST_FILE = NotificationService/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 13.0; PRODUCT_BUNDLE_IDENTIFIER = world.indigen.mobile.dev.NotificationService; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = "Debug-development"; };
+A90000000000000000000068 /* Release-development */ = {isa = XCBuildConfiguration; baseConfigurationReference = F10000000000000000000001; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)"; INFOPLIST_FILE = NotificationService/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 13.0; PRODUCT_BUNDLE_IDENTIFIER = world.indigen.mobile.dev.NotificationService; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = "Release-development"; };
+A90000000000000000000069 /* Profile-development */ = {isa = XCBuildConfiguration; baseConfigurationReference = F10000000000000000000001; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)"; INFOPLIST_FILE = NotificationService/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 13.0; PRODUCT_BUNDLE_IDENTIFIER = world.indigen.mobile.dev.NotificationService; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = "Profile-development"; };
+A9000000000000000000006A /* Debug-staging */ = {isa = XCBuildConfiguration; baseConfigurationReference = F10000000000000000000002; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)"; INFOPLIST_FILE = NotificationService/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 13.0; PRODUCT_BUNDLE_IDENTIFIER = world.indigen.mobile.staging.NotificationService; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = "Debug-staging"; };
+A9000000000000000000006B /* Release-staging */ = {isa = XCBuildConfiguration; baseConfigurationReference = F10000000000000000000002; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)"; INFOPLIST_FILE = NotificationService/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 13.0; PRODUCT_BUNDLE_IDENTIFIER = world.indigen.mobile.staging.NotificationService; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = "Release-staging"; };
+A9000000000000000000006C /* Profile-staging */ = {isa = XCBuildConfiguration; baseConfigurationReference = F10000000000000000000002; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)"; INFOPLIST_FILE = NotificationService/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 13.0; PRODUCT_BUNDLE_IDENTIFIER = world.indigen.mobile.staging.NotificationService; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = "Profile-staging"; };
+A9000000000000000000006D /* Debug-production */ = {isa = XCBuildConfiguration; baseConfigurationReference = F10000000000000000000003; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)"; INFOPLIST_FILE = NotificationService/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 13.0; PRODUCT_BUNDLE_IDENTIFIER = world.indigen.mobile.NotificationService; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = "Debug-production"; };
+A9000000000000000000006E /* Release-production */ = {isa = XCBuildConfiguration; baseConfigurationReference = F10000000000000000000003; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)"; INFOPLIST_FILE = NotificationService/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 13.0; PRODUCT_BUNDLE_IDENTIFIER = world.indigen.mobile.NotificationService; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = "Release-production"; };
+A9000000000000000000006F /* Profile-production */ = {isa = XCBuildConfiguration; baseConfigurationReference = F10000000000000000000003; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)"; MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)"; INFOPLIST_FILE = NotificationService/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 13.0; PRODUCT_BUNDLE_IDENTIFIER = world.indigen.mobile.NotificationService; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = "Profile-production"; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -879,6 +909,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = "Release-production";
 		};
+A9000000000000000000000B = {isa = XCConfigurationList; buildConfigurations = (A90000000000000000000064, A90000000000000000000065, A90000000000000000000066, A90000000000000000000067, A90000000000000000000068, A90000000000000000000069, A9000000000000000000006A, A9000000000000000000006B, A9000000000000000000006C, A9000000000000000000006D, A9000000000000000000006E, A9000000000000000000006F, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */

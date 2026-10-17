@@ -24,8 +24,8 @@ Status: **Article unpublished. Book content, all three websites and both Kawuri 
 
 ## Images and credits
 
-- `images/spelling-guide-desktop.png` (1440 × 1000): actual deployed product screenshot of the generated spelling guide and expanded alphabet rule.
-- `images/spelling-guide-mobile.png` (390 × 844): actual deployed product screenshot of the expanded alphabet rule at phone width.
+- `screens/spelling-guide-desktop.png` (1440 × 1000): actual deployed product screenshot of the generated spelling guide and expanded alphabet rule.
+- `screens/spelling-guide-mobile.png` (390 × 844): actual deployed product screenshot of the expanded alphabet rule at phone width.
 - Credit: Indigen World product screenshots, October 8, 2026, captured from `https://kasem-dictionary.web.app`. The complete guide also matched the release build on the website and TribeStudio hosts.
 - Regenerate with `node scripts/check-orthography-guide.mjs` against the dictionary preview. Set `ORTHOGRAPHY_PREVIEW_URL` to its origin when using a port other than 5180.
 - Blogger: choose **Insert image → Upload from computer** for each PNG, then replace the relative image `src` in `post.html` with its Blogger image URL. Preserve the alt text, dimensions and captions.
@@ -46,3 +46,16 @@ The user's automatic-publication request was applied to the book's project conte
 - Kawuri: successful Node.js 22 deployment of `kawuriChat` and `onCommunityKawuriMention`. Deployment source: `cb0eb9ffc88b96565888e38da0eea6f5eeb55693` on `main`. A fresh read through the compiled active lookup returned 1,225 published words, 76 book expressions/examples and 28 book rules, and verified the alphabet answer and `dé tua` / “we came” answer. All 62 backend checks passed; eight relevant mobile tests passed.
 - Android binary: source version `0.1.30+39`; keyboard and related mobile source corrected, eight relevant mobile tests passed. The production AAB was not produced. Repeated builds failed on Google Maven DNS/download errors; the final attempt reached `mergeProductionReleaseArtProfile` but could not download Firestore 26.5.0, Messaging 25.1.1 and 64 other artifacts. The original corrupt Gradle journal was avoided with an isolated cache; its later automatic retry was stopped after the repeated download failure. Google Play distribution unconfirmed.
 - GitHub Actions: the October 8 checks on `276a426` did not start; GitHub's job annotation reports that the account is locked by a billing issue. Local checks and Firebase deployment evidence above are separate from CI status.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/spelling-guide-desktop.jpg`, `images/spelling-guide-mobile.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-08-kasem-orthography-book`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/kasem-orthography-book-spelling-guide%20.html

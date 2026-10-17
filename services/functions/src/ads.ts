@@ -7,6 +7,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { requireAuth, requireRole } from './auth.js';
 import { mintDownloadUrl } from './published-media.js';
 import { consumeRateLimit } from './rate-limit.js';
+import { settleShopPayment, settleShopRefund } from './shop.js';
 import {
   PAYSTACK_SECRET_KEY,
   PaystackError,
@@ -53,7 +54,7 @@ const TAX_RATE = 0.06;
 const MAX_CREATIVE_BYTES = 500 * 1024 * 1024;
 
 const OBJECTIVES = new Set(['awareness', 'visits', 'messages']);
-const PLACEMENTS = new Set(['community', 'explore', 'collection']);
+const PLACEMENTS = new Set(['community', 'explore', 'collection', 'post_comments']);
 const CREATIVE_MEDIA_TYPES = new Set(['image', 'video']);
 
 /**
@@ -840,6 +841,23 @@ export const paystackWebhook = onRequest(
     const body = (req.body ?? {}) as Record<string, unknown>;
     const event = typeof body.event === 'string' ? body.event : '';
     const payload = (body.data ?? {}) as Record<string, unknown>;
+    if (event.startsWith('refund.') && payload.id != null) {
+      try { const handled = await settleShopRefund(String(payload.id)); res.status(200).json({ received: true, handled }); }
+      catch { res.status(503).json({ received: false, error: 'refund-reconciliation-pending' }); }
+      return;
+    }
+
+    // Dispatch by immutable reference namespace before the campaign path.
+    // A shop payment can never activate an advertising campaign.
+    if (event === 'charge.success' && typeof payload.reference === 'string' && payload.reference.startsWith('shop_')) {
+      try {
+        await settleShopPayment(payload.reference);
+        res.status(200).json({ received: true, handled: true, purpose: 'shop' });
+      } catch {
+        res.status(503).json({ received: false, error: 'shop-settlement-pending' });
+      }
+      return;
+    }
 
     if (event !== 'charge.success') {
       // Everything else — failed charges, transfers, refunds — is acknowledged
@@ -1374,6 +1392,13 @@ export const recordAdEvent = onCall(
     await consumeRateLimit('recordAdEvent', `${campaignId}_${actor}`, 600);
 
     const db = getFirestore();
+    if (campaignId.startsWith('house-')) {
+      const houseRef = db.collection('houseAdCampaigns').doc(campaignId.slice(6)), house = await houseRef.get();
+      const time = new Date().toISOString();
+      if (!house.exists || house.get('status') !== 'published' || house.get('startsAt') > time || house.get('endsAt') <= time) throw new HttpsError('failed-precondition', 'This house promotion is not running.');
+      await houseRef.update({ [AD_EVENT_FIELDS[kind]]: FieldValue.increment(1) });
+      return { campaignId, kind, recorded: true, provider: 'house' };
+    }
     const campaignRef = db.collection('adCampaigns').doc(campaignId);
     const snap = await campaignRef.get();
     if (!snap.exists) throw new HttpsError('not-found', 'Campaign not found.');

@@ -1,0 +1,26 @@
+{
+  "accent": "amber",
+  "motif": "chevrons",
+  "eyebrow": "Kasem · Spelling",
+  "title": "Kasem spelling, from the orthography book.",
+  "lede": "All 646 vocabulary rows, 28 rules and a keyboard aligned to the written alphabet.",
+  "tags": [
+    "646 words",
+    "28 rules",
+    "Aligned keyboard"
+  ],
+  "hero": [
+    "spelling-guide-desktop.png",
+    "spelling-guide-mobile.png"
+  ],
+  "figures": {
+    "spelling-guide-desktop.png": {
+      "title": "The seven written vowels",
+      "note": "The new spelling guide on the website."
+    },
+    "spelling-guide-mobile.png": {
+      "title": "The alphabet rule on a phone",
+      "note": "An expanded rule in the narrow layout."
+    }
+  }
+}

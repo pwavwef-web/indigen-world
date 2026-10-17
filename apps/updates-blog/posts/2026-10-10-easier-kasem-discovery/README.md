@@ -64,11 +64,11 @@ article uses one live production screenshot and three local preview screenshots:
 
 | Asset | Content |
 | --- | --- |
-| `images/learning-guide-live.jpg` | Live production learning-page header, captured after deployment; embedded in the article. |
+| `screens/learning-guide-live.jpg` | Live production learning-page header, captured after deployment; embedded in the article. |
 | `images/learning-guide.jpg` | Learning-page header at the normal desktop viewport. |
-| `images/learning-steps.jpg` | Three-step learning path and its access/storage labels. |
-| `images/dictionary-desktop.jpg` | Search for gaale with separate published source records. |
-| `images/dictionary-mobile.jpg` | Phone entry source, generated-audio disclosure, sharing and correction links. |
+| `screens/learning-steps.jpg` | Three-step learning path and its access/storage labels. |
+| `screens/dictionary-desktop.jpg` | Search for gaale with separate published source records. |
+| `screens/dictionary-mobile.jpg` | Phone entry source, generated-audio disclosure, sharing and correction links. |
 
 Credit: Indigen World product interface. `learning-guide-live.jpg` was captured
 from `https://indigenworld.com/learn`; the other four are local preview captures. Header
@@ -108,3 +108,16 @@ shown. Unit-test fixture words are synthetic and are not used in these screensho
   commit served by Hosting.
 - Approved contact-delivery test: pending
 - Blogger publication date and article URL: pending
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/learning-guide-live.jpg`, `images/learning-steps.jpg`, `images/dictionary-desktop.jpg`, `images/dictionary-mobile.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-10-easier-kasem-discovery`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/easier-kasem-discovery.html

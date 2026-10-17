@@ -15,9 +15,9 @@ Status: **Deployed to the public website and verified on 2026-10-04. Product scr
 
 Credit: Indigen World. Use verified product screenshots from this implementation, with no private contributor information visible.
 
-- `images/progress-fullscreen-desktop.png`: Desktop progress page showing the compact controls and vessels, with the website header and footer hidden on this route.
-- `images/progress-popup-mobile.png`: Phone-width progress page with a popup open, showing its labelled choices and close control.
-- `images/progress-live-traditional-pots.jpg`: Verified live phone layout at 390 × 844, showing the traditional-pot view and production word count of 357. Captured from `https://indigenworld.com/progress` on 2026-10-04 after deployment, with motion paused.
+- `screens/progress-fullscreen-desktop.png`: Desktop progress page showing the compact controls and vessels, with the website header and footer hidden on this route.
+- `screens/progress-popup-mobile.png`: Phone-width progress page with a popup open, showing its labelled choices and close control.
+- `screens/progress-live-traditional-pots.jpg`: Verified live phone layout at 390 × 844, showing the traditional-pot view and production word count of 357. Captured from `https://indigenworld.com/progress` on 2026-10-04 after deployment, with motion paused.
 
 The two PNG assets are actual product screenshots captured during local browser verification on 2026-10-04; the new JPG shows the verified live release. If sample targets are used to demonstrate the colour range, keep the sample notice visible and label the screenshot and caption as a sample preview.
 
@@ -47,3 +47,16 @@ Live asset verification at 16:44 UTC returned HTTP 200 for `/progress` and ten J
 4. Replace the published article URL placeholder in `share.md` before community sharing.
 
 Preparing these files does not publish externally or send community messages.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/progress-fullscreen-desktop.jpg`, `images/progress-popup-mobile.jpg`, `images/progress-live-traditional-pots.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-04-immersive-progress`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/immersive-community-progress.html

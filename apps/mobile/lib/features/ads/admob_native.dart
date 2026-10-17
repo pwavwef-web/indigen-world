@@ -125,6 +125,8 @@ abstract interface class AdMobNativeFactory {
     required NativeAdPalette palette,
     required VoidCallback onLoaded,
     required VoidCallback onFailed,
+    String? factoryId,
+    Map<String, Object>? customOptions,
   });
 }
 
@@ -137,11 +139,15 @@ class GoogleAdMobNativeFactory implements AdMobNativeFactory {
     required NativeAdPalette palette,
     required VoidCallback onLoaded,
     required VoidCallback onFailed,
+    String? factoryId,
+    Map<String, Object>? customOptions,
   }) => _GoogleNativeHandle(
     unitId: unitId,
     palette: palette,
     onLoaded: onLoaded,
     onFailed: onFailed,
+    factoryId: factoryId,
+    customOptions: customOptions,
   );
 }
 
@@ -151,9 +157,15 @@ class _GoogleNativeHandle implements AdMobNativeHandle {
     required NativeAdPalette palette,
     required VoidCallback onLoaded,
     required VoidCallback onFailed,
+    String? factoryId,
+    Map<String, Object>? customOptions,
   }) {
     _ad = NativeAd(
       adUnitId: unitId,
+      // A registered native layout when the host asked for one (Explore's
+      // full-screen page); the medium template everywhere else.
+      factoryId: factoryId,
+      customOptions: customOptions,
       request: const AdRequest(),
       // Muted is the SDK's default; stated because the app plays music, and
       // an advert that started a second soundtrack would be the one thing
@@ -161,7 +173,7 @@ class _GoogleNativeHandle implements AdMobNativeHandle {
       nativeAdOptions: NativeAdOptions(
         videoOptions: VideoOptions(startMuted: true),
       ),
-      nativeTemplateStyle: palette.templateStyle(),
+      nativeTemplateStyle: factoryId == null ? palette.templateStyle() : null,
       listener: NativeAdListener(
         onAdLoaded: (_) => onLoaded(),
         onAdFailedToLoad: (ad, error) {
@@ -243,10 +255,18 @@ class AdMobNativeSlot extends ConsumerStatefulWidget {
     this.onUnavailable,
     this.onDark = false,
     this.keepAlive = true,
+    this.factoryId,
+    this.customOptions,
     super.key,
   });
 
   final AdPlacement placement;
+
+  /// A registered native layout to draw the advert in instead of the medium
+  /// template. When set, the loaded advert fills the slot rather than sitting
+  /// in [AdMobFrame], because the layout carries its own "Ad" label.
+  final String? factoryId;
+  final Map<String, Object>? customOptions;
 
   /// Replaces the reserved frame while a request is out. Explore passes a
   /// full-page spinner; lists keep the default.
@@ -279,8 +299,14 @@ class UnifiedAdSlot extends StatelessWidget {
     this.onDark = false,
     this.adMobPadding = EdgeInsets.zero,
     this.keepAdMobAlive = true,
+    this.adMobFactoryId,
+    this.adMobCustomOptions,
     super.key,
   });
+
+  /// See [AdMobNativeSlot.factoryId].
+  final String? adMobFactoryId;
+  final Map<String, Object>? adMobCustomOptions;
 
   final AdSlot slot;
   final Widget Function(BuildContext context, ServedAd ad) firstPartyBuilder;
@@ -309,6 +335,8 @@ class UnifiedAdSlot extends StatelessWidget {
         onUnavailable: onAdMobUnavailable,
         onDark: onDark,
         keepAlive: keepAdMobAlive,
+        factoryId: adMobFactoryId,
+        customOptions: adMobCustomOptions,
       ),
     );
   }
@@ -392,6 +420,8 @@ class _AdMobNativeSlotState extends ConsumerState<AdMobNativeSlot>
         .create(
           unitId: unitId,
           palette: palette,
+          factoryId: widget.factoryId,
+          customOptions: widget.customOptions,
           onLoaded: () {
             // A stale handle was already disposed by the reset that made it
             // stale; there is nothing left to do with it.
@@ -488,6 +518,7 @@ class _AdMobNativeSlotState extends ConsumerState<AdMobNativeSlot>
 
     final handle = _handle;
     if (_phase == _SlotPhase.loaded && handle != null) {
+      if (widget.factoryId != null) return SizedBox.expand(child: handle.view);
       return AdMobFrame(onDark: widget.onDark, child: handle.view);
     }
     if (_phase == _SlotPhase.unavailable) return const SizedBox.shrink();

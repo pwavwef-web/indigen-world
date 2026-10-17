@@ -1,8 +1,12 @@
 import { spawn } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+function timelineFingerprint(value: unknown): string {
+  const canonical = (v: any): any => Array.isArray(v) ? v.map(canonical) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((key) => [key, canonical(v[key])])) : v;
+  return createHash('sha256').update(JSON.stringify(canonical(value ?? null))).digest('hex');
+}
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { logger } from 'firebase-functions';
@@ -134,6 +138,7 @@ export const startVideoRender = onCall(CALLABLE, async (req) => {
   const projectId = requiredId(data.projectId, 'projectId');
   const requestId = requiredId(data.requestId, 'requestId', /^[A-Za-z0-9-]{8,64}$/);
   const project = await ownedProject(uid, projectId);
+  if (data.projectRevision !== undefined && data.projectRevision !== project.revision) throw new HttpsError('failed-precondition', 'The project changed. Save the latest edits before rendering.');
   let spec;
   try {
     spec = parseRenderSpec(data.spec, { uid, projectId, requestId });
@@ -181,6 +186,8 @@ export const startVideoRender = onCall(CALLABLE, async (req) => {
     ownerUid: uid,
     projectId,
     requestId,
+    projectRevision: project.revision ?? null,
+    projectFingerprint: timelineFingerprint(project.timeline),
     title: String(project.title ?? 'Untitled video').slice(0, 120),
     status: 'queued',
     stage: 'Waiting to start',
@@ -281,6 +288,22 @@ export const getVideoRenderUrl = onCall(CALLABLE, async (req) => {
  * (the newest three per project are kept) and expire after the retention
  * period, and a post under review would lose its video.
  */
+/** Mobile output handoff. The usual mobile post/reel publisher still enforces
+ * its audience, moderation and ownership rules; this never publishes a draft. */
+export const getMobileEditedVideo = onCall(CALLABLE, async (req) => {
+  const uid = requireAuth(req), input = asRecord(req.data);
+  const renderId = requiredId(input.renderId, 'renderId', /^[A-Za-z0-9_-]{8,200}$/);
+  const { data: render } = await ownedRender(uid, renderId);
+  const project = await ownedProject(uid, String(render.projectId));
+  const profile = await getFirestore().collection('communityProfiles').doc(uid).get();
+  if (!profile.exists || ['suspended', 'revoked'].includes(String(profile.get('status') ?? ''))) throw new HttpsError('permission-denied', 'An eligible community profile is required.');
+  const output = render.output as Json | null;
+  if (render.status !== 'succeeded' || render.quality === 'draft' || !output?.storagePath || render.projectRevision !== project.revision || input.revision !== project.revision) throw new HttpsError('failed-precondition', 'Render the latest saved project revision before posting.');
+  if (render.projectFingerprint !== timelineFingerprint(project.timeline)) throw new HttpsError('failed-precondition', 'The saved timeline changed. Render the latest edit before posting.');
+  if (!String(output.storagePath).startsWith(`video-renders/${uid}/${renderId}/`)) throw new HttpsError('failed-precondition', 'The rendered output is unavailable.');
+  const [url] = await getStorage().bucket().file(String(output.storagePath)).getSignedUrl({ version: 'v4', action: 'read', expires: Date.now() + 15 * 60_000 });
+  return { url, renderId, revision: project.revision, output, expiresAt: new Date(Date.now() + 15 * 60_000).toISOString() };
+});
 export const copyVideoRenderForPost = onCall(CALLABLE, async (req) => {
   const uid = requireAuth(req);
   await consumeRateLimit('copyVideoRenderForPost', uid, 30, 60 * 60_000);

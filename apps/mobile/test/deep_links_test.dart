@@ -12,6 +12,38 @@ void main() {
   String? routeFor(String url) => appRouteForLink(Uri.parse(url));
 
   group('opens', () {
+    test('shop return retains only a canonical lookup reference', () {
+      final reference = 'shop_${List.filled(40, 'a').join()}';
+      expect(
+        routeFor(
+          'https://indigenworld.com/shop/payment-complete?reference=$reference&status=paid',
+        ),
+        '/shop/payment-complete?reference=$reference',
+      );
+      expect(
+        routeFor('indigen://shop/payment-complete?trxref=$reference'),
+        '/shop/payment-complete?reference=$reference',
+      );
+      expect(
+        routeFor('indigen://shop/payment-complete?reference=invalid'),
+        '/shop',
+      );
+      expect(
+        routeFor('https://indigenworld.com/shop/payment-complete'),
+        '/shop',
+      );
+      expect(
+        routeFor(
+          'https://evil.test/shop/payment-complete?reference=$reference',
+        ),
+        isNull,
+      );
+      expect(
+        routeFor('https://indigenworld.com/shop/payment-complete/extra'),
+        isNull,
+      );
+    });
+
     test('a shared post link', () {
       expect(
         routeFor('https://indigenworld.com/post/8BHqkdAMeDVXCGZrgJzS'),

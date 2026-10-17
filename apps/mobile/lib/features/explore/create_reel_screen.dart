@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:indigen_world_mobile/features/video_editor/mobile_video_editor.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -23,6 +25,16 @@ import 'package:indigen_world_mobile/features/explore/explore_feed.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:indigen_world_mobile/shared/motion.dart';
 import 'package:indigen_world_mobile/shared/night_theme.dart';
+
+/// Opens the mobile editor for a picked or recorded video and returns the path
+/// to post — the edited render, the original when the member chose "Use
+/// original", or null when they backed out.
+///
+/// A provider so a test (or a build without the editor) can stand in for it.
+final reelVideoEditorLauncherProvider =
+    Provider<Future<String?> Function(BuildContext context, String path)>(
+      (ref) => openMobileVideoEditor,
+    );
 
 /// Make a reel and put it into Explore, in three stages: the media, what it
 /// means, and a last look before publishing.
@@ -74,6 +86,8 @@ class _CreateReelScreenState extends ConsumerState<CreateReelScreen>
       tools: ref.read(reelMediaToolsProvider),
       openPreview: ref.read(reelPreviewControllerFactoryProvider),
       publisher: _publisher,
+      editVideo: (path) =>
+          ref.read(reelVideoEditorLauncherProvider)(context, path),
     )..addListener(_onEditorChanged);
     WidgetsBinding.instance.addObserver(this);
     _communities = ref.listenManual<AsyncValue<List<CommunitySpace>>>(

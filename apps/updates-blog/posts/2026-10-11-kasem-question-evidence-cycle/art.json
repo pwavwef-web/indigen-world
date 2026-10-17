@@ -1,0 +1,15 @@
+{
+  "accent": "green",
+  "motif": "weave",
+  "eyebrow": "Kasem · Research pilot",
+  "title": "One question. A complete evidence cycle.",
+  "lede": "Five questions and twenty unseen-test situations are prepared. Natural speech and community review come next.",
+  "tags": ["Local tools ready", "Speaker work pending"],
+  "hero": ["cycle-illustration.png"],
+  "figures": {
+    "cycle-illustration.png": {
+      "title": "Evidence before expansion",
+      "note": "Workflow illustration, not a product screenshot or a completed language study."
+    }
+  }
+}

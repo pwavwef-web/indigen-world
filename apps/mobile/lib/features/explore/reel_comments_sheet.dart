@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:indigen_world_mobile/features/ads/comment_sponsor.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -169,6 +170,10 @@ class _ReelCommentsSheetState extends ConsumerState<ReelCommentsSheet> {
                   AsyncValue(:final value?) when value.isEmpty => ListView(
                     controller: scrollController,
                     children: [
+                      CommentSponsor(
+                        threadKey: 'reel:${widget.reelId}',
+                        avatarSize: 36,
+                      ),
                       const SizedBox(height: 60),
                       Center(
                         child: Padding(
@@ -189,14 +194,20 @@ class _ReelCommentsSheetState extends ConsumerState<ReelCommentsSheet> {
                   AsyncValue(:final value?) => ListView.separated(
                     controller: scrollController,
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                    itemCount: value.length,
+                    itemCount: value.length + 1,
                     separatorBuilder: (context, index) =>
                         const SizedBox(height: 14),
-                    itemBuilder: (context, index) => _CommentTile(
-                      comment: value[index],
-                      isMine: myUid == value[index].authorId,
-                      onDelete: () => _delete(value[index]),
-                    ),
+                    itemBuilder: (context, index) => index == 0
+                        ? CommentSponsor(
+                            threadKey: 'reel:${widget.reelId}',
+                            padding: EdgeInsets.zero,
+                            avatarSize: 36,
+                          )
+                        : _CommentTile(
+                            comment: value[index - 1],
+                            isMine: myUid == value[index - 1].authorId,
+                            onDelete: () => _delete(value[index - 1]),
+                          ),
                   ),
                   AsyncValue(error: final _?) => Center(
                     child: Padding(

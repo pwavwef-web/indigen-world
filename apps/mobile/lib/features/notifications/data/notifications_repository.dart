@@ -142,8 +142,11 @@ class NotificationsRepository {
     required String uid,
     required bool enabled,
   }) => _firestore.collection('communityProfiles').doc(uid).update({
+    // Turning everything back on never opts anybody into promotions; that
+    // takes its own switch. Muting everything does include them.
     for (final preference in NotificationPreference.values)
-      'notificationPrefs.${preference.key}': enabled,
+      if (!preference.optIn || !enabled)
+        'notificationPrefs.${preference.key}': enabled,
   });
 
   /// Registers this device for push so the fan-out trigger can reach it.

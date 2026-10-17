@@ -1,0 +1,30 @@
+{
+  "accent": "amber",
+  "motif": "weave",
+  "eyebrow": "Labs · Culture Quest",
+  "title": "A daily expedition for your knowledge.",
+  "lede": "Three stops, short discovery challenges, XP and badges. No timers and no lost lives.",
+  "tags": [
+    "Word grove",
+    "Story bridge",
+    "Lookout"
+  ],
+  "hero": [
+    {
+      "file": "quest-desktop.png",
+      "kind": "browser"
+    },
+    "quest-mobile.png"
+  ],
+  "figures": {
+    "quest-mobile.png": {
+      "title": "Three stops a day",
+      "note": "Mission cards, XP and badges on a phone."
+    },
+    "quest-desktop.png": {
+      "title": "Finish a mission, earn XP",
+      "note": "A completed mission with 20 XP, from a local preview.",
+      "kind": "browser"
+    }
+  }
+}

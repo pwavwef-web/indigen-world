@@ -1,0 +1,15 @@
+{
+  "accent": "blue",
+  "motif": "weave",
+  "eyebrow": "TribeStudio · Contributor portal",
+  "title": "Thoughtful steps.\nUseful contributions.",
+  "lede": "A guided contribution studio with clearer sections, small sessions and recognition for reviewed work.",
+  "tags": ["Guided sections", "Useful context", "Personal progress"],
+  "hero": ["studio-home-desktop.png", "studio-context-phone.png"],
+  "figures": {
+    "studio-home-desktop.png": { "title": "One clear place to begin", "note": "Actual local product preview with labelled sample data. Deployment pending." },
+    "studio-context-desktop.png": { "title": "Give an expression its setting", "note": "Speaker, listener, situation and alternative labels. Test text, not real Kasem data." },
+    "studio-context-phone.png": { "title": "Short sections on your phone", "note": "The expression and navigator stay within reach. Actual local product preview." },
+    "studio-check-phone.png": { "title": "Review your own answer before sending", "note": "Presence and permission checks; accuracy is confirmed by reviewers." }
+  }
+}

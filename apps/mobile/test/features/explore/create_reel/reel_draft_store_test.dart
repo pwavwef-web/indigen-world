@@ -98,11 +98,13 @@ void main() {
 
   test('a corrupted store is cleared rather than crashing', () async {
     SharedPreferences.setMockInitialValues({
-      'explore.reelDrafts.v1': '{not json',
+      'explore.reelDrafts.v2.guest': '{not json',
     });
     expect(await store.list(), isEmpty);
     final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString('explore.reelDrafts.v1'), isNull);
+    // Drafts are kept per account now (v2.<uid>); the default store is the
+    // guest's.
+    expect(prefs.getString('explore.reelDrafts.v2.guest'), isNull);
   });
 
   test('racing saves do not lose each other', () async {

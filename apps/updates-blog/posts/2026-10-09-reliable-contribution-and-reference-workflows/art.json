@@ -1,0 +1,38 @@
+{
+  "accent": "teal",
+  "motif": "dots",
+  "eyebrow": "TribeStudio · Reliability",
+  "title": "Reliable contributions, clearer sources.",
+  "lede": "Draft recovery, clearer reviewer evidence, source browsing and offline listening improvements.",
+  "tags": [
+    "Draft recovery",
+    "Reviewer evidence",
+    "Offline listening"
+  ],
+  "hero": [
+    "draft-recovery-desktop.png",
+    "mobile-downloads-test.png"
+  ],
+  "figures": {
+    "draft-recovery-desktop.png": {
+      "title": "Continue where you left off",
+      "note": "The knowledge editor after explicit draft recovery."
+    },
+    "review-desktop.png": {
+      "title": "Evidence beside the submission",
+      "note": "The reviewer queue, source evidence and existing record."
+    },
+    "contributions-tablet.png": {
+      "title": "Feedback on a tablet",
+      "note": "My contributions with review feedback."
+    },
+    "reference-desktop.png": {
+      "title": "Browse the source illustration",
+      "note": "The public reference reader."
+    },
+    "mobile-downloads-test.png": {
+      "title": "Direct playback offline",
+      "note": "A synthetic offline track."
+    }
+  }
+}

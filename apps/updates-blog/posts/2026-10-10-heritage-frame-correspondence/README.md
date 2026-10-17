@@ -24,8 +24,8 @@ Status: **Deployed October 10, 2026: Admin, four Functions and private-data rule
 
 ## Images and credits
 
-- `images/heritage-frame-letter.png`: actual cloud-generated PDF from the deployed print workflow, rendered locally; clearly labelled synthetic names and `example.test` email only. Design reconstructed as vector geometry from the reference supplied by the user. Indigen World logo reused from the repository's TribeStudio brand mark.
-- `images/correspondence-composer.png`: actual deployed Admin composer with a saved synthetic deployment-review draft. No real correspondence or test email deliveries.
+- `screens/heritage-frame-letter.png`: actual cloud-generated PDF from the deployed print workflow, rendered locally; clearly labelled synthetic names and `example.test` email only. Design reconstructed as vector geometry from the reference supplied by the user. Indigen World logo reused from the repository's TribeStudio brand mark.
+- `screens/correspondence-composer.png`: actual deployed Admin composer with a saved synthetic deployment-review draft. No real correspondence or test email deliveries.
 - Letter fonts: Noto Sans, SIL Open Font License 1.1; licence and provenance in `services/functions/assets/fonts/`.
 - These are actual deployed product/sample screenshots. The deployment record describes their scope and the native Word visual-refresh limitation.
 
@@ -36,3 +36,16 @@ Status: **Deployed October 10, 2026: Admin, four Functions and private-data rule
 3. Paste `post.html` into Blogger HTML view using the metadata above, then preview desktop and mobile.
 4. Chinedum publishes the article and replaces the clearly marked URL placeholder in `share.md`.
 5. Share only after the availability wording matches the confirmed release. Repository preparation does not publish externally or send messages.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/heritage-frame-letter.jpg`, `images/correspondence-composer.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-10-heritage-frame-correspondence`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/blog-post.html

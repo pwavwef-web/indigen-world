@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:indigen_world_mobile/features/ads/comment_sponsor.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
@@ -181,6 +182,14 @@ class _Thread extends ConsumerWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
+        ),
+        // Above the first reply, in the replies' own indent — the slot a
+        // reader's eye goes to after the count, whether or not anybody has
+        // replied yet.
+        CommentSponsor(
+          threadKey: 'community:${post.id}',
+          eligible: !post.isPrivateCommunityPost,
+          padding: const EdgeInsets.fromLTRB(36, 10, 12, 12),
         ),
         ...switch (replies) {
           AsyncValue(:final value?) when value.isEmpty => const [

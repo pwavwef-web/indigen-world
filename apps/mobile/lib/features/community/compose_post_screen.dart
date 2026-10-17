@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:indigen_world_mobile/features/video_editor/mobile_video_editor.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,6 +42,8 @@ class ComposePostScreen extends ConsumerStatefulWidget {
     this.hintText,
     this.canAnnounce = false,
     this.startWithMedia,
+    this.initialVideoProjectId,
+    this.initialVideoSourcePath,
     super.key,
   });
 
@@ -77,12 +81,19 @@ class ComposePostScreen extends ConsumerStatefulWidget {
   /// Opens the gallery at photos or videos as soon as the screen is up, for
   /// the compose bar's attachment shortcuts.
   final CommunityMediaKind? startWithMedia;
+  final String? initialVideoProjectId, initialVideoSourcePath;
 
   @override
   ConsumerState<ComposePostScreen> createState() => _ComposePostScreenState();
 }
 
 class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
+  // Resolved in initState, not lazily: a composer closed before it touched its
+  // draft would otherwise read `ref` for the first time inside dispose(),
+  // after the element is gone.
+  late final String _draftOwner;
+  late final ComposeDraftStore _draftStore;
+  String? _videoProjectId, _videoSourcePath;
   late final _controller = TextEditingController(text: widget.initialText);
   // Watches the caret so an `@` being typed offers handles to complete —
   // including Kawuri's, which answers in the thread.
@@ -118,6 +129,28 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
   @override
   void initState() {
     super.initState();
+    _draftOwner = ref.read(currentUidProvider) ?? 'guest';
+    _draftStore = ComposeDraftStore(ownerUid: _draftOwner);
+    if (widget.initialVideoProjectId != null) {
+      _videoProjectId = widget.initialVideoProjectId;
+      _videoSourcePath = widget.initialVideoSourcePath;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        final output = await openMobileVideoEditor(
+          context,
+          _videoSourcePath ?? '',
+          projectId: _videoProjectId,
+        );
+        if (output != null) {
+          final attachment = await const CommunityMediaPicker()
+              .stageEditedVideo(output);
+          if (mounted) setState(() => _attachments.add(attachment));
+        }
+        _videoProjectId = null;
+        _videoSourcePath = null;
+        await _saveDraft();
+      });
+    }
     final kind = widget.startWithMedia;
     if (kind != null) {
       // After the first frame, so the picker opens over a composer that is
@@ -137,7 +170,7 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
     // the case where Android killed the process out from under the camera.
     // Clearing anywhere more specific would leave drafts behind after ordinary
     // exits, and the app would start offering to restore posts nobody wants.
-    unawaited(const ComposeDraftStore().clear());
+    unawaited(_draftStore.clear());
     _recordingTicker?.cancel();
     unawaited(_recorder.dispose());
     _mentions.dispose();
@@ -243,19 +276,45 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
       // their mind at the picker. The draft on disk is now a rescue that will
       // never be needed, and leaving it would have the next launch offer to
       // restore a post that is still open on this screen.
-      unawaited(const ComposeDraftStore().clear());
+      unawaited(_draftStore.clear());
       return;
     }
-    setState(() => _attachments.addAll(picked.take(remaining)));
+    final edited = <PendingUpload>[];
+    for (final upload in picked.take(remaining)) {
+      if (!upload.isVideo) {
+        edited.add(upload);
+        continue;
+      }
+      await _saveDraft();
+      if (!mounted) return;
+      _videoProjectId = 'mobile-${DateTime.now().microsecondsSinceEpoch}';
+      _videoSourcePath = upload.path;
+      await _saveDraft();
+      if (!mounted) return;
+      final output = await openMobileVideoEditor(
+        context,
+        upload.path,
+        projectId: _videoProjectId,
+      );
+      if (output != null)
+        edited.add(await CommunityMediaPicker().stageEditedVideo(output));
+      _videoProjectId = null;
+      _videoSourcePath = null;
+      if (!mounted) return;
+    }
+    setState(() => _attachments.addAll(edited));
     // Kept up to date with what came back, so a second trip to the camera does
     // not lose the first photograph.
     await _saveDraft();
   }
 
   /// Writes what is on this screen down, in case it is about to stop existing.
-  Future<void> _saveDraft() => const ComposeDraftStore().save(
+  Future<void> _saveDraft() => _draftStore.save(
     ComposeDraft(
       text: _controller.text,
+      videoProjectId: _videoProjectId,
+      videoSourcePath: _videoSourcePath,
+      community: widget.community,
       category: _category,
       replyToId: widget.replyTo?.id,
       quoteToId: widget.quoteTo?.id,
@@ -333,6 +392,13 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
   }
 
   Future<void> _publish() async {
+    if (_draftOwner != 'guest' && ref.read(currentUidProvider) != _draftOwner) {
+      showCommunityMessage(
+        context,
+        'Sign in to the account that owns this draft before publishing.',
+      );
+      return;
+    }
     if (_recording) {
       await _toggleRecording();
       if (!mounted) return;

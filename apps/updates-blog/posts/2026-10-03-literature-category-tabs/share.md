@@ -7,3 +7,5 @@ Find your next Kasem read by category. Open Collection → Literature and browse
 Read the update: [PUBLISHED_ARTICLE_URL]
 
 **Published article URL placeholder:** Replace `[PUBLISHED_ARTICLE_URL]` after Chinedum publishes the Blogger article. Mobile release and article publication are currently pending.
+
+Published article: https://updates.indigenworld.com/2026/10/kasem-literature-category-tabs.html

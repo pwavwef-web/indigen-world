@@ -8,11 +8,13 @@ device, what you submit, how permissions work and where to make a privacy
 request. There’s a new Gemini Omni header animation, with a pause control and
 reduced-motion support.
 
-Read the update: **[PUBLISHED ARTICLE URL — replace after Chinedum publishes]**
+Read the update: https://updates.indigenworld.com/2026/10/ecosystem-privacy-notice.html
 
 The notice remains an implementation summary pending final legal approval.
 
 ## Current availability
 
 The website release is live and verified at https://indigenworld.com/privacy.
-The Blogger article remains a draft. Replace the article URL above after publication.
+The Blogger article was published on 11 October 2026.
+
+Published article: https://updates.indigenworld.com/2026/10/ecosystem-privacy-notice.html

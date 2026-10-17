@@ -88,6 +88,22 @@ final sponsoredLinkOpenerProvider = Provider<SponsoredLinkOpener>(
   ),
 );
 
+/// Opens [ad]'s destination the way every sponsored surface does — counted,
+/// checked, and with a toast when it cannot open.
+Future<void> openSponsoredAd(
+  BuildContext context,
+  WidgetRef ref,
+  ServedAd ad,
+) => _openAd(context, ref, ad);
+
+/// The small "Why am I seeing this?" control, for surfaces outside this file.
+class WhyThisAdvertButton extends StatelessWidget {
+  const WhyThisAdvertButton({super.key});
+
+  @override
+  Widget build(BuildContext context) => const _WhyThisAdvert();
+}
+
 Future<void> _openAd(BuildContext context, WidgetRef ref, ServedAd ad) async {
   if (await ref.read(sponsoredLinkOpenerProvider).open(ad)) return;
   if (context.mounted) showGlassToast(context, 'Could not open this advert.');
@@ -335,10 +351,13 @@ class _WhyThisAdvert extends StatelessWidget {
     iconSize: 16,
     color: context.brand.mutedInk,
     icon: const Icon(Icons.info_outline_rounded),
-    onPressed: () => _explain(context),
+    onPressed: () => explainSponsoredAd(context),
   );
+}
 
-  Future<void> _explain(BuildContext context) async {
+/// The "Why am I seeing this?" explanation, with the way out to membership.
+Future<void> explainSponsoredAd(BuildContext context) async {
+  {
     final seePlans = await showGlassPopup<bool>(
       context: context,
       title: 'Why am I seeing this?',

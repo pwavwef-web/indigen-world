@@ -1,0 +1,34 @@
+{
+  "accent": "blue",
+  "motif": "rings",
+  "eyebrow": "Labs · Word Trail",
+  "title": "Chase the blue horizon.",
+  "lede": "An original 3D runner. A word opens the way.",
+  "tags": [
+    "Run · jump · slide",
+    "Safe checkpoints",
+    "Community review"
+  ],
+  "hero": [
+    "game-desktop.png",
+    "checkpoint-phone.png"
+  ],
+  "figures": {
+    "game-desktop.png": {
+      "title": "A real trail to run",
+      "note": "Original 3D explorer and scenery. Actual local gameplay with a synthetic account."
+    },
+    "checkpoint-phone.png": {
+      "title": "A word opens the way",
+      "note": "The world pauses for a real contribution workflow. Synthetic local prompt shown."
+    },
+    "game-phone.png": {
+      "title": "The trail fills your phone",
+      "note": "Touch controls, swipes and an optional fullscreen button. Emulated viewport."
+    },
+    "labs-blue.png": {
+      "title": "One blue family for Labs",
+      "note": "The current experiment layout, preserved with a consistent blue palette."
+    }
+  }
+}

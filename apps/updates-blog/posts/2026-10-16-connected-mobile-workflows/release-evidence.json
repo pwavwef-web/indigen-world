@@ -1,0 +1,382 @@
+{
+  "verifiedAt": "2026-10-17T01:08:45.043Z",
+  "sourceCommit": "6ba12b58705c80fb00034c1128f53a0020692e0f",
+  "runtimeSourceCommit": "bdb42e22",
+  "project": "project-kassena-7e026",
+  "android": {
+    "versionName": "0.1.33",
+    "versionCode": 42,
+    "package": "com.indigenworld.indigen",
+    "fileName": "indigen-0.1.33+42.aab",
+    "sizeBytes": 104776019,
+    "sha256": "e0813453b2795c00da3cb63b7cfdfcf58a467a6e51ea4194e25fa355cb4f8702",
+    "certificateSha256": "2796c47004b28bdfaca8ef1704fc4d97bedb11158d831a065edbacceddeaa23f",
+    "signing": "jar verified; matches established upload certificate",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "abis": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "storeUpload": false
+  },
+  "functions": [
+    {
+      "id": "shop",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "64fe28cd0a0a37dc8d6bbe9b3a7cda9bbf365470",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "shopAdmin",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "64fe28cd0a0a37dc8d6bbe9b3a7cda9bbf365470",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "reconcileShopOrders",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "64fe28cd0a0a37dc8d6bbe9b3a7cda9bbf365470",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "collectionMedia",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "processCollectionImage",
+      "region": "us-east1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "cleanupCollectionUploads",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "notificationAction",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "houseAdsAdmin",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "notificationCampaignAdmin",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "dispatchNotificationCampaigns",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "notificationDeliveryPreferences",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "retryNotificationPushes",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "getMobileEditedVideo",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "startVideoRender",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "retryVideoRender",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "onVideoRenderDispatched",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "publishAdminAudiobook",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "submitAdCampaign",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "updateAdCampaign",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "paystackWebhook",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "64fe28cd0a0a37dc8d6bbe9b3a7cda9bbf365470",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "recordAdEvent",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "onCommunityLikeCreated",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "onCommunityRepostCreated",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "onCommunityFollowCreated",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "onCommunityPostCreated",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "onCommunityProfileWelcome",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "onCommunityPollVoteCreated",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    },
+    {
+      "id": "onCommunityNotificationCreated",
+      "region": "us-central1",
+      "state": "ACTIVE",
+      "hash": "10c5dde0c8a3412f3024eabb6c32993a11cf90b2",
+      "runtime": "nodejs22",
+      "richPush": "false",
+      "appleRichMedia": "false"
+    }
+  ],
+  "endpoints": [
+    {
+      "id": "shopAdmin",
+      "httpStatus": 401,
+      "error": "UNAUTHENTICATED"
+    },
+    {
+      "id": "notificationAction",
+      "httpStatus": 401,
+      "error": "UNAUTHENTICATED"
+    },
+    {
+      "id": "collectionMedia",
+      "httpStatus": 401,
+      "error": "UNAUTHENTICATED"
+    },
+    {
+      "id": "getMobileEditedVideo",
+      "httpStatus": 401,
+      "error": "UNAUTHENTICATED"
+    }
+  ],
+  "hosting": [
+    {
+      "url": "https://indigen-admin.web.app/",
+      "httpStatus": 200,
+      "htmlSha256": "241162cda953c85c1de5bab4689872c97609a5c88fda1f720887e5a099228b5e",
+      "entryJavaScript": "/assets/index-DPm7GwsK.js",
+      "entryMatches": true,
+      "hsts": true,
+      "nosniff": true
+    },
+    {
+      "url": "https://indigen-world.web.app/",
+      "httpStatus": 200,
+      "htmlSha256": "a407ff8f1ab73cecea93e343f18dcca52aa0fd254fd4527436f6a5bebfdf5f0c",
+      "entryJavaScript": "/assets/index-6qXAwdgZ.js",
+      "entryMatches": true,
+      "hsts": true,
+      "nosniff": true
+    },
+    {
+      "url": "https://indigen-world.web.app/shop/payment-complete",
+      "httpStatus": 200,
+      "htmlSha256": "1fbbef5b87c7894d897966f216f20b871346e46195ae287d647d29260d70b334",
+      "entryJavaScript": "/assets/index-6qXAwdgZ.js",
+      "entryMatches": true,
+      "hsts": true,
+      "nosniff": true
+    },
+    {
+      "url": "https://indigenworld.com/shop/payment-complete",
+      "httpStatus": 200,
+      "htmlSha256": "1fbbef5b87c7894d897966f216f20b871346e46195ae287d647d29260d70b334",
+      "entryJavaScript": "/assets/index-6qXAwdgZ.js",
+      "entryMatches": true,
+      "hsts": true,
+      "nosniff": true
+    }
+  ],
+  "shop": [
+    {
+      "operation": "config",
+      "httpStatus": 200,
+      "checkoutReady": false,
+      "readiness": [
+        "Enable checkout",
+        "Configure supported currency (GHS)",
+        "Set store support contact",
+        "Set returns policy",
+        "Set delivery policy"
+      ]
+    },
+    {
+      "operation": "catalogue",
+      "httpStatus": 200,
+      "productCount": 1
+    }
+  ],
+  "indexes": {
+    "count": 165,
+    "allReady": true
+  },
+  "migration": {
+    "mode": "applied",
+    "productsScanned": 1,
+    "productsChanged": 1,
+    "legacyOrders": "untouched",
+    "unknownStock": 0
+  },
+  "releaseGates": {
+    "checkoutReady": false,
+    "commentAds": false,
+    "mobileVideoRendering": false,
+    "richNotificationPush": false,
+    "appleRichMedia": false,
+    "houseOrganisation": "not configured"
+  },
+  "publication": {
+    "blogger": false,
+    "sharing": false,
+    "playStore": false,
+    "appleBuild": false
+  }
+}

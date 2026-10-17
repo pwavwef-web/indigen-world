@@ -89,15 +89,17 @@ const MARK = `<svg aria-hidden="true" class="iw-mark" focusable="false" viewBox=
   <circle class="iw-mark__sun" cx="32" cy="14" r="4"/>
 </svg>`;
 
-/** A woven stand-in in the website's blues, so the preview needs no network. */
-function plate(seed) {
+/** A release-cover stand-in: 1200x630, headline inside the art, no network. */
+function plate(seed, words = "") {
   const tones = [
     ["#2457d6", "#0b1225", "#22d3ee"],
     ["#0f6b5c", "#0b1225", "#cfe0ff"],
     ["#19327f", "#0f1830", "#8eb4ff"],
     ["#2f6bff", "#0b1225", "#22d3ee"],
   ][seed % 4];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+  const lines = words ? words.split("|") : [];
+  const text = lines.map((line, i) => `<text x="44" y="${230 + i * 46}" font-family="Noto Sans, Arial" font-size="38" font-weight="800" fill="#fff">${line}</text>`).join("");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="1200" height="630" preserveAspectRatio="none">
     <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="${tones[0]}"/><stop offset="1" stop-color="${tones[1]}"/>
     </linearGradient>
@@ -109,6 +111,8 @@ function plate(seed) {
     <rect width="800" height="450" fill="url(#w)"/>
     <circle cx="${120 + seed * 90}" cy="96" r="46" fill="none" stroke="${tones[2]}" stroke-opacity=".4" stroke-width="2"/>
     <circle cx="${120 + seed * 90}" cy="96" r="84" fill="none" stroke="${tones[2]}" stroke-opacity=".18" stroke-width="2"/>
+    <text x="44" y="170" font-family="Noto Sans, Arial" font-size="15" font-weight="700" fill="#cfe0ff" letter-spacing="3">INDIGEN WORLD UPDATES</text>
+    ${text}
   </svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
@@ -117,6 +121,8 @@ const POSTS = [
   {
     title: "The validation desk is live for Kasem contributors",
     label: "Release",
+    labels: ["Accessibility", "Community feedback", "Release", "TribeStudio", "Validators"],
+    words: "The validation|desk is live",
     date: "2026-08-26",
     shown: "26 Aug 2026",
     snippet:
@@ -126,6 +132,8 @@ const POSTS = [
   {
     title: "Dark mode across the mobile app",
     label: "Feature",
+    labels: ["Android", "Feature", "Mobile app", "Themes"],
+    words: "Dark mode across|the mobile app",
     date: "2026-08-19",
     shown: "19 Aug 2026",
     snippet:
@@ -164,8 +172,10 @@ const POSTS = [
     label: "Website",
     date: "2026-07-22",
     shown: "22 Jul 2026",
+    // Blogger's snippet() cut inside an <em> on the live blog; the open tag
+    // italicised the sidebar and footer until the theme contained it.
     snippet:
-      "A revised ecosystem page now connects the public website, mobile app, dictionary and creator tools without making visitors learn the organisation first.",
+      "The words and spelling guidance in the corrected <em> Kasem Orthography</em> book now have a home. The source is the Kasem Language Committee&#8217;s <em> Spel&#8230;",
     image: true,
   },
   {
@@ -188,18 +198,23 @@ const POSTS = [
   },
 ];
 
+function chips(post) {
+  return (post.labels || [post.label]).map((l) => `<a class="iw-chip" data-label="${l}" href="#">${l}</a>`).join("");
+}
+
 function card(post, index) {
   // Mirrors the theme: the lead card is the index page's largest-contentful
   // paint, so it loads eagerly while every other card stays lazy.
   const media = post.image
-    ? `<img alt="" decoding="async" fetchpriority="${index === 0 ? "high" : "auto"}" height="506" loading="${index === 0 ? "eager" : "lazy"}" src="${plate(index)}" width="900"/>`
+    ? `<img alt="" decoding="async" fetchpriority="${index === 0 ? "high" : "auto"}" height="473" loading="${index === 0 ? "eager" : "lazy"}" src="${plate(index, post.words || post.title.split(" ").slice(0, 3).join(" "))}" width="900"/>`
     : `<span class="iw-card__motif">${MARK}</span>`;
   return `      <article class="iw-card">
         <div class="iw-card__media">${media}</div>
         <div class="iw-card__body">
-          <div class="iw-chips"><a class="iw-chip" data-label="${post.label}" href="#">${post.label}</a></div>
+          <div class="iw-chips">${chips(post)}</div>
           <h2 class="iw-card__title"><a href="post.html">${post.title}</a></h2>
-          <p class="iw-card__snippet">${post.snippet}</p>
+          <p class="iw-card__snippet"></p>
+          <template class="iw-snippet-src">${post.snippet}</template>
           <div class="iw-card__foot">
             <time datetime="${post.date}">${post.shown}</time>
             <span class="iw-card__more">Read update</span>
@@ -256,7 +271,7 @@ const HEADER = `  <header class="iw-head" id="iw-head">
           ${MARK}
           <span class="iw-brand__text">
             <strong>Indigen World Updates</strong>
-            <small>Culture belongs in the future</small>
+            <small>Release notes &amp; field notes</small>
           </span>
         </a>
       </div></div>
@@ -275,6 +290,12 @@ ${ACTIONS}
     </div>
   </div>`;
 
+const TOPICS = [["Accessibility", 7], ["Admin", 1], ["Android", 1], ["Collection", 1], ["Community", 10],
+  ["Community feedback", 1], ["Contributions", 9], ["Contributors", 9], ["Corpus", 1], ["Correspondence", 1],
+  ["Cultural discovery", 1], ["Culture quest", 1], ["Design", 7], ["Development preview", 1], ["Dictionary", 10],
+  ["Email", 1], ["Explore", 1], ["Feature", 17], ["Fixes", 1], ["Grammar", 1], ["Indigen World", 6], ["Kasem", 21],
+  ["Kasem Dictionary", 1], ["Kawuri", 6], ["Keyboard", 1], ["Labs", 3], ["Language", 2], ["Learning", 3],
+  ["Literature", 1], ["Mobile", 2], ["Mobile app", 9], ["Music", 2], ["Release", 9], ["TribeStudio", 11], ["Website", 6]];
 const SIDEBAR = `      <aside class="iw-side">
         <div class="section iw-side__in" id="sidebar">
 
@@ -301,12 +322,7 @@ const SIDEBAR = `      <aside class="iw-side">
             <h3 class="iw-widget-title">Topics</h3>
             <div class="widget-content">
               <div class="iw-labels">
-                <a class="iw-chip" data-label="Release" href="#">Release <span class="iw-labels__count">12</span></a>
-                <a class="iw-chip" data-label="Feature" href="#">Feature <span class="iw-labels__count">9</span></a>
-                <a class="iw-chip" data-label="Engineering" href="#">Engineering <span class="iw-labels__count">7</span></a>
-                <a class="iw-chip" data-label="Community" href="#">Community <span class="iw-labels__count">5</span></a>
-                <a class="iw-chip" data-label="Language" href="#">Language <span class="iw-labels__count">4</span></a>
-                <a class="iw-chip" data-label="Governance" href="#">Governance <span class="iw-labels__count">3</span></a>
+${TOPICS.map(([name, n]) => `                <a class="iw-chip" data-label="${name}" href="#">${name} <span class="iw-labels__count">${n}</span></a>`).join("\n")}
               </div>
             </div>
           </div>
@@ -333,13 +349,13 @@ ${POSTS.slice(0, 4)
 
           <div class="widget BlogArchive">
             <h3 class="iw-widget-title">Archive</h3>
-            <div class="widget-content">
-              <ul>
-                <li class="archivedate"><a href="#">August 2026</a> (5)</li>
-                <li class="archivedate"><a href="#">July 2026</a> (4)</li>
-                <li class="archivedate"><a href="#">June 2026</a> (6)</li>
+            <div class="widget-content"><div id="ArchiveList"><div id="BlogArchive1_ArchiveList">
+              <ul class="flat">
+                <li class="archivedate"><a href="#">October 2026<span class="post-count">27</span></a></li>
+                <li class="archivedate"><a href="#">September 2026<span class="post-count">14</span></a></li>
+                <li class="archivedate"><a href="#">August 2026<span class="post-count">1</span></a></li>
               </ul>
-            </div>
+            </div></div></div>
           </div>
 
         </div>
@@ -353,7 +369,7 @@ const FOOTER = `  <footer class="iw-foot">
             ${MARK}
             <span class="iw-brand__text">
               <strong>Indigen World Updates</strong>
-              <small>Culture belongs in the future</small>
+              <small>Release notes &amp; field notes</small>
             </span>
           </a>
           <p>A cultural technology ecosystem for language preservation, cultural learning, storytelling and creator enablement.</p>
@@ -420,7 +436,7 @@ function page({ title, ogTitle, bodyClass = "iw", content, ogType = "website", o
 ${ogImage ? `<meta content="${ogImage}" property="og:image"/>` : ""}
 <link crossorigin="anonymous" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;family=Noto+Serif:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;family=Noto+Serif:ital,wght@0,400;0,500;0,600;1,400&amp;family=Noto+Serif+Display:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
 ${THEME_INIT}
 <style>
 ${css}
@@ -450,18 +466,26 @@ const home = page({
   content: `${HEADER}
 
   <section class="iw-hero">
-    <div class="iw-shell iw-hero__in">
-      <p class="iw-eyebrow">Release notes and field notes</p>
-      <h1 class="iw-hero__title">Indigen World Updates</h1>
-      <p class="iw-hero__lede">What we are building, shipping and learning across the Indigen World ecosystem &#8212; the website, TribeStudio, the mobile app and Project Kassena.</p>
-      <div class="iw-hero__actions">
-        <a class="iw-btn iw-btn--primary" href="#iw-content">Browse updates
-          <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
-        </a>
-        <a class="iw-btn iw-btn--ghost" href="#">
-          <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M5 18.5a1 1 0 102 0 1 1 0 00-2 0"/><path d="M5 12a7 7 0 017 7M5 6a13 13 0 0113 13"/></svg>
-          Subscribe by RSS
-        </a>
+    <div class="iw-shell iw-hero__in iw-hero__grid">
+      <div>
+        <p class="iw-eyebrow">Indigen World Updates</p>
+        <h1 class="iw-hero__title">What we are building for Indigen World.</h1>
+        <span aria-hidden="true" class="iw-hero__mark"></span>
+        <p class="iw-hero__lede">Release notes and field notes from across the ecosystem &#8212; the website, TribeStudio, the mobile app, the Kasem Dictionary and Project Kassena.</p>
+        <div class="iw-hero__actions">
+          <a class="iw-btn iw-btn--primary" href="#iw-latest">Latest updates
+            <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+          </a>
+          <a class="iw-btn iw-btn--ghost" href="#">
+            <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M5 18.5a1 1 0 102 0 1 1 0 00-2 0"/><path d="M5 12a7 7 0 017 7M5 6a13 13 0 0113 13"/></svg>
+            Subscribe by RSS
+          </a>
+        </div>
+      </div>
+      <div class="iw-hero__rail">
+        <span>Website, TribeStudio and the mobile app</span>
+        <span>Kasem language work, from dictionary to recordings</span>
+        <span>Each post says what is live and what is still in preview</span>
       </div>
     </div>
   </section>
@@ -471,6 +495,7 @@ const home = page({
       <div class="iw-layout iw-layout--index">
         <aside aria-label="Share this update" class="iw-share-rail" hidden id="iw-share-rail"></aside>
         <div class="section" id="main"><div class="widget Blog">
+          <div class="iw-sectionbar" id="iw-latest"><h2>Latest updates</h2><span>Newest first</span></div>
           <div class="iw-grid" id="iw-grid">
 ${homeCards}
           </div>
@@ -480,7 +505,11 @@ ${homeCards}
               <span class="iw-pager__title">Earlier updates</span>
             </a>
           </nav>
-        </div></div>
+        </div><div class="widget FeaturedPost" id="FeaturedPost1"><div class="widget-content"><div role="feed"><article class="post"><div class="post-content">
+          <h3 class="post-title"><a href="post.html">${POSTS[0].title}</a></h3>
+          <div class="post-snippet">${POSTS[0].snippet}</div>
+          <div class="item-thumbnail"><a href="post.html"><img alt="" src="${plate(0, POSTS[0].words)}"/></a></div>
+        </div></article></div></div></div></div>
 ${SIDEBAR}
         <aside class="iw-rail" hidden id="iw-rail"></aside>
       </div>
@@ -504,15 +533,14 @@ const article = page({
       <div class="iw-layout iw-layout--article">
         <aside aria-label="Share this update" class="iw-share-rail" hidden id="iw-share-rail"></aside>
         <div class="section" id="main"><div class="widget Blog">
-          <article class="iw-article">
+          <article class="iw-article has-cover">
             <header class="iw-article__head">
-              <div class="iw-chips">
-                <a class="iw-chip" data-label="Feature" href="#">Feature</a>
-                <a class="iw-chip" data-label="Release" href="#">Release</a>
-              </div>
+              <div class="iw-kicker">${POSTS[1].labels.map((l) => `<a data-label="${l}" href="#">${l}</a>`).join("")}</div>
               <h1 class="iw-article__title">Dark mode across the mobile app</h1>
+              <p class="iw-article__dek">Every screen now follows your device&#8217;s light or dark setting, with contrast checked on both.</p>
               <div class="iw-meta">
-                <span class="iw-meta__author"><a href="#" rel="author">Andy Anim</a></span>
+                <span aria-hidden="true" class="iw-meta__mark">${MARK}</span>
+                <span class="iw-meta__author">Indigen World</span>
                 <span class="iw-dot">&#183;</span>
                 <time datetime="2026-08-19">19 August 2026</time>
                 <span class="iw-dot" hidden id="iw-rt-dot">&#183;</span>
@@ -520,9 +548,10 @@ const article = page({
               </div>
             </header>
 
-            <figure class="iw-cover"><img alt="" decoding="async" fetchpriority="high" height="788" loading="eager" src="${plate(1)}" width="1400"/></figure>
+            <figure class="iw-cover" id="iw-cover"><img alt="Dark mode across the mobile app" decoding="async" fetchpriority="high" height="630" loading="eager" src="${plate(1, POSTS[1].words)}" width="1200"/></figure>
 
-            <div class="iw-prose" id="iw-postbody">
+            <div class="iw-prose" id="iw-postbody"><article>
+              <div class="separator"><img alt="Cover for &#8220;Dark mode across the mobile app.&#8221;" height="630" src="${plate(1, POSTS[1].words)}" width="1200"/></div>
               <p class="iw-lede">Every screen in the Flutter app now reads from a brightness-aware palette, so the app follows the system setting instead of forcing a single appearance.</p>
 
               <p>Low-bandwidth and older devices matter to us, and so does reading at night on a phone with a dim screen. Dark mode is not a cosmetic toggle here &#8212; it is part of making the app usable in the conditions people actually use it in.</p>
@@ -573,35 +602,41 @@ const article = page({
               <hr/>
 
               <p>Questions or something looking wrong on your device? <a href="https://indigenworld.com/contact">Tell us</a> and we will take a look.</p>
-            </div>
+            </article></div>
 
             <footer class="iw-postfoot">
               <div class="iw-postfoot__row">
-                <div class="iw-chips">
-                  <a class="iw-chip" data-label="Feature" href="#">Feature</a>
-                  <a class="iw-chip" data-label="Release" href="#">Release</a>
-                </div>
+                <div class="iw-chips">${chips(POSTS[1])}</div>
                 <div class="iw-share" id="iw-share"><span class="iw-share__label">Share</span></div>
               </div>
 
               <div class="iw-author">
                 <span class="iw-author__mark">${MARK}</span>
                 <div>
-                  <div class="iw-author__name">Andy Anim</div>
-                  <p class="iw-author__role">Writing for Indigen World Updates. Follow along for release notes, feature updates and notes from the field.</p>
+                  <div class="iw-author__name">Indigen World</div>
+                  <p class="iw-author__role">A cultural technology ecosystem for language preservation, cultural learning, storytelling and creator enablement. Indigen World Updates is where the team records what changed, who it helps and what is still to come.</p>
+                </div>
+              </div>
+
+              <div class="iw-follow">
+                <h2>Follow what we ship next</h2>
+                <p>New release notes arrive in the RSS feed as soon as they are published. The website has the full picture of the ecosystem.</p>
+                <div class="iw-hero__actions">
+                  <a class="iw-btn iw-btn--primary" href="#">Subscribe by RSS</a>
+                  <a class="iw-btn iw-btn--ghost" href="https://indigenworld.com/">Visit indigenworld.com</a>
                 </div>
               </div>
             </footer>
 
             <section class="iw-related" id="iw-related">
-              <h2>More on this topic</h2>
+              <h2>More from <span id="iw-related-topic">Mobile app</span></h2>
               <div class="iw-related__list" id="iw-related-list">
 ${POSTS.slice(2, 5)
   .map(
     (p, i) => `                <a class="iw-related__item" href="post.html">
                   ${
                     p.image
-                      ? `<img alt="" class="iw-related__thumb" height="64" src="${plate(i + 2)}" width="64"/>`
+                      ? `<img alt="" class="iw-related__thumb" height="252" src="${plate(i + 2, p.title.split(" ").slice(0, 3).join(" "))}" width="480"/>`
                       : `<span class="iw-related__motif">${MARK}</span>`
                   }
                   <span class="iw-related__text"><span class="iw-related__t">${p.title}</span><span class="iw-related__d">${p.shown}</span></span>
@@ -612,7 +647,11 @@ ${POSTS.slice(2, 5)
             </section>
 
             <section class="iw-comments" id="iw-comments">
-              <div class="comments">
+              <details class="iw-comments__gate" id="iw-comments-gate">
+                <summary><span>Read or leave a comment</span><span class="iw-comments__hint">Loads when opened</span></summary>
+                <div aria-live="polite" class="iw-comments__mount" id="iw-comments-mount"></div>
+              </details>
+              <template id="iw-comments-src"><div class="comments">
                 <h4>2 comments</h4>
                 <ol class="comment-thread"><li class="comment"><div class="comment-block">
                   <div class="comment-header"><cite class="user">Chinedum Okwonko Udeaja</cite><span class="datetime">20 August 2026</span></div>
@@ -627,7 +666,7 @@ ${POSTS.slice(2, 5)
                   <div class="comment-content">Any plans to bring the sepia reading theme to the app as well?</div>
                   <div class="comment-actions"><a href="#">Reply</a></div>
                 </div></li></ol>
-              </div>
+              </div></template>
             </section>
           </article>
 
@@ -645,9 +684,11 @@ ${POSTS.slice(2, 5)
 
         <aside class="iw-side"></aside>
         <aside class="iw-rail" hidden id="iw-rail">
-          <nav class="iw-toc">
-            <p class="iw-toc__title">On this page</p>
-            <div class="iw-toc__list" id="iw-toc-list"></div>
+          <nav aria-label="On this page" class="iw-toc">
+            <details id="iw-toc-details" open>
+              <summary class="iw-toc__title">On this page <span class="iw-toc__count" id="iw-toc-count"></span></summary>
+              <div class="iw-toc__list" id="iw-toc-list"></div>
+            </details>
           </nav>
         </aside>
       </div>
@@ -665,14 +706,16 @@ writeFileSync(join(root, "preview", "post.html"), article, "utf8");
 const listing = home
   .replace(/  <section class="iw-hero">[\s\S]*?<\/section>/, "")
   .replace(homeCards, listingCards);
-for (const [name, eyebrow, title, empty] of [
-  ["label", "Topic", "Engineering", false],
-  ["archive", "Archive", "August 2026", false],
-  ["search", "Search results", "Results for “Kasem”", false],
-  ["empty", "Search results", "No matching updates", true],
+for (const [name, eyebrow, title, empty, count] of [
+  ["label", "Filed under", "Engineering", false, "Every update tagged &#8220;Engineering&#8221;, newest first."],
+  ["archive", "From the archive", "August 2026", false, "Everything published in this period, newest first."],
+  ["search", "Search results", "&#8220;Kasem&#8221;", false, ""],
+  ["empty", "Search results", "&#8220;nothing&#8221;", true, ""],
 ]) {
-  const viewhead = `<header class="iw-viewhead"><p class="iw-eyebrow">${eyebrow}</p><h1 class="iw-viewhead__title">${title}</h1><p class="iw-viewhead__count">${empty ? "0" : POSTS.length} updates</p></header>`;
-  let listingPage = listing.replace('<div class="iw-grid" id="iw-grid">', `${viewhead}<div class="iw-grid" id="iw-grid">`);
+  const viewhead = `<div class="iw-viewhead"><p class="iw-eyebrow">${eyebrow}</p><h1 class="iw-viewhead__title">${title}</h1><p class="iw-viewhead__count" id="iw-viewcount">${count}</p></div>`;
+  let listingPage = listing
+    .replace('<div class="iw-sectionbar" id="iw-latest"><h2>Latest updates</h2><span>Newest first</span></div>', "")
+    .replace('<div class="iw-grid" id="iw-grid">', `${viewhead}<div class="iw-grid" id="iw-grid">`);
   if (empty) {
     listingPage = listingPage.replace(/<div class="iw-grid" id="iw-grid">[\s\S]*?<\/nav>/, '<div class="iw-grid" id="iw-grid"></div><div class="iw-empty" hidden id="iw-empty"><h2>No updates found</h2><p>Try a different search or browse all updates.</p></div>');
   }

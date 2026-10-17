@@ -1,0 +1,25 @@
+{
+  "accent": "teal",
+  "motif": "rings",
+  "eyebrow": "Kawuri · Reliability",
+  "title": "Kawuri answers only from reviewed records.",
+  "lede": "No invented Kasem. Answers quote eligible records or fixed help, and unsupported language is withheld.",
+  "tags": [
+    "Reviewed sources",
+    "Current permissions",
+    "No guesses"
+  ],
+  "hero": [
+    {
+      "file": "reviewed-answer-path.png",
+      "kind": "card"
+    }
+  ],
+  "figures": {
+    "reviewed-answer-path.png": {
+      "title": "From question to checked answer",
+      "note": "How a question reaches an answer built from reviewed records.",
+      "kind": "card"
+    }
+  }
+}

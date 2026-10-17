@@ -1,5 +1,11 @@
 # Invited expression contributors
 
+Released 13 October 2026: [Contribution studio redesign](contribution-studio.md)
+adds a blue composed dashboard, four-section editor, structured speaker metadata,
+small sessions and private reviewer-based recognition. TribeStudio and seven
+matching Functions are deployed; live files, sign-in entry and authentication
+gates are verified. Signed-in production workflow verification remains pending.
+
 Released 2026-10-02: [Dictionary word scope and required contributor training agreement](dictionary-word-scope-and-training.md). The deployed agreement replaces the optional portal AI-training choice described in earlier release history below. Backend, web hosting and production dictionary cleanup are verified. The mobile reader update awaits an app release.
 
 Tribe Studio's contributor workspace lives under `/contributor` on `https://tribestudio.indigenworld.com`. Since the 2026-09-23 rebuild, `/contributor` is the workspace Overview; one assignment is still `/contributor/{Firebase Auth UID}/{work ID}`, the address every SMS invitation carries. Invited accounts arriving on ordinary Studio routes are redirected to `/contributor` before the Studio shell is rendered. The full route list, data model and deployment steps for the rebuilt workspace are under [Workspace rebuild — 2026-09-23](#workspace-rebuild--2026-09-23).

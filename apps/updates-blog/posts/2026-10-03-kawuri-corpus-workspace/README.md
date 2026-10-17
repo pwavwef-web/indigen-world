@@ -10,7 +10,7 @@ Status: **Pushed and deployed on 3 October 2026. Live route, assets and access g
 | Custom permalink | `kawuri-corpus-workspace` |
 | Body | `post.html` |
 | Sharing copy | `share.md` |
-| Images | `images/corpus-workspace.png`, `images/submission-receipt.png` |
+| Images | `screens/corpus-workspace.png`, `screens/submission-receipt.png` |
 
 ## Implementation evidence
 
@@ -50,3 +50,16 @@ The user's request authorizes code push and deployment. It does not authorize pu
 - Positive capture, review, release, withdrawal and export operations were verified against emulators. No production contributor account was impersonated, no production corpus test records were inserted, and no actual speaker pilot was performed.
 - Read-only preflight found no current corpus policy and zero corpus records. This deployment did not approve policy, assign reviewers, migrate legacy content, publish corpus records or start model training. Sentence submission and qualified Gold authentication remain gated.
 - Clean-checkout preparation required `npm ci`, `npm run build:web-ui`, and the existing console UI build. Hosting was deployed with a temporary configuration containing only the unchanged TribeStudio Hosting entry, retaining its production-main verification and all required checks; the default multi-site command had also invoked the unrelated website hook. No other Hosting site was deployed.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/corpus-workspace.jpg`, `images/submission-receipt.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-03-kawuri-corpus-workspace`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/kawuri-corpus-workspace%20.html

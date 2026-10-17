@@ -8,7 +8,7 @@ Status: **Deployed October 1, 2026; public route and release asset verified. Sig
 - Custom permalink: culture-quest
 - Article: `post.html`
 - Sharing copy: `share.md`
-- Images: `images/quest-mobile.png`, `images/quest-desktop.png`
+- Images: `screens/quest-mobile.png`, `screens/quest-desktop.png`
 
 ## Evidence and limits
 
@@ -47,3 +47,10 @@ Credit: Indigen World, local Culture Quest component screenshots, October 1, 202
 5. Chinedum publishes and shares. Replace the published article URL placeholder in `share.md` after publication.
 
 Firebase deployment completed October 1, 2026 from `origin/main` commit `a594902`: `labsApi` (us-central1), Firestore rules and Indigen World Hosting. The custom-domain Culture Quest route returned HTTP 200 with its metadata; served Labs JavaScript SHA-256 matched the release build. Backend build and nine policy tests passed again. Emulator integration tests remain unexecuted because Java is unavailable. Signed-in submissions, review and daily reset remain unverified on production. No Blogger publication or community messages were performed.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/quest-mobile.jpg`, `images/quest-desktop.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-01-culture-quest`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.

@@ -42,9 +42,9 @@ test('a member who has never opened the settings screen still hears everything',
   // preferences would have silently muted every account already on the
   // platform, and the only symptom would have been a quiet app.
   for (const key of notificationPreferenceKeys) {
-    assert.equal(wantsNotification(undefined, key), true);
-    assert.equal(wantsNotification(null, key), true);
-    assert.equal(wantsNotification({}, key), true);
+    assert.equal(wantsNotification(undefined, key), key !== 'promotions');
+    assert.equal(wantsNotification(null, key), key !== 'promotions');
+    assert.equal(wantsNotification({}, key), key !== 'promotions');
   }
 });
 
@@ -84,6 +84,7 @@ test('the switches the settings screen offers are exactly the ones read here', (
     'likes',
     'mentions',
     'milestones',
+    'promotions',
     'reelComments',
     'streakReminders',
     'threadReplies',

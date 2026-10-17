@@ -1,0 +1,30 @@
+{
+  "accent": "violet",
+  "motif": "chevrons",
+  "eyebrow": "Admin · Correspondence",
+  "title": "Letters in the Heritage Frame.",
+  "lede": "One letter, two files: an editable Word document and a print-ready PDF in the Indigen World design.",
+  "tags": [
+    "Word and PDF",
+    "Private drafts",
+    "Reviewed email"
+  ],
+  "hero": [
+    "correspondence-composer.png",
+    {
+      "file": "heritage-frame-letter.png",
+      "kind": "card"
+    }
+  ],
+  "figures": {
+    "heritage-frame-letter.png": {
+      "title": "A letter on the Heritage Frame",
+      "note": "A generated sample with synthetic names.",
+      "kind": "card"
+    },
+    "correspondence-composer.png": {
+      "title": "Compose in Admin",
+      "note": "A synthetic review draft. No email was sent."
+    }
+  }
+}

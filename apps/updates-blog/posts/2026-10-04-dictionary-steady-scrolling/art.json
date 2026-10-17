@@ -1,0 +1,26 @@
+{
+  "accent": "green",
+  "motif": "dots",
+  "eyebrow": "Kasem Dictionary · Fix",
+  "title": "A steadier place to look up Kasem.",
+  "lede": "No more jumping when you scroll back up through an entry or a list.",
+  "tags": [
+    "Scroll fix",
+    "Mobile position kept",
+    "Live"
+  ],
+  "hero": [
+    "dictionary-desktop.png",
+    "dictionary-mobile.png"
+  ],
+  "figures": {
+    "dictionary-desktop.png": {
+      "title": "Scroll back without the jump",
+      "note": "The checked local preview of the Dictionary."
+    },
+    "dictionary-mobile.png": {
+      "title": "Your place is kept",
+      "note": "Result position preserved on a phone-sized screen."
+    }
+  }
+}

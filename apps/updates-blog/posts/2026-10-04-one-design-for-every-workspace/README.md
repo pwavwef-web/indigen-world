@@ -58,3 +58,16 @@ Live checks right after release: `/studio`, `/contributor`, `/contributor/review
 6. Replace the clearly marked article URL placeholder in `share.md` before sharing.
 
 Preparing this article does not authorise deployment, Blogger publication or sending messages; those remain with the owner and Chinedum.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/creator-overview.jpg`, `images/display-panel.jpg`, `images/post-composer.jpg`, `images/contributor-overview.jpg`, `images/validator-decision.jpg`, `images/review-phone.jpg`, `images/review-dark.jpg`, `images/sign-in.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-04-one-design-for-every-workspace`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/one-design-for-every-workspace.html

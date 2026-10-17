@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:indigen_world_mobile/features/shop/shop_screen.dart';
+import 'package:indigen_world_mobile/features/shop/shop_checkout.dart';
+import 'package:indigen_world_mobile/features/video_editor/mobile_video_editor.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -30,6 +33,44 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     routes: [
       GoRoute(path: '/', builder: (context, state) => const StartupGate()),
+      GoRoute(
+        path: '/shop',
+        builder: (context, state) => const ShopCollectionScreen(),
+      ),
+      GoRoute(
+        path: '/shop/category/:category',
+        builder: (context, state) =>
+            ShopCollectionScreen(category: state.pathParameters['category']),
+      ),
+      GoRoute(
+        path: '/shop/product/:productId',
+        builder: (context, state) =>
+            ShopProductScreen(productId: state.pathParameters['productId']!),
+      ),
+      GoRoute(
+        path: '/shop/payment-complete',
+        builder: (context, state) {
+          final reference =
+              state.uri.queryParameters['reference'] ??
+              state.uri.queryParameters['trxref'] ??
+              '';
+          return RegExp(r'^shop_[a-f0-9]{40}$').hasMatch(reference)
+              ? ShopOrderScreen(orderId: reference.substring(5))
+              : const ShopCollectionScreen(initialTab: 3);
+        },
+      ),
+      GoRoute(
+        path: '/shop/order/:orderId',
+        builder: (context, state) =>
+            ShopOrderScreen(orderId: state.pathParameters['orderId']!),
+      ),
+      GoRoute(
+        path: '/video-draft/:projectId',
+        builder: (context, state) => MobileVideoEditor(
+          sourcePath: '',
+          projectId: state.pathParameters['projectId'],
+        ),
+      ),
       GoRoute(
         path: '/entry/:entryId',
         builder: (context, state) => EntryDetailScreen(

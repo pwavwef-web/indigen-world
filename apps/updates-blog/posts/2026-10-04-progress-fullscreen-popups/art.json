@@ -1,0 +1,26 @@
+{
+  "accent": "amber",
+  "motif": "rings",
+  "eyebrow": "Website · Progress",
+  "title": "More room to watch our progress grow.",
+  "lede": "Red, yellow, blue and green liquid, and bubbles that grow with contributions.",
+  "tags": [
+    "Fullscreen",
+    "Popups",
+    "Growing bubbles"
+  ],
+  "hero": [
+    "progress-fullscreen-desktop.png",
+    "progress-popup-mobile.png"
+  ],
+  "figures": {
+    "progress-fullscreen-desktop.png": {
+      "title": "The browser window, filled",
+      "note": "The page fills the window with its own background."
+    },
+    "progress-popup-mobile.png": {
+      "title": "A popup, not a new page",
+      "note": "An explanation with a close button."
+    }
+  }
+}

@@ -424,7 +424,7 @@ test('vertexEndpoint targets the project it is deployed into', () => {
   // Kawuri authenticates as the function's own service account against Vertex
   // AI, so the project has to come from the runtime rather than from a key.
   const url = vertexEndpoint('project-kassena-7e026');
-  assert.match(url, /^https:\/\/[a-z0-9-]+-aiplatform\.googleapis\.com\/v1\//);
+  assert.match(url, /^https:\/\/(?:[a-z0-9-]+-)?aiplatform\.googleapis\.com\/v1\//);
   assert.ok(url.includes('/projects/project-kassena-7e026/'));
   assert.ok(url.endsWith(':generateContent'));
   // No key is ever appended — that is the point of the Vertex route.

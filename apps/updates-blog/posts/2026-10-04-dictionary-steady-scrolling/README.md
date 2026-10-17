@@ -8,7 +8,7 @@ Status: **Deployed October 4, 2026; public assets and live scrolling verified. B
 - Custom permalink: dictionary-steady-scrolling
 - Article: `post.html`
 - Sharing copy: `share.md`
-- Images: `images/dictionary-desktop.png`, `images/dictionary-mobile.png`
+- Images: `screens/dictionary-desktop.png`, `screens/dictionary-mobile.png`
 - Supplementary verification screenshot: `images/dictionary-mobile-detail.png`
 
 ## Implementation and evidence
@@ -125,3 +125,16 @@ the modal screen used in the mobile return-position check.
 5. Chinedum can publish the article, replace the URL placeholder in `share.md`,
    and share the copy. No article publication or messages are authorized by
    preparing this repository content.
+
+## Visual design (refreshed October 11, 2026)
+
+- Branded art for Blogger: `images/cover.png`, `images/dictionary-desktop.jpg`, `images/dictionary-mobile.jpg`. Each is the unaltered product screenshot set in a phone, browser or card frame on an Indigen World backdrop with a title. The frame, backdrop and titles are illustration; the screen contents are real.
+- Original screenshots (unaltered, with the credits and test-data labels above) are in `screens/`. Captions in `post.html` still describe what each screenshot shows, including test accounts and sample data.
+- Regenerate after editing `art.json` (titles, tags, colours, which screens appear): `node apps/updates-blog/scripts/render-post-art.mjs 2026-10-04-dictionary-steady-scrolling`
+- Blogger: upload `cover.png` first (it becomes the card/share image), then each framed JPG. Replace each relative `src` in `post.html` with its Blogger-hosted URL.
+
+## Blogger publication — 11 October 2026
+
+Published to Indigen World Updates through the owner-authorised Edge session, with the prepared cover, framed figures, captions and availability limits. Article publication does not change the product release or approval status described above.
+
+Published article: https://updates.indigenworld.com/2026/10/dictionary-steady-scrolling.html

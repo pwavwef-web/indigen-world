@@ -4,6 +4,8 @@ Kawuri's corpus workspace brings Kasem contributions together with their sources
 
 Qualified authentication and publication remain subject to approved community policies. The workspace does not turn expressions into dictionary words or launch model training automatically.
 
-Read the update: **[PUBLISHED ARTICLE URL — replace after Chinedum publishes the Blogger article]**
+Read the update: https://updates.indigenworld.com/2026/10/kawuri-corpus-workspace%20.html
 
 Before sharing, confirm the deployment status in README.md and retain the availability limits above.
+
+Published article: https://updates.indigenworld.com/2026/10/kawuri-corpus-workspace%20.html

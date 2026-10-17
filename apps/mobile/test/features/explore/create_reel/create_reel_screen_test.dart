@@ -41,6 +41,8 @@ const _privateSpace = CommunitySpace(
 );
 
 void main() {
+  final editorOpenedWith = <String>[];
+  setUp(editorOpenedWith.clear);
   late FakeReelDraftStore store;
   late FakeReelMediaTools tools;
   late FakeReelPublishBackend backend;
@@ -67,6 +69,15 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          // The editor opens by default on a pick; these tests exercise the
+          // "Use original" path, which hands the picked file straight back.
+          reelVideoEditorLauncherProvider.overrideWithValue((
+            context,
+            path,
+          ) async {
+            editorOpenedWith.add(path);
+            return path;
+          }),
           reelDraftStoreProvider.overrideWithValue(store),
           reelMediaToolsProvider.overrideWithValue(tools),
           reelPreviewControllerFactoryProvider.overrideWithValue(
@@ -150,6 +161,8 @@ void main() {
 
     tools.pickedPath = '/cache/picked.mp4';
     await tapVisible(tester, find.text('Choose from device'));
+    // The pick went through the editor first.
+    expect(editorOpenedWith, ['/cache/picked.mp4']);
     expect(find.text('Trim'), findsWidgets);
     expect(
       find.textContaining('Selected 0:42', skipOffstage: false),

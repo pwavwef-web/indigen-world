@@ -1,0 +1,40 @@
+{
+  "accent": "blue",
+  "motif": "weave",
+  "eyebrow": "Indigen World · Development preview",
+  "title": "Discover. Save.\nMake it your own.",
+  "lede": "Connected shop, notifications and mobile creation. Actual local screens; release verification pending.",
+  "tags": [
+    "Four shop tabs",
+    "Useful actions",
+    "Native editing"
+  ],
+  "hero": [
+    "shop-home.png",
+    "mobile-editor.png"
+  ],
+  "figures": {
+    "shop-home.png": {
+      "title": "A shop with a place of its own",
+      "note": "Actual Flutter screen with synthetic products and prices. Not a live offer."
+    },
+    "shop-cart.png": {
+      "title": "Keep your selections. Review the total.",
+      "note": "Local fixture. Current stock and prices are confirmed by the server before payment."
+    },
+    "notifications.png": {
+      "title": "An update with a useful next step",
+      "note": "Synthetic alerts in the actual inbox. OS and provider checks remain release gates."
+    },
+    "mobile-editor.png": {
+      "title": "Bring a story together on your phone",
+      "note": "Native editor with an existing licensed place image and supplied test text."
+    },
+    "admin-product-desktop.png": {
+      "title": "Artwork and products in one workflow",
+      "note": "Actual admin editor using a synthetic local service. No product was published.",
+      "kind": "browser",
+      "y": 60
+    }
+  }
+}

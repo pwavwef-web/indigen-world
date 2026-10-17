@@ -1,0 +1,34 @@
+{
+  "accent": "green",
+  "motif": "dots",
+  "eyebrow": "Website · Learn Kasem",
+  "title": "A clearer way to learn and explore Kasem.",
+  "lede": "A learning guide, dictionary filters, source comparisons and saved-word recovery in one starting point.",
+  "tags": [
+    "Learning guide",
+    "Source comparisons",
+    "Saved words"
+  ],
+  "hero": [
+    "learning-guide-live.jpg",
+    "dictionary-mobile.jpg"
+  ],
+  "figures": {
+    "learning-guide-live.jpg": {
+      "title": "The live learning guide",
+      "note": "Find a word, or return to saved words."
+    },
+    "learning-steps.jpg": {
+      "title": "Three cards, three next steps",
+      "note": "Recordings, saved words and more."
+    },
+    "dictionary-desktop.jpg": {
+      "title": "Compare source records",
+      "note": "A search for gaale shows three separate records."
+    },
+    "dictionary-mobile.jpg": {
+      "title": "Attribution on a phone",
+      "note": "Recorded attribution and generated-audio disclosure."
+    }
+  }
+}

@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useState,
+  lazy,
   type FormEvent,
   type ReactNode,
 } from "react";
@@ -24,7 +25,7 @@ import {
 import { PracticeWorkspace, StoryWorkspace } from "./workspaces";
 import { Activity, Admin, Updates } from "./records";
 import { QuestWorkspace } from "./quest";
-import { RunnerWorkspace } from "./runner";
+const RunnerWorkspace = lazy(() => import("./runner").then(m => ({ default: m.RunnerWorkspace })));
 import "./labs.css";
 
 export function useTask() {
@@ -436,6 +437,12 @@ function ExperimentShell({
         type: "experimentOpened",
       }).catch(() => {});
   }, [experiment.id, loaded]);
+  if (experiment.id === "word-trail") return <>
+    <Link className="labs-back" to="/labs/experiments">← All experiments</Link>
+    <div className="labs-detail-heading"><div><p className="labs-eyebrow">PLAY / CONTRIBUTE / ALPHA</p><h1>Word Trail</h1><p>An adventure that keeps your language moving.</p></div><span className="labs-tag">3D runner</span></div>
+    <RunnerWorkspace key={userId ?? "guest"} canContribute={allowed} />
+    <p className="labs-meta">Saved answers follow the existing community-review workflow. <a href={experiment.destination}>{experiment.destinationLabel} ↗</a></p>
+  </>;
   return (
     <>
       <Link className="labs-back" to="/labs/experiments">

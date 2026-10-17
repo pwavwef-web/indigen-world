@@ -1,0 +1,22 @@
+import { build } from 'vite';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+const project=resolve(root,'tools/platform-briefing');
+const reviewed=JSON.parse(readFileSync(resolve(root,'data/platform-audit/reviewed.json'),'utf8'));
+const scenes=[
+ {label:'Vision',title:'A whole cultural ecosystem.',body:'Indigen World brings language preservation, learning, storytelling, creators and community-governed heritage together. Project Kassena is the first Kasem language cell.',items:['Public website','TribeStudio','Everyday mobile app','Internal Admin'],limit:'Three public products plus internal administration. Other language cells remain an ambition.'},
+ {label:'The loop',title:'Discovery becomes contribution.',body:'People find language and culture, contribute with context and permissions, receive review and corrections, then use eligible published knowledge to learn and create.',items:['Discover and use','Contribute with context','Review and correct','Publish eligible work'],limit:'Everyday non-campaign posts use a separate open-publication route with reactive moderation.'},
+ {label:'Evidence',title:'Every claim needs its own proof.',body:`This bounded review covers ${reviewed.capabilities.length} curated capabilities across ${reviewed.coverage.length} domains. Source code, tests, release receipts and user outcomes answer different questions.`,items:['Code: behavior exists','Tests: named cases','Release: dated scope','Outcomes: measured benefit'],limit:'These inventory counts are not a completion score. Historical test results were not rerun in this audit.'},
+ {label:'Next proof',title:'Close the trust and release gaps.',body:'Start with the generic export clearance gap and environment isolation. Prove a signed-in contribution journey, current Play distribution and real-device behavior.',items:['Trusted safe exports','Complete live journeys','Play and device proof','Executed remote CI'],limit:'HTTP page reachability does not prove authenticated behavior, permissions or production readiness.'},
+ {label:'Community',title:'Let authority and outcomes guide growth.',body:'Qualified reviewers, explicit source rights, finance and support capacity, and independent learner evidence make the next language cell and future voice models credible.',items:['Community authority','Purpose-specific rights','Reconciled rewards','Measured learning'],limit:'Retrieval and third-party AI assistance do not establish a trained production Kasem model.'},
+];
+writeFileSync(resolve(project,'src/briefing-data.json'),JSON.stringify({auditDate:reviewed.metadata.auditDate,scenes},null,2)+'\n');
+await build({configFile:false,root:project,logLevel:'warn',define:{'process.env.NODE_ENV':JSON.stringify('production')},esbuild:{jsx:'automatic'},build:{outDir:'dist',emptyOutDir:true,minify:true,lib:{entry:resolve(project,'src/main.jsx'),formats:['iife'],name:'IndigenPlatformBriefing',fileName:()=> 'briefing.js'},rollupOptions:{output:{inlineDynamicImports:true}}}});
+const script=readFileSync(resolve(project,'dist/briefing.js'),'utf8').replace(/<\/script/gi,'<\\/script');
+const html='<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;background:#153d36;color:#f5f0df;font-family:Segoe UI,Arial,sans-serif}.chapters{display:flex;gap:6px;padding:12px;flex-wrap:wrap}.chapters button{border:1px solid #6d9887;background:#214c41;color:#fff;border-radius:20px;padding:8px 13px;cursor:pointer;min-height:40px}.chapters button:focus-visible{outline:3px solid #eabf66;outline-offset:2px}</style></head><body><div id="root"></div><script>'+script+'</script></body></html>';
+mkdirSync(resolve(root,'tools/platform-observatory/src/content/assets'),{recursive:true});
+writeFileSync(resolve(root,'tools/platform-observatory/src/content/assets/briefing-html.js'),'// Generated from the repository Remotion composition. Rebuild with node scripts/build-platform-briefing.mjs.\nexport const briefingHtml = '+JSON.stringify(html)+';\n');
+writeFileSync(resolve(root,'tools/platform-observatory/src/content/assets/briefing-transcript.json'),JSON.stringify(scenes,null,2)+'\n');
+console.log(JSON.stringify({chapters:scenes.length,durationSeconds:45,bytes:html.length,source:'tools/platform-briefing/src/main.jsx'}));

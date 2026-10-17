@@ -10,6 +10,8 @@ import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
 import 'package:indigen_world_mobile/features/ads/widgets/sponsored_card.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
+import 'package:indigen_world_mobile/features/collection/discovery_session.dart';
+import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/collection/illustrated_document_screen.dart';
 import 'package:indigen_world_mobile/features/collection/literature_categories.dart';
 import 'package:indigen_world_mobile/features/collection/widgets/collection_card_surface.dart';
@@ -18,21 +20,27 @@ import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart'
 import 'package:indigen_world_mobile/features/dictionary/dictionary_screen.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/music/music_controller.dart';
+import 'package:indigen_world_mobile/features/music/music_library.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
+import 'package:indigen_world_mobile/features/collection/literature_screen.dart';
 import 'package:indigen_world_mobile/shared/app_widgets.dart';
+import 'package:indigen_world_mobile/shared/channel_stage.dart';
+import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:video_player/video_player.dart';
 
-class LiteratureCollectionScreen extends ConsumerWidget {
+/// Literature, as a channel with its own rail — see [LiteratureScreen].
+///
+/// The name stays because the Collection grid opens it.
+class LiteratureCollectionScreen extends StatelessWidget {
   const LiteratureCollectionScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) =>
-      PublishedCollectionScreen(
-        kind: CollectionKind.literature,
-        items: ref.watch(literatureCollectionProvider),
-        onReload: () => _reload(ref, literatureCollectionProvider),
-      );
+  Widget build(BuildContext context) => const LiteratureScreen();
 }
+
+/// Reloads Literature's published records; shared by the channel's tabs.
+Future<void> reloadLiterature(WidgetRef ref) =>
+    _reload(ref, literatureCollectionProvider);
 
 class VideoCollectionScreen extends ConsumerWidget {
   const VideoCollectionScreen({super.key});
@@ -79,11 +87,28 @@ class PublishedCollectionScreen extends ConsumerStatefulWidget {
     required this.kind,
     required this.items,
     required this.onReload,
+    this.category,
+    this.writerId,
+    this.writerName,
+    this.inChannel = false,
+    this.scrollController,
     super.key,
   });
 
   final CollectionKind kind;
   final AsyncValue<List<PublishedReel>> items;
+
+  /// Only this genre, when set — one shelf from Literature's Genres tab.
+  final LiteratureCategory? category;
+
+  /// Only this writer's work, when set — from Literature's Writers tab.
+  final String? writerId;
+  final String? writerName;
+
+  /// Drawn as a tab of a channel with its own rail: no app bar of its own,
+  /// and room left at the foot for the rail.
+  final bool inChannel;
+  final ScrollController? scrollController;
 
   /// Drops the channel's cache and completes when the replacement has landed.
   ///
@@ -102,21 +127,72 @@ class _PublishedCollectionScreenState
     extends ConsumerState<PublishedCollectionScreen> {
   final _searchController = TextEditingController();
   var _query = '';
-  var _literatureCategoryId = LiteratureCategory.all.id;
-
+  String _sort = 'recommended';
+  late CollectionDiscoverySession _session;
+  bool _sessionReady = false, _loadingPage = false, _hasMore = true;
+  String? _pageCursor, _pageError;
+  final _older = <PublishedReel>[];
   @override
-  void didUpdateWidget(PublishedCollectionScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.kind == CollectionKind.literature && widget.items is AsyncData) {
-      final categories = literatureCategoriesFor(widget.items.asData!.value);
-      if (!categories.any((category) => category.id == _literatureCategoryId)) {
-        _literatureCategoryId = LiteratureCategory.all.id;
-      }
+  void initState() {
+    super.initState();
+    _session = CollectionDiscoverySession(
+      widget.kind.name,
+      ref.read(currentUidProvider) ?? 'guest',
+      remote: ref.read(discoveryHistoryRemoteProvider),
+    );
+    _session.load().catchError((Object _) {}).whenComplete(() {
+      if (mounted) setState(() => _sessionReady = true);
+    });
+  }
+
+  Future<void> _refreshDiscovery() async {
+    _older.clear();
+    _pageCursor = null;
+    _hasMore = true;
+    _pageError = null;
+    unawaited(_session.flush());
+    _session = CollectionDiscoverySession(
+      widget.kind.name,
+      ref.read(currentUidProvider) ?? 'guest',
+      remote: ref.read(discoveryHistoryRemoteProvider),
+    );
+    await _session.load();
+    await widget.onReload();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadPage() async {
+    if (_pageCursor == null || _loadingPage) return;
+    final repository = ref.read(publishedContentRepositoryProvider);
+    if (repository == null) return;
+    setState(() {
+      _loadingPage = true;
+      _pageError = null;
+    });
+    try {
+      final page = await repository.collectionPage(
+        widget.kind.name,
+        _pageCursor!,
+      );
+      if (!mounted) return;
+      setState(() {
+        _older.addAll(page.where((p) => belongsInCollection(p, widget.kind)));
+        _hasMore = page.length == 60;
+        if (page.isNotEmpty) _pageCursor = page.last.id;
+      });
+    } on Object {
+      if (mounted)
+        setState(() => _pageError = 'Could not load the next page. Try again.');
+    } finally {
+      if (mounted) setState(() => _loadingPage = false);
     }
   }
 
   @override
   void dispose() {
+    // What this visit saw reaches the account even if the timer had not fired.
+    unawaited(_session.flush());
+    _session.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -130,90 +206,155 @@ class _PublishedCollectionScreenState
   Widget build(BuildContext context) {
     final items = widget.items;
     final all = items.value ?? const <PublishedReel>[];
-    final categories = widget.kind == CollectionKind.literature
-        ? literatureCategoriesFor(all)
-        : const <LiteratureCategory>[];
-    final selectedCategory = categories.isEmpty
-        ? null
-        : categories.firstWhere(
-            (category) => category.id == _literatureCategoryId,
-            orElse: () => LiteratureCategory.all,
-          );
+    final selectedCategory = widget.category;
+    final literature = widget.kind == CollectionKind.literature;
     // Only worth offering once there is enough to lose something in. A search
     // field over three songs is a control that can only ever hide two of them.
     final searchable = all.length >= _searchFrom;
+    final pageTitle =
+        widget.writerName ??
+        (selectedCategory == null ||
+                selectedCategory.id == LiteratureCategory.all.id
+            ? widget.kind.label
+            : selectedCategory.label);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.kind.label)),
-      body: ScreenContainer(
-        child: RefreshIndicator(
-          onRefresh: widget.onReload,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: BrandHeader(
-                  eyebrow: 'Collection · ${widget.kind.label}',
-                  title: _title,
+    final scroll = RefreshIndicator(
+      onRefresh: _refreshDiscovery,
+      edgeOffset: literature ? MediaQuery.paddingOf(context).top + 100 : 0,
+      child: CustomScrollView(
+        controller: widget.scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          if (literature)
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: ChannelStageDelegate(
+                eyebrow: widget.writerName != null
+                    ? 'Writer'
+                    : selectedCategory != null
+                    ? 'Genre'
+                    : 'Collection · Literature',
+                title: widget.writerName != null || selectedCategory != null
+                    ? pageTitle
+                    : _title,
+                subtitle: items.hasValue
+                    ? '${_countFor(all)} ${_countFor(all) == 1 ? 'piece' : 'pieces'} to read'
+                    : null,
+                topPadding: MediaQuery.paddingOf(context).top,
+                textScale: MediaQuery.textScalerOf(context)
+                    .scale(1)
+                    .clamp(1, 1.4),
+                stageHeight: 104,
+              ),
+            )
+          else
+            SliverToBoxAdapter(
+              child: BrandHeader(
+                eyebrow: 'Collection · ${widget.kind.label}',
+                title: _title,
+              ),
+            ),
+          if (literature) const SliverToBoxAdapter(child: SizedBox(height: 16)),
+          if (searchable)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: TextField(
+                  key: const Key('published-collection-search'),
+                  controller: _searchController,
+                  onChanged: (value) => setState(() => _query = value.trim()),
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: _searchHint,
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: _query.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'Clear search',
+                            onPressed: _clearSearch,
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                  ),
                 ),
               ),
-              if (selectedCategory != null)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                    child: _LiteratureCategoryTabs(
-                      categories: categories,
-                      selectedId: selectedCategory.id,
-                      items: items.hasValue ? all : null,
-                      onSelected: (category) =>
-                          setState(() => _literatureCategoryId = category.id),
+            ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              // Pills that wrap, not a dropdown in a row: a row of fixed
+              // pieces overflowed the screen at large text sizes.
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  for (final (value, label) in const [
+                    ('recommended', 'For this visit'),
+                    ('newest', 'Newest'),
+                    ('title', 'A–Z'),
+                  ])
+                    _SortPill(
+                      label: label,
+                      selected: _sort == value,
+                      onTap: () => setState(() => _sort = value),
                     ),
-                  ),
-                ),
-              if (searchable)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                    child: TextField(
-                      key: const Key('published-collection-search'),
-                      controller: _searchController,
-                      onChanged: (value) =>
-                          setState(() => _query = value.trim()),
-                      textInputAction: TextInputAction.search,
-                      decoration: InputDecoration(
-                        hintText: _searchHint,
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        suffixIcon: _query.isEmpty
-                            ? null
-                            : IconButton(
-                                tooltip: 'Clear search',
-                                onPressed: _clearSearch,
-                                icon: const Icon(Icons.close_rounded),
-                              ),
-                      ),
-                    ),
-                  ),
-                ),
-              ...switch (items) {
-                AsyncValue(hasValue: false, hasError: true) => [
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: _CollectionLoadError(onRetry: _reloadNow),
+                  IconButton(
+                    tooltip: 'Reset discovery history',
+                    onPressed: () async {
+                      await _session.reset();
+                      await _refreshDiscovery();
+                    },
+                    icon: const Icon(Icons.restart_alt_rounded),
                   ),
                 ],
-                AsyncValue(hasValue: false) => const [
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                ],
-                _ => _body(all, selectedCategory),
-              },
-            ],
+              ),
+            ),
           ),
-        ),
+          ...switch (items) {
+            AsyncValue(hasValue: false, hasError: true) => [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _CollectionLoadError(onRetry: _reloadNow),
+              ),
+            ],
+            AsyncValue(hasValue: false) => const [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ],
+            _ => _body(all, selectedCategory),
+          },
+          if (widget.inChannel)
+            SliverToBoxAdapter(
+              child: SizedBox(height: shellBottomReserve(context)),
+            ),
+        ],
       ),
     );
+    if (widget.inChannel) {
+      return Material(color: context.brand.background, child: scroll);
+    }
+    return Scaffold(
+      backgroundColor: literature ? context.brand.background : null,
+      appBar: literature ? null : AppBar(title: Text(widget.kind.label)),
+      body: literature ? scroll : ScreenContainer(child: scroll),
+    );
+  }
+
+  /// How many pieces this page holds: the genre's, the writer's, or all.
+  int _countFor(List<PublishedReel> all) => all.where(_inScope).length;
+
+  bool _inScope(PublishedReel item) {
+    final category = widget.category;
+    if (category != null &&
+        category.id != LiteratureCategory.all.id &&
+        literatureCategoryFor(item).id != category.id) {
+      return false;
+    }
+    final writer = widget.writerId;
+    if (writer != null && artistKey(item) != writer) return false;
+    return true;
   }
 
   void _reloadNow() => unawaited(widget.onReload());
@@ -222,18 +363,49 @@ class _PublishedCollectionScreenState
     List<PublishedReel> all,
     LiteratureCategory? selectedCategory,
   ) {
+    if (!_sessionReady)
+      return const [
+        SliverToBoxAdapter(child: Center(child: CircularProgressIndicator())),
+      ];
+    if (_pageCursor == null && all.isNotEmpty) {
+      _pageCursor = all.last.id;
+      _hasMore = all.length >= 60;
+    }
+    final blocked =
+        ref.watch(myBlockedProfilesProvider).asData?.value ?? const <String>{};
+    final muted =
+        ref.watch(myMutedProfilesProvider).asData?.value ?? const <String>{};
+    all = {
+      for (final item in [...all, ..._older])
+        if (!blocked.contains(item.creatorId) &&
+            !muted.contains(item.creatorId))
+          item.id: item,
+    }.values.toList();
+    if (_sort == 'recommended' && _query.isEmpty) {
+      all = _session.rank(
+        all,
+        id: (p) => p.id,
+        creator: (p) => p.creatorId,
+        pinned: (p) => p.editorialPinned,
+      );
+    } else {
+      all.sort((a, b) {
+        final primary = _sort == 'newest'
+            ? (b.publishedAt ?? '').compareTo(a.publishedAt ?? '')
+            : a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        return primary == 0 ? a.id.compareTo(b.id) : primary;
+      });
+    }
     final query = _query.toLowerCase();
     final filteringCategory =
         selectedCategory != null &&
         selectedCategory.id != LiteratureCategory.all.id;
     final visible = all
-        .where((item) {
-          if (filteringCategory &&
-              literatureCategoryFor(item).id != selectedCategory.id) {
-            return false;
-          }
-          return query.isEmpty || publishedReelMatches(item, query);
-        })
+        .where(
+          (item) =>
+              _inScope(item) &&
+              (query.isEmpty || publishedReelMatches(item, query)),
+        )
         .toList(growable: false);
     if (visible.isEmpty) {
       return [
@@ -243,12 +415,10 @@ class _PublishedCollectionScreenState
             kind: widget.kind,
             searching: query.isNotEmpty,
             categoryLabel: filteringCategory ? selectedCategory.label : null,
-            onViewAll: filteringCategory
-                ? () => setState(() {
-                    _literatureCategoryId = LiteratureCategory.all.id;
-                    _searchController.clear();
-                    _query = '';
-                  })
+            // A genre page is a shelf opened from the Genres tab; the way to
+            // "all literature" is back.
+            onViewAll: filteringCategory || widget.writerId != null
+                ? () => Navigator.of(context).maybePop()
                 : null,
           ),
         ),
@@ -257,7 +427,7 @@ class _PublishedCollectionScreenState
 
     // Adverts only over the whole channel. Search and category results stay
     // focused on the work somebody came to find.
-    final rows = query.isEmpty && !filteringCategory
+    final rows = query.isEmpty && !filteringCategory && widget.writerId == null
         ? collectionRowsWithAds(
             items: visible,
             inventory: ref.watch(collectionInventoryProvider),
@@ -282,18 +452,39 @@ class _PublishedCollectionScreenState
                 ),
               );
             }
-            return _PublishedCollectionCard(
-              item: row as PublishedReel,
-              kind: widget.kind,
+            final item = row as PublishedReel;
+            return QualifiedCollectionExposure(
+              id: item.id,
+              session: _session,
+              child: _PublishedCollectionCard(item: item, kind: widget.kind),
             );
           },
+        ),
+      ),
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
+          child: Column(
+            children: [
+              if (_pageError != null) Text(_pageError!),
+              if (_hasMore)
+                OutlinedButton(
+                  onPressed: _loadingPage ? null : _loadPage,
+                  child: Text(_loadingPage ? 'Loading…' : 'Load more'),
+                )
+              else
+                const Text(
+                  'All caught up. Refresh for another discovery order.',
+                ),
+            ],
+          ),
         ),
       ),
     ];
   }
 
   /// How long a channel has to be before it is worth searching.
-  static const _searchFrom = 6;
+  static const _searchFrom = 1;
 
   String get _searchHint => switch (widget.kind) {
     CollectionKind.music => 'Search songs, singers or dialect',
@@ -312,102 +503,45 @@ class _PublishedCollectionScreenState
   };
 }
 
-class _LiteratureCategoryTabs extends StatefulWidget {
-  const _LiteratureCategoryTabs({
-    required this.categories,
-    required this.selectedId,
-    required this.items,
-    required this.onSelected,
+class _SortPill extends StatelessWidget {
+  const _SortPill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
   });
 
-  final List<LiteratureCategory> categories;
-  final String selectedId;
-  final List<PublishedReel>? items;
-  final ValueChanged<LiteratureCategory> onSelected;
-
-  @override
-  State<_LiteratureCategoryTabs> createState() =>
-      _LiteratureCategoryTabsState();
-}
-
-class _LiteratureCategoryTabsState extends State<_LiteratureCategoryTabs>
-    with TickerProviderStateMixin {
-  late TabController _controller;
-
-  int get _selectedIndex => widget.categories.indexWhere(
-    (category) => category.id == widget.selectedId,
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    _createController();
-  }
-
-  void _createController() {
-    _controller = TabController(
-      length: widget.categories.length,
-      initialIndex: _selectedIndex,
-      vsync: this,
-    );
-  }
-
-  @override
-  void didUpdateWidget(_LiteratureCategoryTabs oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!listEquals(
-      oldWidget.categories.map((c) => c.id).toList(),
-      widget.categories.map((c) => c.id).toList(),
-    )) {
-      _controller.dispose();
-      _createController();
-    } else if (_controller.index != _selectedIndex) {
-      _controller.animateTo(_selectedIndex);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final counts = <String, int>{};
-    for (final item in widget.items ?? const <PublishedReel>[]) {
-      final id = literatureCategoryFor(item).id;
-      counts[id] = (counts[id] ?? 0) + 1;
-    }
-    return TabBar(
-      key: const Key('literature-category-tabs'),
-      controller: _controller,
-      isScrollable: true,
-      tabAlignment: TabAlignment.start,
-      labelPadding: const EdgeInsets.symmetric(horizontal: 12),
-      onTap: (index) => widget.onSelected(widget.categories[index]),
-      tabs: [
-        for (final category in widget.categories)
-          Tab(
-            key: ValueKey('literature-tab-${category.id}'),
-            height: (28 + MediaQuery.textScalerOf(context).scale(16))
-                .clamp(48, double.infinity)
-                .toDouble(),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(category.label),
-                if (widget.items != null) ...[
-                  const SizedBox(width: 6),
-                  Text(
-                    '${category.id == LiteratureCategory.all.id ? widget.items!.length : counts[category.id] ?? 0}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ],
-              ],
+    final brand = context.brand;
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Material(
+        color: selected ? brand.ink : brand.surfaceMuted,
+        shape: const StadiumBorder(),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 36),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: selected ? brand.background : brand.ink,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
-      ],
+        ),
+      ),
     );
   }
 }

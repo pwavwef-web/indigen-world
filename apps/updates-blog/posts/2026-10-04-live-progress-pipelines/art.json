@@ -1,0 +1,39 @@
+{
+  "accent": "teal",
+  "motif": "chevrons",
+  "eyebrow": "Website · Live progress",
+  "title": "Watch verified contributions flow into the jars.",
+  "tsize": 46,
+  "lede": "TribeStudio is the pump. Approvals travel down glass pipes into their collection's jar.",
+  "tags": [
+    "Live",
+    "Server-counted",
+    "Exact counts"
+  ],
+  "hero": [
+    "pipelines-jars-live.jpg",
+    "pipelines-jars-mobile-sample.jpg"
+  ],
+  "figures": {
+    "approval-travelling-live.jpg": {
+      "title": "An approval sets off",
+      "note": "Live: the pump, a status label and a stream in the pipe."
+    },
+    "approval-arriving-live.jpg": {
+      "title": "Moments later, it arrives",
+      "note": "A thin stream pours from the inlet into the jar."
+    },
+    "pipelines-jars-live.jpg": {
+      "title": "Live from the pump",
+      "note": "The progress page reading Live."
+    },
+    "pipelines-tanks-sample.jpg": {
+      "title": "The tanks view",
+      "note": "Sample data."
+    },
+    "pipelines-jars-mobile-sample.jpg": {
+      "title": "On a phone",
+      "note": "Sample data label above the pump."
+    }
+  }
+}

@@ -83,6 +83,8 @@ export function useLiveWorkspace(uid: string): LiveWorkspace {
   const [pulseEntries, setPulseEntries] = useState<PulseEntry[]>([]);
   const [pulseTotals, setPulseTotals] = useState<PulseState['totals']>(null);
   const [pulseStatus, setPulseStatus] = useState<{ state: PulseState['state']; reason: string }>({ state: 'loading', reason: '' });
+  const [pulseDate, setPulseDate] = useState(pulseDay);
+  useEffect(() => { const timer = window.setInterval(() => setPulseDate(pulseDay()), 60000); return () => window.clearInterval(timer); }, []);
 
   useEffect(() => onSnapshot(collection(db, 'contributorAccounts', uid, 'works'), (snapshot) => {
     setWorks(snapshot.docs.map((entry) => ({ ...entry.data(), id: entry.id }) as Work)
@@ -104,7 +106,7 @@ export function useLiveWorkspace(uid: string): LiveWorkspace {
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
   }, [uid, workKey]);
 
-  useEffect(() => onSnapshot(query(collection(db, 'submissions'), where('authUid', '==', uid), limit(500)), (snapshot) => {
+  useEffect(() => onSnapshot(query(collection(db, 'submissions'), where('authUid', '==', uid), orderBy('lifecycle.updatedAt', 'desc'), limit(500)), (snapshot) => {
     setRounds(snapshot.docs.flatMap((entry) => {
       const data = entry.data() as Record<string, unknown>;
       const portal = data.contributorPortal as Record<string, unknown> | undefined;
@@ -116,6 +118,7 @@ export function useLiveWorkspace(uid: string): LiveWorkspace {
         work: portal.work,
         item: portal.item,
         expression: String(data.title ?? ''),
+        translation: String(data.body ?? ''),
         status: String(data.status ?? ''),
         createdAt: iso(lifecycle.createdAt),
         decidedAt: iso(moderation.decidedAt),
@@ -136,7 +139,8 @@ export function useLiveWorkspace(uid: string): LiveWorkspace {
   }, () => setPaymentNotices([])), [uid]);
 
   useEffect(() => {
-    const day = pulseDay();
+    const day = pulseDate;
+    setPulseTotals(null); setPulseStatus({ state: 'loading', reason: '' });
     const failed = (error: { code?: string }) => setPulseStatus({
       state: 'unavailable',
       reason: error?.code === 'permission-denied' ? 'permission' : 'connection',
@@ -164,7 +168,7 @@ export function useLiveWorkspace(uid: string): LiveWorkspace {
       stopTotals();
       stopEntries();
     };
-  }, [uid]);
+  }, [uid, pulseDate]);
 
   const itemsState: LoadState = worksState === 'error' || Object.values(itemErrors).some(Boolean)
     ? 'error'
@@ -211,6 +215,9 @@ export function statementProblem(file: Pick<File, 'type' | 'size'>): string {
 export function liveServices(uid: string, email: string): WorkspaceServices {
   const saveAnswer = httpsCallable<Record<string, unknown>, { revision: number; submissionId?: string }>(functions, 'saveExpressionAnswer');
   return {
+    findExpressionMatches: phrase => callable<{ phrase: string }, Awaited<ReturnType<WorkspaceServices['findExpressionMatches']>>>('findContributorExpressionMatches')({ phrase }),
+    loadJourney: () => callable<Record<string, never>, Awaited<ReturnType<WorkspaceServices['loadJourney']>>>('getContributorJourney')({}),
+    saveJourney: async input => { await callable<Record<string, unknown>, unknown>('saveContributorJourney')({ weeklyGoal: input.weeklyGoal, sessionSize: input.sessionSize, celebrations: input.celebrations, practiceCompleted: input.practiceCompleted }); },
     saveAnswer: (data) => saveAnswer(data),
     loadPayments: () => callable<Record<string, never>, Awaited<ReturnType<WorkspaceServices['loadPayments']>>>('getContributorPayments')({}),
     async uploadStatement(file, onProgress) {

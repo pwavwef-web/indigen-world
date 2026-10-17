@@ -151,6 +151,7 @@ export interface VoiceClipSpec {
   volume: number;
   fadeIn: number;
   fadeOut: number;
+  speed?: number;
 }
 
 export interface MusicClipSpec {
@@ -400,6 +401,7 @@ export function parseRenderSpec(raw: unknown, context: { uid: string; projectId:
   const voice = arr(audio.voice, 'audio.voice', MAX_VOICE_CLIPS).map((raw, i) => ({
     ...parseClip(raw, `audio.voice[${i}]`, total),
     mediaId: id((raw as Json).mediaId, `audio.voice[${i}].mediaId`),
+    speed: num((raw as Json).speed, `audio.voice[${i}].speed`, 0.25, 3, 1),
   })).filter((c) => c.duration >= 0.1);
   const music = arr(audio.music, 'audio.music', MAX_MUSIC_CLIPS).map((raw, i) => ({
     ...parseClip(raw, `audio.music[${i}]`, total),
