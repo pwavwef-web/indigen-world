@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:indigen_world_mobile/features/notifications/quiet_hours_settings.dart';
 
-import 'package:indigen_world_mobile/features/notifications/quiet_hours_settings.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
