@@ -84,6 +84,7 @@ flutter:
         - asset: assets/fonts/NotoSans-Bold.ttf
           weight: 700
   assets:
+    - assets/fonts/OFL.txt
     - assets/brand/
     - assets/learn/
     - assets/places/
