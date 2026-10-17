@@ -23,12 +23,16 @@ Codex's connected-workflows upgrade plus the 17 October pass: the shop on the ap
 - `shop` (us-central1): ACTIVE 16:19:35 UTC. Live `config` returns the new `facets`; an option-filtered `catalogue` query succeeds (no new index needed).
 - `shopAdmin` (us-central1): ACTIVE 20:25:07 UTC; unauthenticated calls get 401.
 - Deployed by explicit name only (no creates or deletes). Two network failures on the way: a Secret Manager lookup (nothing deployed) and a dropped update request that had in fact reached the server — waited for it to finish rather than retrying over it.
-- Not deployed: Admin hosting (the bulk-action and promotion forms), indexes (unchanged), any other function.
+- Admin hosting (`indigen-admin`): released from `3ff6437` (origin/main) after merging 30 upstream commits; live entry `assets/index-BtBswAtV.js` matches the local build and its shop chunk carries the bulk actions and promotion form. The first attempt dropped while finalizing and released nothing; the retry released.
+- Not deployed: indexes (unchanged), any other function or site.
 
 ## Before uploading
 
-1. Backend: done (above). Admin hosting is still the old build, so staff can't
-   use bulk actions or the new promotion fields until it is deployed.
+1. Backend and Admin: done (above).
+   **This AAB predates the merge**: it lacks origin's `2b52eb5` (keeps the
+   community compose button clear of the nav bar). Rebuild 0.1.34+43 from
+   `3ff6437` before uploading if that fix should ship (the code was never
+   uploaded, so the same version code is fine).
 2. Install on a real Android phone and check: push alerts and their actions,
    an Explore video advert playing muted with working controls, the comment
    sponsor slot, the Blogs tab loading, and checkout still showing as closed.
