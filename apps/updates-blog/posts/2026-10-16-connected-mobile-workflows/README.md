@@ -3,8 +3,7 @@
 - **Title:** A more connected Indigen World: shop, notifications and mobile creation
 - **Labels:** Indigen World, Mobile, Development preview, Shop, TribeStudio
 - **Search description:** A development preview of connected shop, artwork uploads, actionable notifications and native mobile editing, with availability gates explained.
-- **Status:** Prepared repository content. Not published to Blogger, not shared,
-  not deployed, no store release, no live charges and no broadcasts.
+- **Status:** Backend, rules/indexes, Admin and public website deployed and verified on 17 October 2026. Signed Android `0.1.33+42` AAB is prepared. Store upload, Apple signing, Blogger publication and sharing have not occurred. Checkout and unverified native features remain gated.
 - **Publishing owner:** Chinedum. Preparation does not authorize publication.
 
 ## Images and reproduction
@@ -49,7 +48,7 @@ and caption controls, plus Admin product desktop/tablet, order and composer.
 1. Reconfirm implementation/deployment status with the acceptance ledger before
    publishing. Keep “development preview” unless a live release is verified.
 2. Upload every image referenced in `post.html` to Blogger, keep the captions,
-   credits and descriptive alt text, then replace `screens/...` with Blogger’s
+   credits and descriptive alt text, then replace `images/...` with Blogger’s
    returned image URLs. Actual image assets are supplied; do not publish local
    paths or substitute unlabelled concept artwork.
 3. Paste the article body in Blogger HTML mode; set the title, labels and search
@@ -60,3 +59,7 @@ and caption controls, plus Admin product desktop/tablet, order and composer.
 See [the implementation ledger](../../../../docs/product/integrated-mobile-upgrade-ledger.md)
 and [the runbook](../../../../docs/architecture/integrated-mobile-upgrade.md) for
 tested behavior, exact configuration and remaining acceptance limits.
+
+## Verified release handoff
+
+See [release evidence](release-evidence.json) and [release operations](../../../../docs/operations/release-0.1.33-42.md). Admin is live at https://indigen-admin.web.app; the hosted checkout return is live at https://indigenworld.com/shop/payment-complete. A return reference never confirms payment. Store policies, support, delivery and stock still need operational configuration before checkout can open.
