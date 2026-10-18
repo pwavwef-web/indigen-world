@@ -7,6 +7,7 @@ import { contributionState, itemStatus, STATUS_META, type Item, type Status } fr
 import type { SaveAnswer } from './types';
 import { Icon } from '../ui/icons';
 import { KasemField } from '../spelling/KasemField';
+import { DictionaryRecommendations, DictionaryReview } from '../spelling/DictionaryAssistance';
 import { EMPTY_DETAILS, parseContributorDetails, detailsContext, type ContributorDetails } from '@indigen-world/contracts/contributor-details';
 import { duplicateHints } from './journeyModel';
 import { MilestoneBurst, useJourney } from './Journey';
@@ -259,6 +260,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
   extras?: EditorExtras;
 }) {
   const [translation, setTranslation] = useState(item.translation);
+  const translationField = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
   const [alternatives, setAlternatives] = useState(item.alternatives.join('\n'));
   const [context, setContext] = useState(item.context ?? '');
   const [details, setDetails] = useState<ContributorDetails>(() => ({ ...EMPTY_DETAILS, variety: extras.variety ?? '', ...item.details, alternativeNotes: item.details?.alternativeNotes ?? [] }));
@@ -457,6 +459,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
             <div><dt>Sharing permission</dt><dd>{publication ? 'Granted' : 'Not granted'}</dd></div>
             <div><dt>Model training and evaluation</dt><dd>Included under your contributor agreement</dd></div>
           </dl>
+          <DictionaryReview value={translation} />
           <p className="ts-consequence cw-review-next"><Icon name="send" /><span>Next: a reviewer reads it and approves it or returns it with feedback. You will see the decision on this expression and in Activity.</span></p>
         </div>
         <div className="ts-dialog__foot contributor-review-actions">
@@ -472,6 +475,22 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
         </div>
         <span className={`ts-badge ts-badge--${chipTone === 'neutral' ? 'neutral' : chipTone} status-badge state-${statusSlug(state)}`}><span className="ts-badge__dot" aria-hidden="true" /><span>{STATUS_META[detailed].label}</span></span>
       </header>
+
+      <DictionaryRecommendations source={item.expression} disabled={locked || busy || Boolean(recovery)} onInsert={word => {
+        const input = translationField.current;
+        if (!input || input.disabled || input.readOnly) return;
+        const start = input.selectionStart ?? input.value.length, end = input.selectionEnd ?? start;
+        const before = input.value.slice(0, start), after = input.value.slice(end);
+        const inserted = (/\p{L}|\p{M}/u.test(before.slice(-1)) ? ' ' : '') + word + (/^[\p{L}\p{M}]/u.test(after) ? ' ' : '');
+        if (input.value.length - (end - start) + inserted.length > input.maxLength) return;
+        moveStep(1);
+        window.requestAnimationFrame(() => {
+          if (input.value !== translation) return;
+          input.scrollIntoView({ block: 'center', behavior: 'instant' });
+          input.focus({ preventScroll: true }); input.setSelectionRange(start, end);
+          if (!document.execCommand('insertText', false, inserted)) setError(`Your browser could not insert while preserving undo. Paste “${word}” at the selected cursor position.`);
+        });
+      }} />
 
       <ReviewTiming item={item} />
       {item.feedback ? (
@@ -542,10 +561,11 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
       <label className="ts-field translation-field">
         <span className="ts-label">Kasem translation <span aria-hidden="true" className="ts-required">*</span></span>
         <KasemField
+          dictionaryAssistance
           className="ts-textarea cw-translation"
           aria-label="Kasem translation"
           lang="xsm"
-          ref={(node) => { if (node && !activeField.current) activeField.current = node; }}
+          ref={(node) => { translationField.current = node; if (node && !activeField.current) activeField.current = node; }}
           onFocus={(event) => { activeField.current = event.currentTarget; }}
           required
           maxLength={2000}
@@ -627,6 +647,7 @@ export function ExpressionEditor({ item, itemNumber = 1, itemTotal = 1, hasNextI
       </section>
 
       <section id="contribution-section-3" className="cq-step-panel" hidden={step !== 3} aria-label="Check and send">
+        <DictionaryReview value={translation} />
         <div className="cq-answer-preview"><span className="cq-eyebrow">Your answer</span><p lang="xsm">{translation.trim() || 'Your Kasem translation will appear here.'}</p><small>{details.variety || 'Language variety not recorded'}</small></div>
         <ul className="cq-readiness" aria-label="Ready for review checklist">{checklist.map(check => <li key={check.title} className={check.done ? 'is-ready' : ''}><Icon name={check.done ? 'check-circle' : check.required ? 'circle' : 'info'} /><span>{check.title}<small>{check.done ? 'Done' : check.required ? 'Needed before sending' : 'Suggestion · optional'}</small></span>{!check.done ? <button type="button" onClick={() => moveStep(check.target)}>Open<Icon name="arrow" /></button> : null}</li>)}</ul>
         {extras.checkDuplicates && !locked ? <div className="cq-published-check"><button type="button" className="ts-btn ts-btn--ghost ts-btn--sm" disabled={duplicateBusy || !translation.trim()} onClick={() => void checkPublished()}><Icon name="search" />{duplicateBusy ? 'Checking published expressions…' : 'Check published expressions'}</button>{publishedMatches ? <p className="cq-small" role="status">{publishedMatches.length ? `This exact wording is published: ${publishedMatches.map(match => `${match.meaning}${match.variety ? ` (${match.variety})` : ''}`).join(' · ')}` : 'No exact published wording found. Similar expressions may still exist.'}</p> : null}{duplicateError ? <p className="cq-error" role="status">{duplicateError}</p> : null}</div> : null}

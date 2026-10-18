@@ -114,7 +114,10 @@ function auditRecord(actor: string, action: string, target: string, before: unkn
   };
 }
 export function parseExpressionAnswer(raw: Record<string, unknown>) {
-  const translation = text(raw.translation, 2000, true);
+  // Compare normalized copies only in lookup services. Store the submitted
+  // translation byte-for-byte, including combining marks and whitespace.
+  if (typeof raw.translation !== 'string' || raw.translation.length > 2000) throw new HttpsError('invalid-argument', 'Missing or oversized translation.');
+  const translation = raw.translation;
   if (!Array.isArray(raw.alternatives) || raw.alternatives.length > 12) {
     throw new HttpsError('invalid-argument', 'Use at most twelve alternate expressions.');
   }
@@ -656,7 +659,7 @@ export const saveExpressionAnswer = onCall(options, guarded('saveExpressionAnswe
   const submit = req.data?.submit === true;
   const skip = req.data?.skip === true;
   if (skip && submit) throw new HttpsError('invalid-argument', 'Skip does not submit an answer.');
-  if (submit && (!answer.translation || req.data?.publicationPermission !== true)) {
+  if (submit && (!answer.translation.trim() || req.data?.publicationPermission !== true)) {
     throw new HttpsError('failed-precondition', 'Add a translation and confirm permission to publish.');
   }
   const db = getFirestore(), account = db.doc(`contributorAccounts/${uid}`);

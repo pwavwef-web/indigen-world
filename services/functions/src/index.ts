@@ -224,6 +224,7 @@ export { releaseKnowledgeRecord, revokeKnowledgeRelease, resolveKnowledgeRecords
 export { configureKnowledgeGovernance } from './knowledge-governance.js';
 export { onDictionaryCandidate, onContributorCandidate, onKnowledgeCandidate, onSentenceCandidate, onGrammarCandidate, onExpressionCandidate, onEvidenceCandidate } from './kawuri-candidate-index.js';
 export { checkKasemSpelling, getKasemWordSubmissionStatus } from './kasem-spelling.js';
+export { getKasemDictionaryAssistance } from './dictionary-assistance.js';
 export { shop, shopAdmin, reconcileShopOrders } from './shop.js';
 export { collectionMedia, processCollectionImage, cleanupCollectionUploads } from './collection-media.js';
 export { notificationAction } from './notification-actions.js';

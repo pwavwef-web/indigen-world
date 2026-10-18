@@ -2,6 +2,8 @@ import { getFirestore, type QueryDocumentSnapshot } from 'firebase-admin/firesto
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { requireAuth } from './auth.js';
 import { consumeRateLimit } from './rate-limit.js';
+import { dictionaryCandidates, createDictionaryIndex } from './dictionary-assistance.js';
+import type { DictionaryCandidate } from '@indigen-world/contracts/dictionary-assistance';
 import { spellingKey, kasemTokens, similarSpellings, type SpellingSuggestion, type SpellingResult } from '@indigen-world/contracts/kasem-spelling';
 
 export function approvedSpellings(id: string, data: Record<string, unknown>): SpellingSuggestion[] {
@@ -28,24 +30,29 @@ export function checkSpellings(words: readonly string[], approved: readonly Spel
 
 // Only the server holds this snapshot. Clients receive results for at most 80
 // requested tokens, never an archive download. Incomplete scans cannot prove absence.
-let cache: { words: SpellingSuggestion[]; complete: boolean; time: number } | undefined;
+let cache: { words: SpellingSuggestion[]; entries: DictionaryCandidate[]; index: ReturnType<typeof createDictionaryIndex>; complete: boolean; time: number } | undefined;
 let loading: Promise<NonNullable<typeof cache>> | undefined;
 export async function approvedSpellingSnapshot(fresh = false) {
   if (!fresh && cache && Date.now() - cache.time < 60_000) return cache;
   if (loading) return loading;
   loading = (async () => {
     const base = getFirestore().collection('dictionaryEntries').where('isPublished', '==', true)
-      .select('isPublished', 'lexicalKind', 'contentKind', 'entryType', 'mergedInto', 'mergedIntoId', 'kasemText', 'headword', 'kasem', 'word', 'translations', 'forms').limit(1000);
+      .select('isPublished', 'lexicalKind', 'contentKind', 'entryType', 'mergedInto', 'mergedIntoId', 'kasemText', 'headword', 'kasem', 'word', 'translations', 'forms',
+        'englishText', 'translation', 'english', 'definition', 'senses', 'englishTranslations', 'partOfSpeech', 'wordClass', 'format', 'ipa', 'audioUrl', 'culturalPermissionTier', 'approvedBy', 'verified', 'reviewStatus', 'publicationMode').limit(1000);
     let cursor: QueryDocumentSnapshot | undefined;
     const words: SpellingSuggestion[] = [];
+    const entries: DictionaryCandidate[] = [];
     let complete = false;
     for (let page = 0; page < 25; page++) {
       const result = await (cursor ? base.startAfter(cursor) : base).get();
-      for (const doc of result.docs) words.push(...approvedSpellings(doc.id, doc.data()));
+      for (const doc of result.docs) {
+        words.push(...approvedSpellings(doc.id, doc.data()));
+        entries.push(...dictionaryCandidates(doc.id, doc.data()));
+      }
       if (result.size < 1000) { complete = true; break; }
       cursor = result.docs[result.docs.length - 1];
     }
-    cache = { words, complete, time: Date.now() }; return cache;
+    cache = { words, entries, index: createDictionaryIndex(entries), complete, time: Date.now() }; return cache;
   })();
   try { return await loading; } finally { loading = undefined; }
 }

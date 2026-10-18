@@ -10,6 +10,10 @@
   "main": "./index.mjs",
   "types": "./index.d.ts",
   "exports": {
+    "./dictionary-assistance": {
+      "types": "./dictionary-assistance.d.ts",
+      "default": "./dictionary-assistance.mjs"
+    },
     "./contributor-details": {
       "types": "./contributor-details.d.ts",
       "default": "./contributor-details.mjs"
@@ -44,6 +48,8 @@
     }
   },
   "files": [
+    "dictionary-assistance.mjs",
+    "dictionary-assistance.d.ts",
     "contributor-details.mjs",
     "contributor-details.d.ts",
     "kasem-spelling.mjs",

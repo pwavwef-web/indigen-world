@@ -1,0 +1,98 @@
+{
+  "source": "Read-only published dictionaryEntries, project-kassena-7e026, 2026-10-18. Public language records; selected fields only.",
+  "entries": [
+    {
+      "id": "PPy0HTSihpFQrrr7LtpR",
+      "isPublished": true,
+      "kasemText": "Bakeira",
+      "englishText": "Boy",
+      "partOfSpeech": "Noun",
+      "verified": true
+    },
+    {
+      "id": "bgl97-4073327e0a09e482e2c02485",
+      "isPublished": true,
+      "kasemText": "vei",
+      "englishText": "going or intending to go",
+      "partOfSpeech": "Not specified in source",
+      "translations": [
+        "vei"
+      ],
+      "lexicalKind": "word",
+      "verified": false,
+      "publicationMode": "owner-direct-source"
+    },
+    {
+      "id": "bgl97-8001df131b3acdff746e2a71",
+      "isPublished": true,
+      "kasemText": "véi",
+      "englishText": "go, imperative",
+      "partOfSpeech": "Not specified in source",
+      "translations": [
+        "véi"
+      ],
+      "lexicalKind": "word",
+      "verified": false,
+      "publicationMode": "owner-direct-source"
+    },
+    {
+      "id": "bgl97-8b2704c7677141b4aab8ff2d",
+      "isPublished": true,
+      "kasemText": "vèi",
+      "englishText": "went, past",
+      "partOfSpeech": "Not specified in source",
+      "translations": [
+        "vèi"
+      ],
+      "lexicalKind": "word",
+      "verified": false,
+      "publicationMode": "owner-direct-source"
+    },
+    {
+      "id": "bgl97-8b2fdfb3cbe8397625075b5b",
+      "isPublished": true,
+      "kasemText": "deém",
+      "englishText": "long ago",
+      "partOfSpeech": "Not specified in source",
+      "translations": [
+        "deém"
+      ],
+      "lexicalKind": "word",
+      "verified": false,
+      "publicationMode": "owner-direct-source"
+    },
+    {
+      "id": "bgl97-9a2e7a360ffde9f2851704f2",
+      "isPublished": true,
+      "kasemText": "vei",
+      "englishText": "to go",
+      "partOfSpeech": "v.",
+      "translations": [
+        "vei"
+      ],
+      "lexicalKind": "word",
+      "verified": false,
+      "publicationMode": "owner-direct-source"
+    },
+    {
+      "id": "collection_LShsAFaOuhVYsPeXlgYB",
+      "isPublished": true,
+      "kasemText": "sɔŋɔ",
+      "englishText": "home",
+      "partOfSpeech": "Noun",
+      "translations": [
+        "sɔŋɔ"
+      ],
+      "lexicalKind": "word",
+      "verified": true
+    },
+    {
+      "id": "project_kasena_ak012",
+      "isPublished": true,
+      "kasemText": "ampʋlɩ bu",
+      "englishText": "bulb",
+      "partOfSpeech": "Noun",
+      "verified": false
+    }
+  ]
+}

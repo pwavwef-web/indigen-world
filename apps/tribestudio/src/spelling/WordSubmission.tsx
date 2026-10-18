@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { emptyDraft, PARTS_OF_SPEECH, partOfSpeechLabel } from '../creator/lexicon';
 import { submitDictionaryEntry } from '../creator/dictionary-data';
-import { spellingLookup, wordSubmissionStatus } from './data';
+import { spellingLookup, dictionaryLookup, wordSubmissionStatus } from './data';
 
 export function WordSubmission({ word, onClose }: { word: string; onClose: () => void }) {
   const [draft, setDraft] = useState(() => ({ ...emptyDraft(), headword: word, partOfSpeech: '', dialect: '' }));
@@ -34,14 +34,14 @@ export function WordSubmission({ word, onClose }: { word: string; onClose: () =>
         sending.current = true; setStatus('sending'); setError('');
         try {
           await submitDictionaryEntry(draft, true);
-          spellingLookup.invalidate(word); setStatus('sent');
+          spellingLookup.invalidate(word); dictionaryLookup.invalidate(word); dictionaryLookup.invalidate(draft.headword); setStatus('sent');
         } catch (reason) {
           setError(reason instanceof Error ? reason.message : 'Could not send. Your details are still here.');
           try { setStatus(await wordSubmissionStatus(word)); } catch { setStatus('available'); }
         } finally { sending.current = false; }
       }}>
         <fieldset disabled={status === 'sending'} className="ks-word-fields">
-          <label className="ts-field"><span className="ts-label">Kasem word</span><input className="ts-input" value={word} readOnly spellCheck={false} autoCorrect="off" autoCapitalize="none" lang="xsm" /></label>
+          <label className="ts-field"><span className="ts-label">Kasem word</span><input className="ts-input" aria-label="Kasem word" aria-describedby="ks-nomination-help" required maxLength={100} value={draft.headword} onChange={e => setDraft(current => ({ ...current, headword: e.target.value }))} spellCheck={false} autoCorrect="off" autoCapitalize="none" lang="xsm" /><small id="ks-nomination-help">Add tone marks if known. This nomination does not change your sentence.</small></label>
           <label className="ts-field"><span className="ts-label">Meaning in English *</span><input className="ts-input" required maxLength={180} value={draft.senses[0].definition} onChange={e => setDraft(current => ({ ...current, senses: [{ ...current.senses[0], definition: e.target.value }] }))} /></label>
           <label className="ts-field"><span className="ts-label">Word class *</span><select className="ts-select" required value={draft.partOfSpeech} onChange={e => setDraft(current => ({ ...current, partOfSpeech: e.target.value }))}><option value="">Choose a word class</option>{PARTS_OF_SPEECH.map(option => <option key={option} value={option}>{partOfSpeechLabel(option)}</option>)}</select></label>
           <label className="ts-field"><span className="ts-label">Dialect *</span><select className="ts-select" required value={draft.dialect} onChange={e => setDraft(current => ({ ...current, dialect: e.target.value }))}><option value="">Choose a dialect</option>{['Navrongo', 'Paga', 'Chiana', 'Other', 'Not sure'].map(value => <option key={value}>{value}</option>)}</select></label>

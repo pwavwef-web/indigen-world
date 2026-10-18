@@ -6,7 +6,7 @@ import { spellingKey } from '@indigen-world/contracts/kasem-spelling';
 
 const base = process.env.STUDIO_PREVIEW_URL ?? 'http://127.0.0.1:5199';
 const executablePath = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(existsSync);
-const output = resolve(import.meta.dirname, '../../updates-blog/posts/2026-10-10-kasem-dictionary-assistance/images');
+const output = resolve(import.meta.dirname, '../../../outputs/dictionary-spelling-regression');
 mkdirSync(output, { recursive: true });
 const browser = await chromium.launch({ executablePath, headless: true });
 const fixture = new Set(['ni', 'ɛ́ŋɔ']);
@@ -19,8 +19,9 @@ try {
     await context.route('**/*', async route => {
       const url = new URL(route.request().url());
       if (url.hostname === '127.0.0.1') return route.continue();
-      if (url.pathname.endsWith('/checkKasemSpelling')) {
-        const words = route.request().postDataJSON().data.words; calls.push(words);
+      if (url.pathname.endsWith('/getKasemDictionaryAssistance') && route.request().postDataJSON().data.source) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ result: { recommendations: [], complete: true } }) });
+      if (url.pathname.endsWith('/checkKasemSpelling') || url.pathname.endsWith('/getKasemDictionaryAssistance')) {
+        const data = route.request().postDataJSON().data, words = data.words ?? data.terms; calls.push(words);
         if (fail) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: { status: 'UNAVAILABLE', message: 'Test outage' } }) });
         return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ result: { results: words.map(word => ({ key: spellingKey(word), status: fixture.has(spellingKey(word)) ? 'approved' : 'missing', suggestions: word === 'nii' ? [{ id: 'fixture-ni', word: 'Ni' }] : [] })) } }) });
       }
@@ -33,6 +34,7 @@ try {
     });
     const page = await context.newPage(); page.on('pageerror', error => errors.push(error.message));
     await page.goto(base + '/contributor/preview/assignment/everyday?item=e6');
+    await page.getByRole('button', { name: /2 Translate/ }).click();
     const field = page.locator('.cw-translation'); await field.waitFor();
     await field.fill('Ni Nii Nii, ɛ\u0301ŋɔ.');
     await page.waitForFunction(() => document.querySelectorAll('.ks-missing').length === 2);
@@ -40,6 +42,7 @@ try {
     assert.equal(await field.getAttribute('autocorrect'), 'off');
     assert.equal(await field.getAttribute('autocapitalize'), 'none');
     assert.equal(calls.length, 1, 'one debounced request');
+    await field.evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
     const wordRect = await page.locator('.ks-missing').nth(1).boundingBox();
     if (mobile) await page.touchscreen.tap(wordRect.x + 8, wordRect.y + 8); else await page.mouse.click(wordRect.x + 8, wordRect.y + 8);
     await page.getByRole('dialog', { name: 'Dictionary assistance for Nii' }).waitFor();

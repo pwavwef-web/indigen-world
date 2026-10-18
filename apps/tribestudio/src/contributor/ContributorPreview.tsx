@@ -56,6 +56,7 @@ const ITEMS: Record<string, Item[]> = {
     sample('e6', 'We learn from those who came before us.', 'new'),
     sample('e7', 'I will see you tomorrow.', 'new'),
     sample('e8', 'May your journey be peaceful.', 'new'),
+    sample('e9', 'The boy is going home.', 'new'),
   ],
   greetings: [
     sample('g1', 'You are welcome here.', 'approved', 200),

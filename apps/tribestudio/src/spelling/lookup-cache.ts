@@ -14,7 +14,7 @@ export function createSpellingLookup(call: (words: string[]) => Promise<Spelling
     let results: SpellingResult[] = [];
     try { results = await call(batch); } catch { /* No cached failure, no invented absence. */ }
     for (const key of batch) {
-      const result = results.find(row => row.key === key && ['approved', 'missing', 'unknown'].includes(row.status))
+      const result = results.find(row => row.key === key && ['approved', 'review', 'missing', 'unknown'].includes(row.status))
         ?? { key, status: 'unknown' as const, suggestions: [] };
       if (result.status !== 'unknown') cache.set(key, { result, expires: now() + (result.status === 'missing' ? 15_000 : 60_000) });
       pending.get(key)?.resolve(result); pending.delete(key);
@@ -26,7 +26,7 @@ export function createSpellingLookup(call: (words: string[]) => Promise<Spelling
   return {
     invalidate(key: string) { cache.delete(spellingKey(key)); },
     async lookup(words: readonly string[]): Promise<SpellingResult[]> {
-      return Promise.all([...new Set(words.map(spellingKey))].filter(key => key.length <= 100).map(key => {
+      return Promise.all([...new Set(words.map(spellingKey))].filter(key => key.length <= 160).map(key => {
         const saved = cache.get(key);
         if (saved && saved.expires > now()) return saved.result;
         if (!pending.has(key)) {

@@ -1,0 +1,14 @@
+{
+  "accent": "blue",
+  "motif": "rings",
+  "eyebrow": "Kasem · Contributor portal",
+  "title": "The dictionary,\nright where you write.",
+  "lede": "Choose documented words and tone marks. Keep the meaning in your hands.",
+  "tags": ["Dictionary vocabulary", "Tone choices", "Community review"],
+  "hero": [{ "file": "dictionary-words-desktop.png", "kind": "browser" }, { "file": "tone-review-mobile.png", "kind": "phone" }],
+  "figures": {
+    "dictionary-words-desktop.png": { "kind": "browser", "title": "Words for the\nmeaning you intend", "note": "Actual local product preview, using published dictionary records retrieved on October 18. Vocabulary help does not translate the sentence." },
+    "tone-review-mobile.png": { "kind": "phone", "title": "One spelling.\nMore than one meaning.", "note": "Choose the documented tone pattern for this occurrence. The unmarked spelling can also be valid." },
+    "dictionary-review-desktop.png": { "kind": "browser", "title": "Spot a gap.\nHelp document it.", "note": "Actual local preview. The unfamiliar word is a labelled test fixture; nominations still require community review." }
+  }
+}

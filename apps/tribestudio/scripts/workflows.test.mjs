@@ -27,6 +27,7 @@ const KIT_MOCKS = {
   useJourney: () => ({ value: { weeklyGoal: 3, sessionSize: 3, celebrations: false }, loading: false, error: '', save: async () => true }),
   MilestoneBurst: 'MilestoneBurst', JourneyProvider: 'JourneyProvider', CollectionHome: 'CollectionHome',
   KasemField: 'KasemField',
+  DictionaryRecommendations: 'DictionaryRecommendations', DictionaryReview: 'DictionaryReview',
   ...Object.fromEntries(KIT.map((name) => [name, name])),
   cx: (...values) => values.filter(Boolean).join(' '),
   spotlight() {},
