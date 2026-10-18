@@ -48,8 +48,8 @@ The server shares the existing 60-second, paged dictionary snapshot, capped at 2
 
 Final run status is recorded with the release evidence. Completed checks:
 
-- Functions TypeScript build and bundle; TribeStudio typecheck, design-system validator, all 79 frontend workflow tests and production build.
-- 66 backend/unit checks covering dictionary behavior, existing contributor submissions/review/consent, and reward arithmetic; 15 focused assistance/spelling/cache checks (some overlap).
+- Functions TypeScript build and bundle; TribeStudio typecheck, design-system validator, all 80 frontend workflow tests and production build.
+- 66 backend/unit checks covering dictionary behavior, existing contributor submissions/review/consent, and reward arithmetic; 16 focused assistance/spelling/cache checks (some overlap). The cache retains the older single-word service's 100-character limit while allowing 160-character terms only for the new phrase service.
 - Five real Firestore emulator checks: auth/bounds/private-data filtering; canonical nominations and duplicate retry protection; pending/approved status; real-schema word/phrase suggestions without side effects; exact-Unicode sentence submission and retry through the normal review queue, with no immediate points.
 - All 14 existing rewards emulator checks, including concurrent spending, immutable assessed awards, ambiguous provider outcomes and the real local Python assessment worker.
 - Both existing spelling-regression browser scenarios, desktop and 390 px touch mobile.

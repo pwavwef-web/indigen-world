@@ -7,7 +7,7 @@ import type { DictionaryCandidate } from '@indigen-world/contracts/dictionary-as
 const check = httpsCallable<{ words: string[] }, { results: SpellingResult[] }>(functions, 'checkKasemSpelling');
 export const spellingLookup = createSpellingLookup(async words => (await check({ words })).data.results);
 const assist = httpsCallable<{ terms?: string[]; source?: string }, { results: SpellingResult[]; recommendations: DictionaryCandidate[]; complete: boolean }>(functions, 'getKasemDictionaryAssistance');
-export const dictionaryLookup = createSpellingLookup(async terms => (await assist({ terms })).data.results);
+export const dictionaryLookup = createSpellingLookup(async terms => (await assist({ terms })).data.results, Date.now, 160);
 // Small session cache; no dictionary archive or private draft persists here.
 const sources = new Map<string, { expires: number; promise: ReturnType<typeof assist> }>();
 export async function sentenceRecommendations(source: string) {

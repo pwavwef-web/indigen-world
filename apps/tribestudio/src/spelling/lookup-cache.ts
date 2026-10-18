@@ -1,7 +1,7 @@
 import { spellingKey, type SpellingResult } from '@indigen-world/contracts/kasem-spelling';
 
 /** Bounded, coalesced lookups shared by all open fields; failures are never misses. */
-export function createSpellingLookup(call: (words: string[]) => Promise<SpellingResult[]>, now = Date.now) {
+export function createSpellingLookup(call: (words: string[]) => Promise<SpellingResult[]>, now = Date.now, maxTermLength = 100) {
   const cache = new Map<string, { result: SpellingResult; expires: number }>();
   const pending = new Map<string, { promise: Promise<SpellingResult>; resolve: (result: SpellingResult) => void }>();
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -26,7 +26,7 @@ export function createSpellingLookup(call: (words: string[]) => Promise<Spelling
   return {
     invalidate(key: string) { cache.delete(spellingKey(key)); },
     async lookup(words: readonly string[]): Promise<SpellingResult[]> {
-      return Promise.all([...new Set(words.map(spellingKey))].filter(key => key.length <= 160).map(key => {
+      return Promise.all([...new Set(words.map(spellingKey))].filter(key => key.length <= maxTermLength).map(key => {
         const saved = cache.get(key);
         if (saved && saved.expires > now()) return saved.result;
         if (!pending.has(key)) {

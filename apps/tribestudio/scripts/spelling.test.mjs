@@ -39,3 +39,13 @@ test('long text is served in bounded batches and missing results expire quickly'
   assert.deepEqual(calls.map(words => words.length), [80, 80, 10]);
   time = 16_000; await client.lookup([words[0]]); assert.equal(calls.length, 4);
 });
+
+test('legacy individual-word requests retain their 100-character bound while phrase assistance permits 160', async () => {
+  const calls = [];
+  const call = async words => { calls.push(words); return words.map(key => ({ key, status: 'review', suggestions: [] })); };
+  const legacy = createSpellingLookup(call), phrases = createSpellingLookup(call, Date.now, 160);
+  await legacy.lookup(['Ni', 'a'.repeat(120)]);
+  assert.deepEqual(calls[0], ['ni'], 'oversized words cannot poison a legacy batch');
+  assert.equal((await phrases.lookup(['a'.repeat(120)]))[0].status, 'review');
+  assert.equal(calls[1][0].length, 120);
+});
