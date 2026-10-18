@@ -2,7 +2,7 @@
 
 ## Outcome and release
 
-Implemented inside the existing TribeStudio assigned sentence editor. Production deployment is pending final release verification; the release post will record the confirmed function revisions and Hosting evidence. No native Flutter or Play Store release is part of this work.
+Implemented and deployed inside the existing TribeStudio assigned sentence editor on October 18, 2026. Available at [the contributor portal](https://tribestudio.indigenworld.com/contributor) and [Firebase Hosting](https://tribestudio.web.app/contributor). The release evidence is recorded [with the new post](../../apps/updates-blog/posts/2026-10-18-dictionary-guided-translations/release-evidence.json). No native Flutter or Play Store release is part of this work.
 
 ## Existing data inspected before implementation
 
@@ -40,7 +40,7 @@ The server shares the existing 60-second, paged dictionary snapshot, capped at 2
 - Exact translation persistence: `services/functions/src/contributor-portal.ts`.
 - Native editor, settings, source cards, review and nominations: `apps/tribestudio/src/spelling/{DictionaryAssistance.tsx,KasemField.tsx,WordSubmission.tsx,data.ts,lookup-cache.ts,spelling.css}` and `src/contributor/editor.tsx`.
 - Development-only English demonstration task: `apps/tribestudio/src/contributor/ContributorPreview.tsx`.
-- Meaningful tests and public fixture: `firebase/tests/dictionaryAssistance.test.mjs`, `fixtures/translation-dictionary.json`, extended `kasemSpelling.integration.test.mjs`, `apps/tribestudio/scripts/dictionary-assistance-browser.test.mjs`, the existing spelling browser regression and workflow component mocks; root npm scripts.
+- Meaningful tests and public fixture: `firebase/tests/dictionaryAssistance.test.mjs`, `fixtures/translation-dictionary.json`, extended `kasemSpelling.integration.test.mjs`, `apps/tribestudio/scripts/dictionary-assistance-browser.test.mjs`, the existing `spelling.test.mjs` and spelling browser regression, and workflow component mocks; root npm scripts.
 - Read-only inspection tool: `services/functions/scripts/audit-translation-dictionary.mjs`.
 - This report and the new dated release post, article images, Blogger instructions and sharing handoff, linked from the release index.
 
@@ -62,4 +62,8 @@ No collection, schema migration, backfill, index or rule change is required. The
 
 Coverage and contextual meaning remain dictionary-dependent. Conservative English matching can miss paraphrases and cannot disambiguate every English sense; the contributor chooses. This does not judge Kasem grammar or automatically require tone on every word. Source publication is not independent speaker confirmation. Phrase, result and snapshot bounds are deliberate and flagged where relevant. Per-occurrence session decisions reset on task reload. Native undo/redo is verified in Chromium, not on every browser/keyboard. Audio availability reflects the existing record and may include existing reviewed synthetic audio.
 
-Production verification checks function state, callable authentication and served build assets. It does not create a real signed-in production translation or nomination. The full emulator/browser flows provide the submission evidence. Blogger publication and community sharing remain with Chinedum.
+Production verification confirmed both Node 22 functions ACTIVE: `getkasemdictionaryassistance-00002-pux` and `saveexpressionanswer-00010-doy`. Both return HTTP 401 / UNAUTHENTICATED without sign-in. The contributor route returns HTTP 200 on both domains, and the HTML plus seven relevant JavaScript/CSS files match the tested build byte-for-byte. Four fresh live browser contexts cover both domains at 1440 px and 390 px; the sign-in form renders without JavaScript errors or horizontal overflow. The deployed checkout is `f5a2507c82a63f0c8e1af9d63c05b2979f8830ca` on `origin/main`.
+
+Firebase CLI 15.34.0 confirmed both function updates and the TribeStudio Hosting release. The first generated manifest used a legacy bucket because its local generator lacked the full Firebase configuration; it was regenerated with the actual `.firebasestorage.app` bucket and all 236 exports were checked. The older CLI then stopped advancing after initial function creation; the callable's intended public transport was completed without changing its authentication guard, and the current CLI completed both updates. One verification connection timeout was retried successfully. Existing Hosting predeploy checks also passed the public website's 29 tests and the standalone dictionary's four tests; those sites were not deployed.
+
+Production verification does not create a real signed-in translation or nomination. The full emulator/browser flows provide the submission evidence. Blogger publication and community sharing remain with Chinedum. No failures remain in the final required checks.

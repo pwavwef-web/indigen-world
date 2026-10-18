@@ -1,0 +1,168 @@
+{
+  "verifiedAt": "2026-10-18T14:36:50.023Z",
+  "codeCommit": "f5a2507c82a63f0c8e1af9d63c05b2979f8830ca",
+  "functions": [
+    {
+      "name": "getKasemDictionaryAssistance",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-18T14:32:23.070935002Z",
+      "revision": "getkasemdictionaryassistance-00002-pux",
+      "runtime": "nodejs22",
+      "unauthenticatedStatus": 401
+    },
+    {
+      "name": "saveExpressionAnswer",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-18T14:32:28.307455955Z",
+      "revision": "saveexpressionanswer-00010-doy",
+      "runtime": "nodejs22",
+      "unauthenticatedStatus": 401
+    }
+  ],
+  "hosting": [
+    {
+      "origin": "https://tribestudio.indigenworld.com",
+      "contributorRouteStatus": 200,
+      "checks": [
+        {
+          "path": "index.html",
+          "status": 200,
+          "sha256": "f997bad8630589e649573bdc58c4ba777d1d87b64bf0b30450f4be74250f119b"
+        },
+        {
+          "path": "assets/ContributorPortal-CDVQk60M.js",
+          "status": 200,
+          "sha256": "dff3d8e41292cdd3e128b9ba2a7c6d5bff5b66ca88c2c8f7f3d190b97ded0970"
+        },
+        {
+          "path": "assets/ContributorPortal-Ce9m6xTs.css",
+          "status": 200,
+          "sha256": "30cd39e145ac577bac4016f7c4f2fee5d341b6891a48378b8ec7c6a75aae6502"
+        },
+        {
+          "path": "assets/data-DOeyQ2Ma.js",
+          "status": 200,
+          "sha256": "b49c75165fe4edbcdbf37cd7a1d558dcc3253111818ea940103f78ea0dbe8c2f"
+        },
+        {
+          "path": "assets/index-CiEQdSDT.js",
+          "status": 200,
+          "sha256": "805e5c8b8cb0f13ab3af30e554428034eb8fc8e3ea9e3109a7018bf702ce06b2"
+        },
+        {
+          "path": "assets/index-CXsFdOT8.css",
+          "status": 200,
+          "sha256": "bce6123b74543af163f20ae55139bf46dc9cd597a2f74d4005fcaafa6d516f61"
+        },
+        {
+          "path": "assets/KasemField-DvYg4yUu.css",
+          "status": 200,
+          "sha256": "102b0b1f4ea160eb91c35f3682d912fa462fc0d349c692032d79b4a4dc29a69d"
+        },
+        {
+          "path": "assets/KasemField-imPl-qju.js",
+          "status": 200,
+          "sha256": "fa57b84b20d35b85375c5dcb40c2ab42a029b6d418f71854619b56b285118d3e"
+        }
+      ]
+    },
+    {
+      "origin": "https://tribestudio.web.app",
+      "contributorRouteStatus": 200,
+      "checks": [
+        {
+          "path": "index.html",
+          "status": 200,
+          "sha256": "f997bad8630589e649573bdc58c4ba777d1d87b64bf0b30450f4be74250f119b"
+        },
+        {
+          "path": "assets/ContributorPortal-CDVQk60M.js",
+          "status": 200,
+          "sha256": "dff3d8e41292cdd3e128b9ba2a7c6d5bff5b66ca88c2c8f7f3d190b97ded0970"
+        },
+        {
+          "path": "assets/ContributorPortal-Ce9m6xTs.css",
+          "status": 200,
+          "sha256": "30cd39e145ac577bac4016f7c4f2fee5d341b6891a48378b8ec7c6a75aae6502"
+        },
+        {
+          "path": "assets/data-DOeyQ2Ma.js",
+          "status": 200,
+          "sha256": "b49c75165fe4edbcdbf37cd7a1d558dcc3253111818ea940103f78ea0dbe8c2f"
+        },
+        {
+          "path": "assets/index-CiEQdSDT.js",
+          "status": 200,
+          "sha256": "805e5c8b8cb0f13ab3af30e554428034eb8fc8e3ea9e3109a7018bf702ce06b2"
+        },
+        {
+          "path": "assets/index-CXsFdOT8.css",
+          "status": 200,
+          "sha256": "bce6123b74543af163f20ae55139bf46dc9cd597a2f74d4005fcaafa6d516f61"
+        },
+        {
+          "path": "assets/KasemField-DvYg4yUu.css",
+          "status": 200,
+          "sha256": "102b0b1f4ea160eb91c35f3682d912fa462fc0d349c692032d79b4a4dc29a69d"
+        },
+        {
+          "path": "assets/KasemField-imPl-qju.js",
+          "status": 200,
+          "sha256": "fa57b84b20d35b85375c5dcb40c2ab42a029b6d418f71854619b56b285118d3e"
+        }
+      ]
+    }
+  ],
+  "liveBrowserChecks": [
+    {
+      "origin": "https://tribestudio.indigenworld.com",
+      "viewport": 1440,
+      "status": 200,
+      "signInForm": true,
+      "horizontalOverflow": false
+    },
+    {
+      "origin": "https://tribestudio.indigenworld.com",
+      "viewport": 390,
+      "status": 200,
+      "signInForm": true,
+      "horizontalOverflow": false
+    },
+    {
+      "origin": "https://tribestudio.web.app",
+      "viewport": 1440,
+      "status": 200,
+      "signInForm": true,
+      "horizontalOverflow": false
+    },
+    {
+      "origin": "https://tribestudio.web.app",
+      "viewport": 390,
+      "status": 200,
+      "signInForm": true,
+      "horizontalOverflow": false
+    }
+  ],
+  "liveBrowserErrors": [],
+  "productionDictionaryInspection": {
+    "publishedRecords": 1554,
+    "markedHeadwords": 29,
+    "readOnly": true
+  },
+  "validation": {
+    "backendUnit": 66,
+    "frontend": 80,
+    "focusedAssistance": 16,
+    "spellingAndAssistanceFirestore": 5,
+    "rewardsFirestore": 14,
+    "desktopMobileBrowserScenarios": 4,
+    "build": "passed",
+    "typecheck": "passed",
+    "releaseArt": "rendered and visually inspected"
+  },
+  "limits": [
+    "No real production translation or dictionary nomination was submitted for verification.",
+    "No native mobile app release.",
+    "Blogger article and community sharing remain unpublished."
+  ]
+}
