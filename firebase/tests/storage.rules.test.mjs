@@ -465,3 +465,22 @@ test('contributor payout statements are owner-created once, typed and sized, and
   await assert.rejects(uploadBytes(ref(owner, 'contributor-payout-statements/statement-owner/upload-00000006/huge.pdf'), new Uint8Array(10 * 1024 * 1024 + 1), { contentType: 'application/pdf' }));
   await assert.rejects(uploadBytes(ref(owner, 'contributor-payout-statements/statement-owner/short/s.pdf'), pdf, { contentType: 'application/pdf' }), 'upload ids are 8-64 safe characters');
 });
+
+test('finance receipts: editors and finance admins upload once into their own folder; viewers and clients never read them', async () => {
+  const editor = await clientFor('fin-editor', 'fin-editor', { financeRole: 'editor' });
+  const admin = await clientFor('fin-admin', 'fin-admin', { role: 'admin', finance: true });
+  const viewer = await clientFor('fin-viewer', 'fin-viewer', { financeRole: 'viewer' });
+  const plainAdmin = await clientFor('fin-plain-admin', 'fin-plain-admin', { role: 'admin' });
+  const pdf = new Uint8Array(2048);
+  pdf.set([0x25, 0x50, 0x44, 0x46, 0x2d]);
+  const path = 'finance-receipts/fin-editor/upload-00000001/momo-receipt.pdf';
+  await uploadBytes(ref(editor, path), pdf, { contentType: 'application/pdf' });
+  await uploadBytes(ref(admin, 'finance-receipts/fin-admin/upload-00000001/invoice.png'), pdf, { contentType: 'image/png' });
+  await assert.rejects(getBytes(ref(editor, path)), 'documents open through the audited callable, not the client SDK');
+  await assert.rejects(uploadBytes(ref(editor, path), pdf, { contentType: 'application/pdf' }), 'no overwrite');
+  await assert.rejects(uploadBytes(ref(viewer, 'finance-receipts/fin-viewer/upload-00000001/r.pdf'), pdf, { contentType: 'application/pdf' }), 'viewers are read-only');
+  await assert.rejects(uploadBytes(ref(plainAdmin, 'finance-receipts/fin-plain-admin/upload-00000001/r.pdf'), pdf, { contentType: 'application/pdf' }), 'an admin role alone is not finance access');
+  await assert.rejects(uploadBytes(ref(editor, 'finance-receipts/fin-admin/upload-00000002/r.pdf'), pdf, { contentType: 'application/pdf' }), 'only into one’s own folder');
+  await assert.rejects(uploadBytes(ref(editor, 'finance-receipts/fin-editor/upload-00000002/r.html'), pdf, { contentType: 'text/html' }));
+  await assert.rejects(uploadBytes(ref(editor, 'finance-receipts/fin-editor/upload-00000003/big.pdf'), new Uint8Array(10 * 1024 * 1024 + 1), { contentType: 'application/pdf' }));
+});

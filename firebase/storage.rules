@@ -345,6 +345,32 @@ service firebase.storage {
       allow read, update, delete: if false;
     }
 
+    // Receipts and supporting documents for project finance. A finance editor
+    // or finance administrator uploads into their own folder, once per upload
+    // id; nobody reads, replaces or deletes them from a client. The
+    // financeCentre callable re-reads the real type and size before linking
+    // the file to an entry, and opens it for finance viewers through a
+    // five-minute signed link that is written to the finance audit trail.
+    function canRecordFinance() {
+      return isSignedIn() && (
+        request.auth.token.get('superAdmin', false) == true
+        || role() == 'super_admin'
+        || (request.auth.token.get('finance', false) == true && (role() == 'admin' || role() == 'super_admin'))
+        || request.auth.token.get('financeRole', '') == 'editor'
+      );
+    }
+    match /finance-receipts/{uid}/{uploadId}/{fileName} {
+      allow create: if canRecordFinance()
+        && request.auth.uid == uid
+        && resource == null
+        && uploadId.matches('^[A-Za-z0-9_-]{8,64}$')
+        && fileName.matches('^[A-Za-z0-9_-][A-Za-z0-9._-]{0,119}$')
+        && request.resource.size > 0
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType in ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+      allow read, update, delete: if false;
+    }
+
     // ---- Kawuri creations: private, server-written --------------------------
     // Generated images and videos, imported by trusted backend code. Readable
     // by their owner only; never written or deleted by a client — deletion

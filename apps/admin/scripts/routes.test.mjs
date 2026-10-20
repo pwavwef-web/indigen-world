@@ -9,6 +9,7 @@ import {
   SECTIONS,
   hasFinanceAccess,
   resolve,
+  sectionById,
   sectionEntry,
   toolPath,
   visibleSections,
@@ -67,7 +68,7 @@ test('a section address without a front tool opens the first tool the person may
 test('denied access names the permission instead of a 404', () => {
   const finance = resolve('/finance/redemptions', validator);
   assert.equal(finance.kind, 'denied');
-  assert.equal(finance.needs, 'admin');
+  assert.equal(finance.needs, 'finance-section', 'Finance opens to admins and to finance roles');
   const payouts = resolve('/finance/payouts', admin);
   assert.equal(payouts.kind, 'denied');
   assert.equal(payouts.needs, 'finance');
@@ -96,4 +97,23 @@ test('finance access mirrors the server rule', () => {
   assert.equal(hasFinanceAccess(financeAdmin), true);
   assert.equal(hasFinanceAccess({ role: null, finance: false, superAdmin: true }), true);
   assert.equal(hasFinanceAccess({ role: 'super_admin', finance: false, superAdmin: false }), true);
+});
+
+test('project money: finance roles see the ledger, a plain admin keeps only the points tools', () => {
+  const viewer = { role: null, finance: false, superAdmin: false, financeRole: 'viewer' };
+  const editor = { role: 'validator', finance: false, superAdmin: false, financeRole: 'editor' };
+  assert.equal(resolve('/finance', financeAdmin).kind, 'tool', 'a finance administrator lands on the money overview');
+  assert.equal(resolve('/finance', financeAdmin).tool.id, 'overview');
+  assert.deepEqual(resolve('/finance', admin), { kind: 'redirect', to: '/finance/points' }, 'a plain admin is sent to the points tools');
+  assert.equal(resolve('/finance/transactions', admin).kind, 'denied');
+  assert.equal(resolve('/finance/transactions', admin).needs, 'finance-view');
+  for (const person of [viewer, editor]) {
+    assert.equal(resolve('/finance/transactions', person).kind, 'tool');
+    assert.equal(resolve('/finance/reports', person).kind, 'tool');
+    assert.equal(resolve('/finance/redemptions', person).kind, 'denied', 'points tools stay with admins');
+  }
+  assert.deepEqual(visibleTools(sectionById('finance'), viewer).map((t) => t.id),
+    ['overview', 'transactions', 'funding', 'expenses', 'accounts', 'audit-trail', 'reports', 'finance-settings']);
+  assert.ok(visibleSections(viewer).some((s) => s.id === 'finance'));
+  assert.ok(!visibleSections(validator).some((s) => s.id === 'finance'));
 });

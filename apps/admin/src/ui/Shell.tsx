@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { Fragment, useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { BrandMark } from '../../../tribestudio/src/ui/BrandMark';
 import { countValue, useAttention } from '../attention';
 import { Link, useRouter } from '../router';
@@ -283,9 +283,12 @@ export function SectionSidebar({ section, tool, badges, onNavigate }: {
       <SectionSwitcher current={section} />
       <p className="ts-nav__heading ad-side__heading">{section.label}</p>
       <div className="ad-side__links">
-        {tools.map((item) => {
+        {tools.map((item, index) => {
           const badge = badges?.[item.id];
+          const heading = item.group && item.group !== tools[index - 1]?.group && tools.some((other) => other.group !== item.group) ? item.group : null;
           return (
+            <Fragment key={item.id}>
+            {heading ? <p className="ad-side__group">{heading}</p> : null}
             <Link
               key={item.id}
               to={toolPath(section, item)}
@@ -298,6 +301,7 @@ export function SectionSidebar({ section, tool, badges, onNavigate }: {
               <span>{item.label}</span>
               {badge ? <span className="ts-count ts-count--warning" aria-label={`${badge} waiting`}>{badge}</span> : null}
             </Link>
+            </Fragment>
           );
         })}
       </div>

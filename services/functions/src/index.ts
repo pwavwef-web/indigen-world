@@ -231,3 +231,4 @@ export { notificationAction } from './notification-actions.js';
 export { houseAdsAdmin } from './house-ads.js';
 export { notificationCampaignAdmin, dispatchNotificationCampaigns } from './notification-campaigns.js';
 export { notificationDeliveryPreferences, retryNotificationPushes } from './notification-dispatch.js';
+export { financeCentre, onFinanceAdPayment, onFinanceShopTransaction, onFinanceRedemption, onFinancePayout, financeDailyDigest } from './finance-centre.js';

@@ -1529,3 +1529,10 @@ a.ad-tile:hover {
     display: none;
   }
 }
+
+/* -- Sidebar groups (Finance has two kinds of work) ------------------------------------------------ */
+.ad-side__group {
+  margin: var(--space-3) 0 0.15rem; padding: 0 0.75rem; color: var(--text-4, var(--text-3));
+  font-size: var(--fs-micro); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+}
+.ad-side__links > .ad-side__group:first-child { margin-top: 0; }

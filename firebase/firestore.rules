@@ -2463,6 +2463,25 @@ service cloud.firestore {
     match /rewardBudgets/{month} {
       allow read, write: if false;
     }
+    // ---- Project finance (Financial Management & Audit Centre) -------------
+    // The money ledger, its audit trail and everything around it are closed
+    // to every client, including administrators: reads and writes go through
+    // the `financeCentre` callable, which checks the finance level (viewer,
+    // editor or finance administrator) on each call and writes the audit row
+    // in the same transaction as the change. Nothing here can be edited or
+    // deleted from a browser, so audit history cannot be rewritten.
+    match /financeTransactions/{id} { allow read, write: if false; }
+    match /financeAudit/{id} { allow read, write: if false; }
+    match /financeAccounts/{id} { allow read, write: if false; }
+    match /financeCategories/{id} { allow read, write: if false; }
+    match /financeFundingSources/{id} { allow read, write: if false; }
+    match /financeBudgets/{id} { allow read, write: if false; }
+    match /financeRecurring/{id} { allow read, write: if false; }
+    match /financeReconciliations/{id} { allow read, write: if false; }
+    match /financeReferences/{id} { allow read, write: if false; }
+    match /financeSettings/{id} { allow read, write: if false; }
+    match /financeDigests/{id} { allow read, write: if false; }
+
     // Hashes of analysed recordings, so an identical file is flagged once.
     match /contributionMediaDigests/{digest} {
       allow read, write: if false;

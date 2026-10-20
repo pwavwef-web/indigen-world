@@ -1,5 +1,6 @@
 {
   "indexes": [
+    {"collectionGroup":"financeAudit","queryScope":"COLLECTION","fields":[{"fieldPath":"targetId","order":"ASCENDING"},{"fieldPath":"at","order":"DESCENDING"}]},
     {"collectionGroup":"submissions","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"lifecycle.createdAt","order":"DESCENDING"}]},
     {"collectionGroup":"collectionMediaAssets","queryScope":"COLLECTION","fields":[{"fieldPath":"ownerUid","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"}]},
     {"collectionGroup":"collectionMediaAssets","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"createdAt","order":"ASCENDING"}]},

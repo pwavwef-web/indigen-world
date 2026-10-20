@@ -32,16 +32,18 @@ export interface AdminAuthState {
   finance: boolean;
   /** The orthogonal super-administrator claim (see firestore.rules isAdmin/isFinance). */
   superAdmin: boolean;
+  /** Project-finance editor or viewer; finance administrators carry `finance`. */
+  financeRole: 'editor' | 'viewer' | null;
   ready: boolean;
 }
 
 /** Track the signed-in staff member, their role claim and finance access. */
 export function useAdminAuth(): AdminAuthState {
-  const [state, setState] = useState<AdminAuthState>({ user: null, role: null, finance: false, superAdmin: false, ready: false });
+  const [state, setState] = useState<AdminAuthState>({ user: null, role: null, finance: false, superAdmin: false, financeRole: null, ready: false });
   useEffect(() => {
     return onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        setState({ user: null, role: null, finance: false, superAdmin: false, ready: true });
+        setState({ user: null, role: null, finance: false, superAdmin: false, financeRole: null, ready: true });
         return;
       }
       try {
@@ -55,11 +57,12 @@ export function useAdminAuth(): AdminAuthState {
           || claimed === 'super_admin'
           ? claimed
           : null;
-        setState({ user, role, finance: token.claims.finance === true, superAdmin: token.claims.superAdmin === true, ready: true });
+        const financeRole = token.claims.financeRole === 'editor' || token.claims.financeRole === 'viewer' ? token.claims.financeRole : null;
+        setState({ user, role, finance: token.claims.finance === true, superAdmin: token.claims.superAdmin === true, financeRole, ready: true });
       } catch {
         // A transient token-refresh failure must not wedge the console on
         // "Loading…" forever — render the shell with no role rather than hang.
-        setState({ user, role: null, finance: false, superAdmin: false, ready: true });
+        setState({ user, role: null, finance: false, superAdmin: false, financeRole: null, ready: true });
       }
     });
   }, []);

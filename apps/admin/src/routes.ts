@@ -16,9 +16,16 @@ export interface StaffAccess {
   finance: boolean;
   /** The orthogonal super-administrator claim. */
   superAdmin: boolean;
+  /** Project-finance editor or viewer, granted from Finance settings. Finance administrators carry `finance` instead. */
+  financeRole?: 'editor' | 'viewer' | null;
 }
 
-export type AccessLevel = 'validator' | 'admin' | 'finance';
+/**
+ * `finance` is the finance administrator. `finance-view` is anyone with a
+ * project-finance level (viewer, editor or administrator); `finance-section`
+ * opens the Finance section itself, which also holds the admins' points tools.
+ */
+export type AccessLevel = 'validator' | 'admin' | 'finance' | 'finance-view' | 'finance-section';
 
 export function isValidatorRole(role: StaffRole): boolean {
   return role === 'validator' || role === 'reviewer' || role === 'admin' || role === 'super_admin';
@@ -34,9 +41,17 @@ export function hasFinanceAccess(access: StaffAccess): boolean {
   return access.finance && isAdminRole(access.role);
 }
 
+/** Mirrors `financeLevel` in services/functions/src/finance-centre.ts. */
+export function financeLevel(access: StaffAccess): 'admin' | 'editor' | 'viewer' | null {
+  if (hasFinanceAccess(access)) return 'admin';
+  return access.financeRole === 'editor' || access.financeRole === 'viewer' ? access.financeRole : null;
+}
+
 export function allows(level: AccessLevel, access: StaffAccess): boolean {
   if (level === 'validator') return isValidatorRole(access.role);
   if (level === 'admin') return isAdminRole(access.role);
+  if (level === 'finance-view') return financeLevel(access) !== null;
+  if (level === 'finance-section') return isAdminRole(access.role) || financeLevel(access) !== null;
   return hasFinanceAccess(access);
 }
 
@@ -44,6 +59,8 @@ export const ACCESS_LABEL: Record<AccessLevel, string> = {
   validator: 'a validator, reviewer or admin role',
   admin: 'an admin role',
   finance: 'the finance permission',
+  'finance-view': 'a finance role (viewer, editor or finance administrator)',
+  'finance-section': 'an admin role or a finance role',
 };
 
 export type SectionId =
@@ -62,6 +79,8 @@ export interface ToolDef {
   icon: IconKey;
   hint: string;
   access: AccessLevel;
+  /** A sidebar heading this tool sits under, when a section has more than one kind of work. */
+  group?: string;
 }
 
 export interface SectionDef {
@@ -77,16 +96,24 @@ export interface SectionDef {
 
 export const SECTIONS: SectionDef[] = [
   {
-    id: 'finance', label: 'Finance', description: 'Points, reward policies, redemptions and payout records',
-    icon: 'coins', base: '/finance', access: 'admin',
+    id: 'finance', label: 'Finance', description: 'Project money, ledger, budgets and reports; points and redemptions',
+    icon: 'coins', base: '/finance', access: 'finance-section',
     tools: [
-      { id: 'overview', slug: '', label: 'Overview', icon: 'chart', hint: 'Redemption totals by status', access: 'admin' },
-      { id: 'redemptions', slug: 'redemptions', label: 'Point redemptions', icon: 'gift', hint: 'Approve, top up, reconcile or return airtime and data requests', access: 'admin' },
-      { id: 'settings', slug: 'settings', label: 'Reward policies', icon: 'settings', hint: 'Versioned award and redemption rates, rollout switches', access: 'admin' },
-      { id: 'ledger', slug: 'ledger', label: 'Points ledger', icon: 'list', hint: 'Every points movement and reasoned adjustments', access: 'admin' },
-      { id: 'audit', slug: 'audit', label: 'Audit history', icon: 'archive', hint: 'Policy, flag, decision and adjustment history', access: 'admin' },
-      { id: 'payouts', slug: 'payouts', label: 'Payout records', icon: 'bank', hint: 'Payout verification and contributor payment requests', access: 'finance' },
-      { id: 'shop', slug: 'shop', label: 'Shop transactions', icon: 'bank', hint: 'Verified store payments, refunds and exceptions', access: 'finance' },
+      { id: 'overview', slug: '', label: 'Overview', icon: 'chart', hint: 'Balance, income, spending and what needs attention', access: 'finance-view', group: 'Project money' },
+      { id: 'transactions', slug: 'transactions', label: 'Transactions', icon: 'list', hint: 'The ledger: record, approve, reverse and export', access: 'finance-view', group: 'Project money' },
+      { id: 'funding', slug: 'funding', label: 'Funding sources', icon: 'users', hint: 'Sponsors, grants, donations and restricted funds', access: 'finance-view', group: 'Project money' },
+      { id: 'expenses', slug: 'expenses', label: 'Expenses & budgets', icon: 'coins', hint: 'Categories, budgets and recurring subscriptions', access: 'finance-view', group: 'Project money' },
+      { id: 'accounts', slug: 'accounts', label: 'Accounts', icon: 'bank', hint: 'Where the money is held, and reconciliation', access: 'finance-view', group: 'Project money' },
+      { id: 'audit-trail', slug: 'audit-trail', label: 'Audit trail', icon: 'shield', hint: 'Who recorded, approved, changed or reversed what', access: 'finance-view', group: 'Project money' },
+      { id: 'reports', slug: 'reports', label: 'Reports', icon: 'doc', hint: 'Statements and exports as PDF or CSV', access: 'finance-view', group: 'Project money' },
+      { id: 'finance-settings', slug: 'settings', label: 'Finance settings', icon: 'settings', hint: 'Platform auto-logging, notifications and finance access', access: 'finance-view', group: 'Project money' },
+      { id: 'points', slug: 'points', label: 'Points overview', icon: 'chart', hint: 'Redemption totals by status and reward liability', access: 'admin', group: 'Points & rewards' },
+      { id: 'redemptions', slug: 'redemptions', label: 'Point redemptions', icon: 'gift', hint: 'Approve, top up, reconcile or return airtime and data requests', access: 'admin', group: 'Points & rewards' },
+      { id: 'policies', slug: 'reward-policies', label: 'Reward policies', icon: 'settings', hint: 'Versioned award and redemption rates, rollout switches', access: 'admin', group: 'Points & rewards' },
+      { id: 'ledger', slug: 'ledger', label: 'Points ledger', icon: 'list', hint: 'Every points movement and reasoned adjustments', access: 'admin', group: 'Points & rewards' },
+      { id: 'audit', slug: 'audit', label: 'Points audit', icon: 'archive', hint: 'Policy, flag, decision and adjustment history', access: 'admin', group: 'Points & rewards' },
+      { id: 'payouts', slug: 'payouts', label: 'Payout records', icon: 'bank', hint: 'Payout verification and contributor payment requests', access: 'finance', group: 'Points & rewards' },
+      { id: 'shop', slug: 'shop', label: 'Shop transactions', icon: 'bank', hint: 'Verified store payments, refunds and exceptions', access: 'finance', group: 'Points & rewards' },
     ],
   },
   {

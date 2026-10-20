@@ -17,6 +17,7 @@ const named = <T extends Record<string, unknown>>(loader: () => Promise<T>, key:
   }));
 
 const finance = () => import('./finance/FinanceScreens');
+const money = () => import('./finance/MoneyScreens');
 const collections = () => import('./collection/CollectionAdmin');
 const messaging = () => import('./messaging/MessagingAdmin');
 const creators = () => import('./creators/CreatorsAdmin');
@@ -33,9 +34,17 @@ export const SCREENS: Record<`${SectionId}.${string}`, Screen> = {
   'creators.house-ads': named(() => import('./shop/HouseAdsWorkspace'), 'HouseAdsWorkspace'),
   'finance.shop': named(() => import('./shop/ShopFinance'), 'ShopFinance'),
   'messaging.push': named(() => import('./messaging/NotificationComposer'), 'NotificationComposer'),
-  'finance.overview': named(finance, 'FinanceOverview'),
+  'finance.overview': named(money, 'MoneyOverview'),
+  'finance.transactions': named(money, 'TransactionsScreen'),
+  'finance.funding': named(money, 'FundingSourcesScreen'),
+  'finance.expenses': named(money, 'ExpensesScreen'),
+  'finance.accounts': named(money, 'AccountsScreen'),
+  'finance.audit-trail': named(money, 'FinanceAuditTrail'),
+  'finance.reports': named(money, 'ReportsScreen'),
+  'finance.finance-settings': named(money, 'FinanceSettingsScreen'),
+  'finance.points': named(finance, 'FinanceOverview'),
   'finance.redemptions': named(finance, 'RedemptionsDesk'),
-  'finance.settings': named(finance, 'PointSettings'),
+  'finance.policies': named(finance, 'PointSettings'),
   'finance.ledger': named(finance, 'PointsLedger'),
   'finance.audit': named(finance, 'RewardAudit'),
   'finance.payouts': named(finance, 'PayoutRecords'),

@@ -155,7 +155,7 @@ export function FinanceOverview() {
             </section>
             <section className="ad-card-box" aria-labelledby="rollout">
               <div className="ad-card-box__head"><div><h2 id="rollout">Reward system</h2><p className="ts-muted">Versioned policies and rollout switches.</p></div>
-                <ButtonLink to="/finance/settings" size="sm" variant="ghost" iconRight="arrow">Policies</ButtonLink></div>
+                <ButtonLink to="/finance/reward-policies" size="sm" variant="ghost" iconRight="arrow">Policies</ButtonLink></div>
               {data.flags ? (
                 <dl className="ad-card-box__body ad-facts">
                   <Fact label="Awards">{AWARD_MODE[data.flags.awardMode]}</Fact>
@@ -217,7 +217,7 @@ export function FinanceOverview() {
             <Tile icon="archive" label="Audit history" value="Changes" hint="Policies, flags, decisions and adjustments" to="/finance/audit" />
             {hasFinanceAccess(access) ? <Tile icon="bank" label="Payout records" value="Bank & MoMo" hint="Payout verification and payment requests" to="/finance/payouts" /> : null}
           </div>
-          <p className="ad-footnote"><Icon name="info" /><span>Finance shows only what the system records. Membership income, bank balances and provider settlements are not connected to this console, and no airtime or data is sent from here.</span></p>
+          <p className="ad-footnote"><Icon name="info" /><span>This page covers contributor points only. Project money — income, spending, accounts and reports — is on the Finance overview. Membership income from app stores is not connected to this console, and no airtime or data is sent from here.</span></p>
         </>
       ) : null}
     </div>

@@ -16,6 +16,8 @@ const attention = read('src/attention.tsx');
 const home = read('src/home/Home.tsx');
 const finance = read('src/finance/FinanceScreens.tsx');
 const financeData = read('src/finance/data.ts');
+const moneyScreens = read('src/finance/MoneyScreens.tsx') + read('src/finance/TransactionPanels.tsx') + read('src/finance/charts.tsx');
+const moneyData = read('src/finance/money.ts');
 const review = read('src/review/ReviewDesk.tsx');
 const reviewData = read('src/review/data.ts');
 const reports = read('src/reports/ReportsAdmin.tsx');
@@ -55,7 +57,16 @@ assert.match(attention, /getCountFromServer/, 'queue counts use Firestore aggreg
 assert.match(attention, /state: 'error'/, 'a failed count is reported as unavailable, never as zero');
 assert.doesNotMatch(home, /Francis|18 pending|4 open|GHC 2,400|GH₵ 2,400/, 'the home screen hardcodes nothing from the mockup');
 assert.doesNotMatch(finance, /2,400|Awaiting reconciliation|Reconciled|FIN-00/, 'Finance invents no income, balance or reconciliation records');
-assert.match(finance, /are not connected to this console/, 'Finance says plainly which money sources it does not show');
+assert.match(finance, /is not connected to this console/, 'Finance says plainly which money sources it does not show');
+assert.match(moneyScreens, /Membership income from app stores is recorded by hand/, 'the money overview names the source it does not log automatically');
+
+// ── Project money: server-computed figures, no invented records ──────────────
+assert.doesNotMatch(moneyScreens, /Sir Barney|Anthropic|3,800|4,000\.00|John Doe|Jane Doe|Project Maanu/, 'the money screens hardcode nothing from the brief or the mockup');
+assert.match(moneyData, /'financeCentre'/, 'project money is read and written only through the financeCentre callable');
+assert.doesNotMatch(moneyScreens + moneyData, /from 'firebase\/firestore'/, 'no finance screen reads Firestore directly (the collections are closed to clients)');
+assert.match(moneyScreens, /requestKey/, 'new entries carry a request key so a retry cannot post twice');
+assert.match(moneyScreens, /Running balances are calculated over the full history/, 'the ledger says why its balances do not change with filters');
+assert.match(moneyData, /Never parsed as a float/, 'money input is parsed as text into pesewas');
 
 // ── Finance owns point redemptions ──────────────────────────────────────────
 assert.match(financeData, /expectedStatus: input\.request\.status/, 'redemption decisions carry the status the reviewer saw');

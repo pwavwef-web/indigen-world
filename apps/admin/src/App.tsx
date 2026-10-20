@@ -73,7 +73,10 @@ function SignIn({ ready, error, onSignIn, busy }: { ready: boolean; error: strin
 /* -- The signed-in console ----------------------------------------------------------- */
 
 const SECTION_BADGES: Partial<Record<SectionDef['id'], Record<string, (counts: ReturnType<typeof useAttention>['counts']) => number | null>>> = {
-  finance: { redemptions: (c) => sum(countValue(c.redemptionsPending), countValue(c.redemptionsAwaitingDelivery)) },
+  finance: {
+    redemptions: (c) => sum(countValue(c.redemptionsPending), countValue(c.redemptionsAwaitingDelivery)),
+    transactions: (c) => countValue(c.financeApprovals),
+  },
   review: { pending: (c) => countValue(c.reviewPending) },
   community: { reports: (c) => countValue(c.openReports), forms: (c) => countValue(c.newForms) },
   creators: { applications: (c) => countValue(c.creatorApplications) },
@@ -186,10 +189,10 @@ function SignedIn({ user, access }: { user: NonNullable<ReturnType<typeof useAdm
 }
 
 function Console() {
-  const { user, role, finance, superAdmin, ready } = useAdminAuth();
+  const { user, role, finance, superAdmin, financeRole, ready } = useAdminAuth();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const access = useMemo<StaffAccess>(() => ({ role, finance, superAdmin }), [role, finance, superAdmin]);
+  const access = useMemo<StaffAccess>(() => ({ role, finance, superAdmin, financeRole }), [role, finance, superAdmin, financeRole]);
 
   if (!ready || !user) {
     const handleSignIn = async () => {

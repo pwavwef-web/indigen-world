@@ -11,6 +11,7 @@ import {
 import { collection, getCountFromServer, query, where, type QueryConstraint } from 'firebase/firestore';
 import { db } from './firebase';
 import { loadContributorRewards } from './finance/data';
+import { loadFinanceAttention } from './finance/money';
 import { allows, type AccessLevel, type StaffAccess } from './routes';
 
 /**
@@ -28,7 +29,8 @@ export type AttentionKey =
   | 'openReports'
   | 'newForms'
   | 'redemptionsPending'
-  | 'redemptionsAwaitingDelivery';
+  | 'redemptionsAwaitingDelivery'
+  | 'financeApprovals';
 
 export type Count =
   | { state: 'loading' }
@@ -46,6 +48,7 @@ export interface AttentionItem {
 
 export const ATTENTION_ITEMS: AttentionItem[] = [
   { key: 'reviewPending', label: (n) => `${n === 1 ? 'Submission' : 'Submissions'} ready for review`, to: '/review', icon: 'doc', access: 'validator' },
+  { key: 'financeApprovals', label: (n) => `Finance ${n === 1 ? 'entry' : 'entries'} awaiting approval`, to: '/finance/transactions?status=pending_approval', icon: 'coins', access: 'finance' },
   { key: 'redemptionsPending', label: (n) => `Point ${n === 1 ? 'redemption' : 'redemptions'} awaiting a decision`, to: '/finance/redemptions?status=submitted', icon: 'gift', access: 'admin' },
   { key: 'redemptionsAwaitingDelivery', label: (n) => `Approved ${n === 1 ? 'redemption' : 'redemptions'} awaiting delivery`, to: '/finance/redemptions?status=approved', icon: 'send', access: 'admin' },
   { key: 'openReports', label: (n) => `Community ${n === 1 ? 'report' : 'reports'} to resolve`, to: '/community/reports', icon: 'shield', access: 'admin' },
@@ -58,7 +61,7 @@ async function count(name: string, ...constraints: QueryConstraint[]): Promise<n
   return result.data().count;
 }
 
-const LOADERS: Record<Exclude<AttentionKey, 'redemptionsPending' | 'redemptionsAwaitingDelivery'>, () => Promise<number>> = {
+const LOADERS: Record<Exclude<AttentionKey, 'redemptionsPending' | 'redemptionsAwaitingDelivery' | 'financeApprovals'>, () => Promise<number>> = {
   reviewPending: () => count('submissions', where('status', 'in', ['SUBMITTED', 'RESUBMITTED', 'UNDER_REVIEW'])),
   creatorApplications: () => count('creatorApplications', where('status', 'in', ['SUBMITTED', 'UNDER_REVIEW'])),
   openReports: () => count('communityReports', where('status', 'in', ['open', 'reviewing'])),
@@ -97,6 +100,12 @@ export function AttentionProvider({ access, children }: { access: StaffAccess; c
     for (const [key, load] of Object.entries(LOADERS) as [keyof typeof LOADERS, () => Promise<number>][]) {
       if (!keys.has(key)) continue;
       load().then((value) => set(key, { state: 'ready', value }), (error) => set(key, { state: 'error', message: messageOf(error) }));
+    }
+    if (keys.has('financeApprovals')) {
+      loadFinanceAttention().then(
+        (counts) => set('financeApprovals', { state: 'ready', value: counts.pendingApproval }),
+        (error) => set('financeApprovals', { state: 'error', message: messageOf(error) }),
+      );
     }
     if (keys.has('redemptionsPending')) {
       loadContributorRewards().then(({ summary, requests, truncated }) => {
