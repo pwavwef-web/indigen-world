@@ -5,6 +5,9 @@ import express from 'express';
 import { test } from 'node:test';
 import { onStaffCall } from '../../services/functions/lib/auth.js';
 
+// Keep Admin SDK project discovery local even when testing malformed tokens.
+process.env.GCLOUD_PROJECT = 'demo-admin-app-check';
+
 test('admin App Check cannot be disabled with the shared optional flag', () => {
   const moduleUrl = new URL('../../services/functions/lib/admin-app-check.js', import.meta.url).href;
   for (const [emulator, optional, expected] of [['', '', true], ['', 'false', true], ['', 'true', true], ['true', '', false]]) {
@@ -28,7 +31,7 @@ test('admin callable transport rejects missing and invalid attestation before it
   t.after(() => new Promise(resolve => server.close(resolve)));
   for (const token of [null, 'invalid-attestation']) {
     const response = await fetch(`http://127.0.0.1:${server.address().port}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { 'X-Firebase-AppCheck': token } : {}) }, body: '{"data":{}}',
+      method: 'POST', signal: AbortSignal.timeout(5000), headers: { 'Content-Type': 'application/json', ...(token ? { 'X-Firebase-AppCheck': token } : {}) }, body: '{"data":{}}',
     });
     assert.equal(response.status, 401);
     const error = (await response.json()).error;
