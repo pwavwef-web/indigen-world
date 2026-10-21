@@ -31,6 +31,7 @@ import {
   roleSatisfies,
 } from './auth.js';
 import { CONTRIBUTOR_CALL_OPTIONS, guarded } from './contributor-common.js';
+import { ADMIN_APP_CHECK_OPTIONS } from './admin-app-check.js';
 import { consumeRateLimit } from './rate-limit.js';
 import {
   ENROLMENT_TTL_MINUTES,
@@ -176,7 +177,7 @@ async function issueRecoveryCodes(uid: string, key: Buffer) {
   return codes;
 }
 
-export const staffMfa = onCall({ ...CONTRIBUTOR_CALL_OPTIONS, secrets: [STAFF_MFA_KEY] }, guarded('staffMfa', async (req) => {
+export const staffMfa = onCall({ ...CONTRIBUTOR_CALL_OPTIONS, ...ADMIN_APP_CHECK_OPTIONS, secrets: [STAFF_MFA_KEY] }, guarded('staffMfa', async (req) => {
   const uid = requireAuth(req);
   const claims = callerClaims(req);
   if (!hasStaffStanding(claims)) {

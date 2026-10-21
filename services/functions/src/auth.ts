@@ -1,4 +1,5 @@
 import { HttpsError, onCall, type CallableOptions, type CallableRequest } from 'firebase-functions/v2/https';
+import { ADMIN_APP_CHECK_OPTIONS } from './admin-app-check.js';
 
 export type Role =
   | 'creator'
@@ -144,7 +145,7 @@ export function onStaffCall<T = any, R = any>(
   options: CallableOptions<T>,
   handler: (req: CallableRequest<T>) => R,
 ) {
-  return onCall<T, Promise<Awaited<R>>>(options, async (req): Promise<Awaited<R>> => {
+  return onCall<T, Promise<Awaited<R>>>({ ...options, ...ADMIN_APP_CHECK_OPTIONS }, async (req): Promise<Awaited<R>> => {
     requireVerifiedStaffSession(req as CallableRequest<unknown>);
     return await handler(req) as Awaited<R>;
   });

@@ -1,0 +1,12 @@
+{
+  "accent": "blue",
+  "motif": "rings",
+  "eyebrow": "Indigen World · Administration",
+  "title": "A stronger gate\nfor Administration.",
+  "lede": "App Check verifies the app before protected administration requests can proceed.",
+  "tags": ["App verification", "Staff access", "Two-step sign-in"],
+  "hero": [{ "file": "admin-sign-in.png", "kind": "browser" }],
+  "figures": {
+    "admin-sign-in.png": { "kind": "browser", "title": "The familiar sign-in.\nAn extra app check.", "note": "Actual Administration sign-in screen. App Check runs in the background; account permissions and authenticator verification still apply." }
+  }
+}

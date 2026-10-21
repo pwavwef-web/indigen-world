@@ -1,0 +1,9 @@
+{
+  "appId": "1:111428711822:web:1b032129debe268429a0df",
+  "siteKey": "6LcfrvktAAAAACcllfxawIMDIfyH0012TSIp5g2S",
+  "allowedDomains": [
+    "admin.indigenworld.com",
+    "indigen-admin.web.app",
+    "indigen-admin.firebaseapp.com"
+  ]
+}

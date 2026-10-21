@@ -96,9 +96,11 @@ time they open the console.
 
 ## Known limits
 
-- **App Check is still not enforced** (`ENFORCE_APP_CHECK` is unset and the
-  admin build has no reCAPTCHA Enterprise key). Enforcing it needs the key
-  registered for the admin site first.
+- **Admin App Check:** dedicated production registration and mandatory
+  protected-admin callable enforcement are implemented. See
+  [admin-app-check.md](admin-app-check.md) and its linked release evidence for
+  current deployment status. Shared project Auth/Firestore/Storage and shared
+  callables outside `onStaffCall` retain their existing policies.
 - Staff powers used **outside** the console (mobile and TribeStudio moderation,
   dictionary review, `decideSubmission`) are not behind the second factor; the
   Google account's own security protects them.

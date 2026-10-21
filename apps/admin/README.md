@@ -118,6 +118,18 @@ and `nobody@admin.test`; their shared local password is in the seed script.
 
 ## Deploy
 
+App Check is initialized before Auth, Firestore, Functions and Storage. The
+dedicated public reCAPTCHA Enterprise key and allowed production domains are in
+`app-check.config.json`. Firebase registration must use that same key for the
+admin web app. Builds reject a malformed `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY`
+override; normally no override is needed. Keep production domains restricted;
+use the demo Firebase emulators for local development.
+
+Protected admin callables (`onStaffCall`) and `staffMfa` require App Check in
+deployed environments independently of `ENFORCE_APP_CHECK`. Shared project
+Authentication/Firestore/Storage enforcement must only be enabled after checking
+all other clients. See [the App Check runbook](../../docs/architecture/admin-app-check.md).
+
 Served by the `indigen-admin` Hosting site; production custom domain
 `admin.indigenworld.com`. See
 [`docs/architecture/hosting-and-domains.md`](../../docs/architecture/hosting-and-domains.md) for the
