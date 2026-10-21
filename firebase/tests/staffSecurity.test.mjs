@@ -169,7 +169,7 @@ test('every callable the admin console invokes requires a verified staff session
 
 test('the admin site CSP allows exactly the inline bootstrap script in index.html', async () => {
   const { createHash } = await import('node:crypto');
-  const html = read('apps/admin/index.html');
+  const html = read('apps/admin/index.html').replace(/\r\n?/g, '\n');
   const inline = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map((match) => `'sha256-${createHash('sha256').update(match[1]).digest('base64')}'`);
   const site = JSON.parse(read('firebase.json')).hosting.find((entry) => entry.site === 'indigen-admin');
   const csp = site.headers.flatMap((rule) => rule.headers).find((header) => header.key === 'Content-Security-Policy')?.value ?? '';

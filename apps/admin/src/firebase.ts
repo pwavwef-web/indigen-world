@@ -5,6 +5,7 @@ import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
 import { connectStorageEmulator, getStorage } from 'firebase/storage';
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
+import appCheckConfig from '../app-check.config.json';
 
 // Firebase configuration for the Indigen World Admin console (Firebase Hosting
 // site: indigen-admin), inside the shared project-kassena-7e026 project.
@@ -25,31 +26,26 @@ export const firebaseConfig = {
 };
 
 export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const functions = getFunctions(app);
-export const storage = getStorage(app);
 /** True when the console is pointed at the local Firebase emulator suite. */
 export const usingEmulators = emulated;
 
 // Callable Functions (role assignment, application and submission decisions)
-// enforce App Check outside the emulator. Configure the same reCAPTCHA Enterprise
-// web key used by TribeStudio; the key is a public site identifier.
-const appCheckSiteKey = import.meta.env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY;
+// enforce App Check outside the emulator. Initialize before Firebase services
+// so their very first requests include the admin app's attestation.
+const appCheckSiteKey = import.meta.env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY || appCheckConfig.siteKey;
 if (!usingEmulators && typeof appCheckSiteKey === 'string' && appCheckSiteKey.length > 0) {
   initializeAppCheck(app, {
     provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey),
     isTokenAutoRefreshEnabled: true,
   });
 } else if (!usingEmulators) {
-  // Fail loudly at boot: without App Check, every privileged callable
-  // (decideCreatorApplication, decideSubmission, …) is rejected server-side,
-  // which would otherwise surface only as opaque "action failed" errors.
-  console.warn(
-    '[admin] VITE_RECAPTCHA_ENTERPRISE_SITE_KEY is missing — App Check is disabled. ' +
-      'Callable Functions enforce App Check in deployed environments and will reject requests.',
-  );
+  throw new Error('[admin] App Check site key is required. Check the admin deployment configuration.');
 }
+
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const functions = getFunctions(app);
+export const storage = getStorage(app);
 
 // Opt-in local emulator wiring for development and integration tests.
 if (usingEmulators) {
