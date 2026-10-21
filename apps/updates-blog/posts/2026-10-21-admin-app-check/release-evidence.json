@@ -1,0 +1,875 @@
+{
+  "verifiedDate": "2026-10-21",
+  "sourceCommit": "ac24a8b43491c9f0b49e6f86540ff71616e89a1e",
+  "releaseTime": "2026-10-21T13:40:29.450Z",
+  "version": "sites/indigen-admin/versions/7d17c9dc79f67c60",
+  "functions": [
+    {
+      "name": "listContributorPayments",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:14.785831943Z",
+      "revision": "listcontributorpayments-00002-vew",
+      "uri": "https://listcontributorpayments-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "reviewLearnIllustration",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:58.501556650Z",
+      "revision": "reviewlearnillustration-00005-wad",
+      "uri": "https://reviewlearnillustration-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "inviteExpressionContributor",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:34.373538538Z",
+      "revision": "inviteexpressioncontributor-00009-qor",
+      "uri": "https://inviteexpressioncontributor-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "listExpressionContributors",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:15.696105287Z",
+      "revision": "listexpressioncontributors-00004-zot",
+      "uri": "https://listexpressioncontributors-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "listSmsContactGroups",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:27:20.170022752Z",
+      "revision": "listsmscontactgroups-00022-yip",
+      "uri": "https://listsmscontactgroups-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "decideCreatorApplication",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:54.615425119Z",
+      "revision": "decidecreatorapplication-00028-xum",
+      "uri": "https://decidecreatorapplication-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "saveRewardPolicy",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:46.304752621Z",
+      "revision": "saverewardpolicy-00002-civ",
+      "uri": "https://saverewardpolicy-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "shopAdmin",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:39.215152397Z",
+      "revision": "shopadmin-00003-cud",
+      "uri": "https://shopadmin-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "setUserRole",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:23.883472358Z",
+      "revision": "setuserrole-00024-ges",
+      "uri": "https://setuserrole-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "saveContributorProfile",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:27:02.285146297Z",
+      "revision": "savecontributorprofile-00003-riy",
+      "uri": "https://savecontributorprofile-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "staffMfa",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:23:02.878917359Z",
+      "revision": "staffmfa-00001-woc",
+      "uri": "https://staffmfa-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "saveSmsContactGroup",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:27:01.543419555Z",
+      "revision": "savesmscontactgroup-00022-rop",
+      "uri": "https://savesmscontactgroup-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "setContributorRewardSettings",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:33.838895275Z",
+      "revision": "setcontributorrewardsettings-00003-wux",
+      "uri": "https://setcontributorrewardsettings-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "setCommunityVerifiedKind",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:33.943552431Z",
+      "revision": "setcommunityverifiedkind-00012-jaf",
+      "uri": "https://setcommunityverifiedkind-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "getSupportCase",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:27:01.419898567Z",
+      "revision": "getsupportcase-00002-sag",
+      "uri": "https://getsupportcase-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "deleteSmsContactGroup",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:15.665323191Z",
+      "revision": "deletesmscontactgroup-00022-gew",
+      "uri": "https://deletesmscontactgroup-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "financeCentre",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:28:09.057154841Z",
+      "revision": "financecentre-00002-xuv",
+      "uri": "https://financecentre-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "listSupportCases",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:27:26.627625758Z",
+      "revision": "listsupportcases-00002-hin",
+      "uri": "https://listsupportcases-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "updateSupportCase",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:44.214670349Z",
+      "revision": "updatesupportcase-00002-vic",
+      "uri": "https://updatesupportcase-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "setContributorAccess",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:27:23.875528566Z",
+      "revision": "setcontributoraccess-00003-soc",
+      "uri": "https://setcontributoraccess-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "decidePronunciationRecording",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:41.304955150Z",
+      "revision": "decidepronunciationrecording-00005-siq",
+      "uri": "https://decidepronunciationrecording-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "correspondence",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:28:04.725822322Z",
+      "revision": "correspondence-00005-cox",
+      "uri": "https://correspondence-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "sendSmsCampaign",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:57.839852086Z",
+      "revision": "sendsmscampaign-00022-vel",
+      "uri": "https://sendsmscampaign-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "listSmsCampaigns",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:27:17.203281232Z",
+      "revision": "listsmscampaigns-00022-joy",
+      "uri": "https://listsmscampaigns-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "adjustContributorPoints",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:10.830293881Z",
+      "revision": "adjustcontributorpoints-00003-kaz",
+      "uri": "https://adjustcontributorpoints-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "smsBalance",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:42.924858227Z",
+      "revision": "smsbalance-00022-tas",
+      "uri": "https://smsbalance-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "decideContributorRedemption",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:13.670681469Z",
+      "revision": "decidecontributorredemption-00005-viw",
+      "uri": "https://decidecontributorredemption-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "setRewardSystemFlags",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:27:01.887139003Z",
+      "revision": "setrewardsystemflags-00002-git",
+      "uri": "https://setrewardsystemflags-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "getContributorPointsLedger",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:57.614629457Z",
+      "revision": "getcontributorpointsledger-00002-til",
+      "uri": "https://getcontributorpointsledger-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "cancelContributorInvitation",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:34.572560873Z",
+      "revision": "cancelcontributorinvitation-00004-vaf",
+      "uri": "https://cancelcontributorinvitation-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "notificationCampaignAdmin",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:22.719548630Z",
+      "revision": "notificationcampaignadmin-00002-ceq",
+      "uri": "https://notificationcampaignadmin-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "listContributorIssues",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:46.969709289Z",
+      "revision": "listcontributorissues-00003-paf",
+      "uri": "https://listcontributorissues-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "deleteAdminAudiobook",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:27:23.366860161Z",
+      "revision": "deleteadminaudiobook-00012-say",
+      "uri": "https://deleteadminaudiobook-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "getRewardPolicies",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:35.934710750Z",
+      "revision": "getrewardpolicies-00002-hev",
+      "uri": "https://getrewardpolicies-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "listRewardAudit",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:35.155231532Z",
+      "revision": "listrewardaudit-00002-jec",
+      "uri": "https://listrewardaudit-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "houseAdsAdmin",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:16.395238196Z",
+      "revision": "houseadsadmin-00002-coh",
+      "uri": "https://houseadsadmin-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "getPayoutStatementLink",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:27.887135716Z",
+      "revision": "getpayoutstatementlink-00002-wuk",
+      "uri": "https://getpayoutstatementlink-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "updateContributorIssue",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:38.899358724Z",
+      "revision": "updatecontributorissue-00003-non",
+      "uri": "https://updatecontributorissue-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "decideContributorPaymentRequest",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:58.711023846Z",
+      "revision": "decidecontributorpaymentrequest-00003-huy",
+      "uri": "https://decidecontributorpaymentrequest-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "generateLearnIllustration",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:28:06.830202873Z",
+      "revision": "generatelearnillustration-00006-vus",
+      "uri": "https://generatelearnillustration-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "previewRewardPolicy",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:58.908059803Z",
+      "revision": "previewrewardpolicy-00002-muj",
+      "uri": "https://previewrewardpolicy-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "publishAdminAudiobook",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:15.696034875Z",
+      "revision": "publishadminaudiobook-00013-cay",
+      "uri": "https://publishadminaudiobook-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "assignContributorExpressions",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:35.367613188Z",
+      "revision": "assigncontributorexpressions-00009-dus",
+      "uri": "https://assigncontributorexpressions-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "listContributorRewards",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:33.546076455Z",
+      "revision": "listcontributorrewards-00004-gab",
+      "uri": "https://listcontributorrewards-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "rerunPayoutStatementCheck",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:28:09.728877355Z",
+      "revision": "rerunpayoutstatementcheck-00004-yaw",
+      "uri": "https://rerunpayoutstatementcheck-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "sendTestSms",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:23.814643860Z",
+      "revision": "sendtestsms-00022-nof",
+      "uri": "https://sendtestsms-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "decidePayoutVerification",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:27:17.113981374Z",
+      "revision": "decidepayoutverification-00003-kay",
+      "uri": "https://decidepayoutverification-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "prepareContributorDailyTasks",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:36.341227850Z",
+      "revision": "preparecontributordailytasks-00002-feq",
+      "uri": "https://preparecontributordailytasks-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "collectionMedia",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:35.796013042Z",
+      "revision": "collectionmedia-00003-xaq",
+      "uri": "https://collectionmedia-esksehdtfa-uc.a.run.app"
+    },
+    {
+      "name": "resendContributorInvitation",
+      "state": "ACTIVE",
+      "updateTime": "2026-10-21T13:26:20.542177682Z",
+      "revision": "resendcontributorinvitation-00005-cib",
+      "uri": "https://resendcontributorinvitation-esksehdtfa-uc.a.run.app"
+    }
+  ],
+  "files": [
+    {
+      "path": "/__/firebase/init.js",
+      "hash": "1026ade1f3d7f2b4cdccc3079d1a378f088b6237af4c479bc477d7dbdfecf368",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/__/firebase/init.json",
+      "hash": "ccfcc5ff9efa0fda3ed2436073d39d30b219391a49cc7c71953185886f96b722",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/AuditLogViewer-CKIESilC.js",
+      "hash": "ceac0628a0b58789040725421f53f515481d257e6272ccf6b0ca10fd50719745",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/CollectionAdmin-DIp0GiAy.css",
+      "hash": "171e22494edf004461362c369e432200471e016941aaf7637338f2dc776b4c43",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/CollectionAdmin-Dpvg5mCf.js",
+      "hash": "d0394d093a44e4d31e532ba353ca4245c00390fb70fe606daed616323436eb96",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/CollectionArtwork-CNBBvjtN.js",
+      "hash": "33abc1b65a98763c97fd545d54c121fd3a96a3a061b89b724babfb0e2c24d66e",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/ContributorsAdmin-04k4cdK5.css",
+      "hash": "0bdd70170826747c57f84e3a925ae26b202c6c5204b00362ce6dc77843e3a186",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/ContributorsAdmin-Cpl6Vl2g.js",
+      "hash": "d195012bb8db85aca3aa59297f6592533a960ce99ab36594dfc270b1f716fb52",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/CorrespondenceAdmin-lugsS7rW.js",
+      "hash": "fb69b316bdb69636ba908bb44f4823a3e2b649c0c70164398526c8d0dd4cd2f8",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/CorrespondenceAdmin-mQyvE6ZO.css",
+      "hash": "c40a89f056224a9ae414f7cbb045d268eccf201e160bc2c261ad2a4073b76468",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/CreatorsAdmin-CNOCjBKj.js",
+      "hash": "aceb204fce24980a500a3ee029ac3897c7a9a7e062fa7cde507512860338fdc4",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/ExportManager-CKTU0GOq.js",
+      "hash": "b9800a691c34722cf2b7873a88ed369d7bf973162bd3c4c2fe4b04d560f97d08",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/FinanceScreens-Cho2W0bx.css",
+      "hash": "8ac9670bd7e1411b141bfdfa7df7f8b3e79b4feaed0c4f7c1e3be514f93cc29a",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/FinanceScreens-DYGyiCFW.js",
+      "hash": "d5b969cf471b30d644fbc9daffd4a0d38444320ccdbdb775f508fe6a754ba3c2",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/HouseAdsWorkspace-BcvN3gK4.js",
+      "hash": "a7c97da7824f3526c3ed10e5ca1695def625d0f6ddfbf1ef7bf4cfad1eba3663",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/InterestsAdmin-Buw6_oeO.css",
+      "hash": "8e1c4def4873af66060c1376030e3ffb68e534cff2c36c25ef6df241fe6120bf",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/InterestsAdmin-lWg3hwTT.js",
+      "hash": "4f093744a4f1eb6cc9d965d1687b19e4d2ea9d8b4e28abaea93d3a41d300f477",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/LearningAdmin-CaQ1spKN.css",
+      "hash": "0f3b35c503b935f9cfc25fd8ef58877bf44bb1ffdd23bb8a3726c9a7fed39180",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/LearningAdmin-DdKrDv62.js",
+      "hash": "1e59c82d2bc5b158289a609475bfe479441d4eb46690a2c94d23d53367d71862",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/MediaPicker-KQNoIEMN.js",
+      "hash": "d0cb70b155a8cf194e7eb544c5d892eb043244dd1914335efdb3f10005a514e7",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/MediaPicker-XlXvRcJr.css",
+      "hash": "41ef1183f9ccbab01be2bce5ba61a67ad3a26d1a118f32e6836e3ac5d4750d3e",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/MessagingAdmin-DMbNE-Ra.js",
+      "hash": "b7563dc80ddda6cca05da6ccc505d12fa5deb334435372bb384ba2ee8675e838",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/MessagingAdmin-pUqjroFf.css",
+      "hash": "3d9f48b1a8150dcff4d82c38eee1d422b29af163dd86ecfd35f2f1f5690ff0f7",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/MoneyScreens-C8AemVda.js",
+      "hash": "ce4f06fce373e5e45a89762e28131ae3925a535901ba659cad99019b76065275",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/MoneyScreens-CPBquNcA.css",
+      "hash": "d45a409f175f1cb1c30239872d4401550ba942268f7ec0283025ab6cd39381da",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/NotificationComposer-D7nZoeJr.js",
+      "hash": "4c45703882113c3ee21e5500fa140e86d1b01dfd8444e613b093878b0c181e18",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/NotoSans-Bold-axMicgqH.ttf",
+      "hash": "1fbf96bb7eac69b3c026d92047741075effc54f189ed8bdde6c3d9ca68068a22",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/NotoSans-Italic-BelIP-vN.ttf",
+      "hash": "5a719ef0b42ffb3b17db4677288c08025e055675cddffdd83005ad0740bcfa16",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/NotoSans-Regular-Dpf_lrdO.ttf",
+      "hash": "2ed6e85de002e32e239d7b2d9c0229a0c72f4b4207e56cd26b598c26e6e8b049",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/ReportsAdmin-DgQWUXrK.css",
+      "hash": "3bca57e640cd2a07ad0208b9316f23e7cf29d8bad3d7ac422df9945adedc6a19",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/ReportsAdmin-IYdxZLcm.js",
+      "hash": "e0ad5aeb56ea4d4702fbdbe9f7f41a7fdfd95ed75037f7dd5ae43e0db394afec",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/ReviewDesk-CEuiKTiD.js",
+      "hash": "53780056aa0f25333bb57d03b3742d6605f127e9c6c4e99f52e9042040f3714c",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/ShopFinance-DRATDaZw.js",
+      "hash": "28798792502d310e6188572a10b44b5912186c4a637f718a14bf44bc83970a6b",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/ShopWorkspace-C86Gwd_F.js",
+      "hash": "66493bf911519d7158fda8d1ec97b273a93c5d60294b81221b0c8dbf9b1d681c",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/StaffSecurity-CDE5gAer.js",
+      "hash": "fe883fcc8d3114e3c5aa86d3635c20ee791f72fff1a08e885f2680741992b3b2",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/TeamSiteIntake-CtS2Rjjj.js",
+      "hash": "a8fc20d72316e6606a6960542791bf40238c5399f9d72fdfafb471fccd951067",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/data-B7oEMt07.js",
+      "hash": "afe2c9423bc0dfb57504e27ea625909979e55094631be5f9b475b727ccc6966b",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/data-D5LXD_ng.js",
+      "hash": "92179c327f81ff523a2b74e671cf68e3030b4c8ebee303dcce0bdbeb493dd605",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/data-FX4yx-zE.js",
+      "hash": "5bc3fe9d42bc200f531f37c3d551508745043f6a9f62fbdb4c43fd3cf4dad396",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/firebase-BefcPm38.js",
+      "hash": "af75bca70cfff5b944fcf26da53429d6d430ed5920c503eb0b864fdf9ee1c53c",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/firebase-CDOoiKpC.js",
+      "hash": "50c9ab7aec83463bda6e4233238c5e6cfd1a7d5132d186d640c2424b414a1cd0",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/index-94D01RO2.js",
+      "hash": "c3267cc92d7de07ab7601db991cbd912bfc06742b02d7aaeb3fa95ec74a41272",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/index-Cd-U-R4-.css",
+      "hash": "62aee0a7cac5c5284d8a87e040f378adb8ccf791d5158a742003bf2a1a388dc4",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/inter-cyrillic-ext-wght-normal-BOeWTOD4.woff2",
+      "hash": "97f9a7318a528d4b36cedf694687e875fd6f26ff7c379233640b6c3318e809f3",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/inter-cyrillic-wght-normal-DqGufNeO.woff2",
+      "hash": "5b8443802bfdd4fa26dc8e1f1bd808e22e71f82a2be8a8866c588a89216ae373",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/inter-greek-ext-wght-normal-DlzME5K_.woff2",
+      "hash": "09a4d568a15ce982a1eae92638eccaf0935f693a796798e40cbc35e79b6344ef",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/inter-greek-wght-normal-CkhJZR-_.woff2",
+      "hash": "1f7a7643597a461e4b45294f649c2dded64efc691d97364a8094919d1ae3c4bf",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/inter-latin-ext-wght-normal-DO1Apj_S.woff2",
+      "hash": "1b92ab8869c63c318fbf4362ee74cc3c89b4256b628a23e1dbce4fc10850cc34",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/inter-latin-wght-normal-Dx4kXJAl.woff2",
+      "hash": "fe862e951da4a439d5697d4983af632ceefdaf2fe74c829189dc40eb780d80c0",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/inter-vietnamese-wght-normal-CBcvBZtf.woff2",
+      "hash": "3f3b977e08e1fc69e0797571ff7d4f0cb79e7c7b79f7134c27d8739b8ed43380",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/shop-BcUAhlm8.css",
+      "hash": "8e39912348a3ad34b6e238803cb23915ad20bf49c3f3b0b5b44a54422bd48545",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/sora-latin-ext-wght-normal-CawQDOvP.woff2",
+      "hash": "42adc2626097cca9273d01bc7bbc3020856b30e384e174e484e922bce7b324b9",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/assets/sora-latin-wght-normal-DdqRvwsR.woff2",
+      "hash": "87bbe77e58d941a930d436d90a086358a69bd7469d514806c770889ec6a338f0",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/favicon.svg",
+      "hash": "9ac7603f07efd27304060cf5aa3cd4a9dffc94e6f0d74aca67caf242c61cce06",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/index.html",
+      "hash": "50e96c848aae3b341596907238c6e19f251a659bd249945fb80a16f282f1d48b",
+      "status": "ACTIVE"
+    },
+    {
+      "path": "/robots.txt",
+      "hash": "ef759dfb596b0097012c00c693875fb870cc4f342011c25b6b017524bc767ce6",
+      "status": "ACTIVE"
+    }
+  ],
+  "browser": [
+    {
+      "url": "https://admin.indigenworld.com",
+      "status": 200,
+      "dnsPinned": true,
+      "htmlMatchesBuild": true,
+      "csp": "default-src 'self'; script-src 'self' 'sha256-82LPXrklmemnFqWYXf0pI5TVOfGhYBGoK51SqbKyNZk=' https://apis.google.com https://www.gstatic.com https://www.google.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.cloudfunctions.net https://*.run.app https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasestorage.app https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.google.com; frame-src https://project-kassena-7e026.firebaseapp.com https://www.google.com https://recaptcha.google.com https://firebasestorage.googleapis.com https://storage.googleapis.com https://*.firebasestorage.app blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "title": "Indigen World Admin",
+      "heading": [
+        "Sign in to Administration"
+      ],
+      "errors": [],
+      "violations": [],
+      "exchanges": [
+        {
+          "status": 200,
+          "hasToken": true,
+          "ttl": "3600s"
+        }
+      ],
+      "checks": [
+        {
+          "name": "staffMfa",
+          "token": "missing",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "staffMfa",
+          "token": "invalid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "staffMfa",
+          "token": "valid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Sign in is required.\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "setUserRole",
+          "token": "missing",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "setUserRole",
+          "token": "invalid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "setUserRole",
+          "token": "valid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Sign in is required.\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "financeCentre",
+          "token": "missing",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "financeCentre",
+          "token": "invalid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "financeCentre",
+          "token": "valid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Sign in is required.\",\"status\":\"UNAUTHENTICATED\"}}"
+        }
+      ]
+    },
+    {
+      "url": "https://indigen-admin.web.app",
+      "status": 200,
+      "dnsPinned": true,
+      "htmlMatchesBuild": true,
+      "csp": "default-src 'self'; script-src 'self' 'sha256-82LPXrklmemnFqWYXf0pI5TVOfGhYBGoK51SqbKyNZk=' https://apis.google.com https://www.gstatic.com https://www.google.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.cloudfunctions.net https://*.run.app https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasestorage.app https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.google.com; frame-src https://project-kassena-7e026.firebaseapp.com https://www.google.com https://recaptcha.google.com https://firebasestorage.googleapis.com https://storage.googleapis.com https://*.firebasestorage.app blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "title": "Indigen World Admin",
+      "heading": [
+        "Sign in to Administration"
+      ],
+      "errors": [],
+      "violations": [],
+      "exchanges": [
+        {
+          "status": 200,
+          "hasToken": true,
+          "ttl": "3600s"
+        }
+      ],
+      "checks": [
+        {
+          "name": "staffMfa",
+          "token": "missing",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "staffMfa",
+          "token": "invalid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "staffMfa",
+          "token": "valid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Sign in is required.\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "setUserRole",
+          "token": "missing",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "setUserRole",
+          "token": "invalid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "setUserRole",
+          "token": "valid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Sign in is required.\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "financeCentre",
+          "token": "missing",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "financeCentre",
+          "token": "invalid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "financeCentre",
+          "token": "valid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Sign in is required.\",\"status\":\"UNAUTHENTICATED\"}}"
+        }
+      ]
+    },
+    {
+      "url": "https://indigen-admin.firebaseapp.com",
+      "status": 200,
+      "dnsPinned": true,
+      "htmlMatchesBuild": true,
+      "csp": "default-src 'self'; script-src 'self' 'sha256-82LPXrklmemnFqWYXf0pI5TVOfGhYBGoK51SqbKyNZk=' https://apis.google.com https://www.gstatic.com https://www.google.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.cloudfunctions.net https://*.run.app https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasestorage.app https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.google.com; frame-src https://project-kassena-7e026.firebaseapp.com https://www.google.com https://recaptcha.google.com https://firebasestorage.googleapis.com https://storage.googleapis.com https://*.firebasestorage.app blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      "title": "Indigen World Admin",
+      "heading": [
+        "Sign in to Administration"
+      ],
+      "errors": [],
+      "violations": [],
+      "exchanges": [
+        {
+          "status": 200,
+          "hasToken": true,
+          "ttl": "3600s"
+        }
+      ],
+      "checks": [
+        {
+          "name": "staffMfa",
+          "token": "missing",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "staffMfa",
+          "token": "invalid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "staffMfa",
+          "token": "valid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Sign in is required.\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "setUserRole",
+          "token": "missing",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "setUserRole",
+          "token": "invalid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "setUserRole",
+          "token": "valid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Sign in is required.\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "financeCentre",
+          "token": "missing",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "financeCentre",
+          "token": "invalid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        {
+          "name": "financeCentre",
+          "token": "valid",
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Sign in is required.\",\"status\":\"UNAUTHENTICATED\"}}"
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Full Google staff sign-in and authenticator entry were not exercised.",
+    "Project-wide Auth/Firestore/Storage enforcement remains disabled; direct operations rely on security rules.",
+    "Final browser used DNS pinning to Firebase Hosting with ordinary HTTPS certificate validation; no route interception."
+  ]
+}

@@ -8,7 +8,7 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
-- [2026-10-21: A stronger gate for Administration](2026-10-21-admin-app-check/README.md) — dedicated App Check registration, mandatory protected admin callable verification and production key build validation. See the release record for confirmed deployment and verification. Blogger publication and sharing pending.
+- [2026-10-21: A stronger gate for Administration](2026-10-21-admin-app-check/README.md) — dedicated App Check registration, mandatory protected admin callable verification and production key/CSP build validation. Deployed and verified October 21 on three admin hosts and 50 protected functions. Shared project services remain in monitoring mode. Blogger publication and sharing pending.
 
 - [2026-10-18: The dictionary, right where you write](2026-10-18-dictionary-guided-translations/README.md) — dictionary vocabulary beneath assigned source sentences, documented tone alternatives, per-occurrence replacement, optional highlighting, non-blocking review and nominations through the existing dictionary queue. Includes actual local product captures using real published vocabulary. See the post README for deployment status; Blogger publication and sharing pending.
 

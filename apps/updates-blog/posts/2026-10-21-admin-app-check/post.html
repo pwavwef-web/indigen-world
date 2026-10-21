@@ -1,6 +1,6 @@
 <article>
   <figure><img src="images/cover.png" alt="Indigen World Administration sign-in framed beside the words A stronger gate for Administration"><figcaption>App Check adds app verification to protected Administration requests. The frame and headline are an editorial illustration around the actual product screen.</figcaption></figure>
-  <p>Indigen World's Administration site is gaining another check before a protected staff request reaches its handler: Firebase App Check. It uses a dedicated reCAPTCHA Enterprise key registered for the Administration domains.</p>
+  <p>Indigen World's Administration site now checks the app before a protected staff request reaches its handler: Firebase App Check. It uses a dedicated reCAPTCHA Enterprise key registered for the Administration domains.</p>
   <p>This helps protect the tools our staff use to manage contributions, support and project operations. A request without valid app verification is refused before the protected administration action runs.</p>
   <h2>How staff use it</h2>
   <p>Open <a href="https://admin.indigenworld.com">Administration</a>, sign in with your authorised staff Google account, and complete the authenticator step. App Check runs in the background. It does not grant an account a role or replace two-step verification.</p>
@@ -8,5 +8,5 @@
   <h2>What this release covers</h2>
   <p>The dedicated key allows the custom Administration domain and its two Firebase Hosting addresses. Protected admin callables require valid App Check tokens in deployed environments. Local Firebase emulators continue to support isolated development.</p>
   <p>The shared project's Authentication, Firestore and Storage services remain in monitoring mode. Turning on those project-wide controls requires checking every app that uses them, including the mobile app and public website. Shared callables outside the protected admin wrapper retain their existing policies.</p>
-  <p>Availability: the key registration is live. Deployment and production verification of the Administration build and protected functions are in progress; consult the accompanying release record for the confirmed result before publishing.</p>
+  <p>Availability: deployed and verified on October 21, 2026, across all three Administration addresses and 50 protected backend functions. Full staff Google sign-in and authenticator entry were not part of the release probes; account permissions and two-step verification continue to apply.</p>
 </article>

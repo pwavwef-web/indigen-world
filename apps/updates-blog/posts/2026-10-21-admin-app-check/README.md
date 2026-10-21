@@ -1,6 +1,6 @@
 # A stronger gate for Administration
 
-Status: key registered; deployment and production verification in progress. Blogger unpublished; community sharing pending.
+Status: **Deployed and verified October 21, 2026.** Blogger unpublished; community sharing pending.
 
 - Title: A stronger gate for Administration
 - Labels: Administration, Security, App Check, Staff tools
@@ -18,11 +18,17 @@ This is admin callable enforcement. Shared project Authentication/Firestore/Stor
 
 ## Verification
 
-To be updated with final production evidence. Admin check/build and the deliberate invalid-key build rejection passed. The transport test checks missing/invalid tokens are refused before the staff/auth gate. Required staff security and rules suites passed their assertions; the local CLI reported a shutdown error after successful emulator scripts.
+Production source: `ac24a8b43491c9f0b49e6f86540ff71616e89a1e`, merged through [PR #33](https://github.com/pwavwef-web/indigen-world/pull/33). Firebase CLI 15.34.0 deployed `staffMfa` and all 49 protected admin callables; all 50 were verified ACTIVE through the Functions API. The actual Hosting release completed at **13:40 UTC**, version `7d17c9dc79f67c60`. The Firebase MCP tool initially reported success without updating the live version; the subsequent CLI release and API/file verification confirmed the actual deployment.
+
+All three production hosts served HTML matching the tested build byte-for-byte, obtained real App Check tokens (HTTP 200, one-hour TTL), and showed the Administration sign-in page without JavaScript or CSP violations. Each host passed nine live transport probes across `staffMfa`, `setUserRole` and `financeCentre`: missing/invalid attestation was rejected by App Check; valid attestation reached the separate sign-in requirement and was still rejected without Firebase Auth. No account, claim, role, MFA enrolment or business record was changed by these probes. Full Google sign-in and staff authenticator entry were not exercised.
+
+Local DNS/connection timeouts required mapping these three known hostnames to Firebase Hosting's `199.36.158.100` in the verification browser. The final browser checks used actual HTTPS responses, normal certificate validation and the deployed CSP, with no route interception or security bypass. Earlier origin-intercepted build previews are not represented as live-host evidence.
+
+Final checks passed: admin check/build and built-HTML CSP validation; malformed-key build rejection; 16 staff/App Check unit tests; 11 staff emulator integration/rules tests; all 207 Firestore rules tests. Both final required test commands exited successfully. Earlier local CLI shutdown errors were resolved on rerun. Hosting predeploy also passed the repository's clean-origin/main gate and configured website, dictionary and TribeStudio checks without releasing those sites. Evidence: [release-evidence.json](release-evidence.json).
 
 ## Images and Blogger publishing
 
-`screens/admin-sign-in.png` is an actual product capture. `images/cover.png` and `images/admin-sign-in.jpg` use the repository's release artwork renderer; their frames and text are editorial design. Credit: Indigen World product interface and repository artwork renderer. No external image assets.
+`screens/admin-sign-in.png` is an actual deployed product capture from October 21. `images/cover.png` and `images/admin-sign-in.jpg` use the repository's release artwork renderer; their frames and text are editorial design. Credit: Indigen World product interface and repository artwork renderer. No external image assets.
 
 Before publication, upload both `images/` assets to Blogger and replace the relative image URLs in `post.html` with their Blogger image URLs. Keep descriptive alt text and captions. Confirm final availability wording, paste the article body, set title/labels/search description/permalink, preview desktop/mobile, publish, then place the article URL in `share.md`. Chinedum owns publication and sharing; this task does not publish or send messages.
 
