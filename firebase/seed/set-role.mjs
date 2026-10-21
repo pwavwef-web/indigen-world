@@ -30,8 +30,11 @@ import { initializeApp, applicationDefault, refreshToken } from 'firebase-admin/
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
-/** Mirrors ASSIGNABLE_ROLES in services/functions/src/identity.ts. */
-const ROLES = ['contributor', 'creator', 'validator', 'reviewer', 'admin', 'super_admin'];
+/**
+ * Mirrors ASSIGNABLE_ROLES in services/functions/src/identity.ts. `super_admin`
+ * is owner-managed and deliberately absent (AGENTS.md, "Super administrator").
+ */
+const ROLES = ['contributor', 'creator', 'validator', 'reviewer', 'admin'];
 
 const PROJECT_ID =
   process.env.GOOGLE_CLOUD_PROJECT ||
@@ -173,6 +176,9 @@ async function main() {
   }
 
   const previous = user.customClaims?.role ?? null;
+  if (previous === 'super_admin' || user.customClaims?.superAdmin === true) {
+    usage(`${emailArg} is a super administrator. That account is owner-managed and its role is not changed by this script.`);
+  }
   const repairAudit = previous === roleArg && process.env.REPAIR_ROLE_AUDIT === 'confirm';
   if (previous === roleArg && !repairAudit) {
     console.log(`${emailArg} is already ${roleArg}. Nothing to do.`);

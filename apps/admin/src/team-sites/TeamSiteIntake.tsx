@@ -375,16 +375,22 @@ function exportResponsePdf(request: TeamSiteRequest) {
     `<h1>${escapeHtml(title)}</h1>` +
     `<p class="meta">Indigen World team site response &middot; submitted ${escapeHtml(formatDate(request.submittedAt))}</p>` +
     `<table><tbody>${body}</tbody></table>` +
-    `<script>window.onload=function(){window.focus();window.print();};<\/script>` +
     `</body></html>`;
-  const win = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700');
+  // Not `noopener`: that makes window.open return null, so nothing could be
+  // written. The opener link is cut once the page is written instead, and
+  // printing is started from here because the admin site's Content Security
+  // Policy (inherited by about:blank) refuses inline scripts.
+  const win = window.open('', '_blank', 'width=900,height=700');
   if (!win) {
     alert('Please allow pop-ups for this site to export the response as PDF.');
     return;
   }
+  win.opener = null;
   win.document.open();
   win.document.write(html);
   win.document.close();
+  win.focus();
+  win.print();
 }
 
 function ResponseModal({

@@ -14,6 +14,7 @@ import { getStorage as adminStorage } from 'firebase-admin/storage';
 import { deleteApp, initializeApp as clientInit } from 'firebase/app';
 import { connectAuthEmulator, getAuth as clientAuth, signInWithCustomToken } from 'firebase/auth';
 import { connectStorageEmulator, deleteObject, getBytes, getStorage, ref, uploadBytes } from 'firebase/storage';
+import { verifyClientSession } from './fixtures/staffSession.mjs';
 
 const PROJECT_ID = 'demo-indigen-world';
 const BUCKET = `${PROJECT_ID}.appspot.com`;
@@ -21,7 +22,7 @@ const BUCKET = `${PROJECT_ID}.appspot.com`;
 let adminApp;
 const clientApps = [];
 
-async function clientFor(name, uid, claims = null) {
+async function clientFor(name, uid, claims = null, { verified = false } = {}) {
   const app = clientInit({
     apiKey: 'demo-key',
     projectId: PROJECT_ID,
@@ -34,6 +35,7 @@ async function clientFor(name, uid, claims = null) {
   if (uid) {
     const token = await adminAuth(adminApp).createCustomToken(uid, claims ?? {});
     await signInWithCustomToken(auth, token);
+    if (verified) await verifyClientSession(adminAuth(adminApp), auth, claims ?? {});
   }
   const storage = getStorage(app);
   connectStorageEmulator(storage, '127.0.0.1', 9199);
@@ -467,10 +469,11 @@ test('contributor payout statements are owner-created once, typed and sized, and
 });
 
 test('finance receipts: editors and finance admins upload once into their own folder; viewers and clients never read them', async () => {
-  const editor = await clientFor('fin-editor', 'fin-editor', { financeRole: 'editor' });
-  const admin = await clientFor('fin-admin', 'fin-admin', { role: 'admin', finance: true });
-  const viewer = await clientFor('fin-viewer', 'fin-viewer', { financeRole: 'viewer' });
-  const plainAdmin = await clientFor('fin-plain-admin', 'fin-plain-admin', { role: 'admin' });
+  const editor = await clientFor('fin-editor', 'fin-editor', { financeRole: 'editor' }, { verified: true });
+  const admin = await clientFor('fin-admin', 'fin-admin', { role: 'admin', finance: true }, { verified: true });
+  const viewer = await clientFor('fin-viewer', 'fin-viewer', { financeRole: 'viewer' }, { verified: true });
+  const plainAdmin = await clientFor('fin-plain-admin', 'fin-plain-admin', { role: 'admin' }, { verified: true });
+  const unverified = await clientFor('fin-editor-2', 'fin-editor-2', { financeRole: 'editor' });
   const pdf = new Uint8Array(2048);
   pdf.set([0x25, 0x50, 0x44, 0x46, 0x2d]);
   const path = 'finance-receipts/fin-editor/upload-00000001/momo-receipt.pdf';
@@ -481,6 +484,7 @@ test('finance receipts: editors and finance admins upload once into their own fo
   await assert.rejects(uploadBytes(ref(viewer, 'finance-receipts/fin-viewer/upload-00000001/r.pdf'), pdf, { contentType: 'application/pdf' }), 'viewers are read-only');
   await assert.rejects(uploadBytes(ref(plainAdmin, 'finance-receipts/fin-plain-admin/upload-00000001/r.pdf'), pdf, { contentType: 'application/pdf' }), 'an admin role alone is not finance access');
   await assert.rejects(uploadBytes(ref(editor, 'finance-receipts/fin-admin/upload-00000002/r.pdf'), pdf, { contentType: 'application/pdf' }), 'only into one’s own folder');
+  await assert.rejects(uploadBytes(ref(unverified, 'finance-receipts/fin-editor-2/upload-00000001/r.pdf'), pdf, { contentType: 'application/pdf' }), 'only from a two-step-verified console sign-in');
   await assert.rejects(uploadBytes(ref(editor, 'finance-receipts/fin-editor/upload-00000002/r.html'), pdf, { contentType: 'text/html' }));
   await assert.rejects(uploadBytes(ref(editor, 'finance-receipts/fin-editor/upload-00000003/big.pdf'), new Uint8Array(10 * 1024 * 1024 + 1), { contentType: 'application/pdf' }));
 });

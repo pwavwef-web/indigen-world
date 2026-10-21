@@ -4,10 +4,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
-import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { HttpsError } from 'firebase-functions/v2/https';
 import { onObjectFinalized } from 'firebase-functions/v2/storage';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { requireAuth, requireRole } from './auth.js';
+import { onStaffCall, requireAuth, requireRole } from './auth.js';
 import { probeMedia, runFfmpeg } from './video-editor/ffmpeg.js';
 import { consumeRateLimit } from './rate-limit.js';
 const options = { region: 'us-central1', enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true', invoker: 'public' as const };
@@ -32,7 +32,7 @@ export async function prepareCollectionRaster(input: string, declaredMime: strin
   }
   return { width: probe.width, height: probe.height, mime, outputs };
 }
-export const collectionMedia = onCall(options, async (req) => {
+export const collectionMedia = onStaffCall(options, async (req) => {
   const uid = requireAuth(req); requireRole(req, 'admin');
   const data = req.data ?? {}, db = getFirestore(), bucket = getStorage().bucket();
   if (data.operation === 'content') {

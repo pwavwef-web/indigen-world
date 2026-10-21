@@ -16,6 +16,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { assertFails, initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { OWNER_UID, verifiedStaff } from './fixtures/staffSession.mjs';
 
 process.env.GCLOUD_PROJECT ??= 'demo-indigen-world';
 const PROJECT = process.env.GCLOUD_PROJECT;
@@ -38,7 +39,7 @@ const ADMIN = { role: 'admin', finance: true, name: 'Finance Admin' };
 const ADMIN2 = { role: 'admin', finance: true, name: 'Second Admin' };
 const EDITOR = { financeRole: 'editor', name: 'Finance Editor' };
 const VIEWER = { financeRole: 'viewer', name: 'Finance Viewer' };
-const call = (uid, token, data) => finance.financeCentre.run({ auth: { uid, token: { uid, ...token } }, data, rawRequest: {} });
+const call = (uid, token, data) => finance.financeCentre.run({ auth: { uid, token: { uid, ...token, ...verifiedStaff() } }, data, rawRequest: {} });
 const admin = (data) => call('admin-1', ADMIN, data);
 const code = (pattern) => (error) => { assert.match(String(error.code), pattern, error.message); return true; };
 let keySeq = 0;
@@ -296,7 +297,7 @@ test('roles: finance admins grant viewer/editor; only a super administrator gran
   assert.equal((await auth.getUser(target.uid)).customClaims.financeRole, 'editor');
   await assert.rejects(admin({ operation: 'setRole', email: `bookkeeper-${stamp}@example.com`, level: 'admin' }), code(/permission-denied/));
   await auth.setCustomUserClaims(target.uid, { role: 'admin', financeRole: 'editor' });
-  await call('super-1', { role: 'super_admin', superAdmin: true }, { operation: 'setRole', email: `bookkeeper-${stamp}@example.com`, level: 'admin' });
+  await call(OWNER_UID, { role: 'super_admin', superAdmin: true }, { operation: 'setRole', email: `bookkeeper-${stamp}@example.com`, level: 'admin' });
   const claims = (await auth.getUser(target.uid)).customClaims;
   assert.deepEqual([claims.finance, claims.financeRole, claims.role], [true, undefined, 'admin']);
   const people = await admin({ operation: 'people' });

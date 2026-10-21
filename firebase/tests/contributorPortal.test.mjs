@@ -5,7 +5,8 @@ import { runInNewContext } from 'node:vm';
 import { createHash } from 'node:crypto';
 import { HttpsError } from 'firebase-functions/v2/https';
 import { EMPTY_DETAILS, parseContributorDetails, detailsContext } from '@indigen-world/contracts/contributor-details';
-import { requireAuth, requireRole } from '../../services/functions/lib/auth.js';
+import { effectiveRole, isOwnerSuperAdmin, requireAuth, requireRole, requireVerifiedStaffSession, roleSatisfies } from '../../services/functions/lib/auth.js';
+import { verifiedStaff } from './fixtures/staffSession.mjs';
 import { normalizeMsisdn } from '../../services/functions/lib/sms.js';
 import { auditEntry, guarded } from '../../services/functions/lib/contributor-common.js';
 import { redemptionTransition, rewardSettings } from '../../services/functions/lib/contributor-rewards.js';
@@ -63,7 +64,8 @@ async function harness({ smsOk = true, configured = true } = {}) {
       createUser: async data => { const user = { uid: 'new-user', ...data }; authUsers.set(data.email, user); return user; },
       generatePasswordResetLink: async () => 'https://example.com/?oobCode=code',
       updateUser: async (uid, data) => { const user = [...authUsers.values()].find(user => user.uid === uid); Object.assign(user, data); return user; } }),
-    onCall: (_options, fn) => fn, onDocumentWritten: (_options, fn) => fn, consumeRateLimit: async () => {},
+    onCall: (_options, fn) => fn, onStaffCall: (_options, fn) => async (req) => { requireVerifiedStaffSession(req); return fn(req); },
+    effectiveRole, isOwnerSuperAdmin, roleSatisfies, onDocumentWritten: (_options, fn) => fn, consumeRateLimit: async () => {},
     COLLECTION_CAMPAIGN_ID, buildCollectionCampaignDocument, buildCollectionContributionReceipt,
     buildCollectionSubmissionDocument, parseCollectionContributionInput,
     INVITED_SOURCE_DETAIL, buildExpressionReceipt, buildExpressionSubmissionDocument, publicationTargetFor,
@@ -253,7 +255,7 @@ test('publication preserves long whole expressions and punctuation instead of wo
 test('admins assign independent sets to stable contributor IDs without replacing old work', async () => {
   const h = await harness();
   h.records.set('contributorAccounts/bob', { status: 'active' });
-  const assign = (contributorId, expressions) => h.assignContributorExpressions({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { contributorId, expressions, title: 'Greetings' } });
+  const assign = (contributorId, expressions) => h.assignContributorExpressions({ auth: { uid: 'admin', token: { role: 'admin', ...verifiedStaff() } }, data: { contributorId, expressions, title: 'Greetings' } });
   const alice = await assign('alice', ['Hello there']);
   const bob = await assign('bob', ['See you tomorrow']);
   const more = await assign('alice', ['Please come in']);
@@ -268,7 +270,7 @@ test('admins assign independent sets to stable contributor IDs without replacing
 test('assignment endpoint rejects non-admins and uninvited recipients', async () => {
   const h = await harness();
   await assert.rejects(h.assignContributorExpressions({ auth: { uid: 'alice', token: { role: 'contributor' } }, data: { contributorId: 'alice', expressions: ['Hello'] } }), { code: 'permission-denied' });
-  await assert.rejects(h.assignContributorExpressions({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { contributorId: 'outsider', expressions: ['Hello'] } }), { code: 'failed-precondition' });
+  await assert.rejects(h.assignContributorExpressions({ auth: { uid: 'admin', token: { role: 'admin', ...verifiedStaff() } }, data: { contributorId: 'outsider', expressions: ['Hello'] } }), { code: 'failed-precondition' });
 });
 
 test('returned expressions save revisions and resubmit as a linked review round', async () => {
@@ -334,7 +336,7 @@ test('pending review cannot be skipped and skipping a returned expression preser
 test('assignment instructions are bounded and stored per assignment', async () => {
   const h = await harness();
   const guidance = { dialect: 'Navrongo Kasem', tone: 'Welcoming', deadline: '30 September 2026, 17:00 GMT', helpContact: 'Assignment coordinator: coordinator@example.com' };
-  const result = await h.assignContributorExpressions({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { contributorId: 'alice', expressions: ['Hello'], ...guidance } });
+  const result = await h.assignContributorExpressions({ auth: { uid: 'admin', token: { role: 'admin', ...verifiedStaff() } }, data: { contributorId: 'alice', expressions: ['Hello'], ...guidance } });
   const work = h.records.get('contributorAccounts/alice/works/' + result.work);
   for (const [key, value] of Object.entries(guidance)) assert.equal(work[key], value);
   assert.throws(() => h.assignmentInstructions({ tone: 'x'.repeat(501) }), { code: 'invalid-argument' });
@@ -342,7 +344,7 @@ test('assignment instructions are bounded and stored per assignment', async () =
 
 test('new invitation uses phone as temporary password and activation is required before writing', async () => {
   const h = await harness();
-  const invite = { auth: { uid: 'admin', token: { role: 'admin' } }, data: { requestId: 'invite-1', email: 'new@example.com', phoneNumber: '+233241234567', expressions: ['Hello'] } };
+  const invite = { auth: { uid: 'admin', token: { role: 'admin', ...verifiedStaff() } }, data: { requestId: 'invite-1', email: 'new@example.com', phoneNumber: '+233241234567', expressions: ['Hello'] } };
   await h.inviteExpressionContributor(invite);
   assert.equal(h.authUsers.get('new@example.com').password, '+233241234567');
   const account = h.records.get('contributorAccounts/new-user');
@@ -368,11 +370,11 @@ test('new invitation uses phone as temporary password and activation is required
 test('retry after Auth creation still requires activation when the account document is missing', async () => {
   const h = await harness();
   h.authUsers.set('retry@example.com', { uid: 'retry-user', email: 'retry@example.com', password: '+233241234567' });
-  await h.inviteExpressionContributor({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { requestId: 'retry-1', email: 'retry@example.com', phoneNumber: '+233241234567', expressions: ['Hello'] } });
+  await h.inviteExpressionContributor({ auth: { uid: 'admin', token: { role: 'admin', ...verifiedStaff() } }, data: { requestId: 'retry-1', email: 'retry@example.com', phoneNumber: '+233241234567', expressions: ['Hello'] } });
   assert.equal(h.records.get('contributorAccounts/retry-user').requiresPasswordChange, true);
 });
 
-const invitationRequest = (data = {}) => ({ auth: { uid: 'admin', token: { role: 'admin' } },
+const invitationRequest = (data = {}) => ({ auth: { uid: 'admin', token: { role: 'admin', ...verifiedStaff() } },
   data: { requestId: 'cohort-invite', contributorId: 'profile-1', email: 'speaker@example.com', phoneNumber: '0241234567', expressions: ['Hello'], ...data } });
 
 test('SMS invitation preserves imported profile identity and private notes, and enables contributing', async () => {
@@ -411,13 +413,13 @@ test('SMS failure preserves the assignment and resend neither resets credentials
   assert.equal(result.sms.status, 'failed');
   assert.equal(h.records.get('contributorAccounts/profile-1').invitation.sms.status, 'failed');
   const before = [...h.records.keys()].filter(k => k.includes('/works/')).length;
-  const resend = await h.resendContributorInvitation({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { contributorId: 'profile-1' } });
+  const resend = await h.resendContributorInvitation({ auth: { uid: 'admin', token: { role: 'admin', ...verifiedStaff() } }, data: { contributorId: 'profile-1' } });
   assert.equal(resend.sms.status, 'failed');
   assert.equal(h.messages.length, 2);
   assert.equal([...h.records.keys()].filter(k => k.includes('/works/')).length, before);
   assert.equal(h.authUsers.get('speaker@example.com').password, '+233241234567');
   h.records.get('contributorAccounts/profile-1').status = 'suspended';
-  await assert.rejects(h.resendContributorInvitation({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { contributorId: 'profile-1' } }), { code: 'failed-precondition' });
+  await assert.rejects(h.resendContributorInvitation({ auth: { uid: 'admin', token: { role: 'admin', ...verifiedStaff() } }, data: { contributorId: 'profile-1' } }), { code: 'failed-precondition' });
   assert.equal(h.messages.length, 2);
 });
 
@@ -460,7 +462,7 @@ test('issue reports validate assignment ownership, omit private fields and dedup
   assert.equal(saved.accountNumber, undefined); assert.equal(saved.translation, undefined);
   await assert.rejects(api.reportContributorIssue({ ...req, data: { ...req.data, work: 'someone-elses-work' } }), /unavailable/);
   await assert.rejects(api.updateContributorIssue({ ...req, data: { id: first.id, status: 'resolved', reply: 'done' } }), /admin access/);
-  await api.updateContributorIssue({ auth: { uid: 'admin', token: { role: 'admin' } }, data: { id: first.id, status: 'in_progress', reply: 'We are checking.' } });
+  await api.updateContributorIssue({ auth: { uid: 'admin', token: { role: 'admin', ...verifiedStaff() } }, data: { id: first.id, status: 'in_progress', reply: 'We are checking.' } });
   assert.equal(records.get(`contributorIssues/${first.id}`).replies[0].text, 'We are checking.');
   assert.equal(records.get(`contributorIssues/${first.id}`).status, 'in_progress');
 });

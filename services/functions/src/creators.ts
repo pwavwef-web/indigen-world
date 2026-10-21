@@ -1,7 +1,7 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore, type DocumentReference } from 'firebase-admin/firestore';
-import { requireAuth, requireRole } from './auth.js';
+import { onStaffCall, requireAuth, requireRole } from './auth.js';
 import {
   finalisePublishedMedia,
   finalisePublishedPronunciation,
@@ -445,7 +445,7 @@ const APPLICATION_TO_MEMBERSHIP_STATUS: Record<string, string> = {
 };
 
 /** An admin records a decision on a creator application. Privileged transition. */
-export const decideCreatorApplication = onCall(
+export const decideCreatorApplication = onStaffCall(
   { enforceAppCheck: ENFORCE_APP_CHECK, consumeAppCheckToken: ENFORCE_APP_CHECK, invoker: 'public' },
   async (req) => {
     const uid = requireAuth(req);

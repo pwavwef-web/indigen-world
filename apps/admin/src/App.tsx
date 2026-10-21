@@ -20,6 +20,8 @@ import {
   type ToolDef,
 } from './routes';
 import { SCREENS } from './screens';
+import { useSessionLimits, takeSignOutReason } from './security/sessionLimits';
+import { TwoStepGate } from './security/TwoStepGate';
 import { SessionProvider, useSession } from './session';
 import { DialogHost } from './ui/dialogs';
 import { ScreenBoundary } from './ui/ErrorBoundary';
@@ -28,11 +30,14 @@ import { Loading, Notice, PermissionState, Skeleton } from './ui/primitives';
 import { SectionFrame, TopBar } from './ui/Shell';
 
 const provider = new GoogleAuthProvider();
+// Always show Google's account chooser, so a shared or borrowed computer never
+// signs the next person straight into the last staff account.
+provider.setCustomParameters({ prompt: 'select_account' });
 const TeamSiteIntakePage = lazy(() => import('./team-sites/TeamSiteIntake').then((module) => ({ default: module.TeamSiteIntakePage })));
 
 /* -- Signing in -------------------------------------------------------------------- */
 
-function SignIn({ ready, error, onSignIn, busy }: { ready: boolean; error: string | null; onSignIn: () => void; busy: boolean }) {
+function SignIn({ ready, error, notice, onSignIn, busy }: { ready: boolean; error: string | null; notice: string | null; onSignIn: () => void; busy: boolean }) {
   return (
     <div className="ts-auth ad-auth">
       <div className="ts-auth__vignette" aria-hidden="true" />
@@ -42,10 +47,11 @@ function SignIn({ ready, error, onSignIn, busy }: { ready: boolean; error: strin
           <span className="ts-auth__workspace"><Icon name="shield" />Indigen World · Administration</span>
           <div className="ts-auth__head">
             <h1 id="auth-title" className="ts-auth__title" tabIndex={-1}>Sign in to Administration</h1>
-            <p className="ts-auth__lede">Use an authorised staff Google account. Your access follows the role on that account.</p>
+            <p className="ts-auth__lede">Use an authorised staff Google account, then enter a code from your authenticator app. Your access follows the role on that account.</p>
           </div>
           <div className="ts-auth__form">
             {error ? <Notice tone="danger" role="alert">{error}</Notice> : null}
+            {notice && !error ? <Notice tone="info" role="status">{notice}</Notice> : null}
             {!ready ? (
               <div className="ts-auth__state" role="status" aria-live="polite"><span className="ts-spinner" aria-hidden="true" /><span>Checking your session…</span></div>
             ) : (
@@ -175,9 +181,10 @@ function Workspace() {
   );
 }
 
-function SignedIn({ user, access }: { user: NonNullable<ReturnType<typeof useAdminAuth>['user']>; access: StaffAccess }) {
+function SignedIn({ user, access, expiresAt }: { user: NonNullable<ReturnType<typeof useAdminAuth>['user']>; access: StaffAccess; expiresAt: number | null }) {
   const leave = useCallback(() => { void signOut(auth); }, []);
   const session = useMemo(() => ({ user, access, signOut: leave }), [user, access, leave]);
+  useSessionLimits(true, expiresAt, leave);
   return (
     <SessionProvider value={session}>
       <AttentionProvider access={access}>
@@ -189,14 +196,23 @@ function SignedIn({ user, access }: { user: NonNullable<ReturnType<typeof useAdm
 }
 
 function Console() {
-  const { user, role, finance, superAdmin, financeRole, ready } = useAdminAuth();
+  const { user, role, finance, superAdmin, financeRole, staffStanding, verified, expiresAt, ready } = useAdminAuth();
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  // Why the console signed this person out (idle, or the 12-hour limit), shown once.
+  useEffect(() => {
+    if (!ready || user) return;
+    const reason = takeSignOutReason();
+    if (reason) setNotice(reason);
+  }, [ready, user]);
   const [busy, setBusy] = useState(false);
+  const leave = useCallback(() => { void signOut(auth); }, []);
   const access = useMemo<StaffAccess>(() => ({ role, finance, superAdmin, financeRole }), [role, finance, superAdmin, financeRole]);
 
   if (!ready || !user) {
     const handleSignIn = async () => {
       setError(null);
+      setNotice(null);
       setBusy(true);
       try { await signInWithPopup(auth, provider); }
       catch (reason) {
@@ -206,9 +222,12 @@ function Console() {
         }
       } finally { setBusy(false); }
     };
-    return <SignIn ready={ready} error={error} busy={busy} onSignIn={() => void handleSignIn()} />;
+    return <SignIn ready={ready} error={error} notice={notice} busy={busy} onSignIn={() => void handleSignIn()} />;
   }
-  return <SignedIn user={user} access={access} />;
+  // Every staff sign-in passes two-step verification before the console opens;
+  // the server refuses the console's callables and staff data until it has.
+  if (staffStanding && !verified) return <TwoStepGate key={user.uid} user={user} onSignOut={leave} />;
+  return <SignedIn user={user} access={access} expiresAt={staffStanding ? expiresAt : null} />;
 }
 
 export default function App() {

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { Fragment, Suspense, lazy, useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { BrandMark } from '../../../tribestudio/src/ui/BrandMark';
 import { countValue, useAttention } from '../attention';
 import { Link, useRouter } from '../router';
@@ -14,6 +14,8 @@ import { useSession } from '../session';
 import { useDisplay, type DisplayPreferences } from './display';
 import { Icon, type IconName } from './icons';
 import { Avatar, Badge, Count, cx } from './primitives';
+
+const MySecurityDialog = lazy(() => import('../security/StaffSecurity').then((module) => ({ default: module.MySecurityDialog })));
 
 /* ==========================================================================
    The console's frame: one top bar everywhere (brand, search, the bell and
@@ -144,8 +146,10 @@ function ProfileMenu() {
   const { user, access, signOut } = useSession();
   const [preferences, setPreferences] = useDisplay();
   const { open, setOpen, button, panel } = usePopover();
+  const [security, setSecurity] = useState(false);
   const id = useId();
   const name = user.displayName || user.email || 'Staff member';
+  const staff = access.role === 'validator' || access.role === 'reviewer' || access.role === 'admin' || access.role === 'super_admin' || access.finance || Boolean(access.financeRole);
   const set = (patch: Partial<DisplayPreferences>) => setPreferences((current) => ({ ...current, ...patch }));
   return (
     <div className="ad-pop">
@@ -189,12 +193,19 @@ function ProfileMenu() {
             <span className="ts-switch__track" aria-hidden="true" />
             <span className="ts-check__copy"><strong>High contrast</strong></span>
           </label>
+          {staff ? (
+            <button type="button" className="ts-btn ts-btn--ghost ts-btn--block" onClick={() => { setOpen(false); setSecurity(true); }}>
+              <span className="ts-btn__spinner" aria-hidden="true" />
+              <Icon name="lock" /><span>Two-step verification</span>
+            </button>
+          ) : null}
           <button type="button" className="ts-btn ts-btn--secondary ts-btn--block" onClick={() => { setOpen(false); signOut(); }}>
             <span className="ts-btn__spinner" aria-hidden="true" />
             <Icon name="logout" /><span>Sign out</span>
           </button>
         </div>
       ) : null}
+      {security ? <Suspense fallback={null}><MySecurityDialog onClose={() => setSecurity(false)} /></Suspense> : null}
     </div>
   );
 }

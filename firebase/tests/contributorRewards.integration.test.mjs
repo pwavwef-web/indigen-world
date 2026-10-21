@@ -12,6 +12,7 @@ import { createHash } from 'node:crypto';
 import { after, before, beforeEach, test } from 'node:test';
 import { deleteApp, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { verifiedStaff } from './fixtures/staffSession.mjs';
 
 process.env.GCLOUD_PROJECT ??= 'demo-indigen-world';
 assert.ok(process.env.FIRESTORE_EMULATOR_HOST, 'Run under the Firestore emulator.');
@@ -35,7 +36,7 @@ async function clear() {
 beforeEach(clear);
 
 const FINANCE = { role: 'admin', finance: true };
-const call = (fn, uid, data, token = {}) => fn.run({ auth: { uid, token: { uid, ...token } }, data, rawRequest: {} });
+const call = (fn, uid, data, token = {}) => fn.run({ auth: { uid, token: { uid, ...token, ...verifiedStaff() } }, data, rawRequest: {} });
 const code = (pattern) => (error) => { assert.match(String(error.code), pattern); return true; };
 
 async function contributor(uid, balance = 0, lifetime = balance) {

@@ -1,0 +1,131 @@
+/* Two-step verification: the sign-in gate, setup, and the Staff security screen. */
+
+.ad-mfa.ts-auth__card {
+  max-width: 34rem;
+}
+
+.ad-mfa__steps {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+
+.ad-mfa__form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.ad-mfa__scan {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.ad-mfa__qr {
+  width: 11rem;
+  height: 11rem;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: #fff;
+}
+
+.ad-mfa__key {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.ad-mfa__secret {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.06em;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.ad-mfa__input {
+  font-size: var(--fs-xl);
+  letter-spacing: 0.3em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.ad-mfa__codes-wrap {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.ad-mfa__codes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: var(--space-3) var(--space-4) var(--space-3) 2.2rem;
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+  font-size: var(--fs-sm);
+}
+
+.ad-mfa__codes code {
+  letter-spacing: 0.05em;
+  user-select: all;
+}
+
+.ad-mfa__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ad-mfa__signout {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ad-mfa__mine {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.ad-mfa__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.ad-mfa__facts dt {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.ad-mfa__facts dd {
+  margin: var(--space-1) 0 0;
+}
+
+@media (max-width: 520px) {
+  .ad-mfa__scan {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+
+  .ad-mfa__codes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -15,20 +15,31 @@ service firebase.storage {
     function role() {
       return isSignedIn() ? request.auth.token.get('role', null) : null;
     }
+    // Owner-managed super administrator: the same list as isSuperAdmin() in
+    // firestore.rules and OWNER_SUPER_ADMIN_UIDS in services/functions/src/auth.ts.
+    function isSuperAdmin() {
+      return isSignedIn()
+        && request.auth.uid in ['fjnCDzK5lPZnEGHRYkarL5vqpzq1']
+        && (role() == 'super_admin' || request.auth.token.get('superAdmin', false) == true);
+    }
+    // A two-step-verified admin-console sign-in (see hasVerifiedStaffSession in firestore.rules).
+    function hasVerifiedStaffSession() {
+      return isSignedIn()
+        && request.auth.token.get('staffMfa', []) is list
+        && request.auth.token.auth_time in request.auth.token.get('staffMfa', [])
+        && request.auth.token.auth_time > request.time.toMillis() / 1000 - 43200;
+    }
     function isStaff() {
       return role() == 'validator'
         || role() == 'reviewer'
-        || role() == 'admin'
-        || role() == 'super_admin'
-        || (isSignedIn() && request.auth.token.get('superAdmin', false) == true);
+        || isAdmin();
     }
     // Narrower than isStaff(): a validator or reviewer decides what community
     // work is published, which is not the same authority as writing the app's
     // own teaching material or its advertising.
     function isAdmin() {
-      return role() == 'admin'
-        || role() == 'super_admin'
-        || (isSignedIn() && request.auth.token.get('superAdmin', false) == true);
+      return (role() == 'admin' && request.auth.token.get('superAdmin', false) != true)
+        || isSuperAdmin();
     }
     function isBlockedCreator() {
       return isSignedIn() && request.auth.token.get('creatorStatus', '') in ['suspended', 'revoked', 'rejected'];
@@ -353,14 +364,14 @@ service firebase.storage {
     // five-minute signed link that is written to the finance audit trail.
     function canRecordFinance() {
       return isSignedIn() && (
-        request.auth.token.get('superAdmin', false) == true
-        || role() == 'super_admin'
-        || (request.auth.token.get('finance', false) == true && (role() == 'admin' || role() == 'super_admin'))
+        isSuperAdmin()
+        || (request.auth.token.get('finance', false) == true && isAdmin())
         || request.auth.token.get('financeRole', '') == 'editor'
       );
     }
     match /finance-receipts/{uid}/{uploadId}/{fileName} {
       allow create: if canRecordFinance()
+        && hasVerifiedStaffSession()
         && request.auth.uid == uid
         && resource == null
         && uploadId.matches('^[A-Za-z0-9_-]{8,64}$')

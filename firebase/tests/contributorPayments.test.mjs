@@ -15,7 +15,8 @@ import { test } from 'node:test';
 import { runInNewContext } from 'node:vm';
 import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import { HttpsError } from 'firebase-functions/v2/https';
-import { requireAuth, roleSatisfies } from '../../services/functions/lib/auth.js';
+import { callerClaims, effectiveRole, isOwnerSuperAdmin, requireAuth, requireVerifiedStaffSession, roleSatisfies } from '../../services/functions/lib/auth.js';
+import { OWNER_UID, verifiedStaff } from './fixtures/staffSession.mjs';
 import { normalizeGhanaPhone } from '../../services/functions/lib/sms.js';
 import { guarded, hasFinanceAccess, maskTail, sanitiseForLog } from '../../services/functions/lib/contributor-common.js';
 import {
@@ -131,8 +132,10 @@ test('finance access needs the finance claim on an admin, or a super administrat
   assert.equal(hasFinanceAccess({ role: 'admin' }), false, 'an ordinary admin does not see payout detail');
   assert.equal(hasFinanceAccess({ role: 'validator', finance: true }), false);
   assert.equal(hasFinanceAccess({ role: 'admin', finance: true }), true);
-  assert.equal(hasFinanceAccess({ role: 'super_admin' }), true);
-  assert.equal(hasFinanceAccess({ superAdmin: true }), true);
+  assert.equal(hasFinanceAccess({ uid: OWNER_UID, role: 'super_admin' }), true);
+  assert.equal(hasFinanceAccess({ uid: OWNER_UID, superAdmin: true }), true);
+  assert.equal(hasFinanceAccess({ uid: 'promoted', role: 'super_admin' }), false, 'only the owner is a super administrator');
+  assert.equal(hasFinanceAccess({ uid: 'promoted', role: 'admin', finance: true, superAdmin: true }), false, 'a stray superAdmin claim voids the account');
   assert.equal(hasFinanceAccess(undefined), false);
 });
 
@@ -377,7 +380,8 @@ async function harness({ smsOk = true, smsConfigured = true, check = null } = {}
     getFirestore: () => db, getStorage: () => storage,
     logger: { info() {}, warn() {}, error() {} },
     HttpsError, onCall: (_options, fn) => fn,
-    requireAuth, roleSatisfies,
+    requireAuth, roleSatisfies, callerClaims, effectiveRole, isOwnerSuperAdmin,
+    onStaffCall: (_options, fn) => async (req) => { requireVerifiedStaffSession(req); return fn(req); },
     consumeRateLimit: async (operation, id, limit, _windowMs, units = 1, message = 'Too many requests. Try again shortly.') => {
       const key = `${operation}_${id}`;
       const used = limits.get(key) ?? 0;
@@ -397,7 +401,7 @@ async function harness({ smsOk = true, smsConfigured = true, check = null } = {}
     listContributorPayments, getPayoutStatementLink, decidePayoutVerification, requestContributorPayment })`, context);
   records.set('contributorAccounts/alice', { status: 'active' });
   const contributor = (data = {}, uid = 'alice') => ({ auth: { uid, token: {} }, data });
-  const finance = (data = {}, token = { role: 'admin', finance: true }, uid = 'finance-1') => ({ auth: { uid, token }, data });
+  const finance = (data = {}, token = { role: 'admin', finance: true }, uid = 'finance-1') => ({ auth: { uid, token: { ...token, ...verifiedStaff() } }, data });
   const upload = (id = 'upload-0001', bytes = PDF(), contentType = 'application/pdf', name = 'statement.pdf') => {
     files.set(`contributor-payout-statements/alice/${id}/${name}`, { bytes, contentType });
     return { uploadId: id, fileName: name };

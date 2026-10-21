@@ -4,7 +4,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
-import { requireAuth, requireRole } from './auth.js';
+import { effectiveRole, isOwnerSuperAdmin, onStaffCall, requireAuth, requireRole, roleSatisfies } from './auth.js';
 import { guarded } from './contributor-common.js';
 import { rewardSettings } from './contributor-rewards.js';
 import { commitLedger, entryId, openLedger, post } from './points-ledger.js';
@@ -176,7 +176,7 @@ async function deliverContributorInvitation(uid: string, email: string, phone: s
 }
 
 // An invitation sends an SMS only after its account and assignment have been saved.
-export const inviteExpressionContributor = onCall({ ...options, secrets: [ARKESEL_API_KEY] }, async req => {
+export const inviteExpressionContributor = onStaffCall({ ...options, secrets: [ARKESEL_API_KEY] }, async req => {
   const actor = requireAuth(req); requireRole(req, 'admin');
   await consumeRateLimit('inviteExpressionContributor', actor, 10);
   const email = text(req.data?.email, 254).toLowerCase();
@@ -348,7 +348,7 @@ export const activateExpressionContributor = onCall(options, guarded('activateEx
 }));
 
 /** Assign another set to the same contributor without changing their credentials. */
-export const assignContributorExpressions = onCall(options, async req => {
+export const assignContributorExpressions = onStaffCall(options, async req => {
   const actor = requireAuth(req); requireRole(req, 'admin');
   await consumeRateLimit('assignContributorExpressions', actor, 30);
   const uid = id(req.data?.contributorId);
@@ -385,7 +385,7 @@ export const assignContributorExpressions = onCall(options, async req => {
 });
 
 /** A bounded, joined directory for the admin console. Private contact fields never leave this admin-only callable. */
-export const listExpressionContributors = onCall(options, async req => {
+export const listExpressionContributors = onStaffCall(options, async req => {
   const actor = requireAuth(req); requireRole(req, 'admin');
   await consumeRateLimit('listExpressionContributors', actor, 60);
   const db = getFirestore();
@@ -469,7 +469,7 @@ export const listExpressionContributors = onCall(options, async req => {
 });
 
 /** Create a profile-only contributor or edit the public/private halves of an existing record. */
-export const saveContributorProfile = onCall(options, async req => {
+export const saveContributorProfile = onStaffCall(options, async req => {
   const actor = requireAuth(req); requireRole(req, 'admin');
   await consumeRateLimit('saveContributorProfile', actor, 30);
   const input = profileFields((req.data ?? {}) as Record<string, unknown>);
@@ -504,8 +504,8 @@ export const saveContributorProfile = onCall(options, async req => {
 });
 
 /** Manage the relationship, login and public profile as three independent switches. */
-export const setContributorAccess = onCall(options, async req => {
-  const actor = requireAuth(req); requireRole(req, 'admin');
+export const setContributorAccess = onStaffCall(options, async req => {
+  const actor = requireAuth(req); const actorRole = requireRole(req, 'admin');
   await consumeRateLimit('setContributorAccess', actor, 30);
   const contributorId = id(req.data?.contributorId);
   const profileStatus = req.data?.profileStatus == null ? null : String(req.data.profileStatus);
@@ -531,6 +531,18 @@ export const setContributorAccess = onCall(options, async req => {
   if (!profile.exists && !account.exists) throw new HttpsError('not-found', 'Contributor not found.');
   if (accountStatus !== null && !account.exists) throw new HttpsError('failed-precondition', 'This profile has no login account.');
   if (accountStatus !== null) {
+    // Sign-in access is a lever over staff accounts too: nobody locks
+    // themselves out, only the super administrator restricts an admin, and
+    // the owner-managed super administrator is never restricted from here.
+    if (contributorId === actor) throw new HttpsError('permission-denied', 'You cannot change your own sign-in access.');
+    const target = await getAuth().getUser(contributorId).catch(() => null);
+    const targetClaims = target ? { ...(target.customClaims ?? {}), uid: target.uid } as Record<string, unknown> : null;
+    if (targetClaims && (isOwnerSuperAdmin(targetClaims) || targetClaims.role === 'super_admin' || targetClaims.superAdmin === true)) {
+      throw new HttpsError('permission-denied', 'A super administrator account is owner-managed and cannot be changed here.');
+    }
+    if (targetClaims && roleSatisfies(effectiveRole(targetClaims), 'admin') && actorRole !== 'super_admin') {
+      throw new HttpsError('permission-denied', 'Only the super administrator can change an admin’s sign-in access.');
+    }
     try { await getAuth().updateUser(contributorId, { disabled: accountStatus !== 'active' }); }
     catch (error) {
       if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
@@ -559,7 +571,7 @@ export const setContributorAccess = onCall(options, async req => {
   return { contributorId, ...after };
 });
 
-export const resendContributorInvitation = onCall({ ...options, secrets: [ARKESEL_API_KEY] }, async req => {
+export const resendContributorInvitation = onStaffCall({ ...options, secrets: [ARKESEL_API_KEY] }, async req => {
   const actor = requireAuth(req); requireRole(req, 'admin');
   await consumeRateLimit('resendContributorInvitation', actor, 20);
   const contributorId = id(req.data?.contributorId);
@@ -595,7 +607,7 @@ export const resendContributorInvitation = onCall({ ...options, secrets: [ARKESE
   return { portalUrl: origin + path, loginMethod: temporary ? 'phone' : 'existing', sms };
 });
 
-export const cancelContributorInvitation = onCall(options, async req => {
+export const cancelContributorInvitation = onStaffCall(options, async req => {
   const actor = requireAuth(req); requireRole(req, 'admin');
   await consumeRateLimit('cancelContributorInvitation', actor, 20);
   const contributorId = id(req.data?.contributorId);
@@ -864,13 +876,13 @@ export const getContributorIssues = onCall(options, guarded('getContributorIssue
   return { issues: docs.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: doc.get('createdAt') })).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))) };
 }));
 
-export const listContributorIssues = onCall(options, async req => {
+export const listContributorIssues = onStaffCall(options, async req => {
   requireRole(req, 'admin');
   const docs = await getFirestore().collection('contributorIssues').orderBy('createdAt', 'desc').limit(200).get();
   return { issues: docs.docs.map(doc => ({ id: doc.id, ...doc.data(), createdAt: doc.get('createdAt') })) };
 });
 
-export const updateContributorIssue = onCall(options, async req => {
+export const updateContributorIssue = onStaffCall(options, async req => {
   requireRole(req, 'admin');
   const actor = requireAuth(req);
   await consumeRateLimit('updateContributorIssue', actor, 60);

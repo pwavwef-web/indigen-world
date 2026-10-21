@@ -94,4 +94,5 @@ export const SCREENS: Record<`${SectionId}.${string}`, Screen> = {
   'governance.audit': named(audit, 'AuditLogViewer'),
   'governance.exports': named(exportsScreen, 'ExportManager'),
   'governance.configuration': named(creators, 'PlatformConfiguration'),
+  'governance.security': named(() => import('./security/StaffSecurity'), 'StaffSecurityScreen'),
 };

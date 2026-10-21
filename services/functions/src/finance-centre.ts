@@ -4,9 +4,9 @@ import { AggregateField, FieldValue, getFirestore, type DocumentData, type Fires
 import { getStorage } from 'firebase-admin/storage';
 import { logger } from 'firebase-functions';
 import { onDocumentCreated, onDocumentWritten } from 'firebase-functions/v2/firestore';
-import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https';
+import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { roleSatisfies } from './auth.js';
+import { callerClaims, effectiveRole, isOwnerSuperAdmin, onStaffCall, roleSatisfies } from './auth.js';
 import { CONTRIBUTOR_CALL_OPTIONS, boundedText, guarded, hasFinanceAccess } from './contributor-common.js';
 import { sendMail } from './email.js';
 import { renderReportPdf } from './finance-report-pdf.js';
@@ -87,7 +87,7 @@ interface Actor { uid: string; name: string; level: FinanceLevel; superAdmin: bo
 function requireLevel(req: CallableRequest<unknown>, minimum: FinanceLevel): Actor {
   const uid = req.auth?.uid;
   if (!uid) throw new HttpsError('unauthenticated', 'Sign in is required.');
-  const token = req.auth?.token as Record<string, unknown> | undefined;
+  const token = callerClaims(req);
   const level = financeLevel(token);
   if (!level) throw new HttpsError('permission-denied', 'Project finance needs a finance role. A finance administrator can grant viewer or editor access.');
   if (RANK[level] < RANK[minimum]) {
@@ -96,7 +96,7 @@ function requireLevel(req: CallableRequest<unknown>, minimum: FinanceLevel): Act
       : 'This needs finance editor access.');
   }
   const name = String(token?.name ?? token?.email ?? uid).slice(0, 120);
-  return { uid, name, level, superAdmin: token?.superAdmin === true || token?.role === 'super_admin' };
+  return { uid, name, level, superAdmin: isOwnerSuperAdmin(token) };
 }
 
 /* ==========================================================================
@@ -1123,7 +1123,7 @@ async function people() {
   do {
     const page = await getAuth().listUsers(1000, token);
     for (const user of page.users) {
-      const level = financeLevel(user.customClaims as Record<string, unknown> | undefined);
+      const level = financeLevel({ ...(user.customClaims ?? {}), uid: user.uid });
       if (level) out.push({ uid: user.uid, email: user.email ?? '', name: user.displayName ?? '', level, role: (user.customClaims?.role as string) ?? null });
     }
     scanned += page.users.length;
@@ -1142,12 +1142,13 @@ async function setRole(actor: Actor, raw: Record<string, unknown>) {
   catch { throw new HttpsError('not-found', 'No account uses that email. They must sign in once first.'); }
   if (user.uid === actor.uid) throw new HttpsError('permission-denied', 'You cannot change your own finance access.');
   const claims = { ...(user.customClaims ?? {}) } as Record<string, unknown>;
-  const before = financeLevel(claims);
+  const targetIsOwner = isOwnerSuperAdmin({ ...claims, uid: user.uid });
+  const before = financeLevel({ ...claims, uid: user.uid });
   if ((level === 'admin' || before === 'admin') && !actor.superAdmin) throw new HttpsError('permission-denied', 'Only a super administrator grants or removes finance administration.');
-  if (level === 'admin' && !roleSatisfies(claims.role, 'admin') && claims.superAdmin !== true) throw new HttpsError('failed-precondition', 'Finance administration is only honoured on an admin account. Give them the admin role first.');
+  if (level === 'admin' && !roleSatisfies(effectiveRole({ ...claims, uid: user.uid }), 'admin')) throw new HttpsError('failed-precondition', 'Finance administration is only honoured on an admin account. Give them the admin role first.');
   if (level === 'admin') { claims.finance = true; delete claims.financeRole; }
-  else { if (claims.superAdmin !== true && claims.role !== 'super_admin') delete claims.finance; if (level === 'none') delete claims.financeRole; else claims.financeRole = level; }
-  if (claims.superAdmin === true || claims.role === 'super_admin') {
+  else { if (!targetIsOwner) delete claims.finance; if (level === 'none') delete claims.financeRole; else claims.financeRole = level; }
+  if (targetIsOwner) {
     if (level !== 'admin') throw new HttpsError('failed-precondition', 'A super administrator always has full finance access.');
   }
   await getAuth().setCustomUserClaims(user.uid, claims);
@@ -1192,7 +1193,7 @@ const VIEW_OPS = new Set(['voucher', 'attention', 'overview', 'ledger', 'get', '
 const EDIT_OPS = new Set(['save', 'submit', 'discard', 'attach', 'saveSource', 'saveRecurring', 'reconcile']);
 const ADMIN_OPS = new Set(['approve', 'markPaid', 'reject', 'reverse', 'correct', 'saveAccount', 'saveCategory', 'saveBudget', 'resolveReconciliation', 'saveSettings', 'syncPlatform', 'people', 'setRole']);
 
-export const financeCentre = onCall({ ...CONTRIBUTOR_CALL_OPTIONS, timeoutSeconds: 120, memory: '512MiB' }, guarded('financeCentre', async (req) => {
+export const financeCentre = onStaffCall({ ...CONTRIBUTOR_CALL_OPTIONS, timeoutSeconds: 120, memory: '512MiB' }, guarded('financeCentre', async (req) => {
   const raw = (req.data ?? {}) as Record<string, unknown>;
   const op = str(raw.operation);
   const minimum: FinanceLevel | null = ADMIN_OPS.has(op) ? 'admin' : EDIT_OPS.has(op) ? 'editor' : VIEW_OPS.has(op) ? 'viewer' : null;

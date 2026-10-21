@@ -4,11 +4,12 @@ import { initializeApp, deleteApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { shop, shopAdmin, settleShopPayment, settleShopRefund } from '../../services/functions/lib/shop.js';
 import { notificationAction } from '../../services/functions/lib/notification-actions.js';
+import { verifiedStaff } from './fixtures/staffSession.mjs';
 assert.ok(process.env.FIRESTORE_EMULATOR_HOST, 'Use the Firestore emulator; never run this fixture against production.');
 process.env.PAYSTACK_SECRET_KEY = 'sk_test_synthetic_emulator_only';
 process.env.SHOP_PAYSTACK_CALLBACK_URL = 'https://example.test/shop/payment-complete';
 let app, db;
-const call = (fn, uid, data, token = {}) => fn.run({ auth: { uid, token: { email: `${uid}@example.test`, ...token } }, data, rawRequest: {} });
+const call = (fn, uid, data, token = {}) => fn.run({ auth: { uid, token: { email: `${uid}@example.test`, ...token, ...verifiedStaff() } }, data, rawRequest: {} });
 const address = { recipient: 'Synthetic member', country: 'GH', city: 'Synthetic town', street: 'Synthetic landmark', phone: '+233200000000' };
 before(async () => {
   app = initializeApp({ projectId: 'demo-indigen-upgrade' }); db = getFirestore();

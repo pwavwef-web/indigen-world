@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { getFirestore, type DocumentSnapshot } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
-import { requireAuth, roleSatisfies } from './auth.js';
+import { callerClaims, effectiveRole, isOwnerSuperAdmin, requireAuth, roleSatisfies } from './auth.js';
 
 /**
  * Pieces every contributor-workspace callable shares.
@@ -114,13 +114,13 @@ export async function requireActiveContributor(
  */
 export function hasFinanceAccess(token: Record<string, unknown> | undefined): boolean {
   if (!token) return false;
-  if (token.superAdmin === true || token.role === 'super_admin') return true;
-  return token.finance === true && roleSatisfies(token.role, 'admin');
+  if (isOwnerSuperAdmin(token)) return true;
+  return token.finance === true && roleSatisfies(effectiveRole(token), 'admin');
 }
 
 export function requireFinance(req: CallableRequest<unknown>): string {
   const uid = requireAuth(req);
-  if (!hasFinanceAccess(req.auth?.token as Record<string, unknown> | undefined)) {
+  if (!hasFinanceAccess(callerClaims(req))) {
     throw new HttpsError(
       'permission-denied',
       'Finance access is required to review contributor payment details. A super administrator can grant the finance claim.',

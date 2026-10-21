@@ -17,6 +17,10 @@ Indigen World may process contributor identities, phone numbers, school or commu
 - Store backend secrets in Firebase Secret Manager or another approved secret store.
 - Rotate any credential immediately if it appears in a commit, issue, log, screenshot, or chat transcript.
 
+## Admin console access
+
+Staff sign-ins to the admin console require two-step verification, and the super administrator role is owner-managed and cannot be granted by any tool or agent. See `docs/architecture/staff-security.md` and the "Admin security" section of `AGENTS.md`.
+
 ## Data handling
 
 Use synthetic fixtures for development and tests. Production data must not be copied into local development or GitHub without documented approval, minimisation, and secure handling.

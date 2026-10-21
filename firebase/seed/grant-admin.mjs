@@ -1,12 +1,17 @@
-// First-admin bootstrap: grants the `super_admin` role claim to one existing
-// account, breaking the chicken-and-egg where every privileged Function
-// (setUserRole, decideCreatorApplication, decideSubmission) already requires an
-// admin. A super_admin can approve creators, review + publish submissions, open
-// campaigns and assign further roles (see services/functions/src/auth.ts).
+// Owner repair: re-asserts the `super_admin` role claim on the OWNER's own
+// account, should it ever be lost. It cannot promote anyone else.
+//
+// The super administrator is OWNER-MANAGED. Only the uids in
+// OWNER_SUPER_ADMIN_UIDS (services/functions/src/auth.ts, mirrored in both rule
+// files) are honoured as super administrator anywhere; a super_admin claim on
+// any other account grants nothing. This script refuses every other target,
+// and automated agents must never run it or edit the owner list (AGENTS.md,
+// "Super administrator"). To give someone administrative access, the owner
+// grants the `admin` role instead (set-role.mjs or the console).
 //
 // Safe by construction: refuses the emulator, requires GRANT_ADMIN=confirm, and
-// only ever elevates an account that already exists in Firebase Authentication.
-// Idempotent — re-running simply re-asserts the same claim.
+// only ever touches an owner account that already exists in Firebase
+// Authentication. Idempotent — re-running simply re-asserts the same claim.
 //
 //   GOOGLE_CLOUD_QUOTA_PROJECT=project-kassena-7e026 GRANT_ADMIN=confirm \
 //     node firebase/seed/grant-admin.mjs project-kassena-7e026 you@example.com
@@ -36,6 +41,8 @@ if (process.env.GRANT_ADMIN !== 'confirm') {
 }
 
 const ROLE = 'super_admin';
+/** Mirrors OWNER_SUPER_ADMIN_UIDS in services/functions/src/auth.ts. Owner-managed. */
+const OWNER_SUPER_ADMIN_UIDS = ['fjnCDzK5lPZnEGHRYkarL5vqpzq1'];
 
 initializeApp({ credential: applicationDefault(), projectId });
 const auth = getAuth();
@@ -45,6 +52,11 @@ async function run() {
   const user = target.includes('@')
     ? await auth.getUserByEmail(target)
     : await auth.getUser(target);
+
+  if (!OWNER_SUPER_ADMIN_UIDS.includes(user.uid)) {
+    console.error(`Refusing: ${user.email ?? user.uid} is not the owner. The super administrator role is owner-managed and cannot be granted to anyone else.`);
+    process.exit(1);
+  }
 
   const existing = user.customClaims ?? {};
   await auth.setCustomUserClaims(user.uid, { ...existing, role: ROLE });

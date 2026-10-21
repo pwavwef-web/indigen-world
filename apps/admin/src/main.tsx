@@ -21,6 +21,7 @@ import './ui/sections.css';
 import './ui/legacy.css';
 import './creators/creators-admin.css';
 import './team-sites/team-sites.css';
+import './security/security.css';
 import { applyDisplay, readDisplay } from './ui/display';
 import App from './App';
 import './firebase';

@@ -10,6 +10,7 @@ import { saveKnowledgeRecord, getKnowledgeRecord, listKnowledgeRecords, reviewKn
 import { releaseKnowledgeRecord, resolveKnowledgeRecords, revokeKnowledgeRelease, exportKnowledgeRecords } from '../../services/functions/lib/knowledge-release.js';
 import { configureKnowledgeGovernance } from '../../services/functions/lib/knowledge-governance.js';
 import { loadGroundingSources, renderGroundedAnswer } from '../../services/functions/lib/kawuri-grounding.js';
+import { OWNER_UID } from './fixtures/staffSession.mjs';
 
 const projectId = 'demo-knowledge-corpus';
 let app, db, env;
@@ -142,10 +143,10 @@ test('history metrics count submitted objects once and use server timestamps', a
 test('governance changes are scoped, audited and immutable by policy version', async () => {
   await failure(() => invoke(configureKnowledgeGovernance, 'admin', { action: 'policy', policy, reason: 'Synthetic governance test' }, 'admin'), 'permission-denied');
   const next = { ...policy, version: 'test-policy-v2' };
-  await invoke(configureKnowledgeGovernance, 'super', { action: 'policy', policy: next, reason: 'Synthetic governance test' }, 'super_admin');
-  await failure(() => invoke(configureKnowledgeGovernance, 'super', { action: 'policy', policy: { ...next, reviewerQuorum: 1 }, reason: 'Attempted version overwrite' }, 'super_admin'), 'already-exists');
+  await invoke(configureKnowledgeGovernance, OWNER_UID, { action: 'policy', policy: next, reason: 'Synthetic governance test' }, 'super_admin');
+  await failure(() => invoke(configureKnowledgeGovernance, OWNER_UID, { action: 'policy', policy: { ...next, reviewerQuorum: 1 }, reason: 'Attempted version overwrite' }, 'super_admin'), 'already-exists');
   assert.equal((await db.doc('knowledgePolicyVersions/test-policy-v2').get()).get('policy.reviewerQuorum'), 2);
-  await invoke(configureKnowledgeGovernance, 'super', { action: 'grant', uid: 'new-reviewer', grant, reason: 'Synthetic qualification decision' }, 'super_admin');
+  await invoke(configureKnowledgeGovernance, OWNER_UID, { action: 'grant', uid: 'new-reviewer', grant, reason: 'Synthetic qualification decision' }, 'super_admin');
   assert.equal((await db.doc('knowledgeRoleGrants/new-reviewer').get()).get('policyVersion'), next.version);
   assert.ok((await db.collection('knowledgeGovernanceEvents').get()).size >= 2);
   await db.doc('knowledgePolicies/current').set(policy);

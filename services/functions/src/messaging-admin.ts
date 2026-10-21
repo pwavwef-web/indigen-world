@@ -1,8 +1,8 @@
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
-import { HttpsError, onCall } from 'firebase-functions/v2/https';
-import { requireAuth, requireRole } from './auth.js';
+import { HttpsError } from 'firebase-functions/v2/https';
+import { onStaffCall, requireAuth, requireRole } from './auth.js';
 import { consumeRateLimit } from './rate-limit.js';
 import {
   ARKESEL_API_KEY,
@@ -96,7 +96,7 @@ function chunk<T>(items: T[], size: number): T[][] {
  * Admin-only: read the Arkesel SMS balance for the console. The API key stays
  * server-side — the admin app never sees it, it only calls this function.
  */
-export const smsBalance = onCall(
+export const smsBalance = onStaffCall(
   { enforceAppCheck: ENFORCE_APP_CHECK, consumeAppCheckToken: ENFORCE_APP_CHECK, invoker: 'public', secrets: [ARKESEL_API_KEY] },
   async (req) => {
     const uid = requireAuth(req);
@@ -115,7 +115,7 @@ export const smsBalance = onCall(
  * Admin-only: send a test SMS from the console to confirm the integration and
  * sender ID are working.
  */
-export const sendTestSms = onCall(
+export const sendTestSms = onStaffCall(
   { enforceAppCheck: ENFORCE_APP_CHECK, consumeAppCheckToken: ENFORCE_APP_CHECK, invoker: 'public', secrets: [ARKESEL_API_KEY] },
   async (req) => {
     const uid = requireAuth(req);
@@ -149,7 +149,7 @@ export const sendTestSms = onCall(
  * for a future Ghana-local time, and optionally run in Arkesel sandbox mode
  * (simulated, not billed). Every send is recorded to `smsCampaigns` for history.
  */
-export const sendSmsCampaign = onCall(
+export const sendSmsCampaign = onStaffCall(
   { enforceAppCheck: ENFORCE_APP_CHECK, consumeAppCheckToken: ENFORCE_APP_CHECK, invoker: 'public', secrets: [ARKESEL_API_KEY] },
   async (req) => {
     const uid = requireAuth(req);
@@ -248,7 +248,7 @@ export const sendSmsCampaign = onCall(
 );
 
 /** Admin-only: recent SMS campaign history for the console. */
-export const listSmsCampaigns = onCall(
+export const listSmsCampaigns = onStaffCall(
   { enforceAppCheck: ENFORCE_APP_CHECK, consumeAppCheckToken: ENFORCE_APP_CHECK, invoker: 'public' },
   async (req) => {
     const uid = requireAuth(req);
@@ -280,7 +280,7 @@ export const listSmsCampaigns = onCall(
  * can reuse a list of numbers without re-pasting them. Server-owned; the admin
  * app reaches it only through these callables.
  */
-export const saveSmsContactGroup = onCall(
+export const saveSmsContactGroup = onStaffCall(
   { enforceAppCheck: ENFORCE_APP_CHECK, consumeAppCheckToken: ENFORCE_APP_CHECK, invoker: 'public' },
   async (req) => {
     const uid = requireAuth(req);
@@ -312,7 +312,7 @@ export const saveSmsContactGroup = onCall(
 );
 
 /** Admin-only: list saved contact groups. */
-export const listSmsContactGroups = onCall(
+export const listSmsContactGroups = onStaffCall(
   { enforceAppCheck: ENFORCE_APP_CHECK, consumeAppCheckToken: ENFORCE_APP_CHECK, invoker: 'public' },
   async (req) => {
     const uid = requireAuth(req);
@@ -331,7 +331,7 @@ export const listSmsContactGroups = onCall(
 );
 
 /** Admin-only: delete a saved contact group. */
-export const deleteSmsContactGroup = onCall(
+export const deleteSmsContactGroup = onStaffCall(
   { enforceAppCheck: ENFORCE_APP_CHECK, consumeAppCheckToken: ENFORCE_APP_CHECK, invoker: 'public' },
   async (req) => {
     const uid = requireAuth(req);

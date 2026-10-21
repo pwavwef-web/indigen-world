@@ -16,6 +16,7 @@ import {
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import { collection, doc, getDoc, getDocs, query, where, limit, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { verifiedStaff } from './fixtures/staffSession.mjs';
 
 const PROJECT_ID = 'demo-indigen-world';
 const host = '127.0.0.1';
@@ -234,7 +235,7 @@ test('reviews are readable by validators but not contributors', async () => {
 });
 
 test('no client may write to the audit log; only admins may read it', async () => {
-  const admin = env.authenticatedContext('admin1', { role: 'admin' });
+  const admin = env.authenticatedContext('admin1', { role: 'admin', ...verifiedStaff() });
   const contrib = env.authenticatedContext('contrib1', { role: 'contributor' });
   await assertFails(setDoc(doc(db(admin), 'auditLogs/forge'), { action: 'x.y' }));
   await assertSucceeds(getDoc(doc(db(admin), 'auditLogs/a1')));
@@ -385,8 +386,8 @@ test('public form submissions can be read and updated by staff, deleted by admin
 
   const anon = env.unauthenticatedContext();
   const contrib = env.authenticatedContext('contrib1', { role: 'contributor' });
-  const validator = env.authenticatedContext('val1', { role: 'validator' });
-  const admin = env.authenticatedContext('admin1', { role: 'admin' });
+  const validator = env.authenticatedContext('val1', { role: 'validator', ...verifiedStaff() });
+  const admin = env.authenticatedContext('admin1', { role: 'admin', ...verifiedStaff() });
 
   // Anonymous and ordinary contributors cannot read or write directly
   await assertFails(getDoc(doc(db(anon), 'publicFormSubmissions/sub1')));

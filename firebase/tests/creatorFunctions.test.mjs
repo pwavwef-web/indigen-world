@@ -16,6 +16,7 @@ import { getFirestore as adminFirestore } from 'firebase-admin/firestore';
 import { deleteApp, initializeApp as clientInit } from 'firebase/app';
 import { connectAuthEmulator, getAuth as clientAuth, signInWithCustomToken } from 'firebase/auth';
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
+import { verifyClientSession } from './fixtures/staffSession.mjs';
 
 const PROJECT_ID = 'demo-indigen-world';
 const CAMPAIGN = 'kasem-creator-challenge';
@@ -33,6 +34,8 @@ async function clientFor(uid, claims) {
   connectAuthEmulator(clientAuth(app), 'http://127.0.0.1:9099', { disableWarnings: true });
   const token = await adminAuth(adminApp).createCustomToken(uid, claims);
   await signInWithCustomToken(clientAuth(app), token);
+  // Staff sign-ins pass two-step verification before admin-console callables accept them.
+  if (claims?.role === 'admin' || claims?.role === 'validator') await verifyClientSession(adminAuth(adminApp), clientAuth(app), claims);
   const fns = getFunctions(app);
   connectFunctionsEmulator(fns, '127.0.0.1', 5001);
   return app;

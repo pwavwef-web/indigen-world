@@ -8,7 +8,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { logger } from 'firebase-functions';
 import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { roleSatisfies } from './auth.js';
+import { callerClaims, effectiveRole, roleSatisfies } from './auth.js';
 import { googleProjectId } from './google-api-auth.js';
 import { DAY_MS, RATE_LIMIT_PER_MINUTE } from './kawuri.js';
 import { dictionaryContextFor, looksLikeTranslationRequest } from './kawuri-dictionary.js';
@@ -154,7 +154,7 @@ async function capabilitiesFor(
   const uid = req.auth?.uid;
   // Guests have no plan to read; reading one would only cost a round trip.
   const benefits = uid ? await benefitsForUid(uid) : null;
-  const approvedCreator = roleSatisfies(req.auth?.token.role, 'creator');
+  const approvedCreator = roleSatisfies(effectiveRole(callerClaims(req)), 'creator');
   return buildCapabilities({
     config: cfg,
     signedIn: Boolean(uid),

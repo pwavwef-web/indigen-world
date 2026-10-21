@@ -1,7 +1,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
-import { HttpsError, onCall } from 'firebase-functions/v2/https';
-import { requireAuth, requireRole } from './auth.js';
+import { HttpsError } from 'firebase-functions/v2/https';
+import { onStaffCall, requireAuth, requireRole } from './auth.js';
 import { consumeRateLimit } from './rate-limit.js';
 
 // App Check enforcement is opt-in across the codebase (see creators.ts); enable
@@ -25,7 +25,7 @@ const GRANTABLE_KINDS: readonly string[] = ['', 'creator', 'elder', 'project'];
  * writes belong together behind admin credentials rather than half-done from
  * the browser.
  */
-export const setCommunityVerifiedKind = onCall({
+export const setCommunityVerifiedKind = onStaffCall({
   enforceAppCheck: ENFORCE_APP_CHECK,
   consumeAppCheckToken: ENFORCE_APP_CHECK,
   invoker: 'public',

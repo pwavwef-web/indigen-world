@@ -1,7 +1,7 @@
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
-import { requireAuth, requireRole } from './auth.js';
+import { onStaffCall, requireAuth, requireRole } from './auth.js';
 import { finalisePublishedPronunciation, mintDownloadUrl } from './published-media.js';
 import { consumeRateLimit } from './rate-limit.js';
 
@@ -148,7 +148,7 @@ export const submitPronunciationRecording = onCall(
   },
 );
 
-export const decidePronunciationRecording = onCall(
+export const decidePronunciationRecording = onStaffCall(
   { region: REGION, enforceAppCheck: ENFORCE_APP_CHECK, invoker: 'public', timeoutSeconds: 60 },
   async (req) => {
     const uid = requireAuth(req);

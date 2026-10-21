@@ -1,7 +1,8 @@
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { logger } from 'firebase-functions';
-import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https';
+import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
+import { callerClaims, effectiveRole, isOwnerSuperAdmin, onStaffCall } from './auth.js';
 import { googleProjectId } from './google-api-auth.js';
 import { reasonOf } from './kawuri-media-policy.js';
 import { generateImage, screenGenerationRequest, type MediaInput } from './kawuri-vertex.js';
@@ -60,8 +61,8 @@ function nowIso(): string {
 function staffOf(req: CallableRequest<unknown>, allowed: (role: unknown, superAdmin: boolean) => boolean): string {
   const uid = req.auth?.uid;
   if (!uid) throw new HttpsError('unauthenticated', 'Sign in is required.', { reason: 'UNAUTHENTICATED' });
-  const token: Record<string, unknown> = req.auth?.token ?? {};
-  if (!allowed(token.role, token.superAdmin === true)) {
+  const claims = callerClaims(req);
+  if (!allowed(effectiveRole(claims), isOwnerSuperAdmin(claims))) {
     throw new HttpsError('permission-denied', 'This desk is for administrators and authorised editors.', {
       reason: 'PERMISSION_DENIED',
     });
@@ -100,7 +101,7 @@ async function loadImage(cfg: IllustrationConfig, path: string): Promise<MediaIn
   return { mimeType: contentType, base64: bytes.toString('base64') };
 }
 
-export const generateLearnIllustration = onCall(
+export const generateLearnIllustration = onStaffCall(
   {
     region: REGION,
     enforceAppCheck: ENFORCE_APP_CHECK,
@@ -235,7 +236,7 @@ export const generateLearnIllustration = onCall(
   },
 );
 
-export const reviewLearnIllustration = onCall(
+export const reviewLearnIllustration = onStaffCall(
   {
     region: REGION,
     enforceAppCheck: ENFORCE_APP_CHECK,

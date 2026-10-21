@@ -3,13 +3,14 @@ import { before, after, test } from 'node:test';
 import { initializeApp, deleteApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { shop, shopAdmin } from '../../services/functions/lib/shop.js';
+import { verifiedStaff } from './fixtures/staffSession.mjs';
 
 assert.ok(process.env.FIRESTORE_EMULATOR_HOST, 'Use the Firestore emulator; never run this fixture against production.');
 process.env.PAYSTACK_SECRET_KEY = 'sk_test_synthetic_emulator_only';
 process.env.SHOP_PAYSTACK_CALLBACK_URL = 'https://example.test/shop/payment-complete';
 
 let app, db;
-const call = (fn, uid, data, token = {}) => fn.run({ auth: { uid, token: { email: `${uid}@example.test`, ...token } }, data, rawRequest: {} });
+const call = (fn, uid, data, token = {}) => fn.run({ auth: { uid, token: { email: `${uid}@example.test`, ...token, ...verifiedStaff() } }, data, rawRequest: {} });
 const admin = (data) => call(shopAdmin, 'catalogue-admin', data, { role: 'admin' });
 const address = { recipient: 'Synthetic member', country: 'GH', city: 'Synthetic town', street: 'Synthetic landmark', phone: '+233200000000' };
 const window = { startsAt: '2026-01-01T00:00:00Z', endsAt: '2099-01-01T00:00:00Z' };

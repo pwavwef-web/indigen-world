@@ -19,6 +19,7 @@ import {
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import { deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { OWNER_UID } from './fixtures/staffSession.mjs';
 
 const PROJECT_ID = 'demo-indigen-world';
 const host = '127.0.0.1';
@@ -128,7 +129,7 @@ test('an advertiser can read their own campaign', async () => {
 
 test('staff can read any campaign, so it can be moderated', async () => {
   for (const role of ['validator', 'reviewer', 'admin', 'super_admin']) {
-    const staff = env.authenticatedContext(VALIDATOR, { role });
+    const staff = env.authenticatedContext(role === 'super_admin' ? OWNER_UID : VALIDATOR, { role });
     await assertSucceeds(getDoc(doc(db(staff), 'adCampaigns/campaign-1')));
   }
 });

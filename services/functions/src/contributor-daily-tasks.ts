@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { getFirestore, type Transaction, type DocumentReference } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
-import { requireAuth, requireRole } from './auth.js';
+import { onStaffCall, requireAuth, requireRole } from './auth.js';
 import { guarded, CONTRIBUTOR_CALL_OPTIONS } from './contributor-common.js';
 import { consumeRateLimit } from './rate-limit.js';
 
@@ -16,7 +16,7 @@ function addWork(tx:Transaction,ref:DocumentReference,prompts:string[],title:str
  tx.create(ref,{id:ref.id,title: title+(batch===1?' · First 15':' · Extra 15'),instructions,kind:'expressions',language:'xsm',createdAt:now,dailyDay:day,dailyBatch:batch});
  for(const expression of prompts){const key=createHash('sha256').update(expression).digest('hex').slice(0,24);tx.create(ref.collection('items').doc(key),{id:key,expression,translation:'',alternatives:[],revision:0,status:'draft',updatedAt:now});}
 }
-export const prepareContributorDailyTasks=onCall(CONTRIBUTOR_CALL_OPTIONS,guarded('prepareContributorDailyTasks',async req=>{
+export const prepareContributorDailyTasks=onStaffCall(CONTRIBUTOR_CALL_OPTIONS,guarded('prepareContributorDailyTasks',async req=>{
  const actor=requireAuth(req);requireRole(req,'admin');await consumeRateLimit('prepareContributorDailyTasks',actor,30);
  const uid=identifier(req.data?.contributorId), day=String(req.data?.day||dayNow());
  if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!Number.isFinite(Date.parse(day))||new Date(day).toISOString().slice(0,10)!==day||day<dayNow())throw new HttpsError('invalid-argument','Choose today or a future UTC date.');

@@ -47,6 +47,7 @@ export { onSubmissionForReward, onAssessmentJobWritten, sweepAssessmentJobs, dec
 
 export { decideReview } from './validation.js';
 export { setUserRole } from './identity.js';
+export { staffMfa } from './staff-mfa.js';
 export {
   startPhoneVerification,
   confirmPhoneVerification,

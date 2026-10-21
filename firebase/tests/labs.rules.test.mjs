@@ -18,6 +18,7 @@ import {
   deleteDoc,
   setLogLevel,
 } from "firebase/firestore";
+import { OWNER_UID } from "./fixtures/staffSession.mjs";
 setLogLevel("silent");
 let env;
 before(async () => {
@@ -89,7 +90,7 @@ test("feedback is visible to its reporter and admins; internal notes remain staf
     getDoc(doc(db("reviewer", "reviewer"), "labsFeedbackNotes/report")),
   );
   await assertSucceeds(
-    getDoc(doc(db("admin", "super_admin"), "labsFeedbackNotes/report")),
+    getDoc(doc(db(OWNER_UID, "super_admin"), "labsFeedbackNotes/report")),
   );
 });
 test("configuration and updates are public; all client writes are denied, even for admins", async () => {

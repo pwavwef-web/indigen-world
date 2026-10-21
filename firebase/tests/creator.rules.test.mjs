@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { after, before, test } from 'node:test';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import { deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { verifiedStaff } from './fixtures/staffSession.mjs';
 
 const PROJECT_ID = 'demo-indigen-world';
 const host = '127.0.0.1';
@@ -184,7 +185,7 @@ test('a guest can read a public campaign but not an internal one', async () => {
 });
 
 test('the collection-contributions campaign is backend-owned while admins can manage ordinary campaigns', async () => {
-  const admin = env.authenticatedContext('admin1', { role: 'admin' });
+  const admin = env.authenticatedContext('admin1', { role: 'admin', ...verifiedStaff() });
   const reservedCampaign = {
     id: 'collection-contributions',
     slug: 'collection-contributions',
@@ -237,7 +238,7 @@ test('the collection-contributions campaign is backend-owned while admins can ma
 test('platform configuration is public-read, admin-write only', async () => {
   const anon = env.unauthenticatedContext();
   const creator = env.authenticatedContext('creatorA');
-  const admin = env.authenticatedContext('admin1', { role: 'admin' });
+  const admin = env.authenticatedContext('admin1', { role: 'admin', ...verifiedStaff() });
   await assertSucceeds(getDoc(doc(db(anon), 'platformConfiguration/creators')));
   await assertFails(setDoc(doc(db(creator), 'platformConfiguration/creators'), { id: 'creators', whatsappChannelUrl: 'https://evil.example', lifecycle: life }));
   await assertSucceeds(setDoc(doc(db(admin), 'platformConfiguration/creators'), { id: 'creators', whatsappChannelUrl: 'https://example.com', lifecycle: life }));
@@ -256,7 +257,7 @@ test('raw submissions are not publicly readable', async () => {
 });
 
 test('a validator can read any submission for review', async () => {
-  const validator = env.authenticatedContext('val1', { role: 'validator' });
+  const validator = env.authenticatedContext('val1', { role: 'validator', ...verifiedStaff() });
   await assertSucceeds(getDoc(doc(db(validator), 'submissions/subA')));
 });
 
@@ -353,7 +354,7 @@ test('published content is world-readable only when published', async () => {
 });
 
 test('no client may write published content directly', async () => {
-  const admin = env.authenticatedContext('admin1', { role: 'admin' });
+  const admin = env.authenticatedContext('admin1', { role: 'admin', ...verifiedStaff() });
   await assertFails(setDoc(doc(db(admin), 'publishedContent/forge'), { id: 'forge', title: 'x', publicationStatus: 'published', lifecycle: life }));
 });
 
@@ -368,7 +369,7 @@ test('applications are not client-writable; owner reads own, others cannot', asy
 test('Studio video jobs are owner-and-staff readable but server-write only', async () => {
   const owner = env.authenticatedContext('creatorA');
   const stranger = env.authenticatedContext('creatorB');
-  const validator = env.authenticatedContext('val1', { role: 'validator' });
+  const validator = env.authenticatedContext('val1', { role: 'validator', ...verifiedStaff() });
   const anonymous = env.unauthenticatedContext();
   const job = doc(db(owner), 'studioVideoJobs/creatorA_request-1');
 
@@ -385,8 +386,8 @@ test('Studio video jobs are owner-and-staff readable but server-write only', asy
 });
 
 test('an admin without finance access cannot read payouts; a finance user can', async () => {
-  const admin = env.authenticatedContext('admin1', { role: 'admin' });
-  const finance = env.authenticatedContext('fin1', { finance: true });
+  const admin = env.authenticatedContext('admin1', { role: 'admin', ...verifiedStaff() });
+  const finance = env.authenticatedContext('fin1', { role: 'admin', finance: true, ...verifiedStaff() });
   await assertFails(getDoc(doc(db(admin), 'payouts/pay1')));
   await assertSucceeds(getDoc(doc(db(finance), 'payouts/pay1')));
 });
@@ -402,7 +403,7 @@ test('a creator may only flip the read flag on their own notification', async ()
 test('team site intake is public-create and staff-readable only', async () => {
   const anon = env.unauthenticatedContext();
   const creator = env.authenticatedContext('creatorA');
-  const validator = env.authenticatedContext('val1', { role: 'validator' });
+  const validator = env.authenticatedContext('val1', { role: 'validator', ...verifiedStaff() });
   await assertSucceeds(setDoc(doc(db(anon), 'teamSiteRequests/public-request'), teamSiteRequestDoc()));
   await assertFails(getDoc(doc(db(anon), 'teamSiteRequests/requestA')));
   await assertFails(getDoc(doc(db(creator), 'teamSiteRequests/requestA')));
@@ -415,8 +416,8 @@ test('team site intake rejects unexpected fields', async () => {
 });
 
 test('team site intake delete is admin-only', async () => {
-  const validator = env.authenticatedContext('val1', { role: 'validator' });
-  const admin = env.authenticatedContext('admin1', { role: 'admin' });
+  const validator = env.authenticatedContext('val1', { role: 'validator', ...verifiedStaff() });
+  const admin = env.authenticatedContext('admin1', { role: 'admin', ...verifiedStaff() });
   await assertFails(deleteDoc(doc(db(validator), 'teamSiteRequests/requestA')));
   await assertSucceeds(deleteDoc(doc(db(admin), 'teamSiteRequests/requestA')));
 });

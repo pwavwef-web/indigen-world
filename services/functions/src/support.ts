@@ -2,11 +2,11 @@ import { randomBytes } from 'node:crypto';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, type DocumentReference } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
-import { HttpsError, onCall, onRequest, type Request } from 'firebase-functions/v2/https';
+import { HttpsError, onRequest, type Request } from 'firebase-functions/v2/https';
 import type { Response } from 'express';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { requireAuth, requireRole } from './auth.js';
+import { onStaffCall, requireAuth, requireRole } from './auth.js';
 import { CONTRIBUTOR_CALL_OPTIONS, guarded } from './contributor-common.js';
 import { consumeRateLimit } from './rate-limit.js';
 import { sendMail, SMTP_PASSWORD, teamInbox } from './email.js';
@@ -109,7 +109,7 @@ export async function supportPortalHandler(req: Request, res: Response) {
 }
 export const supportPortal = onRequest({ region: 'us-central1', invoker: 'public', cors: [SUPPORT_ORIGIN, /^http:\/\/(?:localhost|127\.0\.0\.1):\d+$/], timeoutSeconds: 30, maxInstances: 10 }, supportPortalHandler);
 
-export const listSupportCases = onCall(options, guarded('listSupportCases', async req => {
+export const listSupportCases = onStaffCall(options, guarded('listSupportCases', async req => {
   requireRole(req, 'admin');
   const cases = await getFirestore().collection('supportCases').orderBy('updatedAt', 'desc').limit(100).get();
   const config = await getFirestore().doc('_supportConfig/whatsapp').get();
@@ -119,7 +119,7 @@ export const listSupportCases = onCall(options, guarded('listSupportCases', asyn
   }), whatsapp: { enabled: config.get('enabled') === true, number: config.get('number') || '', lastInboundAt: config.get('lastInboundAt') || '', lastDeliveryAt: config.get('lastDeliveryAt') || '' } };
 }));
 
-export const getSupportCase = onCall(options, guarded('getSupportCase', async req => {
+export const getSupportCase = onStaffCall(options, guarded('getSupportCase', async req => {
   requireRole(req, 'admin');
   const id = clean(req.data?.id, 80);
   if (!validId(id)) throw new HttpsError('invalid-argument', 'Invalid case.');
@@ -137,7 +137,7 @@ export const getSupportCase = onCall(options, guarded('getSupportCase', async re
   return { messages: messages.docs.map(d => ({ id: d.id, ...d.data() })), account };
 }));
 
-export const updateSupportCase = onCall(options, guarded('updateSupportCase', async req => {
+export const updateSupportCase = onStaffCall(options, guarded('updateSupportCase', async req => {
   requireRole(req, 'admin');
   const actor = requireAuth(req), id = clean(req.data?.id, 80), requestId = clean(req.data?.requestId, 80);
   const status = clean(req.data?.status, 30), reply = redactSupportText(clean(req.data?.reply)), resolution = clean(req.data?.resolution, 300);

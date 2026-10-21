@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { requireAuth, requireRole } from './auth.js';
+import { callerClaims, isOwnerSuperAdmin, onStaffCall, requireAuth, requireRole } from './auth.js';
 import { consumeRateLimit } from './rate-limit.js';
 import { initializeTransaction, verifyTransaction, initiateShopRefund, verifyShopRefund, PAYSTACK_SECRET_KEY, isPaystackConfigured } from './paystack.js';
 import { addressSnapshot, checkoutTotals, priceMode, searchTokens, verifiedShopPayment, safeCsv, money, type Row, attributeToken, attributeTokens, mergeFacets, variantAttributes } from './shop-policy.js';
@@ -282,15 +282,15 @@ export async function settleShopPayment(reference: string) {
   });
 }
 
-export const shopAdmin = onCall(options, async (req) => {
+export const shopAdmin = onStaffCall(options, async (req) => {
   const uid = requireAuth(req); requireRole(req, 'admin');
   const data = (req.data ?? {}) as Row;
   const collections: Record<string, string> = { products: 'shopProducts', categories: 'shopCategories', orders: 'shopOrdersV2', inventory: 'shopInventory', customers: 'shopCustomers', delivery: 'shopDelivery', promotions: 'shopPromotions', transactions: 'shopTransactions', inquiries: 'shopInquiries' };
   const financial = ['transactions', 'refund'].includes(data.section) || ['refund', 'reconcileRefund'].includes(data.operation);
-  if (financial && req.auth?.token.finance !== true && req.auth?.token.superAdmin !== true && req.auth?.token.role !== 'super_admin') throw new HttpsError('permission-denied', 'Finance permission is required.');
+  if (financial && req.auth?.token.finance !== true && !isOwnerSuperAdmin(callerClaims(req))) throw new HttpsError('permission-denied', 'Finance permission is required.');
   const capability = financial ? 'finance' : ['customers', 'inquiries'].includes(data.section) ? 'customer_data' : ['orders', 'inventory'].includes(data.section) ? 'fulfillment' : 'catalogue';
   const scopes = req.auth?.token.shopScopes;
-  if (req.auth?.token.role !== 'super_admin' && scopes != null && (!Array.isArray(scopes) || !scopes.includes(capability))) throw new HttpsError('permission-denied', `Shop ${capability} permission is required.`);
+  if (!isOwnerSuperAdmin(callerClaims(req)) && scopes != null && (!Array.isArray(scopes) || !scopes.includes(capability))) throw new HttpsError('permission-denied', `Shop ${capability} permission is required.`);
   try {
     if (data.operation === 'readiness') { const s = await settings(); return { settings: s, tasks: readiness(s) }; }
     if (data.operation === 'settings') {

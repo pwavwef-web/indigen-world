@@ -7,6 +7,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import * as progress from '../../services/functions/lib/public-progress.js';
+import { OWNER_UID } from './fixtures/staffSession.mjs';
 
 if (!process.env.FIRESTORE_EMULATOR_HOST) throw Error('Use the Firestore emulator.');
 const projectId = 'demo-indigen-progress-tests';
@@ -211,7 +212,7 @@ test('anyone may read the projection; no client, not even an admin, may write it
   const guest = rules.unauthenticatedContext().firestore();
   await assertSucceeds(getDoc(doc(guest, 'publicProgress/current')));
   await assertFails(setDoc(doc(guest, 'publicProgress/current'), { revision: 999 }));
-  const admin = rules.authenticatedContext('admin-1', { role: 'super_admin', superAdmin: true }).firestore();
+  const admin = rules.authenticatedContext(OWNER_UID, { role: 'super_admin', superAdmin: true }).firestore();
   await assertFails(setDoc(doc(admin, 'publicProgress/current'), { revision: 999 }));
   await assertFails(setDoc(doc(admin, 'publicProgress/other'), { revision: 1 }));
 });

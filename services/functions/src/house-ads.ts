@@ -1,8 +1,8 @@
 import { getFirestore } from 'firebase-admin/firestore';
-import { HttpsError, onCall } from 'firebase-functions/v2/https';
-import { requireAuth, requireRole } from './auth.js';
+import { HttpsError } from 'firebase-functions/v2/https';
+import { onStaffCall, requireAuth, requireRole } from './auth.js';
 const now = () => new Date().toISOString();
-export const houseAdsAdmin = onCall({ region: 'us-central1', invoker: 'public', enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' }, async (req) => {
+export const houseAdsAdmin = onStaffCall({ region: 'us-central1', invoker: 'public', enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' }, async (req) => {
   const uid = requireAuth(req); requireRole(req, 'admin');
   const data = req.data ?? {}, db = getFirestore();
   const organisationId = process.env.INDIGEN_HOUSE_ORGANISATION_ID ?? '';

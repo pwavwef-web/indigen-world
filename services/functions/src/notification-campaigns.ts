@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { HttpsError } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { requireAuth, requireRole } from './auth.js';
+import { callerClaims, isOwnerSuperAdmin, onStaffCall, requireAuth, requireRole } from './auth.js';
 const now = () => new Date().toISOString();
 const routeAllowed = (route: unknown) => typeof route === 'string' && /^\/(?:notifications|shop(?:\/(?:product|category|order)\/[\w%-]+)?|post\/[\w-]+|)$/.test(route);
-export const notificationCampaignAdmin = onCall({ region: 'us-central1', invoker: 'public', enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' }, async (req) => {
+export const notificationCampaignAdmin = onStaffCall({ region: 'us-central1', invoker: 'public', enforceAppCheck: process.env.ENFORCE_APP_CHECK === 'true' }, async (req) => {
   const uid = requireAuth(req); requireRole(req, 'admin');
   const data = req.data ?? {}, db = getFirestore();
   if (data.operation === 'list') return { items: (await db.collection('notificationCampaigns').orderBy('updatedAt', 'desc').limit(100).get()).docs.map((d) => ({ id: d.id, ...d.data() })) };
@@ -30,7 +30,7 @@ export const notificationCampaignAdmin = onCall({ region: 'us-central1', invoker
     }
     if (data.operation === 'queue' || data.operation === 'testSelf') {
       if (data.revision !== campaign.revision || campaign.status !== 'draft') throw new HttpsError('failed-precondition', 'Review the current saved draft before dispatch.');
-      if (data.operation === 'queue' && campaign.segment === 'all' && req.auth?.token.broadcast !== true && req.auth?.token.role !== 'super_admin') throw new HttpsError('permission-denied', 'Broadcast permission is required. You can send a test to yourself.');
+      if (data.operation === 'queue' && campaign.segment === 'all' && req.auth?.token.broadcast !== true && !isOwnerSuperAdmin(callerClaims(req))) throw new HttpsError('permission-denied', 'Broadcast permission is required. You can send a test to yourself.');
       const scheduledAt = data.operation === 'testSelf' ? now() : campaign.scheduledAt;
       if (!Number.isFinite(Date.parse(scheduledAt))) throw new HttpsError('invalid-argument', 'Choose a valid schedule.');
       tx.update(ref, { status: 'scheduled', scheduledAt, segment: data.operation === 'testSelf' ? 'self' : campaign.segment, reviewedRevision: campaign.revision, reviewedBy: uid, dispatchAfter: null, updatedAt: now() });

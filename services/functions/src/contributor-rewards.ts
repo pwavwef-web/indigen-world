@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { AggregateField, getFirestore, type Firestore, type Transaction } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
-import { requireAuth, requireRole } from './auth.js';
+import { callerClaims, onStaffCall, requireAuth, requireRole } from './auth.js';
 import { auditEntry, hasFinanceAccess, requireFinance } from './contributor-common.js';
 import { consumeRateLimit } from './rate-limit.js';
 import { normalizeMsisdn } from './sms.js';
@@ -84,7 +84,7 @@ export function rewardSettings(value: Record<string, unknown> = {}) {
   return settings;
 }
 
-export const setContributorRewardSettings = onCall(options, async req => {
+export const setContributorRewardSettings = onStaffCall(options, async req => {
   const actor = requireFinance(req);
   const settings = rewardSettings(req.data ?? {});
   const db = getFirestore();
@@ -431,7 +431,7 @@ async function transition(db: Firestore, tx: Transaction, input: {
   return { status: target.next, movement: target.movement, replayed: false, points };
 }
 
-export const decideContributorRedemption = onCall(options, async req => {
+export const decideContributorRedemption = onStaffCall(options, async req => {
   const actor = requireFinance(req);
   await consumeRateLimit('decideContributorRedemption', actor, 120);
   const data = (req.data ?? {}) as Json;
@@ -492,7 +492,7 @@ async function outstandingBalances(db: Firestore) {
   return { available, reserved, unopenedAccounts: unopened, truncated: accounts.size >= 5000 || legacy.size >= 5000 };
 }
 
-export const listContributorRewards = onCall(options, async req => {
+export const listContributorRewards = onStaffCall(options, async req => {
   const actor = requireAuth(req);
   requireRole(req, 'admin');
   const db = getFirestore();
@@ -530,7 +530,7 @@ export const listContributorRewards = onCall(options, async req => {
     summary: totals ? Object.fromEntries(totals) : null,
     liability: { ...liability, reservedPoints: balances.reserved, openRequestsMinor: open, unopenedAccounts: balances.unopenedAccounts, truncated: balances.truncated },
     pendingAwards: pendingAwards ? Object.fromEntries(pendingAwards) : null,
-    canDecide: hasFinanceAccess(req.auth?.token as Record<string, unknown> | undefined),
+    canDecide: hasFinanceAccess(callerClaims(req)),
     viewer: actor,
     truncated: requests.size > REDEMPTION_PAGE,
     requests: rows.slice(0, REDEMPTION_PAGE),
@@ -539,7 +539,7 @@ export const listContributorRewards = onCall(options, async req => {
 
 /* ── Policies and flags ──────────────────────────────────────────────────── */
 
-export const getRewardPolicies = onCall(options, async req => {
+export const getRewardPolicies = onStaffCall(options, async req => {
   requireRole(req, 'admin');
   const db = getFirestore();
   const [system, history, agreed, disagreed] = await Promise.all([
@@ -553,7 +553,7 @@ export const getRewardPolicies = onCall(options, async req => {
       createdAt: doc.get('createdAt'), createdBy: doc.get('createdBy'), reason: doc.get('reason') })),
     calibration: { agreed: agreed?.data().count ?? null, disagreed: disagreed?.data().count ?? null,
       note: 'Agreement between the automatic recommendation and the validator’s band. Automated settlement stays off until Finance and validators review a labelled sample.' },
-    canEdit: hasFinanceAccess(req.auth?.token as Record<string, unknown> | undefined),
+    canEdit: hasFinanceAccess(callerClaims(req)),
   };
 });
 
@@ -563,7 +563,7 @@ function parseFor(kind: unknown, config: unknown) {
   throw new HttpsError('invalid-argument', 'Choose the award or redemption policy.');
 }
 
-export const previewRewardPolicy = onCall(options, async req => {
+export const previewRewardPolicy = onStaffCall(options, async req => {
   requireFinance(req);
   const data = (req.data ?? {}) as Json;
   try {
@@ -607,7 +607,7 @@ export const previewRewardPolicy = onCall(options, async req => {
   } catch (error) { toHttps(error); }
 });
 
-export const saveRewardPolicy = onCall(options, async req => {
+export const saveRewardPolicy = onStaffCall(options, async req => {
   const actor = requireFinance(req);
   await consumeRateLimit('saveRewardPolicy', actor, 20);
   const data = (req.data ?? {}) as Json;
@@ -634,7 +634,7 @@ export const saveRewardPolicy = onCall(options, async req => {
   } catch (error) { toHttps(error); }
 });
 
-export const setRewardSystemFlags = onCall(options, async req => {
+export const setRewardSystemFlags = onStaffCall(options, async req => {
   const actor = requireFinance(req);
   const data = (req.data ?? {}) as Json;
   const reason = typeof data.reason === 'string' ? data.reason.trim() : '';
@@ -662,7 +662,7 @@ export const setRewardSystemFlags = onCall(options, async req => {
 
 /* ── Ledger and adjustments ──────────────────────────────────────────────── */
 
-export const getContributorPointsLedger = onCall(options, async req => {
+export const getContributorPointsLedger = onStaffCall(options, async req => {
   requireRole(req, 'admin');
   const uid = String(req.data?.contributorId ?? '');
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(uid)) throw new HttpsError('invalid-argument', 'Choose a contributor.');
@@ -683,7 +683,7 @@ export const getContributorPointsLedger = onCall(options, async req => {
   };
 });
 
-export const adjustContributorPoints = onCall(options, async req => {
+export const adjustContributorPoints = onStaffCall(options, async req => {
   const actor = requireFinance(req);
   await consumeRateLimit('adjustContributorPoints', actor, 30);
   const data = (req.data ?? {}) as Json;
@@ -714,7 +714,7 @@ export const adjustContributorPoints = onCall(options, async req => {
   } catch (error) { toHttps(error); }
 });
 
-export const listRewardAudit = onCall(options, async req => {
+export const listRewardAudit = onStaffCall(options, async req => {
   requireRole(req, 'admin');
   const before = typeof req.data?.before === 'string' ? req.data.before : null;
   let query = getFirestore().collection('auditLogs').where('domain', '==', AUDIT_DOMAIN).orderBy('occurredAt', 'desc').limit(100);

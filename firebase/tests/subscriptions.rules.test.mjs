@@ -27,6 +27,7 @@ import {
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import { deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { OWNER_UID } from './fixtures/staffSession.mjs';
 
 const PROJECT_ID = 'demo-indigen-world';
 const host = '127.0.0.1';
@@ -161,7 +162,7 @@ test('nobody reads somebody else\'s entitlement', async () => {
 
 test('staff read an entitlement, so support can answer a billing question', async () => {
   for (const role of ['validator', 'reviewer', 'admin', 'super_admin']) {
-    const staff = env.authenticatedContext(STAFF, { role });
+    const staff = env.authenticatedContext(role === 'super_admin' ? OWNER_UID : STAFF, { role });
     await assertSucceeds(getDoc(doc(db(staff), `entitlements/${PATRON}`)));
   }
 });

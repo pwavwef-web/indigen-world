@@ -17,7 +17,7 @@ import type {
   PracticeSession,
   StoryDraft,
 } from "@indigen-world/contracts/labs";
-import { requireAuth, requireRole, roleSatisfies } from "./auth.js";
+import { callerClaims, effectiveRole, requireAuth, requireRole, roleSatisfies } from "./auth.js";
 import { consumeRateLimit } from "./rate-limit.js";
 import { runnerAction } from "./labs-runner.js";
 import { generateStructured } from "./kawuri-vertex.js";
@@ -135,7 +135,7 @@ async function access(
     config,
     req.auth?.uid,
     invitation?.get("experiments")?.includes(experimentId) === true ||
-      roleSatisfies(req.auth?.token.role, "admin"),
+      roleSatisfies(effectiveRole(callerClaims(req)), "admin"),
   );
   return config;
 }
@@ -256,7 +256,7 @@ export const labsApi = onCall(options, async (req) => {
     return {
       experiments: configs,
       invited,
-      canAdmin: roleSatisfies(req.auth?.token.role, "admin"),
+      canAdmin: roleSatisfies(effectiveRole(callerClaims(req)), "admin"),
       aiEnabled: aiEnabled(),
       development:
         process.env.FUNCTIONS_EMULATOR === "true" &&

@@ -10,12 +10,13 @@ import { getDoc, doc } from 'firebase/firestore';
 import * as model from '../../services/functions/lib/support-model.js';
 import * as support from '../../services/functions/lib/support.js';
 import { whatsappEvents, processWhatsappEvent, deliverWhatsapp } from '../../services/functions/lib/support-whatsapp.js';
+import { verifiedStaff } from './fixtures/staffSession.mjs';
 
 if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_HOST) throw new Error('Run only with Auth and Firestore emulators.');
 const projectId = 'demo-indigen-world';
 let app, rules, api, db;
 const mail = [];
-const admin = { auth: { uid: 'support-test-admin', token: { role: 'admin' } } };
+const admin = { auth: { uid: 'support-test-admin', token: { role: 'admin', ...verifiedStaff() } } };
 before(async () => {
   app = initializeApp({ projectId }); db = getFirestore();
   rules = await initializeTestEnvironment({ projectId, firestore: { rules: readFileSync(new URL('../firestore.rules', import.meta.url), 'utf8') } });
@@ -47,7 +48,7 @@ test('unauthenticated help is private, account-neutral, idempotent and inaccessi
     await assertFails(getDoc(doc(context.firestore(), `supportCases/${c.id}`)));
     await assertFails(getDoc(doc(context.firestore(), `supportCases/${c.id}/messages/initial`)));
   }
-  await assert.rejects(api.listSupportCases({}), /admin access/);
+  await assert.rejects(api.listSupportCases({}), /Sign in is required/);
   await assert.rejects(api.getSupportCase({ data: { id: c.id }, auth: { uid: 'member', token: { role: 'contributor' } } }), /admin access/);
 });
 test('human handoff, closure and reopening require explicit action; retries create one message', async () => {

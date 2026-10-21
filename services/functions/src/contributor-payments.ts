@@ -3,7 +3,7 @@ import { getFirestore, type DocumentReference, type Transaction } from 'firebase
 import { getStorage } from 'firebase-admin/storage';
 import { logger } from 'firebase-functions';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
-import { requireAuth } from './auth.js';
+import { onStaffCall, requireAuth } from './auth.js';
 import { consumeRateLimit } from './rate-limit.js';
 import { ARKESEL_API_KEY, isSmsConfigured, normalizeGhanaPhone, sendSmsToMsisdn } from './sms.js';
 import {
@@ -1134,7 +1134,7 @@ export const requestContributorPayment = onCall(CONTRIBUTOR_CALL_OPTIONS, guarde
 // Finance callables
 // ---------------------------------------------------------------------------
 
-export const listContributorPayments = onCall(CONTRIBUTOR_CALL_OPTIONS, guarded('listContributorPayments', async (req) => {
+export const listContributorPayments = onStaffCall(CONTRIBUTOR_CALL_OPTIONS, guarded('listContributorPayments', async (req) => {
   const actor = requireFinance(req);
   await consumeRateLimit('listContributorPayments', actor, 60);
   const db = getFirestore();
@@ -1153,7 +1153,7 @@ export const listContributorPayments = onCall(CONTRIBUTOR_CALL_OPTIONS, guarded(
 }));
 
 /** A five-minute link to the statement on file. Every opening is audited. */
-export const getPayoutStatementLink = onCall(CONTRIBUTOR_CALL_OPTIONS, guarded('getPayoutStatementLink', async (req) => {
+export const getPayoutStatementLink = onStaffCall(CONTRIBUTOR_CALL_OPTIONS, guarded('getPayoutStatementLink', async (req) => {
   const actor = requireFinance(req);
   await consumeRateLimit('getPayoutStatementLink', actor, 60);
   const contributorId = boundedText((req.data as Record<string, unknown> | undefined)?.contributorId, 128, 'Contributor');
@@ -1185,7 +1185,7 @@ export const getPayoutStatementLink = onCall(CONTRIBUTOR_CALL_OPTIONS, guarded('
   return { url, expiresAt: new Date(expires).toISOString(), contentType: statement.contentType };
 }));
 
-export const decidePayoutVerification = onCall(CONTRIBUTOR_CALL_OPTIONS, guarded('decidePayoutVerification', async (req) => {
+export const decidePayoutVerification = onStaffCall(CONTRIBUTOR_CALL_OPTIONS, guarded('decidePayoutVerification', async (req) => {
   const actor = requireFinance(req);
   await consumeRateLimit('decidePayoutVerification', actor, 60);
   const raw = (req.data ?? {}) as Record<string, unknown>;
@@ -1250,7 +1250,7 @@ export const decidePayoutVerification = onCall(CONTRIBUTOR_CALL_OPTIONS, guarded
   return { contributorId, method, status };
 }));
 
-export const rerunPayoutStatementCheck = onCall(
+export const rerunPayoutStatementCheck = onStaffCall(
   { ...CONTRIBUTOR_CALL_OPTIONS, timeoutSeconds: 120, memory: '512MiB' },
   guarded('rerunPayoutStatementCheck', async (req) => {
     const actor = requireFinance(req);
@@ -1278,7 +1278,7 @@ export const rerunPayoutStatementCheck = onCall(
   }),
 );
 
-export const decideContributorPaymentRequest = onCall(CONTRIBUTOR_CALL_OPTIONS, guarded('decideContributorPaymentRequest', async (req) => {
+export const decideContributorPaymentRequest = onStaffCall(CONTRIBUTOR_CALL_OPTIONS, guarded('decideContributorPaymentRequest', async (req) => {
   const actor = requireFinance(req);
   const raw = (req.data ?? {}) as Record<string, unknown>;
   const requestId = boundedText(raw.requestId, 128, 'Request');

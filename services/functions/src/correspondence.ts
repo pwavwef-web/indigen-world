@@ -1,7 +1,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
-import { HttpsError, onCall } from 'firebase-functions/v2/https';
-import { requireAuth, requireRole } from './auth.js';
+import { HttpsError } from 'firebase-functions/v2/https';
+import { onStaffCall, requireAuth, requireRole } from './auth.js';
 import { CONTRIBUTOR_CALL_OPTIONS, guarded } from './contributor-common.js';
 import { consumeRateLimit } from './rate-limit.js';
 import { generateLetterFiles, letterVersion, sha256 } from './correspondence-render.js';
@@ -20,7 +20,7 @@ function validatedLetter(input: unknown, draft = false) {
 }
 
 /** Shared portal/assistant boundary. Print returns both formats without sending. */
-export const correspondence = onCall({...CONTRIBUTOR_CALL_OPTIONS,secrets:[SMTP_PASSWORD],timeoutSeconds:120,memory:'512MiB',concurrency:1},guarded('correspondence',async req=>{
+export const correspondence = onStaffCall({...CONTRIBUTOR_CALL_OPTIONS,secrets:[SMTP_PASSWORD],timeoutSeconds:120,memory:'512MiB',concurrency:1},guarded('correspondence',async req=>{
   const uid = requireAuth(req); requireRole(req,'admin');
   const data = req.data || {}, db = getFirestore(), root = db.collection(`correspondenceDrafts/${uid}/drafts`);
   if (data.action === 'list') {

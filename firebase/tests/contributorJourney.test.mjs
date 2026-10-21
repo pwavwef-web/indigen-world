@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import { HttpsError } from 'firebase-functions/v2/https';
 import { requireAuth, requireRole } from '../../services/functions/lib/auth.js';
 import { guarded } from '../../services/functions/lib/contributor-common.js';
+import { OWNER_UID } from './fixtures/staffSession.mjs';
 
 function harness() {
   const records = new Map([['contributorAccounts/alice', { status: 'active', journey: { participationDays: ['2026-10-12'], practiceCompleted: true } }]]);
@@ -32,7 +33,7 @@ test('community goals require administrators, a valid date and a bounded target;
   const today = new Date().toISOString().slice(0, 10);
   await h.setContributorCollectionGoal(h.request({ enabled: true, day: today, target: 30 }, 'admin', 'admin'));
   assert.equal((await h.getContributorJourney(h.request())).communityGoal.target, 30);
-  await h.setContributorCollectionGoal(h.request({ enabled: true, day: '2020-01-01', target: 30 }, 'admin', 'super_admin'));
+  await h.setContributorCollectionGoal(h.request({ enabled: true, day: '2020-01-01', target: 30 }, OWNER_UID, 'super_admin'));
   assert.equal((await h.getContributorJourney(h.request())).communityGoal, null);
 });
 test('published-expression checks expose only public content and require active access', async () => {

@@ -20,6 +20,7 @@ import { connectAuthEmulator, getAuth as clientAuth, signInWithCustomToken } fro
 import { connectFirestoreEmulator, doc, getDoc, getFirestore } from 'firebase/firestore';
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
 import { connectStorageEmulator, getStorage, ref, uploadBytes } from 'firebase/storage';
+import { verifyClientSession } from './fixtures/staffSession.mjs';
 
 const PROJECT_ID = 'demo-indigen-world';
 const BUCKET = `${PROJECT_ID}.appspot.com`;
@@ -36,6 +37,8 @@ async function clientFor(uid, claims) {
   connectAuthEmulator(clientAuth(app), 'http://127.0.0.1:9099', { disableWarnings: true });
   const token = await adminAuth(adminApp).createCustomToken(uid, claims ?? {});
   await signInWithCustomToken(clientAuth(app), token);
+  // Staff accounts act through admin-console callables, which need a two-step-verified sign-in.
+  if (claims?.role === 'admin' || claims?.finance) await verifyClientSession(adminAuth(adminApp), clientAuth(app), claims);
   connectFunctionsEmulator(getFunctions(app), '127.0.0.1', 5001);
   connectStorageEmulator(getStorage(app), '127.0.0.1', 9199);
   connectFirestoreEmulator(getFirestore(app), '127.0.0.1', 8080);

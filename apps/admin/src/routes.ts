@@ -196,12 +196,13 @@ export const SECTIONS: SectionDef[] = [
     ],
   },
   {
-    id: 'governance', label: 'Governance', description: 'Audit trail, exports and configuration',
+    id: 'governance', label: 'Governance', description: 'Audit trail, exports, configuration and staff security',
     icon: 'settings', base: '/governance', access: 'admin',
     tools: [
       { id: 'audit', slug: '', label: 'Audit trail', icon: 'shield', hint: 'The permanent record of privileged actions', access: 'admin' },
       { id: 'exports', slug: 'exports', label: 'Exports', icon: 'download', hint: 'Permission-safe governed data packages', access: 'admin' },
       { id: 'configuration', slug: 'configuration', label: 'Configuration', icon: 'settings', hint: 'Dialects, categories and contact links', access: 'admin' },
+      { id: 'security', slug: 'security', label: 'Staff security', icon: 'lock', hint: 'Two-step verification for every staff sign-in', access: 'admin' },
     ],
   },
 ];

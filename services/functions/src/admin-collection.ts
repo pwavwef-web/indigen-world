@@ -1,6 +1,6 @@
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import { HttpsError, onCall } from 'firebase-functions/v2/https';
-import { requireAuth, requireRole, type Role } from './auth.js';
+import { HttpsError } from 'firebase-functions/v2/https';
+import { onStaffCall, requireAuth, requireRole, type Role } from './auth.js';
 import { buildPublishedContentDocument } from './publication.js';
 import { finalisePublishedMedia } from './published-media.js';
 import { consumeRateLimit } from './rate-limit.js';
@@ -336,7 +336,7 @@ export function buildAdminAudiobookDocument(args: {
  * the transaction commits, because Storage I/O cannot run inside a Firestore
  * transaction.
  */
-export const publishAdminAudiobook = onCall(
+export const publishAdminAudiobook = onStaffCall(
   {
     region: REGION,
     enforceAppCheck: ENFORCE_APP_CHECK,
@@ -440,7 +440,7 @@ export const publishAdminAudiobook = onCall(
  * and a member who downloaded a chapter should not have their library silently
  * rewritten because a document vanished.
  */
-export const deleteAdminAudiobook = onCall(
+export const deleteAdminAudiobook = onStaffCall(
   {
     region: REGION,
     enforceAppCheck: ENFORCE_APP_CHECK,

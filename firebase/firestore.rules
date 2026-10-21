@@ -23,17 +23,19 @@ service cloud.firestore {
     // admin changes. Private drafts are owner-only, even for staff.
     // Correspondence is exposed only by role-checked, owner-scoped callables.
     match /correspondenceDrafts/{allPaths=**} { allow read, write: if false; }
+    // Staff two-step verification secrets: server-only (staff-mfa.ts).
+    match /staffMfa/{allPaths=**} { allow read, write: if false; }
     match /_correspondenceDelivery/{allPaths=**} { allow read, write: if false; }
     match /labsExperiments/{id} { allow read: if true; allow write: if false; }
     match /labsUpdates/{id} { allow read: if true; allow write: if false; }
     match /labsDrafts/{id} { allow read: if isSignedIn() && resource.data.uid == request.auth.uid; allow write: if false; }
     match /labsSessions/{id} { allow read: if isSignedIn() && resource.data.uid == request.auth.uid; allow write: if false; }
     match /labsQuests/{uid} { allow read: if isOwner(uid); allow write: if false; }
-    match /labsFeedback/{id} { allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || role() in ['admin', 'super_admin']); allow write: if false; }
-    match /labsFeedbackNotes/{id} { allow read: if role() in ['admin', 'super_admin']; allow write: if false; }
-    match /labsMetrics/{id} { allow read: if role() in ['admin', 'super_admin']; allow write: if false; }
-    match /labsAudit/{id} { allow read: if role() in ['admin', 'super_admin']; allow write: if false; }
-    match /labsTesters/{uid} { allow read: if isOwner(uid) || role() in ['admin', 'super_admin']; allow write: if false; }
+    match /labsFeedback/{id} { allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin()); allow write: if false; }
+    match /labsFeedbackNotes/{id} { allow read: if isAdmin(); allow write: if false; }
+    match /labsMetrics/{id} { allow read: if isAdmin(); allow write: if false; }
+    match /labsAudit/{id} { allow read: if isAdmin(); allow write: if false; }
+    match /labsTesters/{uid} { allow read: if isOwner(uid) || isAdmin(); allow write: if false; }
 
     // ---- Role helpers -------------------------------------------------------
     function isSignedIn() {
@@ -42,8 +44,27 @@ service cloud.firestore {
     function role() {
       return isSignedIn() ? request.auth.token.get('role', null) : null;
     }
+    // The super administrator is OWNER-MANAGED: only these uids are honoured,
+    // whatever claims another account carries (a `super_admin` role or
+    // `superAdmin` claim elsewhere counts as no role at all). The same list is
+    // OWNER_SUPER_ADMIN_UIDS in services/functions/src/auth.ts and
+    // storage.rules; agents must never add to it (AGENTS.md).
+    function isSuperAdmin() {
+      return isSignedIn()
+        && request.auth.uid in ['fjnCDzK5lPZnEGHRYkarL5vqpzq1']
+        && (role() == 'super_admin' || request.auth.token.get('superAdmin', false) == true);
+    }
     function isAdmin() {
-      return role() == 'admin' || role() == 'super_admin' || (isSignedIn() && request.auth.token.get('superAdmin', false) == true);
+      return (role() == 'admin' && request.auth.token.get('superAdmin', false) != true) || isSuperAdmin();
+    }
+    // Two-step verification for the admin console (services/functions/src/staff-mfa.ts):
+    // this sign-in's auth_time is listed in the `staffMfa` claim and is under
+    // twelve hours old. Staff-only data that only the console reads requires it.
+    function hasVerifiedStaffSession() {
+      return isSignedIn()
+        && request.auth.token.get('staffMfa', []) is list
+        && request.auth.token.auth_time in request.auth.token.get('staffMfa', [])
+        && request.auth.token.auth_time > request.time.toMillis() / 1000 - 43200;
     }
     function isValidator() {
       return role() == 'validator' || role() == 'reviewer' || isAdmin();
@@ -63,7 +84,7 @@ service cloud.firestore {
     // ordinary admin does NOT automatically see payout detail (separation of
     // duties). Only a finance user or a super-admin qualifies.
     function isFinance() {
-      return isSignedIn() && (request.auth.token.get('finance', false) == true || request.auth.token.get('superAdmin', false) == true);
+      return isSignedIn() && ((request.auth.token.get('finance', false) == true && isAdmin()) || isSuperAdmin());
     }
 
     function membershipPath(uid) {
@@ -640,7 +661,7 @@ service cloud.firestore {
 
     // ---- Audit log: append-only, server-authored, admin-readable ------------
     match /auditLogs/{logId} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() && hasVerifiedStaffSession();
       allow write: if false;
     }
 
@@ -662,10 +683,11 @@ service cloud.firestore {
 
     // ---- Platform configuration: public-read, admin-managed -----------------
     // Keeps dialects, categories, guidelines and the WhatsApp URL out of the
-    // frontend. Guests read; only admins write.
+    // frontend. Guests read; only admins write, from a two-step-verified
+    // admin-console sign-in.
     match /platformConfiguration/{configId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && hasVerifiedStaffSession();
     }
 
     // ---- Campaigns: public campaigns are guest-readable, admin-managed -------
@@ -1040,30 +1062,32 @@ service cloud.firestore {
     }
 
     // ---- Team site intake: public submit, staff review ----------------------
+    // Contact details from the public forms below are read only in the admin
+    // console, so reading or changing them needs a two-step-verified sign-in.
     match /teamSiteRequests/{requestId} {
       allow create: if validTeamSiteRequest(request.resource.data);
-      allow read: if isStaff();
+      allow read: if isStaff() && hasVerifiedStaffSession();
       allow update: if false;
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() && hasVerifiedStaffSession();
     }
 
     // ---- Public form intake (Get Involved / Interests, Contact): staff review ---
     match /publicFormSubmissions/{submissionId} {
-      allow read: if isStaff();
-      allow update: if isStaff();
-      allow delete: if isAdmin();
+      allow read: if isStaff() && hasVerifiedStaffSession();
+      allow update: if isStaff() && hasVerifiedStaffSession();
+      allow delete: if isAdmin() && hasVerifiedStaffSession();
     }
 
     // ---- Newsletter subscribers: staff review, admin manage -----------------
     match /newsletterSubscribers/{subscriberId} {
-      allow read: if isStaff();
-      allow update, delete: if isAdmin();
+      allow read: if isStaff() && hasVerifiedStaffSession();
+      allow update, delete: if isAdmin() && hasVerifiedStaffSession();
     }
 
     // ---- Payouts: restricted to finance / super-admin, server-write ---------
     // Payout detail is masked in the UI and never client-writable.
     match /payouts/{payoutId} {
-      allow read: if isFinance();
+      allow read: if isFinance() && hasVerifiedStaffSession();
       allow write: if false;
     }
 

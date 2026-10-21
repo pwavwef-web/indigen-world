@@ -20,6 +20,7 @@
     "@indigen-world/console-ui": "*",
     "@indigen-world/contracts": "*",
     "firebase": "^11.3.0",
+    "qrcode-generator": "2.0.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
