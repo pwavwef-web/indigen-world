@@ -67,7 +67,7 @@ policy were checked without changing account roles or claims. No backfill or
 existing submission/balance migration was needed.
 
 **Authenticated production limit:** Chrome and Edge headless App Check exchanges
-were rejected with 403, ìApp attestation failed.î The sign-in screen loaded.
+were rejected with 403, ‚ÄúApp attestation failed.‚Äù The sign-in screen loaded.
 No real-account, two-step-verified production upload/review journey was tested;
 manual confirmation with legitimately authorised accounts remains. The risk
 threshold, MFA and role checks were not lowered. Local emulator workflows and
