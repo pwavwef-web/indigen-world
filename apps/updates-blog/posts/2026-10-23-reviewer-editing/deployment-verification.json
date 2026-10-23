@@ -1,0 +1,138 @@
+{
+  "checkedAt": "2026-10-23T20:36:49.701Z",
+  "project": "project-kassena-7e026",
+  "sourceCommit": "142b5b0072d048b851375450aa866b48294d5878",
+  "bundleSha256": "b3e5928e5ef93d618096ef5b08eaadb064907b54cb23583fa39d9ffddfb78539",
+  "functions": [
+    {
+      "name": "decideSubmission",
+      "state": "ACTIVE",
+      "runtime": "nodejs22",
+      "revision": "decidesubmission-00037-caw",
+      "updateTime": "2026-10-23T20:33:32.081035506Z"
+    },
+    {
+      "name": "submitCollectionContribution",
+      "state": "ACTIVE",
+      "runtime": "nodejs22",
+      "revision": "submitcollectioncontribution-00029-xap",
+      "updateTime": "2026-10-23T20:33:36.040912158Z"
+    },
+    {
+      "name": "reviewSubmission",
+      "state": "ACTIVE",
+      "runtime": "nodejs22",
+      "revision": "reviewsubmission-00001-qac",
+      "updateTime": "2026-10-23T20:33:32.649625283Z"
+    }
+  ],
+  "hosting": [
+    {
+      "site": "indigen-admin",
+      "version": "sites/indigen-admin/versions/a1af8739e780dd64",
+      "releaseTime": "2026-10-23T20:35:46.028Z"
+    },
+    {
+      "site": "tribestudio",
+      "version": "sites/tribestudio/versions/d2db363f350d241a",
+      "releaseTime": "2026-10-23T20:35:51.168Z"
+    }
+  ],
+  "routes": [
+    {
+      "url": "https://admin.indigenworld.com/review",
+      "status": 200,
+      "currentEntry": true
+    },
+    {
+      "url": "https://indigen-admin.web.app/review",
+      "status": 200,
+      "currentEntry": true
+    },
+    {
+      "url": "https://indigen-admin.firebaseapp.com/review",
+      "status": 200,
+      "currentEntry": true
+    },
+    {
+      "url": "https://tribestudio.indigenworld.com/contributor/review",
+      "status": 200,
+      "currentEntry": true
+    },
+    {
+      "url": "https://tribestudio.web.app/contributor/review",
+      "status": 200,
+      "currentEntry": true
+    },
+    {
+      "url": "https://tribestudio.firebaseapp.com/contributor/review",
+      "status": 200,
+      "currentEntry": true
+    }
+  ],
+  "assets": [
+    {
+      "url": "https://admin.indigenworld.com/assets/index-DXCQ39Y2.js",
+      "sha256": "7b0d634fe23246035c975338ee27b4aa9bafc090c8ca8ed2f11924c9c703dded",
+      "matchesLocal": true
+    },
+    {
+      "url": "https://indigen-admin.web.app/assets/index-DXCQ39Y2.js",
+      "sha256": "7b0d634fe23246035c975338ee27b4aa9bafc090c8ca8ed2f11924c9c703dded",
+      "matchesLocal": true
+    },
+    {
+      "url": "https://indigen-admin.firebaseapp.com/assets/index-DXCQ39Y2.js",
+      "sha256": "7b0d634fe23246035c975338ee27b4aa9bafc090c8ca8ed2f11924c9c703dded",
+      "matchesLocal": true
+    },
+    {
+      "url": "https://admin.indigenworld.com/assets/ReviewDesk-TuaKsU_0.js",
+      "sha256": "68083508bbdf3342b7e54e9d9907b5ef98f659d8b27de4889392d09d1bd6f5ad",
+      "matchesLocal": true,
+      "reviewControls": true
+    },
+    {
+      "url": "https://tribestudio.indigenworld.com/assets/index-DGUZrMUT.js",
+      "sha256": "9fb81c2703884aa721c896b3a2abe4fb2efcfd0277f6a7dfb328ff8c3282f7de",
+      "matchesLocal": true
+    },
+    {
+      "url": "https://tribestudio.web.app/assets/index-DGUZrMUT.js",
+      "sha256": "9fb81c2703884aa721c896b3a2abe4fb2efcfd0277f6a7dfb328ff8c3282f7de",
+      "matchesLocal": true
+    },
+    {
+      "url": "https://tribestudio.firebaseapp.com/assets/index-DGUZrMUT.js",
+      "sha256": "9fb81c2703884aa721c896b3a2abe4fb2efcfd0277f6a7dfb328ff8c3282f7de",
+      "matchesLocal": true
+    },
+    {
+      "url": "https://tribestudio.indigenworld.com/assets/index-DGUZrMUT.js",
+      "sha256": "9fb81c2703884aa721c896b3a2abe4fb2efcfd0277f6a7dfb328ff8c3282f7de",
+      "matchesLocal": true,
+      "reviewControls": true
+    }
+  ],
+  "callableGuards": [
+    {
+      "name": "decideSubmission",
+      "httpStatus": 401,
+      "errorStatus": "UNAUTHENTICATED"
+    },
+    {
+      "name": "submitCollectionContribution",
+      "httpStatus": 401,
+      "errorStatus": "UNAUTHENTICATED"
+    },
+    {
+      "name": "reviewSubmission",
+      "httpStatus": 401,
+      "errorStatus": "UNAUTHENTICATED"
+    }
+  ],
+  "limits": [
+    "Authenticated production edit/publish was not performed; no real submissions were changed.",
+    "Browser workflow verification uses synthetic local service data."
+  ]
+}

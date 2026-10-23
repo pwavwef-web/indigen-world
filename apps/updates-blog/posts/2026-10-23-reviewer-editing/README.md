@@ -4,7 +4,7 @@
 - **Labels:** Indigen World, Product updates, Administration, Validator portal, Languages, Community contributions
 - **Search description:** Reviewers can correct submission wording in the admin and validator portals, save their work, and publish with the contributor's permission and credit.
 - **Prepared:** 23 October 2026 (UTC).
-- **Deployment status:** Implemented and locally tested. Not deployed by this task. Deploy the affected Functions before both portal hosting builds.
+- **Deployment status:** Deployed 23 October 2026 (UTC), source `142b5b00`. All three affected Functions are ACTIVE. Administration Hosting version `a1af8739e780dd64`; TribeStudio version `d2db363f350d241a`. Live routes, bundles and unauthenticated access guards verified; authenticated production editing/publishing was not exercised.
 - **Blogger publication:** Not published. Publication and sharing remain with Chinedum.
 
 ## Images and credits
@@ -27,7 +27,7 @@ node apps/updates-blog/scripts/render-post-art.mjs 2026-10-23-reviewer-editing
 
 ## Publishing handoff
 
-1. Confirm deployment and update the availability paragraph in `post.html` before describing this as live.
+1. Review the confirmed release evidence and verification limits in `deployment-verification.json` and `verification.md`.
 2. Create the Blogger post using the title, labels and search description above.
 3. Upload `images/cover.png`, `images/admin-desktop.jpg`, `images/validator-desktop.jpg` and `images/validator-mobile.jpg` to Blogger.
 4. Paste `post.html` in HTML mode. Replace each local image `src` with its uploaded Blogger URL, retaining alt text and captions.

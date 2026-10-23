@@ -1,6 +1,9 @@
 # Editing reviewed submissions
 
-Implemented 23 October 2026. Deployment pending.
+Implemented and deployed 23 October 2026, application source `142b5b00`.
+Three affected Functions are ACTIVE; both portal releases and live bundles are
+verified. Authenticated production editing/publishing was not exercised. See
+`apps/updates-blog/posts/2026-10-23-reviewer-editing/deployment-verification.json`.
 
 Both the Administration Review Desk and TribeStudio Validator portal let existing
 reviewers correct submission content. **Save corrections** keeps the current

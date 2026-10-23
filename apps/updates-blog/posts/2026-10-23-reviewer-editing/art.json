@@ -4,11 +4,36 @@
   "eyebrow": "Indigen World · Review desks",
   "title": "Correct it here.\nPublish with confidence.",
   "lede": "Direct corrections in Administration and the Validator portal. Contributor credit and permissions stay attached.",
-  "tags": ["Reviewer corrections", "Save & publish", "Deployment pending"],
-  "hero": [{ "file": "validator-desktop.png", "kind": "browser" }, { "file": "validator-mobile.png", "kind": "phone" }],
+  "tags": [
+    "Reviewer corrections",
+    "Save & publish",
+    "Available to reviewers"
+  ],
+  "hero": [
+    {
+      "file": "validator-desktop.png",
+      "kind": "browser"
+    },
+    {
+      "file": "validator-mobile.png",
+      "kind": "phone"
+    }
+  ],
   "figures": {
-    "admin-desktop.png": { "kind": "browser", "title": "Correct the wording\nwhere you review it", "note": "Actual local Administration interface. Synthetic submission and service responses; deployment pending." },
-    "validator-desktop.png": { "kind": "browser", "title": "Review, correct\nand publish", "note": "Actual Validator interface rendered locally with synthetic content. Original credit and permissions remain attached." },
-    "validator-mobile.png": { "kind": "phone", "title": "The same review\non a smaller screen", "note": "Actual phone-width local render with a synthetic expression. Deployment pending." }
+    "admin-desktop.png": {
+      "kind": "browser",
+      "title": "Correct the wording\nwhere you review it",
+      "note": "Actual local Administration interface. Synthetic submission and service responses; application deployed 23 October 2026."
+    },
+    "validator-desktop.png": {
+      "kind": "browser",
+      "title": "Review, correct\nand publish",
+      "note": "Actual Validator interface rendered locally with synthetic content. Original credit and permissions remain attached."
+    },
+    "validator-mobile.png": {
+      "kind": "phone",
+      "title": "The same review\non a smaller screen",
+      "note": "Actual phone-width local render with a synthetic expression. Application deployed 23 October 2026."
+    }
   }
 }

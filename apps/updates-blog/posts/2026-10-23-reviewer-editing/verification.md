@@ -1,6 +1,7 @@
 # Local verification — 23 October 2026
 
-Application deployment and authenticated production review were not performed.
+Application deployed 23 October 2026 from source `142b5b00`. Authenticated
+production editing/publishing was not performed.
 All accounts, submissions, expressions and source text used in tests are synthetic.
 
 | Check | Result |
@@ -44,3 +45,13 @@ Screens in `screens/` were generated with
 with the existing `render-post-art.mjs` script. The browser harness contacts only
 its local fixture server. Visual inspection covered the actual editor layouts
 and branded cover. No real contributor material is present.
+
+## Confirmed production release
+
+Deployed 23 October 2026 (UTC), source `142b5b00`. All three affected Functions are ACTIVE. Administration Hosting version `a1af8739e780dd64`; TribeStudio version `d2db363f350d241a`. Live routes, bundles and unauthenticated access guards verified; authenticated production editing/publishing was not exercised.
+
+See [deployment-verification.json](deployment-verification.json) for the exact
+function revisions, Hosting release times, six live portal routes and bundle
+SHA-256 comparisons. Three unauthenticated callable probes returned HTTP 401.
+No real contributor submission was edited or published during verification.
+Blogger publication and community sharing remain with Chinedum.
