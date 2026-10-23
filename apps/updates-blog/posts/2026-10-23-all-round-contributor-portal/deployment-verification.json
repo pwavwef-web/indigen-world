@@ -1,0 +1,199 @@
+{
+  "checkedAt": "2026-10-23T19:44:39.265Z",
+  "sourceCommit": "632eaf9555204a9e563ed6ff78044d62875e07c8",
+  "initialSourceCommit": "5ac05c9",
+  "hosting": {
+    "releaseTime": "2026-10-23T19:42:36.504Z",
+    "version": "sites/tribestudio/versions/ea79e3d68d63899d"
+  },
+  "hosts": [
+    {
+      "url": "https://tribestudio.indigenworld.com/contributor",
+      "status": 200,
+      "entry": "/assets/index-D0wLRXcf.js",
+      "permissionsPolicy": "camera=(), geolocation=(), microphone=(self)"
+    },
+    {
+      "url": "https://tribestudio.indigenworld.com/contributor/translations",
+      "status": 200,
+      "entry": "/assets/index-D0wLRXcf.js",
+      "permissionsPolicy": "camera=(), geolocation=(), microphone=(self)"
+    },
+    {
+      "url": "https://tribestudio.indigenworld.com/contributor/documents",
+      "status": 200,
+      "entry": "/assets/index-D0wLRXcf.js",
+      "permissionsPolicy": "camera=(), geolocation=(), microphone=(self)"
+    },
+    {
+      "url": "https://tribestudio.web.app/contributor",
+      "status": 200,
+      "entry": "/assets/index-D0wLRXcf.js",
+      "permissionsPolicy": "camera=(), geolocation=(), microphone=(self)"
+    },
+    {
+      "url": "https://tribestudio.web.app/contributor/translations",
+      "status": 200,
+      "entry": "/assets/index-D0wLRXcf.js",
+      "permissionsPolicy": "camera=(), geolocation=(), microphone=(self)"
+    },
+    {
+      "url": "https://tribestudio.web.app/contributor/documents",
+      "status": 200,
+      "entry": "/assets/index-D0wLRXcf.js",
+      "permissionsPolicy": "camera=(), geolocation=(), microphone=(self)"
+    },
+    {
+      "url": "https://tribestudio.firebaseapp.com/contributor",
+      "status": 200,
+      "entry": "/assets/index-D0wLRXcf.js",
+      "permissionsPolicy": "camera=(), geolocation=(), microphone=(self)"
+    },
+    {
+      "url": "https://tribestudio.firebaseapp.com/contributor/translations",
+      "status": 200,
+      "entry": "/assets/index-D0wLRXcf.js",
+      "permissionsPolicy": "camera=(), geolocation=(), microphone=(self)"
+    },
+    {
+      "url": "https://tribestudio.firebaseapp.com/contributor/documents",
+      "status": 200,
+      "entry": "/assets/index-D0wLRXcf.js",
+      "permissionsPolicy": "camera=(), geolocation=(), microphone=(self)"
+    }
+  ],
+  "portalAsset": {
+    "name": "PortalHistory-DSo1qRyz.js",
+    "sha256": "3e1ba2154845376e7b8a0e30d8ae4313778bfa456604474f755e8661d4b4d7b4",
+    "matchesLocalBuild": true,
+    "developmentFixtureAbsent": true
+  },
+  "functions": [
+    {
+      "name": "projects/project-kassena-7e026/locations/us-central1/functions/portalContribution",
+      "buildConfig": {
+        "runtime": "nodejs22"
+      },
+      "serviceConfig": {
+        "uri": "https://portalcontribution-esksehdtfa-uc.a.run.app",
+        "revision": "portalcontribution-00002-niw"
+      },
+      "state": "ACTIVE",
+      "updateTime": "2026-10-23T19:42:10.832403858Z"
+    },
+    {
+      "name": "projects/project-kassena-7e026/locations/us-central1/functions/portalContributionReview",
+      "buildConfig": {
+        "runtime": "nodejs22"
+      },
+      "serviceConfig": {
+        "uri": "https://portalcontributionreview-esksehdtfa-uc.a.run.app",
+        "revision": "portalcontributionreview-00002-neg"
+      },
+      "state": "ACTIVE",
+      "updateTime": "2026-10-23T19:42:13.226047902Z"
+    },
+    {
+      "name": "projects/project-kassena-7e026/locations/us-central1/functions/onPortalMaterialWritten",
+      "buildConfig": {
+        "runtime": "nodejs22"
+      },
+      "serviceConfig": {
+        "uri": "https://onportalmaterialwritten-esksehdtfa-uc.a.run.app",
+        "revision": "onportalmaterialwritten-00001-ruk"
+      },
+      "eventTrigger": {
+        "retryPolicy": "RETRY_POLICY_RETRY"
+      },
+      "state": "ACTIVE",
+      "updateTime": "2026-10-23T19:28:45.329694529Z"
+    },
+    {
+      "name": "projects/project-kassena-7e026/locations/us-central1/functions/activateExpressionContributor",
+      "buildConfig": {
+        "runtime": "nodejs22"
+      },
+      "serviceConfig": {
+        "uri": "https://activateexpressioncontributor-esksehdtfa-uc.a.run.app",
+        "revision": "activateexpressioncontributor-00006-toj"
+      },
+      "state": "ACTIVE",
+      "updateTime": "2026-10-23T19:28:31.345212288Z"
+    }
+  ],
+  "unauthenticatedChecks": [
+    {
+      "name": "portalContribution",
+      "status": 401,
+      "error": "UNAUTHENTICATED",
+      "message": "Sign in is required."
+    },
+    {
+      "name": "portalContributionReview",
+      "status": 401,
+      "error": "UNAUTHENTICATED",
+      "message": "Unauthenticated"
+    },
+    {
+      "name": "activateExpressionContributor",
+      "status": 401,
+      "error": "UNAUTHENTICATED",
+      "message": "Sign in is required."
+    }
+  ],
+  "signedInProductionJourney": "Not exercised; no production user credentials or role changes used.",
+  "uploadCors": {
+    "matchesVerifiedLiveBucketConfiguration": true,
+    "policy": [
+      {
+        "origin": [
+          "https://tribestudio.indigenworld.com",
+          "https://tribestudio.web.app",
+          "https://tribestudio.firebaseapp.com"
+        ],
+        "method": [
+          "GET",
+          "PUT",
+          "HEAD"
+        ],
+        "responseHeader": [
+          "Content-Type",
+          "Content-Range",
+          "Range",
+          "ETag"
+        ],
+        "maxAgeSeconds": 3600
+      }
+    ]
+  },
+  "appCheck": {
+    "registrationVerified": true,
+    "minimumScore": 0.5,
+    "testModeEnabled": false,
+    "automatedChromeProbe": {
+      "checkedAt": "2026-10-23T19:37:58.823Z",
+      "host": "tribestudio.indigenworld.com",
+      "status": 200,
+      "signInVisible": true,
+      "appCheckExchangeStatus": 403,
+      "appCheckError": {
+        "code": 403,
+        "message": "App attestation failed.",
+        "status": "PERMISSION_DENIED"
+      }
+    },
+    "automatedEdgeProbe": {
+      "checkedAt": "2026-10-23T19:39:36.003Z",
+      "host": "tribestudio.indigenworld.com",
+      "status": 200,
+      "signInVisible": true,
+      "appCheckExchangeStatus": 403,
+      "appCheckError": {
+        "code": 403,
+        "message": "App attestation failed.",
+        "status": "PERMISSION_DENIED"
+      }
+    },
+    "limitation": "Automated headless attestations were rejected. A real-account, two-step-verified production review journey was not exercised. Protection was not lowered."
+  }
+}

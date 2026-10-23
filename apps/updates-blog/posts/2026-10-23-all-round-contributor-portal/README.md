@@ -4,7 +4,7 @@
 - **Labels:** Indigen World, Contributor Portal, Languages, Culture, Research, Product updates
 - **Search description:** One Home for contributions, private source uploads, separate usage choices, and traceable human review in the Indigen World Contributor Portal.
 - **Prepared:** 23 October 2026 (UTC).
-- **Deployment status:** Implemented and locally verified; production deployment pending. Update this section with confirmed deployment evidence before publishing.
+- **Deployment status:** Deployed 23 October 2026. Final Hosting release: 19:42:36 UTC, version `ea79e3d68d63899d`, source `632eaf9` (initial release `5ac05c9`). Four affected Functions are ACTIVE. Storage rules and private-upload CORS are released.
 - **Blogger publication:** Not published. Chinedum owns publication and sharing.
 
 ## Images and credits
@@ -54,3 +54,22 @@ existing dictionary and governed corpus release flows remain available.
 
 No announcements, external publication, email or SMS are authorised by preparing
 this post. The user's deployment request covers the application release.
+
+## Confirmed production evidence
+
+See [deployment-verification.json](deployment-verification.json). Nine route
+checks across the custom domain and both Firebase hosts returned 200 and the
+current entry bundle. The live portal asset matches the local build byte for
+byte; development source-review fixtures are absent. Three anonymous callable
+probes returned 401. All four affected functions report ACTIVE on Node.js 22.
+The existing registered Studio App Check key and restricted three-domain CORS
+policy were checked without changing account roles or claims. No backfill or
+existing submission/balance migration was needed.
+
+**Authenticated production limit:** Chrome and Edge headless App Check exchanges
+were rejected with 403, “App attestation failed.” The sign-in screen loaded.
+No real-account, two-step-verified production upload/review journey was tested;
+manual confirmation with legitimately authorised accounts remains. The risk
+threshold, MFA and role checks were not lowered. Local emulator workflows and
+browser fixture checks passed. Do not describe these as completed production
+contributions, payouts, training runs or end-to-end human verification.
