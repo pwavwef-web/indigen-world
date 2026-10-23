@@ -129,6 +129,12 @@ history, and requires a reviewer other than its creator to approve it. Additiona
 question/answer and governed corpus schemas remain in the existing knowledge
 workspace; this release does not infer them from uploads.
 
+Contributors may revise their own returned candidates. The exact approved source
+reference is retained; rights are inherited and usage choices intersected again
+on every revision. A withdrawn or superseded source cannot be used to broaden
+permission. Processing detail refreshes while jobs run and has a manual refresh
+action; automatic polling is bounded to five minutes.
+
 Administrator exports select 1–100 approved records, a permitted use, and a
 stable request ID. JSONL and CSV use task-specific schema identifiers; CSV stores
 typed content as JSON cells and escapes spreadsheet formula prefixes. Export

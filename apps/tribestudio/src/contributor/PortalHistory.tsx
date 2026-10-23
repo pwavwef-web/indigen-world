@@ -20,6 +20,22 @@ export function ContributionHistory({ preview = false, base = '/contributor', mo
   const open = async (id: string) => { setOpening(true); setError(''); try { setDetail(await call<PortalDetail>('get', { id })); setCandidate(false); setNote(''); } catch (e) { setError(portalMessage(e)); } finally { setOpening(false); } };
   useEffect(() => { if (selectedId) void open(selectedId); }, [selectedId]);
   useEffect(() => {
+    const r = detail?.record;
+    if (!r || !['queued', 'processing'].includes(r.processing.state)) return;
+    let active = true, pending = false, attempts = 0;
+    const timer = setInterval(async () => {
+      if (pending || ++attempts > 60) return;
+      pending = true;
+      try {
+        const next = await call<PortalDetail>('get', { id: r.id });
+        if (active && next.record.version === r.version) setDetail(next);
+        else if (active) { clearInterval(timer); setNotice('A new version is available. Refresh status before reviewing it.'); }
+      } catch { if (active) setNotice('Processing status could not be refreshed. Use Refresh status to retry.'); }
+      finally { pending = false; }
+    }, 5000);
+    return () => { active = false; clearInterval(timer); };
+  }, [detail?.record.id, detail?.record.version, detail?.record.processing.state]);
+  useEffect(() => {
     let active = true; setLoading(true); setError('');
     const timer = setTimeout(() => { call<{ records: PortalRecord[]; nextCursor: string | null }>('list', { type, status, query, attention: mode === 'attention', feedback: mode === 'notifications' }).then(r => { if (active) { setRows(r.records); setCursor(r.nextCursor); } }).catch(e => { if (active) setError(portalMessage(e)); }).finally(() => { if (active) setLoading(false); }); }, query ? 250 : 0);
     return () => { active = false; clearTimeout(timer); };
@@ -45,7 +61,7 @@ export function ContributionHistory({ preview = false, base = '/contributor', mo
   const r = detail?.record;
   return <div className="pw-history">{error ? <p role="alert" className="ts-notice ts-notice--danger">{error} <button className="ts-link" onClick={() => { refresh(); if (r) void open(r.id); }}>Retry</button></p> : null}{notice ? <p role="status">{notice}</p> : null}
     {mode === 'notifications' && !review ? <button className="ts-btn ts-btn--secondary" onClick={() => void action('ack', {})}>Mark review updates read</button> : null}
-    {r ? <section className="pw-record" aria-label="Contribution details"><button className="ts-link" onClick={() => setDetail(null)}><Icon name="back" />Back to list</button><div className="pw-section-head"><h3>{r.title}</h3><span className="pw-status">{PORTAL_STATES[r.status]}</span></div><p><strong>{r.id}:{r.version}</strong> · {r.language} · {r.provenance.replace('_', '-')}</p>{r.parent ? <p>Derived from {r.parent.id}:{r.parent.version} · {r.parent.locator} · {r.parent.method}. Requires a separate decision.</p> : null}<p className="pw-preserve">{r.content.text || r.content.transcript}</p>{r.content.sourceText ? <blockquote>Source: {r.content.sourceText}</blockquote> : null}{r.content.meaning ? <p>Meanings: {r.content.meaning}</p> : null}<p>Source / attribution: {r.content.source}</p><p>Allowed uses: {(Object.keys(PORTAL_USES) as PortalUse[]).filter(k => r.uses[k]).map(k => PORTAL_USES[k][0]).join(', ') || 'None'}. Rights: {r.rights.ownership}. {r.content.restrictions}</p>
+    {r ? <section className="pw-record" aria-label="Contribution details"><button className="ts-link" onClick={() => setDetail(null)}><Icon name="back" />Back to list</button> <button type="button" className="ts-link" disabled={opening || busy} onClick={() => void open(r.id)}>Refresh status & history</button><div className="pw-section-head"><h3>{r.title}</h3><span className="pw-status">{PORTAL_STATES[r.status]}</span></div><p><strong>{r.id}:{r.version}</strong> · {r.language} · {r.provenance.replace('_', '-')}</p>{r.parent ? <p>Derived from {r.parent.id}:{r.parent.version} · {r.parent.locator} · {r.parent.method}. Requires a separate decision.</p> : null}<p className="pw-preserve">{r.content.text || r.content.transcript}</p>{r.content.sourceText ? <blockquote>Source: {r.content.sourceText}</blockquote> : null}{r.content.meaning ? <p>Meanings: {r.content.meaning}</p> : null}<p>Source / attribution: {r.content.source}</p><p>Allowed uses: {(Object.keys(PORTAL_USES) as PortalUse[]).filter(k => r.uses[k]).map(k => PORTAL_USES[k][0]).join(', ') || 'None'}. Rights: {r.rights.ownership}. {r.content.restrictions}</p>
       <p className="pw-processing">Processing: {r.processing.state.replaceAll('_', ' ')} · Review: {PORTAL_STATES[r.status]}</p>{r.processing.scan ? <small>{r.processing.scan}</small> : null}
       {r.processing.files.map((file, i) => <article className="pw-file-detail" key={file.path}><h4>{file.name}</h4><p>{file.state === 'manual_review' ? 'Manual review required' : file.state.replaceAll('_', ' ')}</p>{file.error ? <p role="alert">{file.error}</p> : null}{file.duplicateIds?.length ? <p>Exact duplicate signal: {file.duplicateIds.join(', ')}. No variant was deleted.</p> : null}{file.text ? <details><summary>Machine extraction · unverified</summary><pre className="pw-preserve">{file.text}</pre><p>Propose corrections with a paragraph or row reference.</p></details> : null}{file.state !== 'failed' && r.status !== 'withdrawn' ? <button type="button" className="ts-btn ts-btn--secondary" onClick={async () => { const result = await action('download', { id: r.id, index: i }); if (result?.url) window.open(result.url, '_blank', 'noopener,noreferrer'); }}>Download private original</button> : null}</article>)}
       {r.feedback ? <blockquote className="pw-feedback"><strong>Reviewer feedback</strong><p>{r.feedback}</p></blockquote> : null}

@@ -116,8 +116,14 @@ async function save(uid: string, d: Data) {
     if (old && (old.owner !== uid || old.version !== d.version)) throw new HttpsError('failed-precondition', 'Open the current version of your own contribution before saving.');
     if (old && !['draft', 'changes_requested', 'rejected'].includes(old.status)) throw new HttpsError('failed-precondition', 'This version is locked for review.');
     const at = stamp(), version = (old?.version ?? 0) + 1;
-    if (old?.parent) throw new HttpsError('failed-precondition', 'Derived candidates are edited by an authorised reviewer.');
-    const record = { ...input, id, owner: uid, version, status: d.submit ? 'submitted' : old?.status === 'changes_requested' ? 'changes_requested' : 'draft', createdAt: old?.createdAt ?? at, updatedAt: at,
+    if (old?.parent) {
+      const parent = (await tx.get(collection().doc(old.parent.id))).data() as PortalRecord | undefined;
+      if (!parent || parent.owner !== uid || parent.status !== 'approved' || parent.version !== old.parent.version) throw new HttpsError('failed-precondition', 'The exact source version is no longer eligible. Ask a reviewer to resolve its source before revising this candidate.');
+      if (input.type !== old.type) throw new HttpsError('invalid-argument', 'Keep the task type of a derived candidate.');
+      input.uses = Object.fromEntries(Object.keys(PORTAL_USES).map(k => [k, parent.uses[k as PortalUse] && input.uses[k]]));
+      input.rights = parent.rights;
+    }
+    const record = { ...input, ...(old?.parent ? { parent: old.parent } : {}), id, owner: uid, version, status: d.submit ? 'submitted' : old?.status === 'changes_requested' ? 'changes_requested' : 'draft', createdAt: old?.createdAt ?? at, updatedAt: at,
       submittedAt: d.submit ? at : old?.submittedAt ?? null, feedback: old?.feedback ?? '',
       consent: { version: PORTAL_CONSENT_VERSION, text: PORTAL_USES, selected: input.uses, at },
       reward: 'Pending reward assessment', processing: { state: d.submit && input.files.length ? 'queued' : 'not_required', files: [], attempts: 0, scan: 'No external malware scanner configured' },

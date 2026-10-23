@@ -121,6 +121,12 @@ test('source candidates need separate review; exports honour source rights, sour
   assert.equal(exported.jsonl.includes('owner'), false); assert.equal(exported.manifest.records[0].source.version, 1);
   const version = exported.manifest.id;
   assert.equal((await staff('pm-admin', 'export', exportRequest, 'admin')).manifest.id, version);
+  await decide(candidate.id, 1, 'changes_requested', 'pm-second-reviewer');
+  const revised = await save({ ...candidate, uses: { ...candidate.uses, public: true }, content: { ...candidate.content, context: 'Source paragraph clarified by contributor' } }, { id: candidate.id, version: 1 });
+  assert.equal(revised.record.version, 2); assert.deepEqual(revised.record.parent, candidate.parent);
+  assert.equal(revised.record.uses.public, false, 'revision cannot broaden its source permission');
+  await decide(candidate.id, 2, 'approved', 'pm-second-reviewer');
+  await rejects(staff('pm-admin', 'export', exportRequest, 'admin'), 'failed-precondition');
   await call('pm-alice', 'withdraw', { id: original.id, version: 1 });
   await rejects(staff('pm-admin', 'export', exportRequest, 'admin'), 'failed-precondition');
   assert.equal((await db.doc(`portalWithdrawals/${original.id}`).get()).exists, true);
