@@ -38,7 +38,7 @@ Where it is checked:
 
 | Layer | Check |
 | --- | --- |
-| Callables | Every callable the console invokes is declared with `onStaffCall` (`auth.ts`): a staff caller without a verified session gets `failed-precondition` / `staff-mfa-required`. Non-staff callers fall through to the handler's own role checks. `decideSubmission` stays on `onCall` because the mobile app and TribeStudio review desks use it. |
+| Callables | Every callable the console invokes is declared with `onStaffCall` (`auth.ts`): a staff caller without a verified session gets `failed-precondition` / `staff-mfa-required`. Non-staff callers fall through to the handler's own role checks. `reviewSubmission` protects admin-console submission editing and decisions. `decideSubmission` stays on `onCall` because the mobile app and TribeStudio review desks use it; both entry points share the same decision handler. |
 | Firestore rules | `hasVerifiedStaffSession()` on `auditLogs`, `teamSiteRequests`, `publicFormSubmissions`, `newsletterSubscribers`, `payouts` and writes to `platformConfiguration`. `staffMfa/**` is closed to every client. |
 | Storage rules | Finance receipt uploads require a verified session. |
 | Console | `TwoStepGate` (`apps/admin/src/security/`) before anything else renders; 12-hour and idle sign-out in `sessionLimits.ts`. |

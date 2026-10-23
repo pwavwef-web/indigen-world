@@ -1,8 +1,10 @@
+import { SubmissionEditor } from '@indigen-world/console-ui';
+import { EDITABLE_SUBMISSION_STATUSES } from '@indigen-world/contracts/submission-editing';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { queuesChanged } from '../attention';
 import { NOUN_FORM_SLOTS, OTHER_FORM_SLOTS, pronounCheck } from '../creators/kasem-morphology';
 import { dateOnly, dateTime, errorMessage, isStaleDecision } from '../finance/data';
-import { useLeaveGuard, useRouter } from '../router';
+import { mayLeave, useLeaveGuard, useRouter } from '../router';
 import { confirmAction } from '../ui/dialogs';
 import { Icon, type IconName } from '../ui/icons';
 import {
@@ -51,7 +53,7 @@ import {
    — expressions, dictionary words, word-queue answers, invited translations,
    Collection uploads and campaign work — and each keeps its own checks:
    an expression publishes as an expression and never as a dictionary word.
-   Approval and publication stay separate decisions.
+   Reviewers can approve and publish together when publication is permitted.
    ========================================================================== */
 
 type Load = { state: 'loading' } | { state: 'ready'; rows: ReviewSubmission[]; capped: boolean } | { state: 'denied' } | { state: 'error'; message: string };
@@ -105,6 +107,7 @@ export function ReviewDesk({ scope }: { scope: ReviewScope }) {
   }, [filtered, load.state, selectedId, setParams]);
 
   const open = (row: ReviewSubmission) => {
+    if (row.id === selectedId || !mayLeave()) return;
     setParams({ item: row.id });
     if (!window.matchMedia?.('(min-width: 1181px)').matches) {
       window.requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -125,12 +128,12 @@ export function ReviewDesk({ scope }: { scope: ReviewScope }) {
       <PageHeader
         title={scope === 'pending' ? 'Review Desk' : SCOPE_LABEL[scope]}
         description={SCOPE_INTRO[scope]}
-        actions={<Button icon="refresh" onClick={() => void reload()} disabled={load.state === 'loading'}>Refresh</Button>}
+        actions={<Button icon="refresh" onClick={() => { if (mayLeave()) void reload(); }} disabled={load.state === 'loading'}>Refresh</Button>}
       />
       <div className="ad-toolbar">
-        <Select label="Category" value={category} onChange={(value) => setParams({ category: value === 'all' ? null : value, item: null })}
+        <Select label="Category" value={category} onChange={(value) => { if (mayLeave()) setParams({ category: value === 'all' ? null : value, item: null }); }}
           options={[{ value: 'all', label: 'All categories' }, ...(Object.keys(CATEGORY_META) as Category[]).filter((key) => categories.includes(key) || key === category).map((key) => ({ value: key, label: CATEGORY_META[key].label }))]} />
-        <Select label="Dialect" value={dialect} onChange={(value) => setParams({ dialect: value === 'all' ? null : value, item: null })}
+        <Select label="Dialect" value={dialect} onChange={(value) => { if (mayLeave()) setParams({ dialect: value === 'all' ? null : value, item: null }); }}
           options={[{ value: 'all', label: 'All dialects' }, ...dialects.map((value) => ({ value, label: value }))]} />
       </div>
 
@@ -179,8 +182,9 @@ export function ReviewDesk({ scope }: { scope: ReviewScope }) {
                 <SubmissionDetail
                   key={`${selected.id}-${selected.status}-${selected.lifecycle?.version ?? 0}`}
                   submission={selected}
-                  onClose={() => setParams({ item: null })}
+                  onClose={() => { if (mayLeave()) setParams({ item: null }); }}
                   onDecided={afterDecision}
+                  onEdited={async () => { await reload(); queuesChanged(); setToast({ message: 'Corrections saved. You can continue reviewing this submission.', tone: 'success' }); }}
                   onStale={async () => { await reload(); setToast({ message: 'This submission changed since you opened it. The latest version is shown.', tone: 'info' }); }}
                 />
               ) : selectedId ? (
@@ -348,12 +352,17 @@ function ContentBlocks({ s }: { s: ReviewSubmission }) {
 
 const FEEDBACK_MAX = 2000;
 
-function SubmissionDetail({ submission: s, onClose, onDecided, onStale }: {
+function SubmissionDetail({ submission: s, onClose, onDecided, onEdited, onStale }: {
   submission: ReviewSubmission;
   onClose: () => void;
   onDecided: (message: string) => Promise<void>;
+  onEdited: () => Promise<void>;
   onStale: () => Promise<void>;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [stale, setStale] = useState(false);
+  const [edits, setEdits] = useState<Record<string, string>>({});
+  const dirty = Object.keys(edits).length > 0;
   const [who, setWho] = useState<{ name: string; handle: string } | null>(null);
   const [note, setNote] = useState('');
   const [becomes, setBecomes] = useState(s.moderation?.publishAs ?? 'headword');
@@ -361,12 +370,12 @@ function SubmissionDetail({ submission: s, onClose, onDecided, onStale }: {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [touched, setTouched] = useState(false);
-  const pending = ['SUBMITTED', 'RESUBMITTED', 'UNDER_REVIEW'].includes(s.status);
+  const pending = ['SUBMITTED', 'RESUBMITTED', 'UNDER_REVIEW', 'NEEDS_REVISION'].includes(s.status);
   const category = CATEGORY_META[categoryOf(s)];
   const dialect = s.expression?.dialect ?? s.dialect;
   const publication = publicationConsent(s);
   const queue = isQueueAnswer(s);
-  useLeaveGuard(note.trim().length > 0 && !busy, 'Your reviewer note is not saved. Leave this submission?');
+  useLeaveGuard((dirty || note.trim().length > 0) && !busy, 'Your corrections or reviewer note are not saved. Leave this submission?');
 
   useEffect(() => {
     let alive = true;
@@ -375,6 +384,7 @@ function SubmissionDetail({ submission: s, onClose, onDecided, onStale }: {
   }, [s.authUid]);
 
   const run = async (decision: DecisionInput['decision'], done: string, confirm?: { title: string; body: ReactNode; label: string; danger?: boolean }) => {
+    if (busy || stale) return;
     setTouched(true);
     setError('');
     const needsNote = decision === 'REQUEST_REVISION' || decision === 'REJECT';
@@ -383,7 +393,7 @@ function SubmissionDetail({ submission: s, onClose, onDecided, onStale }: {
       document.getElementById(`note-${s.id}`)?.focus();
       return;
     }
-    const usesBecomes = queue && (decision === 'APPROVE' || decision === 'PUBLISH');
+    const usesBecomes = queue && ['APPROVE', 'PUBLISH', 'APPROVE_AND_PUBLISH'].includes(decision);
     if (usesBecomes && becomes === 'variant' && !entryId.trim()) {
       setError('A regional variant needs the dictionary entry it belongs to.');
       return;
@@ -391,10 +401,10 @@ function SubmissionDetail({ submission: s, onClose, onDecided, onStale }: {
     if (confirm && !(await confirmAction({ title: confirm.title, body: confirm.body, confirmLabel: confirm.label, tone: confirm.danger ? 'danger' : 'primary' }))) return;
     setBusy(decision);
     try {
-      await decideReview({ submission: s, decision, feedback: note.trim(), ...(usesBecomes ? { publishAs: becomes, entryId: entryId.trim() || undefined } : {}) });
-      await onDecided(done);
+      await decideReview({ submission: s, decision, feedback: note.trim(), ...(dirty ? { edits } : {}), ...(usesBecomes ? { publishAs: becomes, entryId: entryId.trim() || undefined } : {}) });
+      if (decision === 'SAVE_EDITS') await onEdited(); else await onDecided(done);
     } catch (reason) {
-      if (isStaleDecision(reason)) { await onStale(); return; }
+      if (isStaleDecision(reason)) { setStale(true); setError('This submission changed. Your unsaved corrections are still here. Load the latest version before saving or deciding.'); return; }
       setError(errorMessage(reason, 'The decision could not be saved. Nothing was changed.'));
     } finally {
       setBusy(null);
@@ -421,6 +431,16 @@ function SubmissionDetail({ submission: s, onClose, onDecided, onStale }: {
 
       <MediaPlayer submission={s} />
       <div className="ad-review__content"><ContentBlocks s={s} /></div>
+      {EDITABLE_SUBMISSION_STATUSES.includes(s.status) ? <div className="ad-detail__section">
+        {editing ? <>
+          <SubmissionEditor submission={s} edits={edits} onChange={setEdits} disabled={Boolean(busy) || stale} />
+          <div className="ad-detail__actions">
+            {s.status !== 'PUBLISHED' ? <Button variant="primary" busy={busy === 'SAVE_EDITS'} disabled={Boolean(busy) || stale || !dirty} onClick={() => void run('SAVE_EDITS', 'Corrections saved.')}>Save corrections</Button> : <Button variant="primary" busy={busy === 'PUBLISH'} disabled={Boolean(busy) || stale || !dirty || publication !== 'granted'} onClick={() => void run('PUBLISH', `Updated “${title}”.`, { title: 'Publish these corrections?', body: <p>The corrected content replaces the current public version. Contributor credit and permissions are preserved.</p>, label: 'Save and publish' })}>Save and publish</Button>}
+            <Button disabled={Boolean(busy) || stale} onClick={async () => { if (!dirty || await confirmAction({ title: 'Discard these corrections?', body: 'Your unsaved corrections will be lost.', confirmLabel: 'Discard corrections', tone: 'danger' })) { setEditing(false); setEdits({}); } }}>Cancel editing</Button>
+          </div>
+          {s.status !== 'PUBLISHED' ? <p className="ts-hint">Saving corrections keeps the current status. The decisions below include your corrections.</p> : null}
+        </> : <Button onClick={() => setEditing(true)}>Edit submission</Button>}
+      </div> : null}
 
       <div className="ad-detail__section">
         <h3>Permissions</h3>
@@ -440,6 +460,7 @@ function SubmissionDetail({ submission: s, onClose, onDecided, onStale }: {
       ) : null}
 
       {error ? <Notice tone="danger" role="alert">{error}</Notice> : null}
+      {stale ? <Button onClick={async () => { if (!dirty || await confirmAction({ title: 'Load the latest version?', body: 'Your unsaved corrections will be discarded. Copy any text you want to keep first.', confirmLabel: 'Load latest version' })) await onStale(); }}>Load latest version</Button> : null}
 
       {pending ? (
         <div className="ad-detail__section">
@@ -464,15 +485,18 @@ function SubmissionDetail({ submission: s, onClose, onDecided, onStale }: {
             <textarea id={`note-${s.id}`} className="ts-textarea" rows={3} maxLength={FEEDBACK_MAX} placeholder="Add feedback or a reason…" value={note} onChange={(event) => setNote(event.target.value)} />
           </Field>
           <div className="ad-detail__actions">
-            <Button variant="primary" busy={busy === 'APPROVE'} disabled={Boolean(busy)} onClick={() => void run('APPROVE', `Approved “${title}”.`, {
+            <Button variant="primary" busy={busy === 'APPROVE_AND_PUBLISH'} disabled={Boolean(busy) || stale || publication !== 'granted' || (queue && becomes === 'training')} onClick={() => void run('APPROVE_AND_PUBLISH', `Published “${title}”.`, {
+              title: 'Approve and publish this submission?', body: <p>Your corrections are saved and the reviewed work becomes publicly visible with the contributor’s credit.</p>, label: dirty ? 'Save and publish' : 'Approve and publish',
+            })}>{dirty ? 'Save and publish' : 'Approve and publish'}</Button>
+            <Button variant="primary" busy={busy === 'APPROVE'} disabled={Boolean(busy) || stale} onClick={() => void run('APPROVE', `Approved “${title}”.`, {
               title: 'Approve this submission?',
               body: <p>Approval does not publish it. Approved work waits in <strong>Approved</strong> until it is published{publication === 'granted' ? '' : ' — and without publication permission it can only be archived'}.</p>,
               label: 'Approve',
             })}>Approve</Button>
             {canRequestRevision(s) ? (
-              <Button variant="secondary" busy={busy === 'REQUEST_REVISION'} disabled={Boolean(busy)} onClick={() => void run('REQUEST_REVISION', `Revision requested for “${title}”.`)}>Request revision</Button>
+              <Button variant="secondary" busy={busy === 'REQUEST_REVISION'} disabled={Boolean(busy) || stale} onClick={() => void run('REQUEST_REVISION', `Revision requested for “${title}”.`)}>Request revision</Button>
             ) : null}
-            <Button variant="danger-ghost" busy={busy === 'REJECT'} disabled={Boolean(busy)} onClick={() => void run('REJECT', `Rejected “${title}”.`, {
+            <Button variant="danger-ghost" busy={busy === 'REJECT'} disabled={Boolean(busy) || stale} onClick={() => void run('REJECT', `Rejected “${title}”.`, {
               title: 'Reject this submission?', body: <p>The contributor sees your reason{isExpression(s) ? ' and can correct the expression and send it again' : ''}.</p>, label: 'Reject', danger: true,
             })}>Reject</Button>
           </div>
@@ -483,12 +507,12 @@ function SubmissionDetail({ submission: s, onClose, onDecided, onStale }: {
           <h3>Publication</h3>
           {publication !== 'granted' ? <Notice tone="warning">The contributor has not granted publication permission, so this can only be archived.</Notice> : null}
           <div className="ad-detail__actions">
-            <Button variant="primary" icon="send" busy={busy === 'PUBLISH'} disabled={Boolean(busy) || publication !== 'granted'} onClick={() => void run('PUBLISH', `Published “${title}”.`, {
+            <Button variant="primary" icon="send" busy={busy === 'PUBLISH'} disabled={Boolean(busy) || stale || publication !== 'granted'} onClick={() => void run('PUBLISH', `Published “${title}”.`, {
               title: isExpression(s) ? 'Publish this expression?' : 'Publish to the Collection?',
               body: <p>{isExpression(s) ? 'It appears on the website as an expression.' : 'It becomes publicly visible in the Collection.'} You can unpublish it later.</p>,
               label: 'Publish',
             })}>{isExpression(s) ? 'Publish expression' : 'Publish to Collection'}</Button>
-            <Button busy={busy === 'ARCHIVE'} disabled={Boolean(busy)} icon="archive" onClick={() => void run('ARCHIVE', `Archived “${title}”.`, {
+            <Button busy={busy === 'ARCHIVE'} disabled={Boolean(busy) || stale} icon="archive" onClick={() => void run('ARCHIVE', `Archived “${title}”.`, {
               title: 'Archive this submission?', body: <p>It stays on record but is kept out of publication.</p>, label: 'Archive',
             })}>Archive</Button>
           </div>
@@ -497,7 +521,7 @@ function SubmissionDetail({ submission: s, onClose, onDecided, onStale }: {
         <div className="ad-detail__section">
           <h3>Publication</h3>
           <div className="ad-detail__actions">
-            <Button variant="danger-ghost" busy={busy === 'UNPUBLISH'} disabled={Boolean(busy)} onClick={() => void run('UNPUBLISH', `Unpublished “${title}”. It is back in Approved.`, {
+            <Button variant="danger-ghost" busy={busy === 'UNPUBLISH'} disabled={Boolean(busy) || stale} onClick={() => void run('UNPUBLISH', `Unpublished “${title}”. It is back in Approved.`, {
               title: 'Unpublish this work?', body: <p>It is removed from public view and returns to Approved.</p>, label: 'Unpublish', danger: true,
             })}>Unpublish</Button>
           </div>

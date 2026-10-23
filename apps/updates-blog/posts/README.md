@@ -8,6 +8,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-23: Correct a submission and publish from the review desk](2026-10-23-reviewer-editing/README.md) — direct content corrections in Administration and the Validator portal, save-and-continue, combined approval/publication, version checks and private correction history. Includes local product captures with synthetic data. Implementation prepared; deployment and Blogger publication pending.
+
 - [2026-10-23: More ways to share what you know](2026-10-23-all-round-contributor-portal/README.md) — contributor Home cards, dedicated contribution workspaces, independent usage permissions, private source material and traceable review/export. Includes actual local captures with synthetic fixtures. Deployed 23 October; live routes, bundles and function states verified. Authenticated production review remains unverified after automated App Check rejection. Blogger publication and sharing remain with Chinedum.
 
 - [2026-10-21: A stronger gate for Administration](2026-10-21-admin-app-check/README.md) — dedicated App Check registration, mandatory protected admin callable verification and production key/CSP build validation. Deployed and verified October 21 on three admin hosts and 50 protected functions. Shared project services remain in monitoring mode. Blogger publication and sharing pending.

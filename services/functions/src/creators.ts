@@ -1,4 +1,6 @@
-import { HttpsError, onCall } from 'firebase-functions/v2/https';
+import { applySubmissionEdits, EDITABLE_SUBMISSION_STATUSES } from '@indigen-world/contracts/submission-editing';
+import { spellingKey } from '@indigen-world/contracts/kasem-spelling';
+import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore, type DocumentReference } from 'firebase-admin/firestore';
 import { onStaffCall, requireAuth, requireRole } from './auth.js';
@@ -645,19 +647,18 @@ const SUBMISSION_DECISIONS: Record<string, string> = {
  * repeated publishes never create duplicate public records. publishedContent
  * never carries private contact data, internal notes or payout information.
  */
-export const decideSubmission = onCall(
-  { enforceAppCheck: ENFORCE_APP_CHECK, consumeAppCheckToken: ENFORCE_APP_CHECK, invoker: 'public' },
-  async (req) => {
+async function decideSubmissionHandler(req: CallableRequest) {
     const uid = requireAuth(req);
     requireRole(req, 'validator');
     await consumeRateLimit('decideSubmission', uid, 120);
 
     const data = (req.data ?? {}) as Record<string, unknown>;
     const submissionId = asString(data.submissionId, 200).trim();
-    const decision = asString(data.decision, 30);
+    const requestedDecision = asString(data.decision, 30);
+    const decision = requestedDecision === 'APPROVE_AND_PUBLISH' ? 'PUBLISH' : requestedDecision;
     const feedback = asString(data.feedback, 2000).trim();
     const scores = (data.scores && typeof data.scores === 'object') ? (data.scores as Record<string, number>) : {};
-    const newStatus = SUBMISSION_DECISIONS[decision];
+    const newStatus = SUBMISSION_DECISIONS[decision] ?? (decision === 'SAVE_EDITS' ? 'SAVE_EDITS' : undefined);
     if (!submissionId || !newStatus) {
       throw new HttpsError('invalid-argument', 'A valid submissionId and decision are required.');
     }
@@ -700,14 +701,50 @@ export const decideSubmission = onCall(
       if (!snap.exists) {
         throw new HttpsError('not-found', 'Submission not found.');
       }
-      const submission = snap.data() as Record<string, any>;
+      const original = snap.data() as Record<string, any>;
+      let submission = original;
       // Optional read guards bind a new review UI to the evidence it displayed.
       // Older clients retain their existing transactional status preconditions.
       if ((data.expectedStatus != null && data.expectedStatus !== submission.status)
-        || (data.expectedVersion != null && data.expectedVersion !== submission.lifecycle?.version)) {
+        || (data.expectedVersion != null && data.expectedVersion !== (submission.lifecycle?.version ?? 0))) {
         throw new HttpsError('aborted', 'This submission changed. Load the latest version before deciding.');
       }
+      const editing = data.edits != null;
+      if ((editing || requestedDecision === 'APPROVE_AND_PUBLISH')
+        && (data.expectedStatus == null || data.expectedVersion == null)) {
+        throw new HttpsError('invalid-argument', 'Load the submission status and version before editing or publishing.');
+      }
+      if (editing && !EDITABLE_SUBMISSION_STATUSES.includes(submission.status)) {
+        throw new HttpsError('failed-precondition', 'This submission is not open for editing.');
+      }
+      if (editing && submission.status === 'PUBLISHED' && decision !== 'PUBLISH') {
+        throw new HttpsError('failed-precondition', 'Save and publish corrections to live work together, or unpublish it first.');
+      }
+      if (requestedDecision === 'APPROVE_AND_PUBLISH' && !['SUBMITTED', 'RESUBMITTED', 'UNDER_REVIEW', 'NEEDS_REVISION'].includes(submission.status)) {
+        throw new HttpsError('failed-precondition', 'Only work awaiting review can be approved and published together.');
+      }
+      let changed: Record<string, string> = {};
+      let editBefore: Record<string, string> = {};
+      if (editing) {
+        try {
+          const parsed = applySubmissionEdits(original, data.edits);
+          submission = parsed.submission; changed = parsed.changed; editBefore = parsed.before;
+        } catch (error) {
+          throw new HttpsError('invalid-argument', error instanceof Error ? error.message : 'Invalid content edits.');
+        }
+      }
+      const contentUpdate: Record<string, any> = {};
+      if (Object.keys(changed).length) {
+        const roots = new Set([...Object.keys(changed).map(path => path.split('.')[0]), 'expression', 'translations', 'partOfSpeechId', 'title']);
+        for (const root of roots) if (submission[root] !== undefined && JSON.stringify(submission[root]) !== JSON.stringify(original[root])) contentUpdate[root] = submission[root];
+      }
+      if (decision === 'SAVE_EDITS' && !Object.keys(changed).length) throw new HttpsError('invalid-argument', 'Change at least one content field before saving.');
       const collectionKind = collectionKindForSubmission(submission);
+      const receiptContentUpdate = {
+        ...contentUpdate,
+        ...(changed.body != null && collectionKind === 'dictionary' && submissionLexicalKind(submission) === 'word'
+          ? { spellingKey: spellingKey(submission.body) } : {}),
+      };
       const contributionPointer = submission.collectionContribution;
       let contributionId = '';
       let contributionRef: DocumentReference | null = null;
@@ -765,6 +802,18 @@ export const decideSubmission = onCall(
           'failed-precondition',
           'A withdrawn Collection contribution is terminal and cannot be reviewed again.',
         );
+      }
+      if (decision === 'SAVE_EDITS') {
+        const now = nowIso();
+        tx.update(submissionRef, { ...contentUpdate, 'lifecycle.updatedAt': now, 'lifecycle.version': (original.lifecycle?.version ?? 0) + 1 });
+        if (contributionRef) tx.update(contributionRef, { ...receiptContentUpdate, updatedAt: FieldValue.serverTimestamp() });
+        tx.set(auditRef, {
+          id: auditRef.id, actor: { collection: 'validators', id: uid }, action: 'creator.submission.edit',
+          target: { collection: 'submissions', id: submissionId }, outcome: 'success', source: 'functions',
+          before: { status: original.status, version: original.lifecycle?.version ?? 0, content: editBefore },
+          after: { status: original.status, version: (original.lifecycle?.version ?? 0) + 1, content: changed }, occurredAt: now,
+        });
+        return { submissionId, previousStatus: original.status, newStatus: original.status };
       }
       // A word-queue answer can be sent back: its author revises it from their
       // list of submissions (`submitWordTranslation` with the contribution id).
@@ -830,7 +879,7 @@ export const decideSubmission = onCall(
       }
       // Publishing is idempotent: re-publishing already-published content is a
       // harmless no-op that rewrites the same publishedContent record.
-      if (decision === 'PUBLISH' && !['APPROVED', 'SCHEDULED', 'PUBLISHED'].includes(submission.status)) {
+      if (decision === 'PUBLISH' && !['APPROVED', 'SCHEDULED', 'PUBLISHED'].includes(submission.status) && requestedDecision !== 'APPROVE_AND_PUBLISH') {
         throw new HttpsError('failed-precondition', 'Only approved content can be published.');
       }
       if (decision === 'PUBLISH' && submission.permissions?.publication !== true) {
@@ -850,12 +899,13 @@ export const decideSubmission = onCall(
           : contribution?.authenticationStatus === 'reviewed' ? 'reviewed' : 'community';
 
       const moderationUpdate: Record<string, unknown> = {
+        ...contentUpdate,
         status: newStatus,
         ...(contribution ? { authenticationStatus } : {}),
         'moderation.reviewer': reviewerRef,
         'moderation.decidedAt': now,
         'lifecycle.updatedAt': now,
-        'lifecycle.version': FieldValue.increment(1),
+        'lifecycle.version': (original.lifecycle?.version ?? 0) + 1,
       };
       if (feedback) moderationUpdate['moderation.feedback'] = feedback;
       if (Object.keys(scores).length) moderationUpdate['moderation.scores'] = scores;
@@ -1300,6 +1350,7 @@ export const decideSubmission = onCall(
       tx.update(submissionRef, moderationUpdate);
       if (contributionRef) {
         const contributionUpdate: Record<string, unknown> = {
+          ...receiptContentUpdate,
           status: newStatus.toLowerCase(),
           authenticationStatus,
           reviewDecision: decision,
@@ -1359,9 +1410,9 @@ export const decideSubmission = onCall(
         target: { collection: 'submissions', id: submissionId },
         outcome: 'success',
         source: 'functions',
-        before: { status: previousStatus },
-        after: { status: newStatus },
-        metadata: { decision, escalationTag },
+        before: { status: previousStatus, version: original.lifecycle?.version ?? 0, content: editBefore },
+        after: { status: newStatus, version: (original.lifecycle?.version ?? 0) + 1, content: changed },
+        metadata: { decision: requestedDecision, escalationTag },
         occurredAt: now,
       });
 
@@ -1389,5 +1440,14 @@ export const decideSubmission = onCall(
     }
 
     return result;
-  },
+}
+
+// Shared validator/mobile entry point; the console uses the verified staff wrapper.
+export const decideSubmission = onCall(
+  { enforceAppCheck: ENFORCE_APP_CHECK, consumeAppCheckToken: ENFORCE_APP_CHECK, invoker: 'public' },
+  decideSubmissionHandler,
+);
+export const reviewSubmission = onStaffCall(
+  { invoker: 'public' },
+  decideSubmissionHandler,
 );

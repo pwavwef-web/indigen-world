@@ -6,7 +6,7 @@ import { app, db, functions } from '../firebase';
 
 /**
  * The review desk reads `submissions` directly (Security Rules let staff read
- * them) and decides through the `decideSubmission` callable, which owns every
+ * them) and decides through the `reviewSubmission` staff callable, which owns every
  * transition, publication and audit record. Decisions carry the status and
  * version the reviewer was looking at, so a decision made on a stale screen
  * is refused rather than applied.
@@ -54,13 +54,14 @@ export async function fetchScope(scope: ReviewScope): Promise<{ rows: ReviewSubm
 
 export interface DecisionInput {
   submission: ReviewSubmission;
-  decision: 'APPROVE' | 'REQUEST_REVISION' | 'REJECT' | 'PUBLISH' | 'UNPUBLISH' | 'ARCHIVE';
+  decision: 'APPROVE' | 'REQUEST_REVISION' | 'REJECT' | 'PUBLISH' | 'UNPUBLISH' | 'ARCHIVE' | 'SAVE_EDITS' | 'APPROVE_AND_PUBLISH';
+  edits?: Record<string, string>;
   feedback: string;
   publishAs?: string;
   entryId?: string;
 }
 
-const decide = httpsCallable<Record<string, unknown>, unknown>(functions, 'decideSubmission');
+const decide = httpsCallable<Record<string, unknown>, unknown>(functions, 'reviewSubmission');
 
 export async function decideReview(input: DecisionInput): Promise<void> {
   await decide({
@@ -69,7 +70,8 @@ export async function decideReview(input: DecisionInput): Promise<void> {
     feedback: input.feedback,
     scores: {},
     expectedStatus: input.submission.status,
-    expectedVersion: input.submission.lifecycle?.version,
+    expectedVersion: input.submission.lifecycle?.version ?? 0,
+    ...(input.edits ? { edits: input.edits } : {}),
     ...(input.publishAs ? { publishAs: input.publishAs } : {}),
     ...(input.entryId ? { entryId: input.entryId } : {}),
   });

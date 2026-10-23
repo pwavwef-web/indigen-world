@@ -99,7 +99,9 @@
     "test:correspondence:integration": "npm run build:functions && firebase emulators:exec --config .correspondence-test.firebase.json --project demo-indigen-correspondence --only firestore \"node --test firebase/tests/correspondence.integration.test.mjs\"",
     "test:correspondence:browser": "node apps/admin/scripts/correspondence-browser.test.mjs",
     "kasem:cycle": "node services/functions/scripts/kasem-research-cycle.mjs",
-    "test:kasem-cycle": "npm run build:functions && node --test firebase/tests/kasemResearchCycle.test.mjs"
+    "test:kasem-cycle": "npm run build:functions && node --test firebase/tests/kasemResearchCycle.test.mjs",
+    "test:reviewer-editing": "npm run build:functions && firebase emulators:exec --project demo-indigen-world --only firestore \"node --test --test-concurrency=1 firebase/tests/reviewerEditing.integration.test.mjs\"",
+    "test:reviewer-editing:browser": "node scripts/reviewer-editing-browser.test.mjs"
   },
   "devDependencies": {
     "cross-env": "7.0.3",

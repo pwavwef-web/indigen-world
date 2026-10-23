@@ -1,5 +1,7 @@
+import { SubmissionEditor } from '@indigen-world/console-ui';
+import { EDITABLE_SUBMISSION_STATUSES } from '@indigen-world/contracts/submission-editing';
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { collection, getCountFromServer, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getCountFromServer, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { getDownloadURL, ref } from 'firebase/storage';
 import { canValidate, signOutUser, useAuth } from '../../auth';
@@ -231,7 +233,7 @@ function AuthorizedDesk() {
                 {desk === 'rewards' ? <RewardAssessmentPanel key={selected.id + ':' + recordVersion(selected)} item={selected} stale={stale} statusLabel={statusLabel(selected.status)} onSaved={message => {
                   const position = filtered.findIndex(row => row.id === selected.id);
                   setNotice(message); setSelected(filtered[position + 1] ?? filtered[position - 1] ?? null); setDeciding(false);
-                }} /> : <ReviewDetail key={selected.id + ':' + recordVersion(selected)} desk={desk} item={selected} stale={stale} statusLabel={statusLabel(selected.status)} onDeciding={setDeciding} onSaved={message => {
+                }} /> : <ReviewDetail key={selected.id + ':' + recordVersion(selected)} desk={desk} item={selected} stale={stale} statusLabel={statusLabel(selected.status)} onDeciding={setDeciding} onEdited={async () => { const snap = await getDoc(doc(db, config.collection, selected.id)); if (snap.exists()) setSelected({ ...snap.data(), id: snap.id } as ReviewRecord); setNotice('Corrections saved.'); }} onSaved={message => {
                   const position = filtered.findIndex(row => row.id === selected.id);
                   setNotice(message); setSelected(filtered[position + 1] ?? filtered[position - 1] ?? null); setDeciding(false);
                 }} />}
@@ -299,6 +301,7 @@ function Media({ path, type, alt }: { path: string; type: string; alt: string })
 }
 
 const CONSEQUENCES: Record<string, string> = {
+  APPROVE_AND_PUBLISH: 'Saves corrections, records your approval and publishes the work with the contributor’s credit.',
   APPROVE: 'Records approval. Publication follows the established rules for this category.',
   REQUEST_REVISION: 'Returns this work to its contributor with your feedback for correction.',
   REJECT: 'Records rejection and sends your feedback to the contributor.',
@@ -311,12 +314,12 @@ const CONSEQUENCES: Record<string, string> = {
 };
 
 const DECISION_ICON: Record<string, IconName> = {
-  APPROVE: 'check', PUBLISH: 'globe', REQUEST_REVISION: 'refresh', REJECT: 'x-circle', ESCALATE_CULTURAL: 'flag',
+  APPROVE_AND_PUBLISH: 'globe', APPROVE: 'check', PUBLISH: 'globe', REQUEST_REVISION: 'refresh', REJECT: 'x-circle', ESCALATE_CULTURAL: 'flag',
   PAUSE: 'pause', RESUME: 'play', approve: 'check', reject: 'x-circle',
 };
 
 const DECISION_TONE: Record<string, 'positive' | 'caution' | 'negative' | 'neutral'> = {
-  APPROVE: 'positive', PUBLISH: 'positive', RESUME: 'positive', approve: 'positive',
+  APPROVE_AND_PUBLISH: 'positive', APPROVE: 'positive', PUBLISH: 'positive', RESUME: 'positive', approve: 'positive',
   REQUEST_REVISION: 'caution', ESCALATE_CULTURAL: 'neutral', PAUSE: 'caution',
   REJECT: 'negative', reject: 'negative',
 };
@@ -330,14 +333,17 @@ function Section({ title, icon, children }: { title: string; icon: IconName; chi
   );
 }
 
-function ReviewDetail({ desk, item, stale, statusLabel, onSaved, onDeciding }: { desk: Desk; item: ReviewRecord; stale: boolean; statusLabel: string; onSaved: (message: string) => void; onDeciding: (deciding: boolean) => void }) {
+function ReviewDetail({ desk, item, stale, statusLabel, onSaved, onDeciding, onEdited }: { desk: Desk; item: ReviewRecord; stale: boolean; statusLabel: string; onSaved: (message: string) => void; onDeciding: (deciding: boolean) => void; onEdited: () => Promise<void> }) {
   const [decision, setDecision] = useState(''), [feedback, setFeedback] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [edits, setEdits] = useState<Record<string, string>>({});
+  const dirty = Object.keys(edits).length > 0;
   // Enable after the backend release for dictionary answer targets is verified.
   const answerTargetsAvailable = false;
   const [target, setTarget] = useState(answerTargetsAvailable ? item.moderation?.publishAs || 'headword' : 'headword'), [entryId, setEntryId] = useState(item.moderation?.linkedEntryId || '');
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
-  const protection = useDecisionProtection(Boolean(decision || feedback || entryId), busy);
+  const protection = useDecisionProtection(Boolean(dirty || decision || feedback || entryId), busy);
   const sending = useRef(false);
   const actions = decisionsFor(desk, item);
   const dictionary = desk === 'contributions' && item.collectionKind?.toLowerCase() === 'dictionary';
@@ -365,6 +371,27 @@ function ReviewDetail({ desk, item, stale, statusLabel, onSaved, onDeciding }: {
           </div>
         </header>
 
+        {desk === 'contributions' && EDITABLE_SUBMISSION_STATUSES.includes(item.status) ? <Section title="Reviewer corrections" icon="doc">
+          {editing ? <>
+            <SubmissionEditor submission={item} edits={edits} onChange={setEdits} disabled={busy || stale} />
+            <div className="ts-cluster">
+              <button type="button" className="ts-btn ts-btn--primary" disabled={!dirty || busy || stale || (item.status === 'PUBLISHED' && item.permissions?.publication !== true)} onClick={async () => {
+                if (sending.current || stale) return;
+                if (item.status === 'PUBLISHED' && !window.confirm('Save and publish these corrections? They replace the current public version.')) return;
+                sending.current = true; setBusy(true); setError('');
+                try {
+                  await httpsCallable(functions, 'decideSubmission', { timeout: 120000 })({ submissionId: item.id, decision: item.status === 'PUBLISHED' ? 'PUBLISH' : 'SAVE_EDITS', edits, expectedStatus: item.status, expectedVersion: item.lifecycle?.version ?? 0 });
+                  protection.current = { dirty: false, busy: false };
+                  await onEdited();
+                } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not save corrections.'); }
+                finally { sending.current = false; setBusy(false); }
+              }}>{busy ? 'Saving…' : item.status === 'PUBLISHED' ? 'Save and publish' : 'Save corrections'}</button>
+              <button type="button" className="ts-btn" disabled={busy} onClick={() => { if (!dirty || window.confirm('Discard these unsaved corrections?')) { setEditing(false); setEdits({}); } }}>Cancel editing</button>
+            </div>
+            <p className="ts-hint">The decisions below include your corrections. Saving alone keeps the current status.</p>
+          </> : <button type="button" className="ts-btn" disabled={busy || stale} onClick={() => setEditing(true)}>Edit submission</button>}
+          {error ? <p role="alert" className="ts-notice ts-notice--danger">{error}</p> : null}
+        </Section> : null}
         {item.expression ? (
           <>
             <div className="rv-compare">
@@ -437,7 +464,7 @@ function ReviewDetail({ desk, item, stale, statusLabel, onSaved, onDeciding }: {
           {actions.length ? (
             <form className="ts-panel rv-decide__form" onSubmit={async event => {
               event.preventDefault(); if (sending.current || stale) return; sending.current = true; setError(''); setBusy(true);
-              try { const request = decisionRequest(desk, item, decision, feedback, target, entryId); await httpsCallable(functions, request.callable, { timeout: 120000 })(request.data); protection.current = { dirty: false, busy: false }; onSaved('Decision recorded. The queue has been updated.'); }
+              try { const request = decisionRequest(desk, item, decision, feedback, target, entryId); if (['PUBLISH', 'APPROVE_AND_PUBLISH'].includes(decision) && !window.confirm('Publish this submission with any corrections? It becomes publicly visible with the contributor’s credit.')) return; await httpsCallable(functions, request.callable, { timeout: 120000 })({ ...request.data, ...(dirty ? { edits } : {}) }); protection.current = { dirty: false, busy: false }; onSaved('Decision recorded. The queue has been updated.'); }
               catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not save the decision.'); }
               finally { sending.current = false; setBusy(false); }
             }}>
@@ -455,14 +482,14 @@ function ReviewDetail({ desk, item, stale, statusLabel, onSaved, onDeciding }: {
                   </label>
                 ))}
               </fieldset>
-              {answerTargetsAvailable && dictionary && ['APPROVE', 'PUBLISH'].includes(decision) ? <><label className="ts-field"><span className="ts-label">Use this answer as</span><select className="ts-select" disabled={busy} value={target} onChange={event => setTarget(event.target.value)}>{Object.entries(TARGETS).map(([value, label]) => <option key={value} value={value} disabled={Boolean(targetProblem(value, item))}>{label}{targetProblem(value, item) ? ` — ${targetProblem(value, item)}` : ''}</option>)}</select></label>{['variant', 'example'].includes(target) ? <p className="ts-hint">Choose the existing word above that this {target === 'variant' ? 'variant' : 'example'} belongs to.</p> : null}</> : null}
+              {answerTargetsAvailable && dictionary && ['APPROVE', 'PUBLISH', 'APPROVE_AND_PUBLISH'].includes(decision) ? <><label className="ts-field"><span className="ts-label">Use this answer as</span><select className="ts-select" disabled={busy} value={target} onChange={event => setTarget(event.target.value)}>{Object.entries(TARGETS).map(([value, label]) => <option key={value} value={value} disabled={Boolean(targetProblem(value, item))}>{label}{targetProblem(value, item) ? ` — ${targetProblem(value, item)}` : ''}</option>)}</select></label>{['variant', 'example'].includes(target) ? <p className="ts-hint">Choose the existing word above that this {target === 'variant' ? 'variant' : 'example'} belongs to.</p> : null}</> : null}
               {decision ? <p className="ts-consequence" role="status"><Icon name="shield" /><span>{CONSEQUENCES[decision]}</span></p> : <p className="ts-hint">Each option says what it does once you choose it.</p>}
               <label className="ts-field">
                 <span className="ts-label">Feedback to the contributor{reasonRequired ? <span className="ts-required" aria-hidden="true">*</span> : <span className="ts-optional">Optional</span>}</span>
                 <textarea className="ts-textarea" maxLength={desk === 'adverts' ? 1000 : 2000} required={reasonRequired} minLength={reasonRequired ? 5 : undefined} disabled={busy || stale} value={feedback} onChange={event => setFeedback(event.target.value)} aria-invalid={reasonShort && feedback.length > 0 ? true : undefined} placeholder={reasonRequired ? 'Say what to change, or why it cannot be accepted.' : 'A note the contributor will see with the decision.'} />
                 <small className={reasonShort && feedback.length > 0 ? 'ts-error' : undefined}>{reasonRequired ? (reasonShort ? 'A reason of at least 5 characters is required for this decision.' : 'Required for this decision.') : 'Shared with the contributor.'}</small>
               </label>
-              {decision === 'PUBLISH' || (desk === 'adverts' && decision === 'APPROVE') ? <p className="ts-notice ts-notice--warning"><Icon name="globe" className="ts-notice__icon" /><span>This decision makes the work available to its audience.</span></p> : null}
+              {['PUBLISH', 'APPROVE_AND_PUBLISH'].includes(decision) || (desk === 'adverts' && decision === 'APPROVE') ? <p className="ts-notice ts-notice--warning"><Icon name="globe" className="ts-notice__icon" /><span>This decision makes the work available to its audience.</span></p> : null}
               {error ? <p role="alert" className="ts-notice ts-notice--danger"><Icon name="alert" className="ts-notice__icon" /><span>{error}</span></p> : null}
               <button className="ts-btn ts-btn--primary ts-btn--lg ts-btn--block" disabled={busy || stale || !decision} aria-busy={busy || undefined}><span className="ts-btn__spinner" aria-hidden="true" /><span>{busy ? 'Saving…' : stale ? 'Load the latest version first' : 'Record decision'}</span></button>
             </form>

@@ -65,6 +65,7 @@ export {
   submitCreatorApplication,
   decideCreatorApplication,
   decideSubmission,
+  reviewSubmission,
 } from './creators.js';
 export { onNotificationCreated } from './notifications.js';
 export {

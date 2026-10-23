@@ -736,7 +736,8 @@ export const submitCollectionContribution = onCall(
         const previous = (await tx.get(spellingLock)).get('contributionId');
         if (typeof previous === 'string') {
           const receipt = await tx.get(db.collection('collectionContributions').doc(previous));
-          if (['submitted', 'under_review', 'approved', 'pending', 'in_review'].includes(String(receipt.get('status')).toLowerCase())) {
+          if (spellingKey(String(receipt.get('body') ?? '')) === spellingKey(input.body)
+            && ['submitted', 'under_review', 'approved', 'pending', 'in_review'].includes(String(receipt.get('status')).toLowerCase())) {
             throw new HttpsError('already-exists', 'This word already has a submission awaiting review.');
           }
         }

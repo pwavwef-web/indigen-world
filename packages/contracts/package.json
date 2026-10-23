@@ -49,6 +49,10 @@
     "./correspondence": {
       "types": "./correspondence.d.ts",
       "default": "./correspondence.mjs"
+    },
+    "./submission-editing": {
+      "types": "./submission-editing.d.ts",
+      "default": "./submission-editing.mjs"
     }
   },
   "files": [
@@ -73,7 +77,9 @@
     "knowledge-catalog.json",
     "correspondence.d.ts",
     "correspondence.mjs",
-    "heritage-frame.mjs"
+    "heritage-frame.mjs",
+    "submission-editing.mjs",
+    "submission-editing.d.ts"
   ],
   "scripts": {
     "test": "node scripts/validate.mjs",
