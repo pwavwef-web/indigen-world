@@ -10,6 +10,10 @@
   "main": "./index.mjs",
   "types": "./index.d.ts",
   "exports": {
+    "./portal-contributions": {
+      "types": "./portal-contributions.d.mts",
+      "default": "./portal-contributions.mjs"
+    },
     "./dictionary-assistance": {
       "types": "./dictionary-assistance.d.ts",
       "default": "./dictionary-assistance.mjs"
@@ -48,6 +52,8 @@
     }
   },
   "files": [
+    "portal-contributions.mjs",
+    "portal-contributions.d.mts",
     "dictionary-assistance.mjs",
     "dictionary-assistance.d.ts",
     "contributor-details.mjs",

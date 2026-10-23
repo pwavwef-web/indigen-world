@@ -24,6 +24,8 @@ const DESK_HINTS: Record<Desk, string> = {
 export function reviewNav({ path, desk }: { path: string; desk?: Desk }): NavItem[] {
   const onDesk = path === '/contributor/review';
   return [
+    { to: '/contributor', label: 'Contributor Home', icon: 'home', group: '' },
+    { to: '/contributor/review?desk=materials', label: 'All-round contributions', icon: 'doc', group: 'Review desks', hint: 'Documents, recordings, language and cultural knowledge' },
     ...(Object.keys(DESKS) as Desk[]).map((key, index) => ({
       to: `/contributor/review?desk=${key}`,
       label: DESKS[key].label,

@@ -1,0 +1,16 @@
+{
+  "accent": "blue",
+  "motif": "rings",
+  "eyebrow": "Indigen World · Contributor Portal",
+  "title": "More ways to\nshare what you know.",
+  "lede": "One welcoming Home. Dedicated workspaces. Clear choices about how your material may be used.",
+  "tags": ["Language & culture", "Private source material", "Human review"],
+  "hero": [{ "file": "home-desktop.png", "kind": "browser" }, { "file": "home-mobile.png", "kind": "phone" }],
+  "figures": {
+    "home-desktop.png": { "kind": "browser", "title": "Everything\nstarts at Home", "note": "Actual local product capture with labelled synthetic examples. Secondary features open from useful cards." },
+    "translation-desktop.png": { "kind": "browser", "title": "Your meaning.\nYour language.", "note": "Actual local preview. Separate drafts, dictionary help, tone marks and usage choices stay in the contribution workspace." },
+    "documents-desktop.png": { "kind": "browser", "title": "Working drafts\nare welcome", "note": "Actual local preview. The selected sample file is explicitly not uploaded. Production transfers use private resumable sessions." },
+    "review-desktop.png": { "kind": "browser", "title": "Evidence before\napproval", "note": "Actual review interface with a synthetic source and simulated extraction. Every candidate needs its own review." },
+    "home-mobile.png": { "kind": "phone", "title": "A clear place\nto begin", "note": "Actual mobile preview. A labelled menu opens the same contribution types. All counts shown here are synthetic examples." }
+  }
+}

@@ -5,6 +5,7 @@ import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
 import { connectStorageEmulator, getStorage } from 'firebase/storage';
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
+import appCheckConfig from '../app-check.config.json';
 
 // Firebase configuration for the TribeStudio workspace (Firebase Hosting site:
 // tribestudio), inside the shared project-kassena-7e026 project. These values are
@@ -30,7 +31,7 @@ export const storage = getStorage(app);
 // Callable Functions enforce App Check outside the emulator. Configure a
 // reCAPTCHA Enterprise web key in the deployment environment; the key is a
 // public site identifier, while its assessment policy remains server-side.
-const appCheckSiteKey = import.meta.env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY;
+const appCheckSiteKey = import.meta.env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY || (import.meta.env.PROD ? appCheckConfig.siteKey : '');
 if (!usingEmulators && typeof appCheckSiteKey === 'string' && appCheckSiteKey.length > 0) {
   initializeAppCheck(app, {
     provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey),

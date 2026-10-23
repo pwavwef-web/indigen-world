@@ -1,0 +1,9 @@
+import { useState } from 'react';
+import { useAuth } from '../auth';
+import { portalCall, portalMessage } from './portal-data';
+export function IngestionSettings() {
+  const { role } = useAuth();
+  const [settings, setSettings] = useState<{ uploadsEnabled: boolean; maxFiles: number; maxFileBytes: number; maxBatchBytes: number } | null>(null), [message, setMessage] = useState('');
+  if (role !== 'admin' && role !== 'super_admin') return null;
+  return <details className="pw-optional"><summary>Ingestion settings · administrators</summary><p>Changes can lower platform ceilings or pause uploads. They never approve records, broaden rights, or enable external processing.</p><button type="button" className="ts-btn ts-btn--secondary" onClick={() => { portalCall<any>(false, 'settings', {}, true).then(setSettings).catch(e => setMessage(portalMessage(e))); }}>Load current settings</button>{settings ? <><label className="pw-check"><input type="checkbox" checked={settings.uploadsEnabled} onChange={e => setSettings({ ...settings, uploadsEnabled: e.target.checked })} /><span>Uploads open</span></label>{(['maxFiles', 'maxFileBytes', 'maxBatchBytes'] as const).map(k => <label className="pw-field" key={k}><span>{({ maxFiles: 'Files per batch (1–10)', maxFileBytes: 'Bytes per file (up to 20 MB)', maxBatchBytes: 'Bytes per batch (up to 50 MB)' })[k]}</span><input type="number" min={1} value={settings[k]} onChange={e => setSettings({ ...settings, [k]: Number(e.target.value) })} /></label>)}<button type="button" className="ts-btn ts-btn--primary" onClick={() => { portalCall(false, 'configure', { settings }, true).then(() => setMessage('Ingestion settings saved.')).catch(e => setMessage(portalMessage(e))); }}>Save ingestion settings</button></> : null}{message ? <p role="status">{message}</p> : null}</details>;
+}

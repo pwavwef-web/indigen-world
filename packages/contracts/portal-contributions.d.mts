@@ -1,0 +1,10 @@
+export type PortalType = 'translations' | 'words' | 'audio' | 'stories' | 'documents' | 'corrections';
+export type PortalUse = 'review' | 'retrieval' | 'training' | 'public';
+export const PORTAL_TYPES: Record<PortalType, { label: string; icon: string; description: string; example: string }>;
+export const PORTAL_USES: Record<PortalUse, [string, string]>;
+export const PORTAL_FORMATS: Record<string, string>;
+export const PORTAL_CONSENT_VERSION: string;
+export const PORTAL_LIMITS: { maxFiles: number; maxFileBytes: number; maxBatchBytes: number; maxText: number; maxExtractBytes: number };
+export const PORTAL_STATES: Record<string, string>;
+export function portalFileType(name: string): { extension: string; mime: string } | null;
+export function portalIssues(record: any): string[];

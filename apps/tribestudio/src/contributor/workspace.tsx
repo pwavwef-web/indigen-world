@@ -4,7 +4,9 @@ import { type IconName } from './components';
 import { friendlyError, itemStatus, metricsFor, type FriendlyError } from './model';
 import type { AccountTab, PaymentsView, Section, SelfView, WorkspaceData } from './types';
 import { AppShell, EmptyState, Button, Page, type NavItem } from '../ui';
-import { NotificationCentre } from './notifications';
+import { canValidate, useAuth } from '../auth';
+import { ContributionWorkspace } from './ContributionWorkspace';
+import './portal.css';
 import { CollectionHome } from './pages/CollectionHome';
 import { JourneyProvider } from './Journey';
 import { AssignmentsPage } from './pages/AssignmentsPage';
@@ -51,7 +53,7 @@ export interface PortalRoute {
   notFound: boolean;
 }
 
-const SIMPLE_SECTIONS: Section[] = ['assignments', 'contributions', 'activity', 'guide', 'kawuri', 'rewards', 'streak'];
+const SIMPLE_SECTIONS: Section[] = ['assignments', 'contributions', 'activity', 'guide', 'kawuri', 'rewards', 'streak', 'translations', 'words', 'audio', 'stories', 'documents', 'corrections'];
 const ACCOUNT_TABS: AccountTab[] = ['profile', 'security', 'notifications', 'payments'];
 
 export function parsePortalRoute(path: string, search: string, base: string, preview: boolean): PortalRoute {
@@ -99,14 +101,13 @@ interface SectionEntry {
 
 /** The contributor portal's sections, in the order they appear in the sidebar. */
 export const NAV: SectionEntry[] = [
-  { section: 'overview', label: 'Overview', short: 'Home', icon: 'home', group: 'Your work', dock: true },
-  { section: 'assignments', label: 'Assignments', short: 'Tasks', icon: 'assignments', group: 'Your work', dock: true, hint: 'Expressions assigned to you' },
-  { section: 'contributions', label: 'My contributions', short: 'My work', icon: 'contributions', group: 'Your work', dock: true, hint: 'Drafts, submissions and review decisions' },
-  { section: 'activity', label: 'Activity', short: 'Activity', icon: 'activity', group: 'Your work' },
-  { section: 'rewards', label: 'Points & rewards', short: 'Points', icon: 'award', group: 'Recognition', hint: 'Point awards, redemptions and their status' },
-  { section: 'streak', label: 'Streak', short: 'Streak', icon: 'flame', group: 'Recognition' },
-  { section: 'guide', label: 'Help & guide', short: 'Help', icon: 'guide', group: 'Help', dock: true },
-  { section: 'kawuri', label: 'Kawuri assistance', short: 'Kawuri', icon: 'kawuri', group: 'Help', hint: 'Meaning and context help — never writes your Kasem' },
+  { section: 'overview', label: 'Home', short: 'Home', icon: 'home', group: '' },
+  { section: 'translations', label: 'Translate sentences', short: 'Translate', icon: 'translation', group: 'Contribute' },
+  { section: 'words', label: 'Words & expressions', short: 'Words', icon: 'book', group: 'Contribute' },
+  { section: 'audio', label: 'Audio & transcripts', short: 'Audio', icon: 'mic', group: 'Contribute' },
+  { section: 'stories', label: 'Stories & culture', short: 'Stories', icon: 'library', group: 'Contribute' },
+  { section: 'documents', label: 'Documents & research', short: 'Documents', icon: 'doc', group: 'Contribute' },
+  { section: 'corrections', label: 'Corrections', short: 'Corrections', icon: 'pen', group: 'Contribute' },
   { section: 'account', label: 'Account & settings', short: 'Account', icon: 'settings', group: 'Account' },
 ];
 
@@ -114,11 +115,12 @@ export const NAV: SectionEntry[] = [
  * The portal's destinations for the shell. `extras` adds per-section badges
  * (open assignments, returned work, payment attention).
  */
-export function contributorNav({ path, paths, extras = [], active }: {
+export function contributorNav({ path, paths, extras = [], active, reviewer = false }: {
   path: string;
   paths?: { section(section: Section): string; account(tab: AccountTab): string };
   extras?: { section: Section; badge?: ReactNode }[];
   active?: Section;
+  reviewer?: boolean;
 }): NavItem[] {
   const to = (section: Section) => paths
     ? (section === 'account' ? paths.account('profile') : paths.section(section))
@@ -134,8 +136,7 @@ export function contributorNav({ path, paths, extras = [], active }: {
     active: entry.section === active,
     badge: extras.find((extra) => extra.section === entry.section)?.badge,
   }));
-  // The corpus workspace sits beside assignments: same people, different records.
-  items.splice(3, 0, { to: '/contributor/corpus', label: 'Corpus records', icon: 'database', group: 'Your work', hint: 'Sourced language and cultural records', active: path === '/contributor/corpus' });
+  if (reviewer) items.splice(items.length - 1, 0, { to: '/contributor/review', label: 'Review contributions', icon: 'shield', group: 'Contribute', active: path === '/contributor/review' });
   return items;
 }
 
@@ -213,6 +214,7 @@ export function paymentsNeedAttention(payments: PaymentsView | null): boolean {
 
 export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
   const data = useWorkspace();
+  const { role } = useAuth();
   const { path, search, navigate } = useRoute();
   const route = useMemo(() => parsePortalRoute(path, search, data.paths.base, data.preview), [path, search, data.paths.base, data.preview]);
   const self = useResource(data.services.loadSelf, 'Your profile');
@@ -224,7 +226,8 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
   const nav = contributorNav({
     path,
     paths: data.paths,
-    active: route.notFound ? undefined : route.section,
+    active: route.notFound ? undefined : route.section === 'assignments' ? 'translations' : route.section,
+    reviewer: canValidate(role),
     extras: [
       { section: 'assignments', badge: openAssignments || undefined },
       { section: 'contributions', badge: returned || undefined },
@@ -242,9 +245,9 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
         onSignOut={() => void data.services.signOut()}
         banner={banner}
         dockHidden={editing}
+        bell={{ to: data.paths.base + '?panel=notifications', label: 'Feedback and notifications' }}
       >
         <div className="cw">
-          <NotificationCentre />
           {route.notFound ? <NotFound /> : <PageFor key={`${data.uid}:${route.section}`} route={route} />}
         </div>
       </AppShell>
@@ -254,6 +257,8 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
 
 function PageFor({ route }: { route: PortalRoute }) {
   switch (route.section) {
+    case 'translations': case 'words': case 'audio': case 'stories': case 'documents': case 'corrections':
+      return <ContributionWorkspace type={route.section} />;
     case 'rewards':
       return <RewardsPage history={route.query.get('view') !== 'redeem'} />;
     case 'streak':

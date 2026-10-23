@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase-admin/app';
 
 // Initialise the Admin SDK once for all functions in this codebase.
 initializeApp();
+export { portalContribution, portalContributionReview, onPortalMaterialWritten } from './portal-materials.js';
 export { postZemBotarebuDaily, postAmoYeiKasemDaily, postNNaYeiriSeNBweiDaily, postKasemPracticeDaily,
   postIndigenGuideDaily, recoverCommunityAutomation, onCommunityEnquiryReply } from './community-automation.js';
 export { postZemGhanaNews } from './community-news.js';

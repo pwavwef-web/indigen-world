@@ -221,7 +221,7 @@ export interface WorkspaceServices {
   signOut(): Promise<void>;
 }
 
-export type Section = 'overview' | 'assignments' | 'contributions' | 'activity' | 'guide' | 'kawuri' | 'account' | 'rewards' | 'streak';
+export type Section = 'overview' | 'assignments' | 'contributions' | 'activity' | 'guide' | 'kawuri' | 'account' | 'rewards' | 'streak' | 'translations' | 'words' | 'audio' | 'stories' | 'documents' | 'corrections';
 export type AccountTab = 'profile' | 'security' | 'notifications' | 'payments';
 
 export interface PortalPaths {

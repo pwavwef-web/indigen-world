@@ -130,7 +130,9 @@ export function ContributorPortal() {
   }
   if (access === 'loading' || !account) return <AuthFrame title="Opening your workspace"><AuthWaiting>Checking your invitation…</AuthWaiting></AuthFrame>;
   if (account.requiresPasswordChange) return <AuthFrame><ContributorActivation /></AuthFrame>;
-  if (account.trainingTermsVersion !== CONTRIBUTOR_TRAINING_TERMS_VERSION) return <AuthFrame wide><ContributorTrainingAgreement /></AuthFrame>;
+  // Assignment terms stay attached to the legacy assignment workflow. New
+  // contributions record their own separate use permissions, including review only.
+  if ((linkOwner || path === '/contributor/assignments') && account.trainingTermsVersion !== CONTRIBUTOR_TRAINING_TERMS_VERSION) return <AuthFrame wide><ContributorTrainingAgreement /></AuthFrame>;
   return <ActiveWorkspace uid={user.uid} email={user.email ?? ''} displayName={user.displayName ?? ''} account={account} />;
 }
 
@@ -209,16 +211,14 @@ function ActiveWorkspace({ uid, email, displayName, account }: { uid: string; em
 export function ContributorActivation() {
   const [password, setPassword] = useState(''), [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
-  const [accepted, setAccepted] = useState(false);
   return (
     <form className="ts-auth__form contributor-auth" onSubmit={async (event) => {
       event.preventDefault();
       if (password !== confirm) { setError('The two passwords do not match.'); return; }
-      if (!accepted) { setError('Accept the contributor training agreement to continue.'); return; }
       setBusy(true); setError('');
       try {
         const email = auth.currentUser?.email;
-        await httpsCallable(functions, 'activateExpressionContributor')({ password, acceptTrainingTerms: true, trainingTermsVersion: CONTRIBUTOR_TRAINING_TERMS_VERSION });
+        await httpsCallable(functions, 'activateExpressionContributor')({ password, accountOnly: true });
         if (email) await signInWithEmailAndPassword(auth, email, password);
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : 'Activation did not complete. Please try again.');
@@ -226,13 +226,12 @@ export function ContributorActivation() {
     }}>
       <div className="ts-auth__head">
         <h1 id="auth-title" className="ts-auth__title">Choose your password</h1>
-        <p className="ts-auth__lede">Replace the temporary password from your invitation with one only you know. Your assignments open straight after.</p>
+        <p className="ts-auth__lede">Replace the temporary password from your invitation with one only you know. Choose usage permissions separately when you contribute.</p>
       </div>
       <label className="ts-field"><span className="ts-label">New password</span><input className="ts-input" type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={password} onChange={(event) => setPassword(event.target.value)} aria-describedby="activation-password-hint" /><span className="ts-hint" id="activation-password-hint">At least 8 characters. Do not reuse your phone number.</span></label>
       <label className="ts-field"><span className="ts-label">Confirm password</span><input className="ts-input" type="password" autoComplete="new-password" minLength={8} maxLength={128} required value={confirm} onChange={(event) => setConfirm(event.target.value)} aria-invalid={Boolean(confirm && confirm !== password) || undefined} /></label>
-      <TrainingTerms accepted={accepted} onChange={setAccepted} busy={busy} />
       {error ? <p role="alert" className="ts-notice ts-notice--danger">{error}</p> : null}
-      <button className="ts-btn ts-btn--primary ts-btn--lg ts-btn--block" disabled={busy || !accepted} aria-busy={busy || undefined}><span className="ts-btn__spinner" aria-hidden="true" /><span>{busy ? 'Activating…' : 'Agree and activate my workspace'}</span></button>
+      <button className="ts-btn ts-btn--primary ts-btn--lg ts-btn--block" disabled={busy} aria-busy={busy || undefined}><span className="ts-btn__spinner" aria-hidden="true" /><span>{busy ? 'Activating…' : 'Activate my workspace'}</span></button>
       <button type="button" className="ts-btn ts-btn--ghost ts-btn--block" disabled={busy} onClick={() => void signOutUser()}><span>Leave contributor portal</span></button>
     </form>
   );
@@ -279,7 +278,7 @@ export function ContributorSignIn({ code }: { code: string | null }) {
       </div>
       {!reset && !review ? (
         <p className="ts-notice ts-notice--info ts-notice--plain" style={{ fontSize: 'var(--fs-xs)' }}>
-          Contributor submissions are used to train and evaluate our language models. You will read and accept the full agreement before contributing.
+          Choose permitted uses for each new contribution. Assigned translation work has its own agreement, shown before you open it.
         </p>
       ) : null}
       <label className="ts-field"><span className="ts-label">Email</span><input className="ts-input" type="email" autoComplete="username" required value={email} readOnly={Boolean(code)} onChange={(event) => setEmail(event.target.value)} /></label>
@@ -339,7 +338,7 @@ function ContributorTrainingAgreement() {
     }}>
       <div className="ts-auth__head">
         <h1 id="auth-title" className="ts-auth__title">Before you continue contributing</h1>
-        <p className="ts-auth__lede">The contributor agreement changed. It applies to new submissions; earlier submissions keep their recorded permissions.</p>
+        <p className="ts-auth__lede">This agreement applies to assigned translation work. All-round contributions have separate usage choices. Earlier submissions keep their recorded permissions.</p>
       </div>
       <TrainingTerms accepted={accepted} onChange={setAccepted} busy={busy} />
       {error ? <p role="alert" className="ts-notice ts-notice--danger">{error}</p> : null}

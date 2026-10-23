@@ -12,12 +12,15 @@ import { reviewNav } from './nav';
 import { RewardAssessmentPanel } from './RewardAssessment';
 import { CommunityGoalControl } from './CommunityGoalControl';
 import './review.css';
+import { MaterialReview } from '../MaterialReview';
 
 /** Only the authorized child mounts Firestore subscriptions. Direct URLs use the same guard. */
 export function ReviewDesk() {
+  const { search } = useRoute();
   const { ready, user, role } = useAuth();
   if (!ready) return <p role="status" className="ts-loading">Checking review access…</p>;
   if (!user || !canValidate(role)) return <p role="alert" className="ts-loading">Validator access required.</p>;
+  if (new URLSearchParams(search).get('desk') === 'materials') return <MaterialReview />;
   return <AuthorizedDesk key={user.uid} />;
 }
 

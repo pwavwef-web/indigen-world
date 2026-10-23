@@ -193,3 +193,18 @@ by validator-confirmed training-data assessments, a versioned award policy, an
 append-only points ledger and quote-based redemptions with marginal bonus
 bands. Implemented and verified locally; not deployed. See
 [contributor-rewards.md](contributor-rewards.md).
+
+## All-round portal — 2026-10-23
+
+Home now holds the secondary features as cards. The sidebar opens dedicated
+translation, word/expression, audio/transcript, story/culture, document/research
+and correction workspaces, with review visible only to authorised reviewers.
+Existing assignment links, balances and governed corpus workflows remain.
+New submissions have independent usage choices; assigned translations retain
+their existing agreement. Account activation alone grants no training permission.
+
+See [Contributor materials architecture](../architecture/contributor-materials.md)
+for private resumable uploads, immutable capture versions, review permissions,
+candidate provenance, dataset manifests, withdrawal and current manual-processing
+limits. Release and deployment evidence is in the
+[23 October release handoff](../../apps/updates-blog/posts/2026-10-23-all-round-contributor-portal/README.md).

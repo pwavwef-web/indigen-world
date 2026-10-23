@@ -438,6 +438,14 @@ service firebase.storage {
     }
 
     // ---- Default deny -------------------------------------------------------
+    // Private immutable source material. Reads use inspected, generation-pinned
+    // five-minute attachment links from the owner/reviewer callable.
+    match /portal-originals/{uid}/{batchId}/{fileId} {
+      // The callable issues a bounded GCS resumable session for one owned,
+      // immutable object. Firebase SDK uploads would mint bearer download
+      // tokens, so direct client creation is deliberately closed as well.
+      allow read, write: if false;
+    }
     // Private immutable letters: downloads go through the owner-checked callable.
     match /correspondence/{allPaths=**} { allow read, write: if false; }
     match /{allPaths=**} {

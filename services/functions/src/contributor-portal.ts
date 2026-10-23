@@ -327,7 +327,7 @@ export const activateExpressionContributor = onCall(options, guarded('activateEx
     throw new HttpsError('permission-denied', 'Sign in with your email and temporary password.');
   }
   await consumeRateLimit('activateExpressionContributor', uid, 10);
-  requireTrainingAgreement(req.data ?? {});
+  if (req.data?.accountOnly !== true) requireTrainingAgreement(req.data ?? {});
   const password = req.data?.password;
   if (typeof password !== 'string' || password.length < 8 || password.length > 128) {
     throw new HttpsError('invalid-argument', 'Choose a password of 8–128 characters.');
@@ -343,7 +343,7 @@ export const activateExpressionContributor = onCall(options, guarded('activateEx
   await getAuth().updateUser(uid, { password });
   await ref.update({ requiresPasswordChange: false, temporaryPhonePassword: false,
     'invitation.status': 'accepted', activatedAt: new Date().toISOString(),
-    trainingAgreement: { version: CONTRIBUTOR_TRAINING_TERMS_VERSION, acceptedAt: new Date().toISOString() } });
+    ...(req.data?.accountOnly === true ? {} : { trainingAgreement: { version: CONTRIBUTOR_TRAINING_TERMS_VERSION, acceptedAt: new Date().toISOString() } }) });
   return { activated: true };
 }));
 

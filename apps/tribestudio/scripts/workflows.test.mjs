@@ -762,7 +762,7 @@ test('the review desk mounts no queue listeners for guests, contributors or unre
   for (const state of [{ ready: false, user: { uid: 'u' }, role: 'validator' }, { ready: true, user: null, role: null }, { ready: true, user: { uid: 'u' }, role: 'contributor' }]) {
     const h = hooks(); let reads = 0;
     const { ReviewDesk } = await load('src/contributor/review/ReviewDesk.tsx', ['ReviewDesk'], {
-      ...h.api, canValidate, useAuth: () => state,
+      ...h.api, canValidate, useAuth: () => state, useRoute: () => ({ search: '' }),
       onSnapshot: () => { reads++; return () => {}; },
     });
     const tree = h.render(ReviewDesk); h.flush();
@@ -901,12 +901,8 @@ test('activation confirms the chosen password before calling the backend', async
   find(labels[1], n => n.type === 'input').props.onChange({ target: { value: 'new-password' } });
   tree = h.render(ContributorActivation);
   await tree.props.onSubmit({ preventDefault() {} });
-  assert.equal(calls.length, 0, 'matching passwords are insufficient without accepting training use');
-  tree = h.render(ContributorActivation);
-  find(tree, n => n.type?.name === 'TrainingTerms').props.onChange(true);
-  tree = h.render(ContributorActivation);
-  await tree.props.onSubmit({ preventDefault() {} });
-  assert.deepEqual(calls, [{ name: 'activateExpressionContributor', password: 'new-password', acceptTrainingTerms: true, trainingTermsVersion: 'contributor-training-v2' }]);
+  assert.equal(calls.length, 1, 'account activation does not imply training consent');
+  assert.deepEqual(calls, [{ name: 'activateExpressionContributor', password: 'new-password', accountOnly: true }]);
   assert.deepEqual(signIns, [{ email: 'speaker@example.com', password: 'new-password' }]);
 });
 

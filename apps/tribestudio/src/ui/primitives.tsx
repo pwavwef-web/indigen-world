@@ -728,8 +728,9 @@ export function Dialog({ title, lede, children, footer, onClose, busy = false, s
   const titleId = labelledBy ?? `dialog-${generated.replace(/:/g, '')}`;
   useEffect(() => {
     const node = ref.current;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (node && !node.open) node.showModal();
-    return () => node?.close();
+    return () => { node?.close(); queueMicrotask(() => { if (opener?.isConnected) opener.focus({ preventScroll: true }); }); };
   }, []);
   return (
     <dialog

@@ -1,44 +1,54 @@
-import { useMemo } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { PORTAL_TYPES, type PortalType } from '@indigen-world/contracts/portal-contributions';
 import { useRoute } from '../../router';
-import { canValidate, useAuth } from '../../auth';
-import { ActivityList, Notice, Skeleton } from '../components';
-import { activityFrom, firstName, metricsFor, nextContribution } from '../model';
-import { currentAssignment } from './OverviewPage';
-import { PageHeader, Icon, CountUp } from '../../ui';
+import { Dialog, Icon, type IconName } from '../../ui';
+import { metricsFor, firstName } from '../model';
 import { PortalLink, useShared, useWorkspace } from '../workspace';
-import { DailyTasks } from '../DailyTasks';
-import { HomeStreak } from '../HomeStreak';
-import { CommunityGoalCard, GrowthCard, ParticipationCard, PracticeCard, QualityMissions, RecognitionCard } from '../Journey';
-
-function CollectionArtwork({ approved, total }: { approved: number; total: number }) {
-  const fill = Math.min(1, approved / Math.max(1, total));
-  return <div className="cq-art" aria-hidden="true">
-    <div className="cq-art-orbit cq-art-orbit--one" /><div className="cq-art-orbit cq-art-orbit--two" />
-    <div className="cq-art-label cq-art-label--one"><span>ɛ</span><i /></div><div className="cq-art-label cq-art-label--two"><span>ŋ</span><i /></div>
-    <svg className="cq-art-vessel" viewBox="0 0 200 240" fill="none"><defs><linearGradient id="cq-glass" x1="35" x2="170" y1="30" y2="220" gradientUnits="userSpaceOnUse"><stop stopColor="#fff" stopOpacity=".24" /><stop offset="1" stopColor="#fff" stopOpacity=".04" /></linearGradient><linearGradient id="cq-water" x1="30" y1="100" x2="170" y2="230" gradientUnits="userSpaceOnUse"><stop stopColor="#a8cbff" /><stop offset="1" stopColor="#3b7df5" /></linearGradient><clipPath id="cq-clip"><path d="M63 38h74v32c0 22 35 29 35 59v57c0 25-32 40-72 40s-72-15-72-40v-57c0-30 35-37 35-59V38Z" /></clipPath></defs><g clipPath="url(#cq-clip)"><rect x="20" y="30" width="160" height="200" fill="url(#cq-glass)" /><g className="cq-art-liquid" style={{ ['--fill' as string]: `${190 - fill * 120}px` }}><path d="M-80 0Q-40-15 0 0T80 0T160 0T240 0V240H-80Z" fill="url(#cq-water)" /><path d="M-80 5Q-40 20 0 5T80 5T160 5T240 5V240H-80Z" fill="#7aafff" opacity=".5" /></g><path d="M42 123v61c0 12 11 22 29 27" stroke="#fff" strokeOpacity=".35" strokeWidth="4" strokeLinecap="round" /></g><path d="M63 38h74v32c0 22 35 29 35 59v57c0 25-32 40-72 40s-72-15-72-40v-57c0-30 35-37 35-59V38Z" stroke="#d6e6ff" strokeOpacity=".5" strokeWidth="1.5" fill="none" /><ellipse cx="100" cy="38" rx="38" ry="9" stroke="#d6e6ff" strokeOpacity=".6" fill="#183569" /><path d="m59 132 17 9 24-12 24 12 17-9M59 153l17 9 24-12 24 12 17-9" stroke="#e1edff" strokeOpacity=".35" /></svg>
-    <span className="cq-art-caption">Every expression carries a world.</span>
-  </div>;
-}
+import { livePaymentService, previewService, type RewardView } from '../rewards';
+import { portalCall, portalMessage, type PortalSummary } from '../portal-data';
+import { portalDrafts } from '../ContributionWorkspace';
+import { PortalHistory } from '../PortalHistory';
+import { ContributionsPage } from './ContributionsPage';
+import { ActivityPage } from './ActivityPage';
+import { GuidePage } from './GuidePage';
+import { PulsePanel } from '../components';
+const Community = lazy(() => import('../PortalCommunity'));
+const titles: Record<string, string> = { start: 'Choose a contribution', submissions: 'My submissions', drafts: 'Drafts', attention: 'Needs my attention', notifications: 'Feedback & notifications', impact: 'My impact', guides: 'Guides & help', community: 'Community & opportunities' };
 
 export function CollectionHome() {
-  const data = useWorkspace(), { self } = useShared(), { role } = useAuth(), { navigate } = useRoute();
-  const items = useMemo(() => Object.values(data.items).flat(), [data.items]);
-  const metrics = metricsFor(items), work = currentAssignment(data.works, data.items);
-  const next = work ? nextContribution(data.items[work.id] ?? []) : undefined;
-  const name = firstName(self.value?.profile.displayName || data.displayName);
-  const loading = data.worksState !== 'ready' || data.itemsState !== 'ready';
-  const events = useMemo(() => activityFrom(data.rounds, data.works, data.paymentNotices), [data.rounds, data.works, data.paymentNotices]);
-  const revise = next && ['rejected', 'needs_revision'].includes(next.status);
-  return <div className="ts-page cq-home">
-    <PageHeader kicker="Your contribution studio" title={name ? `Good to see you, ${name}.` : 'Your words. Our shared world.'} description="Bring everyday Kasem to life, one thoughtful expression at a time." actions={<><HomeStreak />{!data.preview && canValidate(role) ? <PortalLink to="/contributor/review" className="ts-btn ts-btn--secondary"><Icon name="shield" />Review desk</PortalLink> : null}</>} />
-    {data.worksState === 'error' || data.itemsState === 'error' ? <Notice tone="danger" title="Your assignments could not be loaded" action={<button type="button" className="ts-btn" onClick={() => window.location.reload()}>Reload</button>}><p>Check your connection and try again.</p></Notice> : null}
-    <div className="cq-home-grid">
-      <section className="cq-hero" aria-labelledby="studio-next"><div className="cq-hero-main"><span className="cq-eyebrow"><span className="cq-live-dot" />{revise ? 'A chance to make it stronger' : 'Your next contribution'}</span><h2 id="studio-next">{revise ? <>Good work grows<br />through feedback.</> : <>Keep the language<br />in everyday life.</>}</h2>{loading ? <Skeleton lines={2} /> : <p>{next ? <>{revise ? 'A reviewer has a suggestion for ' : 'Continue with '}<strong>“{next.expression}”</strong></> : work ? 'Your expressions are with the reviewers. Follow their decisions below.' : 'Assignments will appear here when the team prepares work for you.'}</p>}<div className="cq-hero-actions"><button type="button" className="cq-primary" disabled={loading || !work || !next} onClick={() => work && next && navigate(data.paths.work(work.id, next.id))}>{revise ? 'Read feedback & revise' : next?.translation.trim() ? 'Continue your draft' : 'Start a small session'}<Icon name="arrow" /></button>{work ? <PortalLink to={data.paths.work(work.id)} className="cq-hero-link">View assignment<Icon name="chevron" /></PortalLink> : <PortalLink to={data.paths.section('guide')} className="cq-hero-link">Explore the guide<Icon name="chevron" /></PortalLink>}</div></div><CollectionArtwork approved={metrics.approved} total={metrics.total} /><dl className="cq-hero-stats">{[{ label: 'Approved', value: metrics.approved, icon: 'check-circle' as const }, { label: 'Awaiting review', value: metrics.awaiting, icon: 'clock' as const }, { label: 'To revisit', value: metrics.returned, icon: 'refresh' as const }].map(stat => <div key={stat.label}><dt><Icon name={stat.icon} />{stat.label}</dt><dd>{loading ? '—' : <CountUp value={stat.value} />}</dd></div>)}</dl></section>
-      <ParticipationCard />
-      <div className="cq-daily-slot"><DailyTasks /></div><QualityMissions />
-      <GrowthCard /><RecognitionCard />
-      <CommunityGoalCard /><PracticeCard />
-      <section className="cq-card cq-home-activity" aria-labelledby="studio-activity"><div className="cq-card-head"><span className="cq-eyebrow"><Icon name="activity" />The latest</span><PortalLink to={data.paths.section('activity')} className="ts-link">View all<Icon name="arrow" /></PortalLink></div><h2 id="studio-activity">Your work, moving forward.</h2><ActivityList events={events.slice(0, 3)} emptyText="Your first submission will start the story here." onOpen={event => { if (event.link) navigate(event.link); else if (event.work) navigate(data.paths.work(event.work, event.item)); }} /><PortalLink to={data.paths.section('kawuri')} className="cq-help-link"><Icon name="kawuri" /><span>Need help with meaning or context?<strong>Ask Kawuri</strong></span><Icon name="arrow" /></PortalLink></section>
-    </div>
-  </div>;
+  const data = useWorkspace(), { self } = useShared(), { search, navigate } = useRoute();
+  const params = new URLSearchParams(search), panel = params.get('panel') || '';
+  const [summary, setSummary] = useState<PortalSummary | null>(null), [error, setError] = useState(''), [attempt, setAttempt] = useState(0);
+  const [rewards, setRewards] = useState<RewardView | null>(null), [rewardError, setRewardError] = useState(false), [legacy, setLegacy] = useState(false);
+  const items = useMemo(() => Object.values(data.items).flat(), [data.items]), metrics = metricsFor(items), localDrafts = portalDrafts(data.uid);
+  useEffect(() => { let active = true; setError(''); portalCall<PortalSummary>(data.preview, 'summary').then(s => { if (active) setSummary(s); }).catch(e => { if (active) setError(portalMessage(e)); }); return () => { active = false; }; }, [data.uid, data.preview, attempt]);
+  useEffect(() => { let active = true; (data.preview ? previewService : livePaymentService).load().then(r => { if (active) setRewards(r.data); }).catch(() => { if (active) setRewardError(true); }); return () => { active = false; }; }, [data.uid, data.preview]);
+  useEffect(() => { const changed = () => setAttempt(n => n + 1); window.addEventListener('portal:changed', changed); return () => window.removeEventListener('portal:changed', changed); }, []);
+  const open = (next: string) => { setLegacy(false); navigate(data.paths.base + '?panel=' + next); };
+  const assignmentReady = data.itemsState === 'ready' && data.worksState === 'ready';
+  const count = (status: string, previous = 0) => summary && assignmentReady ? summary.counts[status] + previous : null;
+  const submitted = summary && assignmentReady ? Object.entries(summary.counts).filter(([k]) => k !== 'draft').reduce((n, [, v]) => n + v, 0) + metrics.submitted : null;
+  const approved = count('approved', metrics.approved), draftCount = count('draft', metrics.drafts);
+  const cards: { id: string; title: string; icon: IconName; color: string; detail: string; action: string }[] = [
+    { id: 'submissions', title: 'My submissions', icon: 'doc', color: 'blue', detail: summary && assignmentReady ? `${count('submitted', metrics.awaiting)} awaiting review` : 'Loading submission counts…', action: 'View submissions' },
+    { id: 'drafts', title: 'Drafts', icon: 'doc', color: 'indigo', detail: summary && assignmentReady ? `${draftCount} account drafts · ${localDrafts.length} device workspaces` : 'Loading account drafts…', action: 'Continue draft' },
+    { id: 'attention', title: 'Needs my attention', icon: 'alert', color: 'amber', detail: summary && assignmentReady ? `${summary.counts.changes_requested + summary.failed + metrics.returned} changes requested or failed jobs` : 'Loading review and upload status…', action: 'Review feedback' },
+    { id: 'notifications', title: 'Feedback', icon: 'message', color: 'violet', detail: summary ? `${summary.unread} unread review updates` : 'Loading updates…', action: 'Open updates' },
+    { id: 'impact', title: 'My impact', icon: 'opportunities', color: 'green', detail: approved == null ? 'Loading reviewed contributions…' : `${approved} approved contributions`, action: 'View impact' },
+    { id: 'rewards', title: 'Rewards & earnings', icon: 'gift', color: 'red', detail: rewards ? `${rewards.balance.available.toLocaleString()} available points` : rewardError ? 'Balance unavailable · open to retry' : 'Loading your balance…', action: 'Open rewards' },
+    { id: 'guides', title: 'Guides & help', icon: 'book', color: 'blue', detail: 'Examples for every contribution', action: 'Browse guides' },
+    { id: 'community', title: 'Community', icon: 'users', color: 'green', detail: 'Shared goals and current opportunities', action: 'View opportunities' },
+  ];
+  return <div className="ts-page pw-home"><header className="pw-welcome"><div><h1>{firstName(self.value?.profile.displayName || data.displayName) ? `Welcome back, ${firstName(self.value?.profile.displayName || data.displayName)}` : 'Welcome to your contributor portal'}</h1><p>Share what you know. Help your language grow.</p></div><div className="pw-actions"><button className="ts-btn ts-btn--primary" onClick={() => open('start')}>Start contributing</button>{localDrafts.length || (draftCount ?? 0) > 0 ? <button className="ts-btn ts-btn--secondary" onClick={() => open('drafts')}>Continue draft</button> : null}</div></header>
+    {error ? <p role="alert" className="ts-notice ts-notice--danger">Contribution totals could not be refreshed. {error} <button className="ts-link" onClick={() => setAttempt(n => n + 1)}>Retry</button></p> : null}
+    {data.itemsState === 'error' || data.worksState === 'error' ? <p role="alert">Assigned-work counts are unavailable. Reload to retry.</p> : null}
+    <div className="pw-home-grid">{cards.map(c => <section className="pw-home-card" key={c.id}><span className={`pw-card-icon pw-card-icon--${c.color}`}><Icon name={c.icon} /></span><h2>{c.title}</h2><p>{c.detail}</p>{c.id === 'attention' && items.find(i => ['rejected', 'needs_revision'].includes(i.status))?.feedback ? <blockquote><span>{items.find(i => ['rejected', 'needs_revision'].includes(i.status))!.feedback}</span></blockquote> : null}{c.id === 'rewards' ? <PortalLink to={data.paths.section('rewards')} className="pw-card-action">{c.action}<Icon name="arrow" /></PortalLink> : <button type="button" className="pw-card-action" onClick={() => open(c.id)}>{c.action}<Icon name="arrow" /></button>}</section>)}</div>
+    <p className="pw-home-note">Careful contributions matter. Submitted work and approved records are counted separately. Your existing assignments, corpus records, and rewards remain available.</p>
+    {titles[panel] ? <Dialog title={titles[panel]} size="xl" className="pw-sheet" onClose={() => { setAttempt(n => n + 1); navigate(data.paths.base); }}>
+      {panel === 'start' ? <div className="pw-type-grid">{(Object.entries(PORTAL_TYPES) as [PortalType, typeof PORTAL_TYPES[PortalType]][]).map(([type, m]) => <PortalLink className="pw-type-link" key={type} to={data.paths.base + '/' + type}><Icon name={m.icon as IconName} /><span><strong>{m.label}</strong><small>{m.description}</small></span><Icon name="arrow" /></PortalLink>)}</div> : null}
+      {['submissions', 'drafts', 'attention', 'notifications'].includes(panel) ? <><div className="pw-tabs"><button type="button" className="ts-btn ts-btn--secondary" aria-pressed={!legacy} onClick={() => setLegacy(false)}>All-round contributions</button><button type="button" className="ts-btn ts-btn--secondary" aria-pressed={legacy} onClick={() => setLegacy(true)}>Assigned translations</button><PortalLink to="/contributor/corpus" className="ts-link">Corpus records<Icon name="arrow" /></PortalLink></div>{panel === 'drafts' && !legacy ? <section><h3>On this device · grouped by workspace</h3>{localDrafts.length ? localDrafts.map(d => <div className="pw-draft" key={d.type}><PortalLink to={data.paths.base + '/' + d.type} className="ts-link">{PORTAL_TYPES[d.type].label}: {d.title}<Icon name="arrow" /></PortalLink><button className="ts-link" onClick={() => { if (window.confirm('Discard this device draft? Account drafts and uploaded originals remain unchanged.')) { localStorage.removeItem(`tribestudio:recovery:v1:${encodeURIComponent(data.uid)}:portal-${d.type}`); setAttempt(n => n + 1); } }}>Discard device draft</button></div>) : <p>No unfinished device workspaces. Start with any contribution type.</p>}<h3>Saved account drafts</h3></section> : null}{legacy ? panel === 'notifications' ? <ActivityPage /> : <ContributionsPage initialFilter={panel === 'drafts' ? 'draft' : panel === 'attention' ? 'returned' : ''} /> : <PortalHistory key={panel} mode={panel} selectedId={params.get('record') ?? undefined} onChanged={() => setAttempt(n => n + 1)} />}</> : null}
+      {panel === 'impact' ? <><div className="pw-impact"><div><strong>{submitted ?? '—'}</strong><span>submitted at least once</span></div><div><strong>{approved ?? '—'}</strong><span>approved by reviewers</span></div><div><strong>{count('changes_requested', metrics.returned) ?? '—'}</strong><span>changes requested</span></div></div><p>Totals cover your all-round contributions and assigned translations. Source-document approval does not approve derived records. Validated audio duration is not available in these records.</p><PortalLink to="/contributor/corpus" className="ts-link">Open governed corpus records<Icon name="arrow" /></PortalLink></> : null}
+      {panel === 'guides' ? <><div className="pw-type-grid">{Object.entries(PORTAL_TYPES).map(([type, m]) => <article className="pw-card" key={type}><h3>{m.label}</h3><p>{m.example}</p><PortalLink to={data.paths.base + '/' + type} className="ts-link">Start this contribution<Icon name="arrow" /></PortalLink></article>)}</div><p><PortalLink to={data.paths.section('kawuri')} className="ts-link">Ask Kawuri about meaning or context<Icon name="arrow" /></PortalLink></p><GuidePage section="" /></> : null}
+      {panel === 'community' ? <><PulsePanel pulse={data.pulse} /><Suspense fallback={<p>Loading opportunities…</p>}><Community /></Suspense><PortalLink to={data.paths.section('assignments')} className="ts-link">Current assigned work<Icon name="arrow" /></PortalLink></> : null}
+    </Dialog> : null}</div>;
 }

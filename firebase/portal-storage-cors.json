@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://tribestudio.indigenworld.com", "https://tribestudio.web.app", "https://tribestudio.firebaseapp.com"],
+    "method": ["GET", "PUT", "HEAD"],
+    "responseHeader": ["Content-Type", "Content-Range", "Range", "ETag"],
+    "maxAgeSeconds": 3600
+  }
+]

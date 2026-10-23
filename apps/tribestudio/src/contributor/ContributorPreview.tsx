@@ -278,7 +278,7 @@ export function ContributorPreview() {
       <WorkspaceShell banner={(
         <div className="ts-banner" role="note">
           <strong>Local preview · sample data</strong>
-          <span>Nothing is saved or sent. Kasem text is a placeholder. The MoMo code is 123456. Community activity is sample data.</span>
+          <span>Synthetic examples. Device recovery is local; account operations are simulated. No production writes. The MoMo code is 123456.</span>
         </div>
       )} />
     </WorkspaceContext.Provider>

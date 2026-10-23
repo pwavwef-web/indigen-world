@@ -23,6 +23,7 @@ const LexiconWorkspace = named(() => import('./workspace/LexiconWorkspace'), 'Le
 const KnowledgePreview = import.meta.env.DEV ? named(() => import('./knowledge/KnowledgePreview'), 'KnowledgePreview') : null;
 const KnowledgeWorkspace = named(() => import('./knowledge/KnowledgeWorkspace'), 'KnowledgeWorkspace');
 const ContributorPreview = import.meta.env.DEV ? named(() => import('./contributor/ContributorPreview'), 'ContributorPreview') : null;
+const MaterialReviewPreview = import.meta.env.DEV ? named(() => import('./contributor/MaterialReviewPreview'), 'MaterialReviewPreview') : null;
 const ContributorPortal = named(() => import('./contributor/ContributorPortal'), 'ContributorPortal');
 const LandingPage = named(() => import('./creator/pages/LandingPage'), 'LandingPage');
 const JoinPage = named(() => import('./creator/pages/JoinPage'), 'JoinPage');
@@ -187,6 +188,7 @@ function Routed() {
   const access = useMemo(() => ({ contributor: user && contributorActive?.uid === user.uid ? contributorActive.active : null }), [user, contributorActive]);
 
   const content = (() => {
+    if (path === '/contributor/preview/material-review' && MaterialReviewPreview) return <Suspense fallback={<FullPageLoader />}><MaterialReviewPreview /></Suspense>;
     if (path === '/contributor/preview/corpus' && KnowledgePreview) return <Suspense fallback={<FullPageLoader />}><KnowledgePreview /></Suspense>;
     if ((path === '/contributor/preview' || path.startsWith('/contributor/preview/')) && ContributorPreview) {
       return <Suspense fallback={<FullPageLoader />}><ContributorPreview /></Suspense>;

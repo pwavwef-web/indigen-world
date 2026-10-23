@@ -67,7 +67,7 @@ export function RouterProvider({ children }: { children: ReactNode }) {
     const samePage = next.path === shownPath.current;
     const apply = () => {
       flushSync(() => setLocation(next));
-      window.scrollTo({ top: 0, behavior: 'auto' });
+      if (!samePage) window.scrollTo({ top: 0, behavior: 'auto' });
     };
     if (samePage) apply();
     else withViewTransition(apply);

@@ -89,6 +89,7 @@ export function AppShell({ workspace, nav, title, trail, primary, account, onSig
   const [online, setOnline] = useState(() => navigator.onLine);
   const navRef = useRef<HTMLElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
+  const restoreMenu = useRef(false);
   const sidebar = useRef<HTMLElement>(null);
   const previousPath = useRef(path);
   const meta = WORKSPACES[workspace];
@@ -133,8 +134,14 @@ export function AppShell({ workspace, nav, title, trail, primary, account, onSig
     first?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        restoreMenu.current = true;
         setOpen(false);
-        menuButton.current?.focus();
+      }
+      if (event.key === 'Tab') {
+        const nodes = [...sidebar.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, select') ?? []].filter(node => node.getClientRects().length);
+        const first = nodes[0], last = nodes.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
       }
     };
     document.addEventListener('keydown', onKey);
@@ -142,6 +149,7 @@ export function AppShell({ workspace, nav, title, trail, primary, account, onSig
       body?.removeAttribute('inert');
       dock?.removeAttribute('inert');
       document.removeEventListener('keydown', onKey);
+      if (restoreMenu.current) { restoreMenu.current = false; menuButton.current?.focus(); }
     };
   }, [open, desktop]);
 
@@ -172,7 +180,7 @@ export function AppShell({ workspace, nav, title, trail, primary, account, onSig
       <div className="ts-ambient" aria-hidden="true" />
       <a href="#main-content" className="ts-skip">Skip to workspace content</a>
 
-      {open && !desktop ? <button type="button" className="ts-scrim" aria-label="Close navigation" onClick={() => setOpen(false)} /> : null}
+      {open && !desktop ? <button type="button" className="ts-scrim" aria-label="Close navigation" onClick={() => { restoreMenu.current = true; setOpen(false); }} /> : null}
 
       <aside
         ref={sidebar}
@@ -183,14 +191,14 @@ export function AppShell({ workspace, nav, title, trail, primary, account, onSig
         inert={!desktop && !open ? true : undefined}
       >
         <div className="ts-row ts-row--between">
-          <Link to={meta.home} className="ts-brand" aria-label={`TribeStudio · ${meta.name} home`}>
+          <Link to={meta.home} className="ts-brand" aria-label={`${workspace === 'contribute' ? 'Indigen World' : 'TribeStudio'} · ${meta.name} home`}>
             <BrandMark size="2.4rem" live />
             <span className="ts-brand__copy">
-              <span className="ts-brand__name">TribeStudio</span>
+              <span className="ts-brand__name">{workspace === 'contribute' ? 'indigen world' : 'TribeStudio'}</span>
               <span className="ts-brand__sub">{meta.name}</span>
             </span>
           </Link>
-          {!desktop ? <IconButton icon="close" label="Close navigation" onClick={() => { setOpen(false); menuButton.current?.focus(); }} /> : null}
+          {!desktop ? <IconButton icon="close" label="Close navigation" onClick={() => { restoreMenu.current = true; setOpen(false); }} /> : null}
         </div>
 
         <div className="ts-switcher" role="navigation" aria-label="Workspaces">
@@ -216,7 +224,7 @@ export function AppShell({ workspace, nav, title, trail, primary, account, onSig
           {indicator ? <span className="ts-nav__indicator" style={indicator} aria-hidden="true" /> : null}
           {groups.map((group) => (
             <div key={group} className="ts-nav__group">
-              <p className="ts-nav__heading">{group}</p>
+              {group ? <p className="ts-nav__heading">{group}</p> : null}
               {nav.filter((item) => item.group === group).map((item) => (
                 <Link
                   key={item.to + item.label}
@@ -255,7 +263,7 @@ export function AppShell({ workspace, nav, title, trail, primary, account, onSig
       <div className="ts-body">
         <header className="ts-topbar">
           <div className="ts-topbar__card">
-            <IconButton ref={menuButton} icon="menu" label="Open navigation" className="ts-topbar__menu" aria-expanded={open} onClick={() => setOpen(true)} />
+            <IconButton ref={menuButton} icon="menu" label="Open navigation menu" className="ts-topbar__menu" aria-expanded={open} onClick={() => setOpen(true)} />
             <div className="ts-topbar__where">
               <span className="ts-topbar__kicker"><i aria-hidden="true" />{meta.name}</span>
               <span className="ts-topbar__title" key={pageTitle}>{pageTitle}</span>
