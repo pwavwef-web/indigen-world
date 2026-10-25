@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/core/share_text.dart';
 import 'package:indigen_world_mobile/features/ads/admob_native.dart';
 import 'package:indigen_world_mobile/features/ads/collection_ads.dart';
 import 'package:indigen_world_mobile/features/ads/data/served_ad.dart';
@@ -14,6 +15,7 @@ import 'package:indigen_world_mobile/features/collection/discovery_session.dart'
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/collection/illustrated_document_screen.dart';
 import 'package:indigen_world_mobile/features/collection/literature_categories.dart';
+import 'package:indigen_world_mobile/features/collection/reading_preferences.dart';
 import 'package:indigen_world_mobile/features/collection/widgets/collection_card_surface.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
@@ -777,7 +779,7 @@ class _PublishedCollectionCard extends StatelessWidget {
   }
 }
 
-class CollectionItemDetailScreen extends StatelessWidget {
+class CollectionItemDetailScreen extends ConsumerStatefulWidget {
   const CollectionItemDetailScreen({
     required this.item,
     required this.kind,
@@ -788,87 +790,199 @@ class CollectionItemDetailScreen extends StatelessWidget {
   final CollectionKind kind;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(kind.label)),
-    body: ScreenContainer(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 42),
-        children: [
-          // Audio is handed to the shared player; only video still gets a
-          // controller of its own here. A song that played from this screen
-          // died the moment somebody navigated away from it, which is the
-          // whole reason the music player exists.
-          if (_playsAsMusic(item, kind))
-            _CollectionAudioHeader(item: item, kind: kind)
-          else
-            _CollectionMedia(item: item, kind: kind),
-          const SizedBox(height: 22),
-          Text(
-            item.category.isEmpty
-                ? 'PUBLISHED ${kind.label.toUpperCase()}'
-                : item.category.toUpperCase(),
-            style: TextStyle(
-              color: context.brand.terracotta,
-              fontWeight: FontWeight.w900,
-              fontSize: 10,
-              letterSpacing: 1.1,
+  ConsumerState<CollectionItemDetailScreen> createState() =>
+      _CollectionItemDetailScreenState();
+}
+
+/// The page for one published work, with a reading size and — on a long
+/// work — the place it was left at.
+class _CollectionItemDetailScreenState
+    extends ConsumerState<CollectionItemDetailScreen> {
+  final _scroll = ScrollController();
+
+  PublishedReel get item => widget.item;
+  CollectionKind get kind => widget.kind;
+
+  /// Whether this work is long enough to come back to the middle of.
+  bool get _keepsPlace =>
+      item.body.length + item.englishSummary.length >=
+      readingPlaceMinimumLength;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_keepsPlace) unawaited(_returnToPlace());
+  }
+
+  Future<void> _returnToPlace() async {
+    final offset = await readingPlaceOf(item.id);
+    if (offset == null || offset < 200 || !mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scroll.hasClients) return;
+      _scroll.jumpTo(offset.clamp(0, _scroll.position.maxScrollExtent));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Back where you left off.'),
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'From the top',
+              onPressed: () => _scroll.jumpTo(0),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(item.title, style: Theme.of(context).textTheme.headlineMedium),
-          if (item.isDocument) ...[
-            const SizedBox(height: 16),
-            if (item.documentPageUrls.isNotEmpty)
-              FilledButton.icon(
-                icon: const Icon(Icons.auto_stories_outlined),
-                label: const Text('Read illustrated story'),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => IllustratedDocumentScreen(item: item),
-                  ),
-                ),
-              ),
-            if (item.mediaUrl?.isNotEmpty ?? false)
-              OutlinedButton.icon(
-                icon: const Icon(Icons.open_in_new),
-                label: const Text('Open document'),
-                onPressed: () => openPublishedDocument(context, item.mediaUrl),
-              ),
-          ],
-          const SizedBox(height: 8),
-          Text(
-            'By ${item.creatorName}',
-            style: TextStyle(
-              color: context.brand.accent,
-              fontWeight: FontWeight.w800,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    if (_keepsPlace && _scroll.hasClients) {
+      unawaited(saveReadingPlace(item.id, _scroll.offset));
+    }
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = ref.watch(readingScaleProvider);
+    final reading = ref.read(readingScaleProvider.notifier);
+    final hasText =
+        item.body.isNotEmpty ||
+        item.englishSummary.isNotEmpty ||
+        item.description.isNotEmpty;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(kind.label),
+        actions: [
+          if (hasText) ...[
+            IconButton(
+              key: const Key('reading-smaller'),
+              tooltip: 'Smaller text',
+              onPressed: scale <= readingScales.first
+                  ? null
+                  : () => reading.step(larger: false),
+              icon: const Icon(Icons.text_decrease_rounded),
             ),
-          ),
-          if (item.description.isNotEmpty) ...[
-            const SizedBox(height: 22),
-            _DetailBlock(title: 'About', body: item.description),
+            IconButton(
+              key: const Key('reading-larger'),
+              tooltip: 'Larger text',
+              onPressed: scale >= readingScales.last
+                  ? null
+                  : () => reading.step(larger: true),
+              icon: const Icon(Icons.text_increase_rounded),
+            ),
           ],
-          if (item.body.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _DetailBlock(title: _bodyTitle, body: item.body),
-          ],
-          if (item.englishSummary.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _DetailBlock(title: 'English summary', body: item.englishSummary),
-          ],
-          if (item.culturalNotes.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _DetailBlock(title: 'Cultural context', body: item.culturalNotes),
-          ],
-          const SizedBox(height: 12),
-          _DetailBlock(
-            title: 'Publication and rights',
-            body: item.licenceDisplay.isEmpty
-                ? 'Published with permission through Indigen World.'
-                : item.licenceDisplay,
+          IconButton(
+            key: const Key('collection-share'),
+            tooltip: 'Share',
+            onPressed: () => shareText(
+              context,
+              collectionShareText(
+                title: item.title,
+                creator: item.creatorName,
+                kind: kind,
+              ),
+            ),
+            icon: const Icon(Icons.ios_share_rounded),
           ),
         ],
       ),
-    ),
+      body: ScreenContainer(child: _body(context, scale)),
+    );
+  }
+
+  Widget _body(BuildContext context, double scale) => ListView(
+    controller: _scroll,
+    padding: const EdgeInsets.fromLTRB(20, 12, 20, 42),
+    children: [
+      // Audio is handed to the shared player; only video still gets a
+      // controller of its own here. A song that played from this screen
+      // died the moment somebody navigated away from it, which is the
+      // whole reason the music player exists.
+      if (_playsAsMusic(item, kind))
+        _CollectionAudioHeader(item: item, kind: kind)
+      else
+        _CollectionMedia(item: item, kind: kind),
+      const SizedBox(height: 22),
+      Text(
+        item.category.isEmpty
+            ? 'PUBLISHED ${kind.label.toUpperCase()}'
+            : item.category.toUpperCase(),
+        style: TextStyle(
+          color: context.brand.terracotta,
+          fontWeight: FontWeight.w900,
+          fontSize: 10,
+          letterSpacing: 1.1,
+        ),
+      ),
+      const SizedBox(height: 8),
+      Text(item.title, style: Theme.of(context).textTheme.headlineMedium),
+      if (item.isDocument) ...[
+        const SizedBox(height: 16),
+        if (item.documentPageUrls.isNotEmpty)
+          FilledButton.icon(
+            icon: const Icon(Icons.auto_stories_outlined),
+            label: const Text('Read illustrated story'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => IllustratedDocumentScreen(item: item),
+              ),
+            ),
+          ),
+        if (item.mediaUrl?.isNotEmpty ?? false)
+          OutlinedButton.icon(
+            icon: const Icon(Icons.open_in_new),
+            label: const Text('Open document'),
+            onPressed: () => openPublishedDocument(context, item.mediaUrl),
+          ),
+      ],
+      const SizedBox(height: 8),
+      Text(
+        'By ${item.creatorName}',
+        style: TextStyle(
+          color: context.brand.accent,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      if (item.description.isNotEmpty) ...[
+        const SizedBox(height: 22),
+        _DetailBlock(title: 'About', body: item.description, scale: scale),
+      ],
+      if (item.body.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        _DetailBlock(
+          key: const Key('collection-body'),
+          title: _bodyTitle,
+          body: item.body,
+          scale: scale,
+        ),
+      ],
+      if (item.englishSummary.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        _DetailBlock(
+          title: 'English summary',
+          body: item.englishSummary,
+          scale: scale,
+        ),
+      ],
+      if (item.culturalNotes.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        _DetailBlock(
+          title: 'Cultural context',
+          body: item.culturalNotes,
+          scale: scale,
+        ),
+      ],
+      const SizedBox(height: 12),
+      _DetailBlock(
+        title: 'Publication and rights',
+        body: item.licenceDisplay.isEmpty
+            ? 'Published with permission through Indigen World.'
+            : item.licenceDisplay,
+      ),
+    ],
   );
 
   String get _bodyTitle => switch (kind) {
@@ -1192,10 +1306,19 @@ class _PlaybackUnavailable extends StatelessWidget {
 }
 
 class _DetailBlock extends StatelessWidget {
-  const _DetailBlock({required this.title, required this.body});
+  const _DetailBlock({
+    required this.title,
+    required this.body,
+    this.scale = 1,
+    super.key,
+  });
 
   final String title;
   final String body;
+
+  /// The reader's chosen size — see `reading_preferences.dart`. On top of the
+  /// phone's own text size, never instead of it.
+  final double scale;
 
   @override
   Widget build(BuildContext context) => CollectionCardSurface(
@@ -1205,7 +1328,10 @@ class _DetailBlock extends StatelessWidget {
       children: [
         Text(title, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        SelectableText(body, style: const TextStyle(height: 1.5)),
+        SelectableText(
+          body,
+          style: TextStyle(height: 1.5, fontSize: 14.5 * scale),
+        ),
       ],
     ),
   );

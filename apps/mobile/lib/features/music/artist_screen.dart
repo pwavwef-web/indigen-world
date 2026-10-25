@@ -112,6 +112,7 @@ class MusicArtistScreen extends ConsumerWidget {
                     index: index,
                     child: MusicTrackRow(
                       item: tracks[index],
+                      kind: kind,
                       leadingNumber: index + 1,
                       accent: brand.isDark ? null : color,
                       onPlay: () => controller.playCollection(

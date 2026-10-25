@@ -21,6 +21,7 @@ import 'package:indigen_world_mobile/features/downloads/downloads_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_creation_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_library_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_screen.dart';
+import 'package:indigen_world_mobile/features/learn/practice/review_words_screen.dart';
 import 'package:indigen_world_mobile/features/music/music_screen.dart';
 import 'package:indigen_world_mobile/features/music/now_playing_screen.dart';
 import 'package:indigen_world_mobile/features/music/widgets/mini_player.dart';
@@ -94,6 +95,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/compose',
         builder: (context, state) => const ComposeFromShortcut(),
+      ),
+      // Where the daily practice reminder lands: straight into today's review,
+      // the five minutes it asked for.
+      GoRoute(
+        path: '/learn/review',
+        builder: (context, state) => const ReviewWordsScreen(),
       ),
       // Push deep links land on these two.
       GoRoute(

@@ -13,6 +13,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/brand_theme_choice.dart';
 import 'package:indigen_world_mobile/core/brand_themes.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
+import 'package:indigen_world_mobile/core/media_cache.dart';
 import 'package:indigen_world_mobile/core/media_preferences.dart';
 import 'package:indigen_world_mobile/core/theme_mode.dart';
 import 'package:indigen_world_mobile/features/ads/ad_consent.dart';
@@ -35,6 +36,7 @@ import 'package:indigen_world_mobile/features/settings/developer_options.dart';
 import 'package:indigen_world_mobile/features/settings/kasem_keyboard_screen.dart';
 import 'package:indigen_world_mobile/features/settings/licences_screen.dart';
 import 'package:indigen_world_mobile/features/settings/policy_screen.dart';
+import 'package:indigen_world_mobile/features/settings/privacy_controls_screen.dart';
 import 'package:indigen_world_mobile/features/settings/settings_widgets.dart';
 import 'package:indigen_world_mobile/features/settings/theme_picker_screen.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
@@ -76,6 +78,47 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// Taps on the version row towards [kDeveloperOptionsTaps].
   var _versionTaps = 0;
+
+  /// How much the re-fetchable media takes on this phone, once counted.
+  int? _cacheBytes;
+  var _clearingCache = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_countCache());
+  }
+
+  Future<void> _countCache() async {
+    try {
+      final bytes = await cachedMediaBytes();
+      if (mounted) setState(() => _cacheBytes = bytes);
+    } on Object {
+      // Unknown size: the row still offers to clear.
+    }
+  }
+
+  Future<void> _clearCache() async {
+    final confirmed = await showGlassConfirm(
+      context: context,
+      title: 'Clear cached pictures?',
+      message:
+          'Covers, avatars and artwork this phone kept are removed and fetched '
+          'again when you next see them. Downloads and drafts are not touched.',
+      confirmLabel: 'Clear',
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _clearingCache = true);
+    try {
+      await clearCachedMedia();
+      if (mounted) _message('Cached pictures cleared.');
+    } on Object {
+      if (mounted) _message('Could not clear everything. Try again.');
+    } finally {
+      if (mounted) setState(() => _clearingCache = false);
+      await _countCache();
+    }
+  }
 
   /// Copies the version, which is what anybody reporting a problem needs, and
   /// counts towards turning on the team's details in a production build.
@@ -376,6 +419,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         const PolicyScreen(document: PolicyDocument.privacy),
                   ),
                 ),
+              ),
+              SettingsRow(
+                key: const Key('settings-privacy-controls'),
+                icon: Icons.block_rounded,
+                title: 'Blocked, muted and read receipts',
+                subtitle:
+                    'Undo a block or a mute, and choose whether '
+                    'messages say “Seen”',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (context) => const PrivacyControlsScreen(),
+                  ),
+                ),
+              ),
+              SettingsRow(
+                key: const Key('settings-storage'),
+                icon: Icons.cleaning_services_outlined,
+                title: 'Cached pictures on this phone',
+                subtitle: _clearingCache
+                    ? 'Clearing…'
+                    : _cacheBytes == null
+                    ? 'Clear covers and artwork kept for speed'
+                    : '${formatBytes(_cacheBytes!)} · tap to clear. Downloads '
+                          'stay.',
+                enabled: !_clearingCache,
+                onTap: _clearCache,
               ),
               if (ref.watch(adConsentProvider).privacyOptionsRequired)
                 SettingsRow(

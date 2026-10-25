@@ -14,6 +14,8 @@ import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart'
 import 'package:indigen_world_mobile/features/downloads/widgets/downloads_orb_action.dart';
 import 'package:indigen_world_mobile/features/explore/explore_screen.dart';
 import 'package:indigen_world_mobile/features/learn/learn_screen.dart';
+import 'package:indigen_world_mobile/features/learn/practice_reminder.dart';
+import 'package:indigen_world_mobile/features/music/music_likes.dart';
 import 'package:indigen_world_mobile/features/music/widgets/music_widgets.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
@@ -210,6 +212,11 @@ class _AppShellState extends ConsumerState<AppShell>
     // concern for the same reason as the two above — it has to happen
     // whichever tab the member signs in from.
     ref.watch(savedWordsSyncProvider);
+    // Liked songs follow the account the same way, by the same rule.
+    ref.watch(likedSongsSyncProvider);
+    // The daily practice reminder: rebuilt from here so a launch, a kept day
+    // or a changed time all leave the right week of reminders on the phone.
+    ref.watch(practiceReminderSyncProvider);
     // A tapped push may arrive before any route can consume it, so it is parked
     // in a provider and routed from here once there is a router to route with.
     ref.listen<String?>(pendingPushRouteProvider, (_, route) {

@@ -2242,7 +2242,11 @@ service cloud.firestore {
         // to another phone. The app keeps the list to 2000; the rule holds it
         // there so an owner-writable document cannot grow without end.
         && request.resource.data.get('savedWordIds', []) is list
-        && request.resource.data.get('savedWordIds', []).size() <= 2000;
+        && request.resource.data.get('savedWordIds', []).size() <= 2000
+        // Liked songs follow the account beside the saved words, by the same
+        // rule. The app keeps the list to 1000.
+        && request.resource.data.get('likedSongIds', []) is list
+        && request.resource.data.get('likedSongIds', []).size() <= 1000;
       allow delete: if isOwner(uid);
     }
 

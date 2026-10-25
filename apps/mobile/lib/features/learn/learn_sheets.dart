@@ -6,6 +6,7 @@ import 'package:indigen_world_mobile/features/contribute/leaderboard/contributor
 import 'package:indigen_world_mobile/features/learn/learn_calendar.dart';
 import 'package:indigen_world_mobile/features/learn/learn_catalog.dart';
 import 'package:indigen_world_mobile/features/learn/learn_progress.dart';
+import 'package:indigen_world_mobile/features/learn/practice_reminder_row.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
@@ -233,6 +234,11 @@ Future<bool?> showDailyGoalSheet(BuildContext context) => showGlassPopup<bool>(
             icon: const Icon(Icons.play_arrow_rounded),
             label: Text(met ? 'Keep going' : 'Continue learning'),
           ),
+          // Below the way on, not above it: a setting to change now and then
+          // must not push today's lesson off a short screen.
+          const SizedBox(height: 10),
+          Divider(color: brand.divider),
+          const PracticeReminderRow(),
         ],
       );
     },

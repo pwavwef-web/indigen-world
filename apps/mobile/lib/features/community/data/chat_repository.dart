@@ -70,6 +70,8 @@ class ChatThread {
     this.lastMessage = '',
     this.lastSenderId = '',
     this.lastMessageAt,
+    this.muted = false,
+    this.otherReadAt,
   });
 
   final String id;
@@ -79,7 +81,25 @@ class ChatThread {
   final DateTime? lastMessageAt;
   final int unreadCount;
 
+  /// Whether the reader has silenced this conversation's alerts. The fan-out
+  /// reads the same `mutedBy` list and sends them nothing for it.
+  final bool muted;
+
+  /// When the *other* member last had this conversation open, if they share
+  /// read receipts — what "Seen" is worked out from.
+  final DateTime? otherReadAt;
+
   bool get hasUnread => unreadCount > 0;
+
+  /// Whether the inbox filter [query] matches this conversation: the other
+  /// member's name or handle, or the last thing said.
+  bool matches(String query) {
+    final needle = query.trim().toLowerCase();
+    if (needle.isEmpty) return true;
+    return other.displayName.toLowerCase().contains(needle) ||
+        other.username.toLowerCase().contains(needle.replaceFirst('@', '')) ||
+        lastMessage.toLowerCase().contains(needle);
+  }
 
   /// Reads a thread from any snapshot — an inbox row or a single document
   /// fetched by id, which is all a deep link from a push has to go on.
@@ -100,6 +120,9 @@ class ChatThread {
     final profiles = data['participantProfiles'];
     final rawUnread = data['unread'];
     final unread = rawUnread is Map ? rawUnread[myUid] : null;
+    final mutedBy = data['mutedBy'];
+    final readAt = data['readAt'];
+    final otherRead = readAt is Map ? readAt[otherUid] : null;
     return ChatThread(
       id: doc.id,
       other: ChatParticipant.fromMap(
@@ -110,8 +133,61 @@ class ChatThread {
       lastSenderId: (data['lastSenderId'] as String?) ?? '',
       lastMessageAt: (data['lastMessageAt'] as Timestamp?)?.toDate(),
       unreadCount: unread is num ? unread.toInt() : 0,
+      muted: mutedBy is List && mutedBy.contains(myUid),
+      otherReadAt: otherRead is Timestamp ? otherRead.toDate() : null,
     );
   }
+}
+
+/// The message a reply answers, as stamped on the reply.
+///
+/// A copy of a few words rather than a pointer alone, because the original may
+/// be further back than the conversation has loaded — or withdrawn since — and
+/// the reply should still say what it was answering.
+class ChatReplyRef {
+  const ChatReplyRef({
+    required this.messageId,
+    required this.senderId,
+    required this.excerpt,
+  });
+
+  /// The longest excerpt kept. Enough to recognise a message by, not to
+  /// re-send it.
+  static const maxExcerpt = 140;
+
+  final String messageId;
+  final String senderId;
+  final String excerpt;
+
+  /// [text] cut to [maxExcerpt] characters on one line, with an ellipsis when
+  /// anything was cut.
+  static String excerptOf(String text) {
+    final flat = text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final runes = flat.runes.toList();
+    if (runes.length <= maxExcerpt) return flat;
+    return '${String.fromCharCodes(runes.take(maxExcerpt - 1)).trimRight()}…';
+  }
+
+  static ChatReplyRef of(ChatMessage message) => ChatReplyRef(
+    messageId: message.id,
+    senderId: message.senderId,
+    excerpt: excerptOf(message.text),
+  );
+
+  static ChatReplyRef? fromMap(Object? raw) {
+    if (raw is! Map) return null;
+    final id = raw['id'];
+    final sender = raw['senderId'];
+    final excerpt = raw['excerpt'];
+    if (id is! String || sender is! String || excerpt is! String) return null;
+    return ChatReplyRef(messageId: id, senderId: sender, excerpt: excerpt);
+  }
+
+  Map<String, Object?> toMap() => {
+    'id': messageId,
+    'senderId': senderId,
+    'excerpt': excerpt,
+  };
 }
 
 /// One message in a thread.
@@ -121,12 +197,16 @@ class ChatMessage {
     required this.senderId,
     required this.text,
     this.createdAt,
+    this.replyTo,
   });
 
   final String id;
   final String senderId;
   final String text;
   final DateTime? createdAt;
+
+  /// The message this one answers, when it was sent as a reply.
+  final ChatReplyRef? replyTo;
 
   static ChatMessage? fromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
@@ -138,6 +218,7 @@ class ChatMessage {
       senderId: senderId,
       text: text,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+      replyTo: ChatReplyRef.fromMap(data['replyTo']),
     );
   }
 }
@@ -193,6 +274,47 @@ class ChatRepository {
         threads.fold<int>(0, (total, thread) => total + thread.unreadCount),
   );
 
+  /// One conversation's own document — whether it is muted, and how far the
+  /// other side has read.
+  Stream<ChatThread?> watchThread(String threadId, String uid) => _chats
+      .doc(threadId)
+      .snapshots()
+      .map((doc) => ChatThread.fromDoc(doc, uid));
+
+  /// The [messagePageSize] messages before [oldest], newest first — what
+  /// "Load earlier messages" adds under the live window.
+  Future<List<ChatMessage>> loadEarlier({
+    required String threadId,
+    required ChatMessage oldest,
+  }) async {
+    final createdAt = oldest.createdAt;
+    if (createdAt == null) return const <ChatMessage>[];
+    final snapshot = await _chats
+        .doc(threadId)
+        .collection('messages')
+        .orderBy('createdAt', descending: true)
+        .startAfter([Timestamp.fromDate(createdAt)])
+        .limit(messagePageSize)
+        .get();
+    return snapshot.docs
+        .map(ChatMessage.fromDoc)
+        .whereType<ChatMessage>()
+        .toList(growable: false);
+  }
+
+  /// Silences this conversation's alerts for [uid], or lets them through
+  /// again. Only the reader's own place in `mutedBy` changes — the rules hold
+  /// it there.
+  Future<void> setMuted({
+    required String threadId,
+    required String uid,
+    required bool muted,
+  }) => _chats.doc(threadId).update({
+    'mutedBy': muted
+        ? FieldValue.arrayUnion([uid])
+        : FieldValue.arrayRemove([uid]),
+  });
+
   Stream<List<ChatMessage>> watchMessages(String threadId) => _chats
       .doc(threadId)
       .collection('messages')
@@ -239,6 +361,7 @@ class ChatRepository {
     required CommunityProfile sender,
     required String recipientId,
     required String text,
+    ChatReplyRef? replyTo,
   }) async {
     final body = text.trim();
     if (body.isEmpty) return;
@@ -251,6 +374,7 @@ class ChatRepository {
         'senderId': sender.uid,
         'text': trimmed,
         'createdAt': FieldValue.serverTimestamp(),
+        'replyTo': ?replyTo?.toMap(),
       })
       ..update(doc, {
         'lastMessage': trimmed,
@@ -323,9 +447,18 @@ class ChatRepository {
     }
   }
 
-  Future<void> markRead({required String threadId, required String uid}) async {
+  /// With [receipts], also stamps when this member read, which is what the
+  /// other side's "Seen" is worked out from. Without, only the count clears.
+  Future<void> markRead({
+    required String threadId,
+    required String uid,
+    bool receipts = false,
+  }) async {
     try {
-      await _chats.doc(threadId).update({'unread.$uid': 0});
+      await _chats.doc(threadId).update({
+        'unread.$uid': 0,
+        if (receipts) 'readAt.$uid': FieldValue.serverTimestamp(),
+      });
     } on FirebaseException {
       // The thread may not exist yet, which means there is nothing to clear.
     }

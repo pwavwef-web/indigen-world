@@ -85,8 +85,8 @@ final savedWordsCloudProvider = Provider<SavedWordsCloud?>((ref) {
 ///
 /// [syncedUid] is the account the phone last reconciled with, or null if it
 /// never has — in which case its words were saved as a guest and are the
-/// member's to bring with them.
-@visibleForTesting
+/// member's to bring with them. Liked songs follow the same rule through this
+/// same function — see `music_likes.dart`.
 ({Set<String> ids, bool writeCloud}) reconcileSavedWords({
   required String uid,
   required Set<String> local,

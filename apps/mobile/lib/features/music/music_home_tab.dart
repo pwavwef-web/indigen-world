@@ -13,6 +13,7 @@ import 'package:indigen_world_mobile/features/music/artist_screen.dart';
 import 'package:indigen_world_mobile/features/music/music_controller.dart';
 import 'package:indigen_world_mobile/features/music/music_library.dart';
 import 'package:indigen_world_mobile/features/music/music_list_screen.dart';
+import 'package:indigen_world_mobile/features/music/music_places.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/features/music/music_recent.dart';
 import 'package:indigen_world_mobile/features/music/music_tint.dart';
@@ -107,6 +108,10 @@ class MusicHomeTab extends ConsumerWidget {
     final controller = ref.read(musicControllerProvider.notifier);
     final artists = ref.watch(musicArtistsProvider(kind));
     final recent = resolveRecent(ref.watch(recentlyPlayedProvider), items);
+    // Books only: a song has no "place" worth going back to.
+    final started = kind == CollectionKind.audiobooks
+        ? continueListening(ref.watch(audiobookPlacesProvider), items)
+        : const <({PublishedReel item, AudiobookPlace place})>[];
     final newest = newestFirst(items);
     final categories = musicCategories(items);
 
@@ -121,6 +126,34 @@ class MusicHomeTab extends ConsumerWidget {
     );
 
     return [
+      // A book half-read is the strongest reason anybody opens this channel,
+      // so it comes before everything — each one going back to its own place.
+      if (started.isNotEmpty) ...[
+        const SliverToBoxAdapter(
+          child: MusicSectionHeader(
+            title: 'Continue listening',
+            eyebrow: 'Where you left each book',
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: _Shelf(
+            height: 218,
+            children: [
+              for (final (index, book) in started.indexed)
+                Entrance(
+                  index: index,
+                  child: MusicShelfCard(
+                    key: ValueKey('continue-${book.item.id}'),
+                    item: book.item,
+                    progress: book.place.progress,
+                    onPlay: () => play(items, items.indexOf(book.item)),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+
       // What they came back for, first.
       if (recent.isNotEmpty) ...[
         const SliverToBoxAdapter(
@@ -233,6 +266,7 @@ class MusicHomeTab extends ConsumerWidget {
       ),
       _TrackRows(
         items: items,
+        kind: kind,
         accent: accent,
         inventory: ref.watch(collectionInventoryProvider),
         onPlay: (index) => play(items, index),
@@ -865,12 +899,14 @@ class MusicCategoryTile extends StatelessWidget {
 class _TrackRows extends StatelessWidget {
   const _TrackRows({
     required this.items,
+    required this.kind,
     required this.accent,
     required this.inventory,
     required this.onPlay,
   });
 
   final List<PublishedReel> items;
+  final CollectionKind kind;
   final Color accent;
   final AdPlacementInventory inventory;
   final ValueChanged<int> onPlay;
@@ -898,6 +934,7 @@ class _TrackRows extends StatelessWidget {
           index: row,
           child: MusicTrackRow(
             item: items[index],
+            kind: kind,
             accent: accent,
             onPlay: () => onPlay(index),
           ),

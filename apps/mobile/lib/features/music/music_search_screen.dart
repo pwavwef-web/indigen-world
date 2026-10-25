@@ -110,6 +110,7 @@ class _MusicSearchScreenState extends ConsumerState<MusicSearchScreen> {
             itemCount: results.tracks.length,
             itemBuilder: (context, index) => MusicTrackRow(
               item: results.tracks[index],
+              kind: kind,
               accent: accent,
               // The queue is the result list, so playing the third result and
               // letting it run plays the rest of what was searched for rather

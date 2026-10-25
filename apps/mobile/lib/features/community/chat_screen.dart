@@ -13,8 +13,10 @@ import 'package:indigen_world_mobile/features/community/data/community_models.da
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
+import 'package:indigen_world_mobile/features/dictionary/kasem_key_bar.dart';
 import 'package:indigen_world_mobile/features/notifications/local_alerts.dart';
 import 'package:indigen_world_mobile/features/notifications/push_nudge.dart';
+import 'package:indigen_world_mobile/features/settings/kasem_keyboard_toggle.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
 /// Opens the conversation with [profile], creating the thread on first use.
@@ -77,7 +79,20 @@ class ChatScreen extends ConsumerStatefulWidget {
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _controller = TextEditingController();
+  final _focus = FocusNode();
+  final _scroll = ScrollController();
   var _sending = false;
+
+  /// The message the next one answers, while the reply bar is up.
+  ChatReplyRef? _replyingTo;
+
+  /// Messages older than the live window, loaded on request, newest first.
+  final _earlier = <ChatMessage>[];
+  var _loadingEarlier = false;
+  var _noMoreEarlier = false;
+
+  /// One key per drawn message, so tapping a quote can find its original.
+  final _messageKeys = <String, GlobalKey>{};
 
   /// Writes the draft a moment after typing stops, rather than on every key.
   Timer? _draftSave;
@@ -138,6 +153,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _controller
       ..removeListener(_scheduleDraftSave)
       ..dispose();
+    _focus.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -145,7 +162,85 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final uid = ref.read(currentUidProvider);
     final repository = ref.read(chatRepositoryProvider);
     if (uid == null || repository == null) return;
-    await repository.markRead(threadId: widget.threadId, uid: uid);
+    await repository.markRead(
+      threadId: widget.threadId,
+      uid: uid,
+      receipts: ref.read(chatReadReceiptsProvider),
+    );
+  }
+
+  /// Fetches the page before the oldest message on screen.
+  Future<void> _loadEarlier(ChatMessage oldest) async {
+    final repository = ref.read(chatRepositoryProvider);
+    if (repository == null || _loadingEarlier) return;
+    setState(() => _loadingEarlier = true);
+    try {
+      final page = await repository.loadEarlier(
+        threadId: widget.threadId,
+        oldest: oldest,
+      );
+      if (!mounted) return;
+      setState(() {
+        _earlier.addAll(page);
+        _noMoreEarlier = page.length < ChatRepository.messagePageSize;
+      });
+    } on Object {
+      if (mounted) showGlassToast(context, 'Earlier messages did not load.');
+    } finally {
+      if (mounted) setState(() => _loadingEarlier = false);
+    }
+  }
+
+  void _replyTo(ChatMessage message) {
+    HapticFeedback.selectionClick();
+    setState(() => _replyingTo = ChatReplyRef.of(message));
+    _focus.requestFocus();
+  }
+
+  /// Brings the message a quote points at into view, when it is loaded.
+  Future<void> _showOriginal(ChatReplyRef reply, List<ChatMessage> all) async {
+    final index = all.indexWhere((message) => message.id == reply.messageId);
+    if (index < 0) {
+      showGlassToast(context, 'That message is further back, or was deleted.');
+      return;
+    }
+    BuildContext? target() => _messageKeys[reply.messageId]?.currentContext;
+    if (target() == null && _scroll.hasClients) {
+      // Not built yet: jump near where it sits, then let the list build it.
+      _scroll.jumpTo((index * 72.0).clamp(0, _scroll.position.maxScrollExtent));
+      await WidgetsBinding.instance.endOfFrame;
+    }
+    final found = target();
+    if (found != null && found.mounted) {
+      await Scrollable.ensureVisible(
+        found,
+        alignment: 0.5,
+        duration: const Duration(milliseconds: 260),
+      );
+    }
+  }
+
+  Future<void> _toggleMuted(bool muted) async {
+    final uid = ref.read(currentUidProvider);
+    final repository = ref.read(chatRepositoryProvider);
+    if (uid == null || repository == null) return;
+    try {
+      await repository.setMuted(
+        threadId: widget.threadId,
+        uid: uid,
+        muted: !muted,
+      );
+      if (mounted) {
+        showGlassToast(
+          context,
+          muted
+              ? 'Alerts are back on for this conversation.'
+              : 'Muted. Messages still arrive, without alerts.',
+        );
+      }
+    } on Object {
+      if (mounted) showGlassToast(context, 'Could not change that. Try again.');
+    }
   }
 
   Future<void> _send() async {
@@ -166,12 +261,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         sender: me,
         recipientId: widget.otherUid,
         text: body,
+        replyTo: _replyingTo,
       );
       sent = true;
       _draftSave?.cancel();
       unawaited(_drafts.clear(widget.threadId));
       if (!mounted) return;
       _controller.clear();
+      setState(() => _replyingTo = null);
       HapticFeedback.lightImpact();
     } on Object {
       if (mounted) showGlassToast(context, 'Message not sent. Try again.');
@@ -208,6 +305,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
+              key: const Key('chat-menu-reply'),
+              leading: const Icon(Icons.reply_rounded),
+              title: const Text('Reply'),
+              onTap: () => Navigator.pop(sheet, 'reply'),
+            ),
+            ListTile(
               leading: const Icon(Icons.copy_rounded),
               title: const Text('Copy text'),
               onTap: () => Navigator.pop(sheet, 'copy'),
@@ -227,6 +330,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
     if (!mounted) return;
     switch (choice) {
+      case 'reply':
+        _replyTo(message);
       case 'copy':
         await Clipboard.setData(ClipboardData(text: message.text));
         if (mounted) showGlassToast(context, 'Message copied');
@@ -270,6 +375,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     // Arriving messages clear the badge while the thread is open, so a reply
     // that lands under the reader's eyes is not still counted as unread.
     ref.listen(chatMessagesProvider(widget.threadId), (_, _) => _markRead());
+    final thread = ref.watch(chatThreadLiveProvider(widget.threadId));
+    final muted = thread.asData?.value?.muted ?? false;
+    final receipts = ref.watch(chatReadReceiptsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -301,9 +409,43 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ),
                 ),
               ),
+              if (muted)
+                Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: Icon(
+                    Icons.notifications_off_outlined,
+                    key: const Key('chat-muted-icon'),
+                    size: 18,
+                    color: context.brand.mutedInk,
+                  ),
+                ),
             ],
           ),
         ),
+        actions: [
+          PopupMenuButton<String>(
+            key: const Key('chat-menu'),
+            tooltip: 'Conversation options',
+            onSelected: (choice) {
+              if (choice == 'mute') unawaited(_toggleMuted(muted));
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                key: const Key('chat-menu-mute'),
+                value: 'mute',
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    muted
+                        ? Icons.notifications_active_outlined
+                        : Icons.notifications_off_outlined,
+                  ),
+                  title: Text(muted ? 'Unmute alerts' : 'Mute alerts'),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -317,21 +459,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       'This conversation is private — only the two of you can '
                       'read it.',
                 ),
-              AsyncValue(:final value?) => ListView.builder(
-                // Newest first from Firestore, so the list is reversed and the
-                // thread opens at the most recent message without a scroll.
-                reverse: true,
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
-                itemCount: value.length,
-                itemBuilder: (context, index) {
-                  final message = value[index];
-                  final mine = message.senderId == myUid;
-                  return _MessageBubble(
-                    message: message,
-                    mine: mine,
-                    onLongPress: () => _messageMenu(message, mine: mine),
-                  );
-                },
+              AsyncValue(:final value?) => _messageList(
+                // The live window, then anything older that was asked for.
+                [
+                  ...value,
+                  ..._earlier.where(
+                    (old) => !value.any((live) => live.id == old.id),
+                  ),
+                ],
+                liveCount: value.length,
+                myUid: myUid,
+                otherReadAt: receipts
+                    ? thread.asData?.value?.otherReadAt
+                    : null,
               ),
               AsyncValue(hasError: true) => const CommunityEmptyState(
                 icon: Icons.cloud_off_rounded,
@@ -341,6 +481,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               _ => const Center(child: CircularProgressIndicator()),
             },
           ),
+          if (_replyingTo case final reply?)
+            _ReplyBar(
+              reply: reply,
+              toSelf: reply.senderId == myUid,
+              otherName: name,
+              onCancel: () => setState(() => _replyingTo = null),
+            ),
+          // The letters a phone keyboard has no key for, while the box has the
+          // cursor — people write each other Kasem here more than anywhere.
+          KasemKeyBar(targets: {_controller: _focus}),
+          KasemKeyboardToggle(targets: {_controller: _focus}),
           SafeArea(
             top: false,
             child: Padding(
@@ -350,7 +501,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 children: [
                   Expanded(
                     child: TextField(
+                      key: const Key('chat-composer'),
                       controller: _controller,
+                      focusNode: _focus,
                       minLines: 1,
                       maxLines: 5,
                       maxLength: ChatRepository.maxMessageLength,
@@ -389,6 +542,102 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
+  /// The conversation, newest at the bottom: day headings between days, a
+  /// "Seen" under the last thing you said once it has been read, and — past
+  /// the live window — the way to what came before.
+  Widget _messageList(
+    List<ChatMessage> all, {
+    required int liveCount,
+    required String? myUid,
+    required DateTime? otherReadAt,
+  }) {
+    // More can exist only once the live window is full; after that, until a
+    // page comes back short.
+    final mayHaveEarlier =
+        liveCount >= ChatRepository.messagePageSize && !_noMoreEarlier;
+    final newest = all.firstOrNull;
+    final seen =
+        newest != null &&
+        newest.senderId == myUid &&
+        chatMessageSeen(newestMine: newest, otherReadAt: otherReadAt);
+    final now = DateTime.now();
+    return ListView.builder(
+      key: const Key('chat-messages'),
+      controller: _scroll,
+      // Newest first from Firestore, so the list is reversed and the thread
+      // opens at the most recent message without a scroll.
+      reverse: true,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
+      itemCount: all.length + (mayHaveEarlier ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == all.length) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Center(
+              child: _loadingEarlier
+                  ? const SizedBox.square(
+                      dimension: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : OutlinedButton.icon(
+                      key: const Key('chat-load-earlier'),
+                      onPressed: () => _loadEarlier(all.last),
+                      icon: const Icon(Icons.history_rounded),
+                      label: const Text('Load earlier messages'),
+                    ),
+            ),
+          );
+        }
+        final message = all[index];
+        final mine = message.senderId == myUid;
+        final day = chatDayLabel(
+          message,
+          index + 1 < all.length ? all[index + 1] : null,
+          now: now,
+        );
+        final key = _messageKeys.putIfAbsent(message.id, GlobalKey.new);
+        return Column(
+          key: ValueKey('message-${message.id}'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (day != null) _DayDivider(label: day),
+            _SwipeToReply(
+              onReply: () => _replyTo(message),
+              child: _MessageBubble(
+                key: key,
+                message: message,
+                mine: mine,
+                replyAuthor: switch (message.replyTo?.senderId) {
+                  null => null,
+                  final sender when sender == myUid => 'You',
+                  _ => widget.otherName,
+                },
+                onQuoteTap: message.replyTo == null
+                    ? null
+                    : () => _showOriginal(message.replyTo!, all),
+                onLongPress: () => _messageMenu(message, mine: mine),
+              ),
+            ),
+            if (index == 0 && seen)
+              Padding(
+                padding: const EdgeInsets.only(right: 4, bottom: 4),
+                child: Text(
+                  'Seen',
+                  key: const Key('chat-seen'),
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: context.brand.mutedInk,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
   static String _initialsFor(String name) {
     final source = name.trim();
     if (source.isEmpty) return '·';
@@ -404,11 +653,18 @@ class _MessageBubble extends StatelessWidget {
   const _MessageBubble({
     required this.message,
     required this.mine,
+    this.replyAuthor,
+    this.onQuoteTap,
     this.onLongPress,
+    super.key,
   });
 
   final ChatMessage message;
   final bool mine;
+
+  /// Who wrote the message this one answers — "You" or their name.
+  final String? replyAuthor;
+  final VoidCallback? onQuoteTap;
   final VoidCallback? onLongPress;
 
   @override
@@ -437,6 +693,13 @@ class _MessageBubble extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  if (message.replyTo case final reply?)
+                    _Quote(
+                      author: replyAuthor ?? '',
+                      excerpt: reply.excerpt,
+                      onMine: mine,
+                      onTap: onQuoteTap,
+                    ),
                   Text(
                     message.text,
                     style: TextStyle(
@@ -459,6 +722,241 @@ class _MessageBubble extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// The message a reply answers, drawn inside the reply above its words.
+class _Quote extends StatelessWidget {
+  const _Quote({
+    required this.author,
+    required this.excerpt,
+    required this.onMine,
+    this.onTap,
+  });
+
+  final String author;
+  final String excerpt;
+
+  /// Drawn on the sender's coloured bubble rather than the plain one.
+  final bool onMine;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final ink = onMine ? Colors.white : brand.ink;
+    return Semantics(
+      button: onTap != null,
+      label: 'Replying to $author: $excerpt',
+      excludeSemantics: true,
+      child: GestureDetector(
+        key: const Key('chat-quote'),
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.fromLTRB(9, 6, 9, 6),
+          decoration: BoxDecoration(
+            color: onMine
+                ? Colors.white.withValues(alpha: 0.16)
+                : brand.surfaceMuted,
+            borderRadius: BorderRadius.circular(9),
+            border: Border(
+              left: BorderSide(
+                color: onMine ? Colors.white : brand.accent,
+                width: 3,
+              ),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (author.isNotEmpty)
+                Text(
+                  author,
+                  style: TextStyle(
+                    color: ink,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              Text(
+                excerpt,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: ink.withValues(alpha: 0.82),
+                  fontSize: 12.5,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Replying to …" above the composer, with the way out of it.
+class _ReplyBar extends StatelessWidget {
+  const _ReplyBar({
+    required this.reply,
+    required this.toSelf,
+    required this.otherName,
+    required this.onCancel,
+  });
+
+  final ChatReplyRef reply;
+  final bool toSelf;
+  final String otherName;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Container(
+      key: const Key('chat-reply-bar'),
+      padding: const EdgeInsets.fromLTRB(16, 8, 4, 6),
+      decoration: BoxDecoration(
+        color: brand.surface,
+        border: Border(top: BorderSide(color: brand.divider)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.reply_rounded, color: brand.accent, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  toSelf ? 'Replying to yourself' : 'Replying to $otherName',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: brand.accent,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  reply.excerpt,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: brand.mutedInk, fontSize: 12.5),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            key: const Key('chat-reply-cancel'),
+            tooltip: 'Cancel reply',
+            onPressed: onCancel,
+            icon: const Icon(Icons.close_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Today", "Yesterday", "Mon 20 Oct" between the days of a conversation.
+class _DayDivider extends StatelessWidget {
+  const _DayDivider({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: brand.divider)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: brand.mutedInk,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.4,
+              ),
+            ),
+          ),
+          Expanded(child: Divider(color: brand.divider)),
+        ],
+      ),
+    );
+  }
+}
+
+/// A message that follows the finger a little way right, and answers it with
+/// a reply once pulled far enough — the gesture every messaging app has taught.
+class _SwipeToReply extends StatefulWidget {
+  const _SwipeToReply({required this.onReply, required this.child});
+
+  final VoidCallback onReply;
+  final Widget child;
+
+  @override
+  State<_SwipeToReply> createState() => _SwipeToReplyState();
+}
+
+class _SwipeToReplyState extends State<_SwipeToReply> {
+  static const _trigger = 56.0;
+  var _dx = 0.0;
+  var _armed = false;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.translucent,
+    onHorizontalDragUpdate: (details) {
+      final next = (_dx + details.delta.dx).clamp(0.0, _trigger * 1.3);
+      final armed = next >= _trigger;
+      if (armed && !_armed) HapticFeedback.selectionClick();
+      setState(() {
+        _dx = next;
+        _armed = armed;
+      });
+    },
+    onHorizontalDragEnd: (_) {
+      if (_armed) widget.onReply();
+      setState(() {
+        _dx = 0;
+        _armed = false;
+      });
+    },
+    onHorizontalDragCancel: () => setState(() {
+      _dx = 0;
+      _armed = false;
+    }),
+    child: Stack(
+      alignment: Alignment.centerLeft,
+      children: [
+        if (_dx > 0)
+          Opacity(
+            opacity: (_dx / _trigger).clamp(0.0, 1.0),
+            child: Icon(
+              Icons.reply_rounded,
+              color: context.brand.accent,
+              size: 22,
+            ),
+          ),
+        AnimatedContainer(
+          duration: _dx == 0
+              ? const Duration(milliseconds: 180)
+              : Duration.zero,
+          curve: Curves.easeOut,
+          transform: Matrix4.translationValues(_dx, 0, 0),
+          child: widget.child,
         ),
       ],
     ),

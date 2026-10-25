@@ -7,6 +7,7 @@ import 'package:indigen_world_mobile/features/downloads/data/downloads_providers
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/music/music_controller.dart';
 import 'package:indigen_world_mobile/features/music/music_library.dart';
+import 'package:indigen_world_mobile/features/music/music_likes.dart';
 import 'package:indigen_world_mobile/features/music/music_recent.dart';
 import 'package:indigen_world_mobile/features/music/music_search_screen.dart';
 import 'package:indigen_world_mobile/features/music/widgets/music_widgets.dart';
@@ -14,14 +15,14 @@ import 'package:indigen_world_mobile/shared/frosted_nav_bar.dart';
 import 'package:indigen_world_mobile/shared/glass_surface.dart';
 import 'package:indigen_world_mobile/shared/motion.dart';
 
-/// What this member has made of the channel: what they have been listening
-/// to, and what they keep on the phone.
+/// What this member has made of the channel: the songs they liked, what they
+/// have been listening to, and what they keep on the phone.
 ///
 /// ── Why it shows only what exists ─────────────────────────────────────────
-/// There are no *Liked* or *Playlists* sections here yet, and there will not
-/// be empty ones waiting for them. A library full of headings over nothing is
-/// a library that tells a new member they are doing it wrong. Until they have
-/// played something, the tab says what will land here and nothing more.
+/// Each section appears once it has something in it, and not before. A
+/// library full of headings over nothing is a library that tells a new member
+/// they are doing it wrong. Until they have played or liked something, the tab
+/// says what will land here and nothing more.
 class MusicLibraryTab extends ConsumerWidget {
   const MusicLibraryTab({
     required this.kind,
@@ -41,6 +42,9 @@ class MusicLibraryTab extends ConsumerWidget {
         ref.watch(playableMusicProvider(kind)).asData?.value ??
         const <PublishedReel>[];
     final recent = resolveRecent(ref.watch(recentlyPlayedProvider), items);
+    // Resolved the same way as the recent shelf, so a liked song that has left
+    // the archive simply stops appearing.
+    final liked = resolveRecent(ref.watch(likedSongsProvider), items);
     final offlineIds = ref.watch(musicOfflineIdsProvider);
     final offline = [
       for (final item in items)
@@ -56,7 +60,7 @@ class MusicLibraryTab extends ConsumerWidget {
       controller: scrollController,
       slivers: [
         const MusicTabAppBar(title: 'Library'),
-        if (recent.isEmpty && offline.isEmpty)
+        if (recent.isEmpty && offline.isEmpty && liked.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
             child: Center(
@@ -66,12 +70,30 @@ class MusicLibraryTab extends ConsumerWidget {
                   icon: Icons.library_music_rounded,
                   color: accent,
                   title:
-                      'What you play lands here, so the next time is one '
-                      'tap away.',
+                      'What you play and like lands here, so the next time '
+                      'is one tap away.',
                 ),
               ),
             ),
           ),
+        if (liked.isNotEmpty) ...[
+          SliverToBoxAdapter(
+            child: MusicSectionHeader(
+              title: 'Liked songs',
+              eyebrow: '${liked.length} kept',
+            ),
+          ),
+          SliverList.builder(
+            itemCount: liked.length,
+            itemBuilder: (context, index) => MusicTrackRow(
+              key: ValueKey('liked-${liked[index].id}'),
+              item: liked[index],
+              kind: kind,
+              accent: accent,
+              onPlay: () => play(liked, index),
+            ),
+          ),
+        ],
         if (recent.isNotEmpty) ...[
           SliverToBoxAdapter(
             child: Row(
@@ -99,6 +121,7 @@ class MusicLibraryTab extends ConsumerWidget {
               index: index,
               child: MusicTrackRow(
                 item: recent[index],
+                kind: kind,
                 accent: accent,
                 onPlay: () => play(recent, index),
               ),
@@ -116,6 +139,7 @@ class MusicLibraryTab extends ConsumerWidget {
             itemCount: offline.length,
             itemBuilder: (context, index) => MusicTrackRow(
               item: offline[index],
+              kind: kind,
               accent: accent,
               onPlay: () => play(offline, index),
             ),

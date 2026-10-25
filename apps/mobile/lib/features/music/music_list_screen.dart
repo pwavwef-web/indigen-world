@@ -78,6 +78,7 @@ class MusicListScreen extends ConsumerWidget {
                   index: index,
                   child: MusicTrackRow(
                     item: tracks[index],
+                    kind: kind,
                     leadingNumber: index + 1,
                     accent: color,
                     onPlay: () => controller.playCollection(

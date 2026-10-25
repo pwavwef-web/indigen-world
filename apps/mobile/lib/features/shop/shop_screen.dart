@@ -711,7 +711,14 @@ class _ShopCollectionScreenState extends ConsumerState<ShopCollectionScreen>
           if (browsing && categories.isNotEmpty)
             SliverToBoxAdapter(
               child: SizedBox(
-                height: 104,
+                // The strip grows with the reader's text size: a fixed 104
+                // left the category names 8 px short at 1.8×, where the
+                // label below each bubble is nearly twice as tall.
+                height:
+                    (16 +
+                            66 +
+                            MediaQuery.textScalerOf(context).scale(11.5) * 1.5)
+                        .clamp(104.0, 160.0),
                 child: ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                   scrollDirection: Axis.horizontal,

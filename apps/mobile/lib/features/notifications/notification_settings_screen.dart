@@ -6,6 +6,7 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/features/community/community_setup_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/learn/practice_reminder_row.dart';
 import 'package:indigen_world_mobile/features/notifications/alert_snooze.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_preferences.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
@@ -194,6 +195,19 @@ class _NotificationSettingsScreenState
                       'Like and Mark as read',
                   onTap: () => unawaited(_sendTestAlerts()),
                 ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          // Scheduled on the phone, so it lives with the other things that
+          // belong to this device rather than with the account's alert kinds.
+          const SettingsSectionLabel('PRACTICE'),
+          const SizedBox(height: 9),
+          const SettingsGroup(
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: PracticeReminderRow(),
+              ),
             ],
           ),
           const SizedBox(height: 22),

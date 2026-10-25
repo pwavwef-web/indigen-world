@@ -1210,6 +1210,17 @@ class CommunityRepository {
     await batch.commit();
   }
 
+  /// Takes a mute back. The rules let only the member who muted remove it.
+  Future<void> unmuteProfile({required String uid, required String targetId}) =>
+      _mutes.doc(edgeId(uid, targetId)).delete();
+
+  /// Takes a block back. The follow it removed is not restored — following
+  /// again is the member's own choice to make, from the profile.
+  Future<void> unblockProfile({
+    required String uid,
+    required String targetId,
+  }) => _blocks.doc(edgeId(uid, targetId)).delete();
+
   /// The uids [uid] follows, most recently followed first.
   Stream<List<String>> watchFollowing(String uid) => _follows
       .where('followerId', isEqualTo: uid)

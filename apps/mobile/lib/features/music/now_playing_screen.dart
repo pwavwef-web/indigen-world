@@ -16,6 +16,7 @@ import 'package:indigen_world_mobile/features/music/music_library.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/features/music/music_tint.dart';
 import 'package:indigen_world_mobile/features/music/widgets/audio_artwork.dart';
+import 'package:indigen_world_mobile/features/music/widgets/listening_tools.dart';
 import 'package:indigen_world_mobile/features/music/widgets/music_bubble.dart';
 import 'package:indigen_world_mobile/features/music/widgets/music_scrubber.dart';
 import 'package:indigen_world_mobile/features/music/widgets/now_playing_backdrop.dart';
@@ -257,7 +258,9 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
                             MusicScrubber(duration: item.duration),
                             const SizedBox(height: 4),
                             _Transport(tint: color, onSkip: _skip),
-                            const SizedBox(height: 26),
+                            const SizedBox(height: 14),
+                            ListeningTools(item: item, kind: kind),
+                            const SizedBox(height: 22),
                             _WordsCard(item: item, tint: color),
                           ],
                         ),

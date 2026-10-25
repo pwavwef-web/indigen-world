@@ -9,6 +9,7 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/downloads/data/downloads_providers.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/music/music_bar_placement.dart';
+import 'package:indigen_world_mobile/features/music/music_places.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/features/music/music_recent.dart';
 import 'package:indigen_world_mobile/features/music/music_track.dart';
@@ -16,6 +17,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Where the last thing somebody listened to is written down.
 const musicResumePreferenceKey = 'indigen_music_resume_v1';
+
+/// Where the chosen playback speed for a channel is written down. One per
+/// channel: somebody who reads books at 1.5× still wants songs at 1×.
+String musicSpeedPreferenceKey(CollectionKind kind) =>
+    'indigen_music_speed_v1_${kind.name}';
+
+/// The speeds offered, slowest first.
+const musicSpeeds = <double>[0.75, 1, 1.25, 1.5, 1.75, 2];
+
+/// "1×", "1.25×" — how a speed is written on a button.
+String musicSpeedLabel(double speed) {
+  final text = speed == speed.roundToDouble()
+      ? speed.toStringAsFixed(0)
+      : speed.toStringAsFixed(2).replaceFirst(RegExp(r'0$'), '');
+  return '$text×';
+}
 
 /// The song a member left off on, read back at launch.
 ///
@@ -189,6 +206,17 @@ class MusicController extends Notifier<MusicSessionState> {
 
   AppLifecycleListener? _lifecycle;
   StreamSubscription<String>? _errors;
+  StreamSubscription<MediaItem?>? _items;
+
+  /// Writes the book's place down every so often while a book plays, so a
+  /// process the system reclaims mid-chapter loses a few seconds, not the
+  /// chapter.
+  Timer? _placeTicker;
+
+  /// The book the last place was recorded for, so the place written when the
+  /// queue moves on is the old book's, taken before the new one starts.
+  String? _placeTrackId;
+  Duration? _placeDuration;
 
   @override
   MusicSessionState build() {
@@ -196,6 +224,15 @@ class MusicController extends Notifier<MusicSessionState> {
     if (handler != null) {
       _errors = handler.errors.listen(
         (message) => state = state.copyWith(error: message),
+      );
+      // Deferred a microtask: the subject replays its current item to a new
+      // listener, and reading [state] before this build has returned throws.
+      _items = handler.mediaItem.listen(
+        (item) => scheduleMicrotask(() => _onItemChanged(item)),
+      );
+      _placeTicker = Timer.periodic(
+        const Duration(seconds: 15),
+        (_) => unawaited(_recordPlace()),
       );
       // Registered only when there is a handler, which is also what keeps this
       // out of the widget tests: they build a scope with no override, so no
@@ -211,7 +248,9 @@ class MusicController extends Notifier<MusicSessionState> {
     }
     ref.onDispose(() {
       _lifecycle?.dispose();
+      _placeTicker?.cancel();
       unawaited(_errors?.cancel());
+      unawaited(_items?.cancel());
     });
 
     unawaited(_restore());
@@ -264,6 +303,7 @@ class MusicController extends Notifier<MusicSessionState> {
       initialIndex: plan.startIndex,
       initialPosition: _resumePositionFor(plan.tracks[plan.startIndex].id),
     );
+    await _applyStoredSpeed(kind);
     // What somebody chose, rather than what the queue then walked through. The
     // shelf is a record of decisions — "the album I put on" — and stamping
     // every track the player advanced to would fill it with twelve rows of one
@@ -320,7 +360,109 @@ class MusicController extends Notifier<MusicSessionState> {
       initialIndex: index,
       initialPosition: _resumePositionFor(trackId),
     );
+    await _applyStoredSpeed(kind);
     await play();
+  }
+
+  /// Puts [item] straight after the song playing now. With nothing playing,
+  /// it simply plays.
+  Future<void> playNext(PublishedReel item, {required CollectionKind kind}) =>
+      _enqueue(item, kind: kind, next: true);
+
+  /// Puts [item] at the end of the queue. With nothing playing, it plays.
+  Future<void> addToQueue(PublishedReel item, {required CollectionKind kind}) =>
+      _enqueue(item, kind: kind, next: false);
+
+  Future<void> _enqueue(
+    PublishedReel item, {
+    required CollectionKind kind,
+    required bool next,
+  }) async {
+    final handler = ref.read(musicAudioHandlerProvider);
+    if (handler == null) {
+      state = state.copyWith(error: _noPlayerMessage);
+      return;
+    }
+    if (handler.queue.value.isEmpty) {
+      await playCollection([item], startIndex: 0, kind: kind);
+      return;
+    }
+    final track = MusicTrack.fromReel(item, kind: kind);
+    if (track == null) {
+      state = state.copyWith(error: 'This one cannot be played yet.');
+      return;
+    }
+    final local = (await _offlineUrls())[track.id];
+    final media = (local == null ? track : track.withUrl(local)).toMediaItem();
+    next ? await handler.playNext(media) : await handler.addQueueItem(media);
+  }
+
+  /// Sets the playback speed for what is playing, and remembers it for the
+  /// channel it came from.
+  Future<void> setSpeed(double speed) async {
+    final handler = ref.read(musicAudioHandlerProvider);
+    if (handler == null) return;
+    await handler.setSpeed(speed);
+    final kind = state.queueKind;
+    if (kind == null) return;
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setDouble(musicSpeedPreferenceKey(kind), speed);
+    } on Object {
+      // The speed holds for this sitting either way.
+    }
+  }
+
+  Future<void> _applyStoredSpeed(CollectionKind kind) async {
+    final handler = ref.read(musicAudioHandlerProvider);
+    if (handler == null) return;
+    var speed = 1.0;
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      speed = preferences.getDouble(musicSpeedPreferenceKey(kind)) ?? 1.0;
+    } on Object {
+      // Normal speed is the honest default.
+    }
+    if (!musicSpeeds.contains(speed)) speed = 1.0;
+    if (handler.playbackState.value.speed != speed) {
+      await handler.setSpeed(speed);
+    }
+  }
+
+  /// A new item in the player. For a book, that is the moment to go to where
+  /// that book was left — the queue walked into it at 0:00.
+  void _onItemChanged(MediaItem? item) {
+    // The same item comes round again once the file has said how long it is;
+    // that is not a new book, and a reader who has just scrubbed back to the
+    // start must not be thrown forward to the stored place.
+    final changed = item?.id != _placeTrackId;
+    _placeTrackId = item?.id;
+    _placeDuration = item?.duration;
+    if (!changed) return;
+    if (item == null || state.queueKind != CollectionKind.audiobooks) return;
+    final place = ref.read(audiobookPlacesProvider)[item.id];
+    final handler = ref.read(musicAudioHandlerProvider);
+    if (place == null || place.finished || handler == null) return;
+    if (handler.position > const Duration(seconds: 3)) return;
+    unawaited(handler.seek(place.position));
+  }
+
+  /// Writes down where the book playing now has got to.
+  Future<void> _recordPlace() async {
+    if (state.queueKind != CollectionKind.audiobooks) return;
+    final handler = ref.read(musicAudioHandlerProvider);
+    final item = handler?.mediaItem.value;
+    if (handler == null || item == null || item.id != _placeTrackId) return;
+    // Paused books are written down by [pause]; ticking over a paused book
+    // would only rewrite the same place.
+    if (!handler.playbackState.value.playing) return;
+    await ref
+        .read(audiobookPlacesProvider.notifier)
+        .record(
+          item.id,
+          handler.position,
+          duration: item.duration ?? _placeDuration,
+        );
   }
 
   /// Puts the last session back, paused, once [items] for its collection have
@@ -351,6 +493,7 @@ class MusicController extends Notifier<MusicSessionState> {
       initialIndex: plan.startIndex,
       initialPosition: resume.position,
     );
+    await _applyStoredSpeed(resume.kind);
     return true;
   }
 
@@ -506,6 +649,9 @@ class MusicController extends Notifier<MusicSessionState> {
   void clearError() => state = state.copyWith(clearError: true);
 
   Duration _resumePositionFor(String trackId) {
+    // A book keeps its own place, whatever else has played since.
+    final place = ref.read(audiobookPlacesProvider)[trackId];
+    if (place != null && !place.finished) return place.position;
     final resume = state.resumePoint;
     // Only ever offered to the track it was saved for. Dropping a stored
     // position into a different song would start it forty seconds in.
@@ -524,6 +670,11 @@ class MusicController extends Notifier<MusicSessionState> {
     if (handler == null || item == null || kind == null) return;
 
     final position = handler.playbackState.value.position;
+    if (kind == CollectionKind.audiobooks) {
+      await ref
+          .read(audiobookPlacesProvider.notifier)
+          .record(item.id, position, duration: item.duration);
+    }
     try {
       final preferences = await SharedPreferences.getInstance();
       await preferences.setString(

@@ -13,11 +13,25 @@ import 'package:indigen_world_mobile/features/community/widgets/community_avatar
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
 
 /// The inbox: every conversation this member is part of.
-class MessagesScreen extends ConsumerWidget {
+class MessagesScreen extends ConsumerStatefulWidget {
   const MessagesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MessagesScreen> createState() => _MessagesScreenState();
+}
+
+class _MessagesScreenState extends ConsumerState<MessagesScreen> {
+  final _search = TextEditingController();
+  var _query = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final inbox = ref.watch(chatInboxProvider);
     final signedIn = ref.watch(currentUidProvider) != null;
     final drafts = ref.watch(chatDraftsProvider);
@@ -67,16 +81,7 @@ class MessagesScreen extends ConsumerWidget {
                     label: const Text('Find people'),
                   ),
                 ),
-              AsyncValue(:final value?) => ListView.separated(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                itemCount: value.length,
-                separatorBuilder: (context, index) =>
-                    const Divider(height: 1, indent: 76, endIndent: 16),
-                itemBuilder: (context, index) => _ThreadTile(
-                  thread: value[index],
-                  draft: drafts[value[index].id],
-                ),
-              ),
+              AsyncValue(:final value?) => _inbox(value, drafts),
               AsyncValue(hasError: true) => const CommunityEmptyState(
                 icon: Icons.cloud_off_rounded,
                 title: 'Messages unavailable',
@@ -84,6 +89,61 @@ class MessagesScreen extends ConsumerWidget {
               ),
               _ => const Center(child: CircularProgressIndicator()),
             },
+    );
+  }
+
+  /// The conversations, under a box that narrows them by name, handle or the
+  /// last thing said. The box appears once there is enough to search.
+  Widget _inbox(List<ChatThread> threads, Map<String, String> drafts) {
+    final shown = threads.where((thread) => thread.matches(_query)).toList();
+    return Column(
+      children: [
+        if (threads.length > 5 || _query.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+            child: TextField(
+              key: const Key('inbox-search'),
+              controller: _search,
+              onChanged: (value) => setState(() => _query = value),
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: 'Search conversations',
+                isDense: true,
+                prefixIcon: const Icon(Icons.search_rounded),
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Clear search',
+                        onPressed: () {
+                          _search.clear();
+                          setState(() => _query = '');
+                        },
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+              ),
+            ),
+          ),
+        Expanded(
+          child: shown.isEmpty
+              ? CommunityEmptyState(
+                  icon: Icons.search_off_rounded,
+                  title: 'No conversation matches',
+                  message:
+                      'Nothing with “${_query.trim()}” in the name, the '
+                      'handle or the last message.',
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  itemCount: shown.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1, indent: 76, endIndent: 16),
+                  itemBuilder: (context, index) => _ThreadTile(
+                    thread: shown[index],
+                    draft: drafts[shown[index].id],
+                  ),
+                ),
+        ),
+      ],
     );
   }
 }
@@ -124,6 +184,15 @@ class _ThreadTile extends StatelessWidget {
               ),
             ),
           ),
+          if (thread.muted) ...[
+            const SizedBox(width: 4),
+            Icon(
+              Icons.notifications_off_outlined,
+              key: ValueKey('inbox-muted-${thread.id}'),
+              size: 14,
+              color: context.brand.mutedInk,
+            ),
+          ],
           const SizedBox(width: 6),
           Text(
             communityAgeLabel(thread.lastMessageAt),

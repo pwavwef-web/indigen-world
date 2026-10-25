@@ -264,9 +264,15 @@ class ReviewEditor extends VideoEditorRepository {
 }
 
 const captureKey = ValueKey('screen-capture');
-final screenshots = Directory(
-  '../../apps/updates-blog/posts/2026-10-16-connected-mobile-workflows/screens',
-);
+
+/// Where the captures go. Into the 2026-10-16 release post only when asked
+/// for with `WRITE_POST_SCREENS=1` — an ordinary test run must never rewrite
+/// the pictures of a post that has already been published.
+final screenshots = Platform.environment['WRITE_POST_SCREENS'] == '1'
+    ? Directory(
+        '../../apps/updates-blog/posts/2026-10-16-connected-mobile-workflows/screens',
+      )
+    : Directory('build/test-screens/integrated-upgrade');
 late ui.Image fixtureImage;
 Widget harness(
   Widget screen,

@@ -19,6 +19,7 @@ import 'package:indigen_world_mobile/features/contribute/words/data/queue_lookup
 import 'package:indigen_world_mobile/features/contribute/words/help_add_word.dart';
 import 'package:indigen_world_mobile/features/dictionary/dictionary_search.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
+import 'package:indigen_world_mobile/features/dictionary/recent_lookups.dart';
 import 'package:indigen_world_mobile/features/dictionary/result_row.dart';
 import 'package:indigen_world_mobile/features/dictionary/topic_screen.dart';
 import 'package:indigen_world_mobile/features/settings/kasem_keyboard_toggle.dart';
@@ -305,6 +306,15 @@ class _DictionaryScreenState extends ConsumerState<DictionaryScreen> {
                     onChanged: (value) => setState(() => _filters = value),
                   ),
                 ],
+                if (!searching && !_filters.isNarrowed)
+                  _RecentLookups(
+                    entries: resolveRecentLookups(
+                      ref.watch(recentLookupsProvider),
+                      all,
+                    ),
+                    onClear: () =>
+                        ref.read(recentLookupsProvider.notifier).clear(),
+                  ),
                 const SizedBox(height: 8),
                 _ResultCount(
                   results: results,
@@ -462,6 +472,78 @@ class _DictionaryScreenState extends ConsumerState<DictionaryScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+/// The words opened lately, as a strip of chips under the empty search box.
+///
+/// Under the box rather than in the list, because the list under an empty box
+/// is the whole dictionary, and a dozen recent words pushed into the top of it
+/// would read as the first dozen words of the alphabet.
+class _RecentLookups extends StatelessWidget {
+  const _RecentLookups({required this.entries, required this.onClear});
+
+  final List<DictionaryEntry> entries;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    if (entries.isEmpty) return const SizedBox.shrink();
+    final brand = context.brand;
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'RECENT LOOKUPS',
+                style: TextStyle(
+                  color: brand.terracotta,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                key: const Key('recent-lookups-clear'),
+                onPressed: onClear,
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
+                child: const Text('Clear'),
+              ),
+            ],
+          ),
+          SizedBox(
+            height: 40,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: entries.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final entry = entries[index];
+                return ActionChip(
+                  key: ValueKey('recent-lookup-${entry.id}'),
+                  avatar: Icon(
+                    Icons.history_rounded,
+                    size: 16,
+                    color: brand.mutedInk,
+                  ),
+                  label: Text(entry.headword),
+                  tooltip: entry.primaryTranslation,
+                  onPressed: () => context.push(
+                    '/entry/${Uri.encodeComponent(entry.id)}?from=recent',
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

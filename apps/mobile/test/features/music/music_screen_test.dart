@@ -216,7 +216,7 @@ void main() {
     await tester.tap(railItem('Library'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('What you play lands here'), findsOneWidget);
+    expect(find.textContaining('What you play and like lands here'), findsOneWidget);
     expect(find.text('Recently played'), findsNothing);
   });
 
@@ -238,7 +238,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Recently played'), findsNothing);
-    expect(find.textContaining('What you play lands here'), findsOneWidget);
+    expect(find.textContaining('What you play and like lands here'), findsOneWidget);
   });
 
   testWidgets('kinds of song become tiles once there are enough of them', (

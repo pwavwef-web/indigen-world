@@ -344,6 +344,45 @@ test('saved words ride on the progress document, within a bound', async () => {
   );
 });
 
+test('liked songs follow the account, bounded like the saved words', async () => {
+  const owner = env.authenticatedContext(LEARNER);
+  const other = env.authenticatedContext(OTHER);
+  const ids = (count) => Array.from({ length: count }, (_, index) => `song-${index}`);
+  await assertSucceeds(
+    setDoc(
+      doc(db(owner), `learnProgress/${LEARNER}`),
+      makeProgress(LEARNER, { likedSongIds: ids(1000) }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(db(owner), `learnProgress/${LEARNER}`),
+      makeProgress(LEARNER, { likedSongIds: ids(1001) }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(db(owner), `learnProgress/${LEARNER}`),
+      makeProgress(LEARNER, { likedSongIds: 'song-1' }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(db(other), `learnProgress/${LEARNER}`),
+      makeProgress(LEARNER, { likedSongIds: [] }),
+    ),
+  );
+  // The app's own merged write, on an account with no progress yet.
+  const fresh = env.authenticatedContext(OTHER);
+  await assertSucceeds(
+    setDoc(
+      doc(db(fresh), `learnProgress/${OTHER}`),
+      { uid: OTHER, likedSongIds: ['song-1'], completedLessons: arrayUnion() },
+      { merge: true },
+    ),
+  );
+});
+
 test('a member who saves a word before any lesson can still sync it', async () => {
   // The app's own write, on an account with no progress document yet: merged,
   // carrying the uid, and creating the lesson list the rule insists on

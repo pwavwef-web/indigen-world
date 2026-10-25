@@ -16,7 +16,9 @@ import 'package:indigen_world_mobile/shared/motion.dart';
 /// Spaced-repetition review of dictionary words.
 ///
 /// Each card shows a Kasem word; the member says to themselves what it means,
-/// reveals the published meaning, and marks whether they knew it. Knowing it
+/// reveals the published meaning, and marks whether they knew it — or, with
+/// "English first", the other way round: the meaning, then the Kasem. Both
+/// ways move the same card, because they are one word to learn. Knowing it
 /// moves the word to a later box and it comes back in 1, 2, 4, 8 then 16 days;
 /// not knowing it brings it back today. Every answer is saved to the member's
 /// progress as it is given, so a review abandoned halfway still counts.
@@ -134,12 +136,77 @@ class _ReviewWordsScreenState extends ConsumerState<ReviewWordsScreen> {
         .asData
         ?.value
         .reviewCards[entry.id];
+    final direction = ref.watch(reviewDirectionProvider);
+    final englishFirst = reviewShowsEnglishFirst(direction, _position);
     final brand = context.brand;
+
+    // The Kasem side: the word, its dialect, and the recording — which is the
+    // answer when the card asks for the Kasem, so it waits for the reveal.
+    final kasemSide = <Widget>[
+      Text(
+        entry.headword,
+        key: const Key('review-headword'),
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: brand.ink,
+          fontSize: englishFirst ? 28 : 32,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.5,
+        ),
+      ),
+      if (entry.dialect.isNotEmpty) ...[
+        const SizedBox(height: 6),
+        Text(
+          entry.dialect,
+          textAlign: TextAlign.center,
+          style: TextStyle(color: brand.mutedInk, fontSize: 12),
+        ),
+      ],
+      const SizedBox(height: 14),
+      PronunciationButton(
+        audioUrl: entry.audioUrl,
+        onUnavailable: () =>
+            showPronunciationUnavailable(context, entry: entry),
+      ),
+    ];
+    final meaningSide = <Widget>[
+      Text(
+        entry.translation,
+        key: const Key('review-meaning'),
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: brand.ink,
+          fontSize: englishFirst ? 28 : 19,
+          fontWeight: englishFirst ? FontWeight.w800 : FontWeight.w700,
+        ),
+      ),
+      if (entry.partOfSpeech.isNotEmpty)
+        Text(
+          entry.partOfSpeech,
+          style: TextStyle(color: brand.mutedInk, fontSize: 12.5),
+        ),
+    ];
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       children: [
         PracticeProgressBar(done: _position, total: deck.length),
-        const SizedBox(height: 18),
+        const SizedBox(height: 14),
+        Center(
+          child: SegmentedButton<ReviewDirection>(
+            key: const Key('review-direction'),
+            showSelectedIcon: false,
+            style: const ButtonStyle(visualDensity: VisualDensity.compact),
+            segments: [
+              for (final value in ReviewDirection.values)
+                ButtonSegment(value: value, label: Text(value.label)),
+            ],
+            selected: {direction},
+            onSelectionChanged: (choice) =>
+                ref.read(reviewDirectionProvider.notifier).set(choice.first),
+          ),
+        ),
+        const SizedBox(height: 14),
         Container(
           padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
           decoration: BoxDecoration(
@@ -150,7 +217,11 @@ class _ReviewWordsScreenState extends ConsumerState<ReviewWordsScreen> {
           child: Column(
             children: [
               Text(
-                card == null ? 'NEW WORD' : 'REVIEW',
+                englishFirst
+                    ? 'WHAT IS THE KASEM?'
+                    : card == null
+                    ? 'NEW WORD'
+                    : 'REVIEW',
                 style: TextStyle(
                   color: brand.gold,
                   fontSize: 11,
@@ -159,30 +230,7 @@ class _ReviewWordsScreenState extends ConsumerState<ReviewWordsScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                entry.headword,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: brand.ink,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              if (entry.dialect.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  entry.dialect,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: brand.mutedInk, fontSize: 12),
-                ),
-              ],
-              const SizedBox(height: 14),
-              PronunciationButton(
-                audioUrl: entry.audioUrl,
-                onUnavailable: () =>
-                    showPronunciationUnavailable(context, entry: entry),
-              ),
+              ...englishFirst ? meaningSide : kasemSide,
               AnimatedSize(
                 duration: motionOr(context, AppMotion.standard),
                 child: !_revealed
@@ -193,23 +241,7 @@ class _ReviewWordsScreenState extends ConsumerState<ReviewWordsScreen> {
                           children: [
                             Divider(color: brand.divider),
                             const SizedBox(height: 10),
-                            Text(
-                              entry.translation,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: brand.ink,
-                                fontSize: 19,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            if (entry.partOfSpeech.isNotEmpty)
-                              Text(
-                                entry.partOfSpeech,
-                                style: TextStyle(
-                                  color: brand.mutedInk,
-                                  fontSize: 12.5,
-                                ),
-                              ),
+                            ...englishFirst ? kasemSide : meaningSide,
                             if (entry.example.isNotEmpty) ...[
                               const SizedBox(height: 10),
                               Text(
@@ -243,7 +275,7 @@ class _ReviewWordsScreenState extends ConsumerState<ReviewWordsScreen> {
             key: const Key('review-reveal'),
             onPressed: () => setState(() => _revealed = true),
             style: FilledButton.styleFrom(minimumSize: const Size(0, 50)),
-            child: const Text('Show meaning'),
+            child: Text(englishFirst ? 'Show the Kasem' : 'Show meaning'),
           )
         else
           Row(

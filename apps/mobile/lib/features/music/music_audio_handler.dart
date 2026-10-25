@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
@@ -51,6 +52,11 @@ class IndigenAudioHandler extends BaseAudioHandler
   static const notificationChannelName = 'Music playback';
 
   final AudioPlayer _player = AudioPlayer();
+
+  /// The playlist as the player holds it, so a song can be slotted in without
+  /// re-cueing everything around it — see [playNext].
+  ConcatenatingAudioSource? _source;
+  MusicShuffleOrder? _shuffleOrder;
 
   final StreamController<String> _errors = StreamController<String>.broadcast();
 
@@ -143,15 +149,64 @@ class IndigenAudioHandler extends BaseAudioHandler
       sources.add(AudioSource.uri(Uri.parse(url)));
     }
 
+    final shuffleOrder = MusicShuffleOrder();
+    final source = ConcatenatingAudioSource(
+      children: sources,
+      shuffleOrder: shuffleOrder,
+    );
+    _source = source;
+    _shuffleOrder = shuffleOrder;
     try {
       await _player.setAudioSource(
-        ConcatenatingAudioSource(children: sources),
+        source,
         initialIndex: index,
         initialPosition: initialPosition,
       );
     } on Object catch (error) {
       _onPlayerError(error, StackTrace.current);
     }
+  }
+
+  /// Slots [item] in to play straight after the current song — in the shuffled
+  /// order too, when shuffle is on.
+  Future<void> playNext(MediaItem item) async {
+    final current = _player.currentIndex;
+    await _insert(
+      item,
+      at: current == null ? queue.value.length : current + 1,
+      afterInShuffle: current,
+    );
+  }
+
+  /// Adds [item] at the end of the queue — and at the end of the shuffled
+  /// order, rather than wherever just_audio's default would have dropped it.
+  @override
+  Future<void> addQueueItem(MediaItem item) =>
+      _insert(item, at: queue.value.length, afterInShuffle: null);
+
+  Future<void> _insert(
+    MediaItem item, {
+    required int at,
+    required int? afterInShuffle,
+  }) async {
+    final source = _source;
+    final url = musicTrackUrlOf(item);
+    if (source == null || url == null || queue.value.isEmpty) return;
+    final index = at.clamp(0, queue.value.length);
+    queue.add(List<MediaItem>.of(queue.value)..insert(index, item));
+    _shuffleOrder?.insertAfter = afterInShuffle;
+    try {
+      await source.insert(index, AudioSource.uri(Uri.parse(url)));
+    } on Object catch (error) {
+      _onPlayerError(error, StackTrace.current);
+    }
+  }
+
+  /// Playback speed, mirrored into [playbackState] so every screen agrees.
+  @override
+  Future<void> setSpeed(double speed) async {
+    await _player.setSpeed(speed);
+    playbackState.add(playbackState.value.copyWith(speed: speed));
   }
 
   /// Volume, between 0 and 1 — the seam a later stage ducks music through when
@@ -258,6 +313,10 @@ class IndigenAudioHandler extends BaseAudioHandler
     playbackState.add(playbackState.value.copyWith(repeatMode: repeatMode));
   }
 
+  /// Where the playhead is right now. Read on demand — never watched — by the
+  /// things that only need it now and then: a sleep timer, a book's place.
+  Duration get position => _player.position;
+
   /// Releases the player. Only ever called when the whole service is going
   /// away; the handler is a process-lifetime object.
   Future<void> dispose() async {
@@ -359,4 +418,62 @@ class IndigenAudioHandler extends BaseAudioHandler
       ),
     );
   }
+}
+
+/// just_audio's shuffle order, except for where an inserted song goes.
+///
+/// The default drops a newly inserted child at a random place in the shuffled
+/// order, which turns "Play next" into "play at some point" the moment shuffle
+/// is on. This one puts it straight after the child named by [insertAfter] —
+/// the song playing now — or, when that is null, at the end: "Add to queue".
+class MusicShuffleOrder extends ShuffleOrder {
+  MusicShuffleOrder({Random? random}) : _random = random ?? Random();
+
+  final Random _random;
+
+  @override
+  final indices = <int>[];
+
+  /// Read by the next [insert] and then forgotten. A child index in the
+  /// numbering from before that insert.
+  int? insertAfter;
+
+  @override
+  void shuffle({int? initialIndex}) {
+    if (indices.length <= 1) return;
+    indices.shuffle(_random);
+    if (initialIndex == null) return;
+    // The song somebody is on stays first, as in just_audio's own order.
+    final swapPos = indices.indexOf(initialIndex);
+    if (swapPos < 0) return;
+    indices[swapPos] = indices[0];
+    indices[0] = initialIndex;
+  }
+
+  @override
+  void insert(int index, int count) {
+    var anchor = insertAfter;
+    insertAfter = null;
+    for (var i = 0; i < indices.length; i++) {
+      if (indices[i] >= index) indices[i] += count;
+    }
+    if (anchor != null && anchor >= index) anchor += count;
+    final at = anchor == null ? -1 : indices.indexOf(anchor);
+    var position = at < 0 ? indices.length : at + 1;
+    for (var offset = 0; offset < count; offset++) {
+      indices.insert(position++, index + offset);
+    }
+  }
+
+  @override
+  void removeRange(int start, int end) {
+    final count = end - start;
+    indices.removeWhere((index) => index >= start && index < end);
+    for (var i = 0; i < indices.length; i++) {
+      if (indices[i] >= end) indices[i] -= count;
+    }
+  }
+
+  @override
+  void clear() => indices.clear();
 }

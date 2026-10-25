@@ -1,15 +1,18 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/explore/published_content.dart';
 import 'package:indigen_world_mobile/features/music/music_library.dart';
+import 'package:indigen_world_mobile/features/music/music_likes.dart';
 import 'package:indigen_world_mobile/features/music/music_providers.dart';
 import 'package:indigen_world_mobile/features/music/music_tint.dart';
 import 'package:indigen_world_mobile/features/music/widgets/audio_artwork.dart';
 import 'package:indigen_world_mobile/features/music/widgets/music_bubble.dart';
+import 'package:indigen_world_mobile/features/music/widgets/music_track_menu.dart';
 import 'package:indigen_world_mobile/shared/motion.dart';
 
 /// The pieces every music surface is built out of.
@@ -237,6 +240,7 @@ class MusicTrackRow extends ConsumerWidget {
   const MusicTrackRow({
     required this.item,
     required this.onPlay,
+    this.kind = CollectionKind.music,
     this.leadingNumber,
     this.onMore,
     this.accent,
@@ -246,10 +250,15 @@ class MusicTrackRow extends ConsumerWidget {
   final PublishedReel item;
   final VoidCallback onPlay;
 
+  /// The channel the row is shown in, which is what "Play next" queues it as.
+  final CollectionKind kind;
+
   /// The track's place in the list it is being shown in, when that means
   /// something — an artist's catalogue — and null when it does not.
   final int? leadingNumber;
 
+  /// Replaces the song menu — see [showMusicTrackMenu] — when a list wants
+  /// something else behind "More".
   final VoidCallback? onMore;
 
   /// The colour of the playing row's title. The palette's accent when null.
@@ -263,14 +272,22 @@ class MusicTrackRow extends ConsumerWidget {
     final offline = ref.watch(
       musicOfflineIdsProvider.select((ids) => ids.contains(item.id)),
     );
+    final liked = ref.watch(isSongLikedProvider(item.id));
     final highlight = accent ?? brand.accent;
+    final more =
+        onMore ??
+        () => showMusicTrackMenu(context, ref, item: item, kind: kind);
 
     return Semantics(
       button: true,
       label: 'Play ${item.title} by ${item.creatorName}',
+      customSemanticsActions: {
+        const CustomSemanticsAction(label: 'More options'): more,
+      },
       excludeSemantics: true,
       child: InkWell(
         onTap: onPlay,
+        onLongPress: more,
         child: AnimatedContainer(
           duration: motionOr(context, AppMotion.standard),
           color: isCurrent
@@ -336,6 +353,15 @@ class MusicTrackRow extends ConsumerWidget {
                     const SizedBox(height: 2),
                     Row(
                       children: [
+                        if (liked) ...[
+                          Icon(
+                            Icons.favorite_rounded,
+                            key: const Key('music-row-liked'),
+                            size: 13,
+                            color: brand.terracotta,
+                          ),
+                          const SizedBox(width: 4),
+                        ],
                         if (offline) ...[
                           // Kept on this phone: plays with no signal and costs
                           // no data. Worth saying before somebody taps it on a
@@ -367,12 +393,11 @@ class MusicTrackRow extends ConsumerWidget {
                   ],
                 ),
               ),
-              if (onMore != null)
-                IconButton(
-                  onPressed: onMore,
-                  tooltip: 'More',
-                  icon: Icon(Icons.more_horiz_rounded, color: brand.mutedInk),
-                ),
+              IconButton(
+                onPressed: more,
+                tooltip: 'More',
+                icon: Icon(Icons.more_horiz_rounded, color: brand.mutedInk),
+              ),
             ],
           ),
         ),
@@ -618,12 +643,17 @@ class MusicShelfCard extends ConsumerWidget {
     required this.item,
     required this.onPlay,
     this.size = 148,
+    this.progress,
     super.key,
   });
 
   final PublishedReel item;
   final VoidCallback onPlay;
   final double size;
+
+  /// How far through a book somebody is, 0–1, drawn as a line under the
+  /// artwork. Null draws nothing.
+  final double? progress;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -669,7 +699,23 @@ class MusicShelfCard extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
+                if (progress case final done?) ...[
+                  const SizedBox(height: 7),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: LinearProgressIndicator(
+                      key: const Key('music-shelf-progress'),
+                      value: done,
+                      minHeight: 4,
+                      color: brand.accent,
+                      backgroundColor: brand.surfaceMuted,
+                      semanticsLabel: 'Progress',
+                      semanticsValue: '${(done * 100).round()}% heard',
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                ] else
+                  const SizedBox(height: 8),
                 Text(
                   item.title,
                   maxLines: 1,

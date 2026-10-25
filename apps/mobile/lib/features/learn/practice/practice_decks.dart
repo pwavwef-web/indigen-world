@@ -1,6 +1,10 @@
+import 'dart:async';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/features/learn/learn_calendar.dart';
 import 'package:indigen_world_mobile/features/learn/learn_progress.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Which published entries make sense to practise.
 ///
@@ -132,3 +136,71 @@ bool transcriptMatchesMeaning(String transcript, DictionaryEntry entry) {
         (said == meaning || ' $said '.contains(' $meaning ')),
   );
 }
+
+/// Which side of a review card is shown first.
+enum ReviewDirection {
+  /// The Kasem word; recall what it means. How review has always worked.
+  kasemFirst('Kasem first'),
+
+  /// The meaning; recall the Kasem — the harder way, and the one speaking
+  /// needs.
+  englishFirst('English first'),
+
+  /// The two in turn.
+  mixed('Mixed');
+
+  const ReviewDirection(this.label);
+
+  final String label;
+
+  static ReviewDirection fromName(String? name) => values.firstWhere(
+    (value) => value.name == name,
+    orElse: () => kasemFirst,
+  );
+}
+
+/// Whether the card at [position] of a session shows the English first.
+bool reviewShowsEnglishFirst(ReviewDirection direction, int position) =>
+    switch (direction) {
+      ReviewDirection.kasemFirst => false,
+      ReviewDirection.englishFirst => true,
+      ReviewDirection.mixed => position.isOdd,
+    };
+
+/// Where the chosen direction is written down. On this phone: it is a way of
+/// practising, not part of the record of what was learned.
+const reviewDirectionPreferenceKey = 'indigen_review_direction_v1';
+
+class ReviewDirectionController extends Notifier<ReviewDirection> {
+  @override
+  ReviewDirection build() {
+    unawaited(_restore());
+    return ReviewDirection.kasemFirst;
+  }
+
+  Future<void> _restore() async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      state = ReviewDirection.fromName(
+        preferences.getString(reviewDirectionPreferenceKey),
+      );
+    } on Object {
+      // Kasem first, as review has always been.
+    }
+  }
+
+  Future<void> set(ReviewDirection direction) async {
+    state = direction;
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(reviewDirectionPreferenceKey, direction.name);
+    } on Object {
+      // Holds for this session.
+    }
+  }
+}
+
+final reviewDirectionProvider =
+    NotifierProvider<ReviewDirectionController, ReviewDirection>(
+      ReviewDirectionController.new,
+    );

@@ -1,0 +1,50 @@
+{
+  "accent": "blue",
+  "motif": "rings",
+  "eyebrow": "Indigen World app · Android 0.1.36",
+  "title": "Twenty upgrades,\nfrom songs to messages.",
+  "lede": "Liked songs and a sleep timer, replies that quote, a dictionary that remembers, practice both ways with a daily reminder — and the way back from a block.",
+  "tags": [
+    "Music",
+    "Messages",
+    "Dictionary and Learn"
+  ],
+  "hero": [
+    "now-playing.png",
+    "chat.png"
+  ],
+  "figures": {
+    "now-playing.png": {
+      "title": "Like, speed, sleep, share",
+      "note": "Actual app screen rendered from the 0.1.36 code, with the published song “Counting in Kasem”."
+    },
+    "music-library.png": {
+      "title": "Liked songs come first",
+      "note": "Actual app screen with the songs published in the Music collection."
+    },
+    "song-menu.png": {
+      "title": "Play next, Add to queue",
+      "note": "Actual app screen: the menu for a published song."
+    },
+    "dictionary-recent.png": {
+      "title": "The words you looked up, one tap away",
+      "note": "Actual app screen with words from the published dictionary."
+    },
+    "review-english-first.png": {
+      "title": "Practise from English to Kasem",
+      "note": "Actual app screen with a published dictionary word."
+    },
+    "chat.png": {
+      "title": "Replies that quote, and Seen",
+      "note": "Actual app screen with a sample conversation made up for this picture."
+    },
+    "privacy.png": {
+      "title": "Undo a block or a mute",
+      "note": "Actual app screen with sample members made up for this picture."
+    },
+    "reading.png": {
+      "title": "Read at the size that suits you",
+      "note": "Actual app screen with the published folktale at a larger reading size."
+    }
+  }
+}

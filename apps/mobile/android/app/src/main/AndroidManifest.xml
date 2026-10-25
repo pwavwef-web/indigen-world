@@ -11,6 +11,10 @@
     <!-- Android 13+ requires an explicit runtime grant before any notification
          can be posted. Requested from the notifications centre. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Lets the daily practice reminder survive a restart: Android clears
+         scheduled notifications on boot, and the plugin's boot receiver puts
+         them back. Inexact scheduling only — no exact-alarm permission. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <!-- Voice notes in Community use the microphone only while the member is
          visibly recording from the composer. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
@@ -228,6 +232,18 @@
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/notification_accent"/>
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver" />
+        <!-- The daily practice reminder: a scheduled local notification posts
+             through the first receiver, and the second puts the schedule back
+             after a restart or an app update, which otherwise clear it. -->
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

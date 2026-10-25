@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/media_preferences.dart';
+import 'package:indigen_world_mobile/core/share_text.dart';
 import 'package:indigen_world_mobile/data/repositories.dart';
 import 'package:indigen_world_mobile/domain/dictionary_entry.dart';
 import 'package:indigen_world_mobile/domain/kasem_homographs.dart';
@@ -13,6 +14,7 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/contribute/language_loop_analytics.dart';
 import 'package:indigen_world_mobile/features/dictionary/data/dictionary_admin.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_editor_screen.dart';
+import 'package:indigen_world_mobile/features/dictionary/recent_lookups.dart';
 import 'package:indigen_world_mobile/features/dictionary/sense_list.dart';
 import 'package:indigen_world_mobile/features/dictionary/sentence_credit.dart';
 import 'package:indigen_world_mobile/features/dictionary/translation_display.dart';
@@ -103,6 +105,17 @@ class EntryDetailScreen extends ConsumerWidget {
       return _MergedAwayScreen(entry: resolvedEntry);
     }
 
+    // Remembered for the Look up strip. After the frame, because writing a
+    // provider during a build is not allowed; and only when it would change
+    // anything, because this build runs again on every live update.
+    if (resolvedEntry.isPublished &&
+        ref.read(recentLookupsProvider).firstOrNull != resolvedEntry.id) {
+      final lookups = ref.read(recentLookupsProvider.notifier);
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => unawaited(lookups.record(resolvedEntry.id)),
+      );
+    }
+
     // How many published entries share this spelling. Decides whether the
     // sense number is drawn at all — see `kasem_homographs.dart`.
     final siblings = dictionarySiblingCount(ref, resolvedEntry.headword);
@@ -161,6 +174,16 @@ class EntryDetailScreen extends ConsumerWidget {
               isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
             ),
           ),
+          // Only a published word: the page it links to shows published words,
+          // and a link to a withdrawn one would open on nothing.
+          if (resolvedEntry.isPublished)
+            IconButton(
+              key: const Key('entry-share'),
+              tooltip: 'Share this word',
+              onPressed: () =>
+                  shareText(context, dictionaryShareText(resolvedEntry)),
+              icon: const Icon(Icons.ios_share_rounded),
+            ),
         ],
       ),
       body: ScreenContainer(
