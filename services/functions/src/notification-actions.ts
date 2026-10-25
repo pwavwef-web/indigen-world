@@ -30,6 +30,9 @@ export const notificationAction = onCall({ region: 'us-central1', invoker: 'publ
     if (data.action === 'like') {
       const edge = db.collection('communityLikes').doc(`${uid}_${postId}`), liked = await tx.get(edge);
       if (!liked.exists) { tx.create(edge, { uid, postId, createdAt: FieldValue.serverTimestamp() }); tx.update(postRef, { likeCount: FieldValue.increment(1) }); }
+      // Acting on an alert is reading it: the row must not stay unread in the
+      // centre after somebody answered it from their notification shade.
+      if (row.get('read') !== true) tx.update(ref, { read: true, readAt: FieldValue.serverTimestamp() });
       return { ok: true, liked: true };
     }
     if (data.action === 'reply') {
@@ -37,6 +40,7 @@ export const notificationAction = onCall({ region: 'us-central1', invoker: 'publ
       if (!text || text.length > 500 || typeof data.actionId !== 'string' || data.actionId.length > 120) throw new HttpsError('invalid-argument', 'Enter a reply of up to 500 characters.');
       const replyId = createHash('sha256').update(`${uid}:${row.id}:${data.actionId}`).digest('hex').slice(0, 40), replyRef = db.collection('communityPosts').doc(replyId);
       if ((await tx.get(replyRef)).exists) return { ok: true, postId: replyId };
+      if (row.get('read') !== true) tx.update(ref, { read: true, readAt: FieldValue.serverTimestamp() });
       tx.create(replyRef, { authorId: uid, author: { displayName: profile.get('displayName') ?? '', username: profile.get('username') ?? '', avatarUrl: profile.get('avatarUrl') ?? null }, text, parentId: postId, isReply: true, rootId: post.get('rootId') || post.get('rootPostId') || postId, communityId: communityId ?? null, communityVisibility: 'public', communityName: post.get('communityName') ?? '', category: post.get('category') ?? 'general', media: [], likeCount: 0, replyCount: 0, repostCount: 0, quoteCount: 0, viewCount: 0, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
       tx.update(postRef, { replyCount: FieldValue.increment(1) }); return { ok: true, postId: replyId };
     }

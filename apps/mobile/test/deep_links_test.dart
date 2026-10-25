@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:indigen_world_mobile/core/app_shortcuts.dart';
 import 'package:indigen_world_mobile/core/deep_links.dart';
 
 /// What a link followed from outside the app is allowed to open.
@@ -127,6 +128,36 @@ void main() {
     test('a scheme that is not ours', () {
       expect(routeFor('ftp://indigenworld.com/post/abc'), isNull);
       expect(routeFor('javascript:alert(1)'), isNull);
+    });
+  });
+
+  group('app icon shortcuts', () {
+    test('each published shortcut opens its screen', () {
+      for (final shortcut in appShortcuts) {
+        expect(routeFor(shortcut.uri), shortcut.route, reason: shortcut.id);
+      }
+      expect(routeFor('indigen://open/dictionary'), '/dictionary?focus=search');
+      expect(routeFor('indigen://open/compose'), '/compose');
+    });
+
+    test('a shortcut this build no longer publishes opens nothing', () {
+      expect(routeFor('indigen://open/retired'), isNull);
+      expect(routeFor('indigen://open'), isNull);
+      expect(routeFor('indigen://open/messages/extra'), isNull);
+    });
+
+    test('the website can never open the composer', () {
+      // Shortcuts live on the app's own scheme only.
+      expect(routeFor('https://indigenworld.com/open/compose'), isNull);
+      expect(routeFor('https://www.indigenworld.com/open/messages'), isNull);
+    });
+
+    test('labels fit where the launcher shows them', () {
+      for (final shortcut in appShortcuts) {
+        expect(shortcut.shortLabel.length, lessThanOrEqualTo(10));
+        expect(shortcut.longLabel.length, lessThanOrEqualTo(25));
+      }
+      expect(appShortcuts.map((s) => s.id).toSet().length, appShortcuts.length);
     });
   });
 }

@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:indigen_world_mobile/features/notifications/local_alerts.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
@@ -247,6 +248,41 @@ void main() {
           }),
         ),
         'like_1',
+      );
+    });
+  });
+
+  group('drawing alerts on the phone', () {
+    test('only Android announces that it draws its own alerts', () {
+      // The backend sends a data-only message only to a device that announced
+      // this; iOS keeps system-drawn notifications.
+      expect(pushRendererFor(TargetPlatform.android), richPushRenderer);
+      expect(pushRendererFor(TargetPlatform.iOS), 0);
+    });
+
+    test('a tapped alert routes from its payload, old or new', () {
+      expect(
+        alertRouteFromPayload('{"type":"reply","route":"/post/p1"}'),
+        '/post/p1',
+      );
+      // Alerts posted by earlier builds carried the bare route.
+      expect(alertRouteFromPayload('/notifications'), '/notifications');
+      expect(alertRouteFromPayload('{"route":"https://evil.test"}'), isNull);
+      expect(alertRouteFromPayload('{broken'), isNull);
+      expect(alertRouteFromPayload(null), isNull);
+    });
+
+    test('a redrawn alert keeps the key it was first drawn under', () {
+      // After a button, the alert is redrawn from its stored payload, which
+      // carries the key; it must replace itself rather than stack a copy.
+      expect(alertKeyForData({'alertKey': 'newpost_amina'}), 'newpost_amina');
+      expect(
+        alertKeyForData({
+          'type': 'message',
+          'threadId': 'a_b',
+          'alertKey': 'x',
+        }),
+        'chat_a_b',
       );
     });
   });

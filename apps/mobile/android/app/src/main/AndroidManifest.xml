@@ -77,6 +77,15 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- Links are routed by core/deep_links.dart (app_links), never by
+                 Flutter directly. Since Flutter 3.27 the embedding hands every
+                 incoming link to the router itself unless told not to, and it
+                 did: a shared post opened on its own with no app beneath it
+                 (Back left the app), and an app-icon shortcut's route arrived
+                 without its query. Off, as app_links' own example sets it. -->
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="false" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

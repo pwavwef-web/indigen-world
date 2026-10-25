@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/chat_screen.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
+import 'package:indigen_world_mobile/features/community/data/chat_drafts.dart';
 import 'package:indigen_world_mobile/features/community/data/chat_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/chat_repository.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
@@ -19,6 +20,7 @@ class MessagesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final inbox = ref.watch(chatInboxProvider);
     final signedIn = ref.watch(currentUidProvider) != null;
+    final drafts = ref.watch(chatDraftsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -70,8 +72,10 @@ class MessagesScreen extends ConsumerWidget {
                 itemCount: value.length,
                 separatorBuilder: (context, index) =>
                     const Divider(height: 1, indent: 76, endIndent: 16),
-                itemBuilder: (context, index) =>
-                    _ThreadTile(thread: value[index]),
+                itemBuilder: (context, index) => _ThreadTile(
+                  thread: value[index],
+                  draft: drafts[value[index].id],
+                ),
               ),
               AsyncValue(hasError: true) => const CommunityEmptyState(
                 icon: Icons.cloud_off_rounded,
@@ -85,15 +89,20 @@ class MessagesScreen extends ConsumerWidget {
 }
 
 class _ThreadTile extends StatelessWidget {
-  const _ThreadTile({required this.thread});
+  const _ThreadTile({required this.thread, this.draft});
 
   final ChatThread thread;
+
+  /// Words typed here and not sent. Shown in place of the last message, the
+  /// way a half-written reply would be if it were a letter on the table.
+  final String? draft;
 
   @override
   Widget build(BuildContext context) {
     final preview = thread.lastMessage.trim().isEmpty
         ? 'Say something first.'
         : thread.lastMessage.trim();
+    final unsent = draft?.trim().replaceAll(RegExp(r'\s+'), ' ') ?? '';
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: CommunityAvatar(
@@ -128,8 +137,20 @@ class _ThreadTile extends StatelessWidget {
       ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 2),
-        child: Text(
-          preview,
+        child: Text.rich(
+          TextSpan(
+            children: [
+              if (unsent.isNotEmpty)
+                TextSpan(
+                  text: 'Draft: ',
+                  style: TextStyle(
+                    color: context.brand.danger,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              TextSpan(text: unsent.isNotEmpty ? unsent : preview),
+            ],
+          ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(

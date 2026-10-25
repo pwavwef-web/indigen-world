@@ -1,4 +1,8 @@
+import 'dart:async';
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
@@ -53,7 +57,12 @@ import 'package:indigen_world_mobile/shared/glass_surface.dart';
 /// incomplete lexicon teaches the gaps. Nothing on this screen shows a word,
 /// a form, a recording or a count that is not in the published archive.
 class DictionaryScreen extends ConsumerStatefulWidget {
-  const DictionaryScreen({super.key});
+  const DictionaryScreen({this.autofocusSearch = false, super.key});
+
+  /// Opens with the keyboard up in the search box — for the "Search the
+  /// dictionary" shortcut on the app icon, where looking a word up is the
+  /// only reason anybody came.
+  final bool autofocusSearch;
 
   @override
   ConsumerState<DictionaryScreen> createState() => _DictionaryScreenState();
@@ -77,7 +86,98 @@ class _DictionaryScreenState extends ConsumerState<DictionaryScreen> {
   final _letterOffsets = <String, int>{};
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.autofocusSearch) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => unawaited(_focusSearchOnArrival()),
+      );
+    }
+  }
+
+  /// Puts the keyboard up once the page has finished arriving.
+  ///
+  /// Asked for on the first frame, which from the app-icon shortcut is also
+  /// the moment Android is still handing the window back from the launcher,
+  /// the search box took focus and the keyboard never came: Android ignores a
+  /// request to show it for a window that does not have input focus yet. So
+  /// this waits for the push to finish and for the app to be in front, then
+  /// asks again — explicitly for the keyboard if the box already has focus.
+  Future<void> _focusSearchOnArrival() async {
+    final animation = ModalRoute.of(context)?.animation;
+    if (animation != null && animation.status != AnimationStatus.completed) {
+      final arrived = Completer<void>();
+      void listener(AnimationStatus status) {
+        if (status == AnimationStatus.completed && !arrived.isCompleted) {
+          arrived.complete();
+        }
+      }
+
+      animation.addStatusListener(listener);
+      await arrived.future.timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {},
+      );
+      animation.removeStatusListener(listener);
+    }
+    for (var waited = 0; waited < 20; waited++) {
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+        break;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    if (!mounted) return;
+    _focusHold = Timer(_focusHoldFor, _releaseFocusHold);
+    _searchFocus.addListener(_keepSearchFocus);
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_releaseOnTouch);
+    if (_searchFocus.hasFocus) {
+      await SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+    } else {
+      _searchFocus.requestFocus();
+    }
+  }
+
+  /// How long the shortcut's keyboard is defended after the page arrives.
+  static const _focusHoldFor = Duration(seconds: 5);
+
+  /// Running while the search box is being held in focus for the shortcut;
+  /// ended by the member's first touch or once [_focusHoldFor] has passed.
+  Timer? _focusHold;
+
+  /// Puts focus back on the search box if something other than the member
+  /// took it in the first moments after arriving.
+  ///
+  /// The likely something is a native advert in the list below: an Android
+  /// view, focusable, built just off-screen a moment after the page arrives.
+  /// A platform view that takes focus as it attaches takes it from the search
+  /// box, and the keyboard the shortcut asked for goes with it. Tests cannot
+  /// show this (their advert list is empty), so this is a precaution: for a
+  /// few seconds, and only until the member touches the screen, focus goes
+  /// back to where the shortcut put it.
+  void _keepSearchFocus() {
+    if (_focusHold == null || _searchFocus.hasFocus) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _focusHold != null) _searchFocus.requestFocus();
+    });
+  }
+
+  void _releaseOnTouch(PointerEvent event) {
+    if (event is PointerDownEvent) _releaseFocusHold();
+  }
+
+  /// Hands focus back to the member: their own touch decides from here.
+  void _releaseFocusHold() {
+    final hold = _focusHold;
+    if (hold == null) return;
+    hold.cancel();
+    _focusHold = null;
+    _searchFocus.removeListener(_keepSearchFocus);
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(_releaseOnTouch);
+  }
+
+  @override
   void dispose() {
+    _releaseFocusHold();
     _searchController.dispose();
     _searchFocus.dispose();
     _browseScroll.dispose();

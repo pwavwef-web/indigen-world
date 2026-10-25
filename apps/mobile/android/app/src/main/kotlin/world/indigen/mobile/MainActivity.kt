@@ -64,6 +64,10 @@ class MainActivity : AudioServiceActivity() {
         // active app; no typed text is ever passed through this Flutter engine.
         KasemKeyboardChannel(this)
             .attachTo(flutterEngine.dartExecutor.binaryMessenger)
+        // The long-press shortcuts on the app icon. Application context: the
+        // shortcut manager outlives this activity.
+        AppShortcutsChannel(applicationContext)
+            .attachTo(flutterEngine.dartExecutor.binaryMessenger)
     }
 
     private fun signature(): Map<String, Any?> {

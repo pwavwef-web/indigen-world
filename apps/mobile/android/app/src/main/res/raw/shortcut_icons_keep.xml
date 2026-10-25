@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The app-icon shortcut icons are looked up by name at run time
+  (AppShortcutsChannel.kt, from lib/core/app_shortcuts.dart), so nothing in
+  the code references them directly and release resource shrinking would
+  otherwise strip them, leaving the shortcuts without icons.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_shortcut_*" />

@@ -94,6 +94,17 @@ export function senderName(participantProfiles: unknown, senderId: string): stri
     : 'A member';
 }
 
+/** The sender's avatar, as stamped on the thread, or null when there is none. */
+export function senderAvatar(participantProfiles: unknown, senderId: string): string | null {
+  const profile = participantProfiles && typeof participantProfiles === 'object'
+    ? (participantProfiles as Record<string, unknown>)[senderId]
+    : undefined;
+  const avatarUrl = profile && typeof profile === 'object'
+    ? (profile as Record<string, unknown>).avatarUrl
+    : undefined;
+  return typeof avatarUrl === 'string' && avatarUrl ? avatarUrl : null;
+}
+
 /**
  * Claims the right to alert [recipientId] about this thread, or declines it.
  *
@@ -157,6 +168,9 @@ export const onChatMessageCreated = onDocumentCreated(
     await pushToUser(db, recipientId, {
       title: name,
       body: preview(text),
+      // Drawn as the conversation's face on phones that render their own
+      // alerts, the way the inbox row draws it.
+      actor: { name, avatarUrl: senderAvatar(thread.get('participantProfiles'), senderId) },
       // What a device shows when its owner has turned lock-screen previews off.
       // The name still appears as the title: knowing who wrote is the point of
       // the alert, and it is already on the inbox row either way.
@@ -166,6 +180,13 @@ export const onChatMessageCreated = onDocumentCreated(
         type: 'message',
         threadId: chatId,
         route: `/chat/${chatId}`,
+        // What Reply and Mark as read in the notification shade need: which
+        // account the alert belongs to (a shared phone may have changed hands
+        // since), and who is on the other end of the conversation.
+        payloadVersion: '2',
+        recipientId,
+        senderId,
+        messageId: snap.id,
       },
       // One conversation is one entry, however many messages arrive. The
       // collapse key covers a device that was offline; the tag covers what is

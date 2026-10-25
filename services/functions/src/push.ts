@@ -43,6 +43,18 @@ export interface PushMessage {
   title: string;
   body: string;
   imageUrl?: string;
+  /**
+   * Who the alert is about, drawn as its avatar on phones that render their
+   * own alerts — the same face the row wears in the notification centre.
+   * Omitted for alerts nobody in particular sent (an order, an announcement),
+   * which wear the Indigen mark instead.
+   */
+  actor?: { name?: string; avatarUrl?: string | null };
+  /**
+   * Accepted for envelopes recorded by earlier builds of this function, and
+   * ignored. Whether a phone draws its own actions is now the phone's answer
+   * (see [rendersOnDevice]), not the sender's.
+   */
   richActions?: boolean;
   /**
    * Body used instead on devices whose owner turned lock-screen previews off.
@@ -72,10 +84,136 @@ export interface PushMessage {
   tag?: string;
 }
 
-interface DeviceRow {
+export interface DeviceRow {
   token: string;
   previews: boolean;
   platform: string;
+  /** The highest alert layout this build can draw itself; 0 when it draws none. */
+  renderer: number;
+}
+
+/**
+ * The alert layout this backend sends to phones that draw their own.
+ *
+ * Version 2 is the notification-centre design carried into the phone's
+ * notification shade: the actor's avatar with its kind badge, the attached
+ * picture, and Reply / Like / Mark as read, all drawn by the app from a
+ * data-only message. A build announces it on its device row
+ * (`pushRenderer`), and only a build that announced it is ever sent a
+ * data-only message — an older build would receive it and draw nothing.
+ */
+export const RICH_PUSH_RENDERER = 2;
+
+/**
+ * Whether [device] is sent a data-only message it draws itself.
+ *
+ * Android only: an iOS app is not woken for a data-only message reliably
+ * enough to be trusted with the only copy of an alert. The environment switch
+ * exists purely as a kill switch — set `RICH_NOTIFICATION_PUSH_ENABLED=false`
+ * and every device falls back to the system-drawn notification on the next
+ * send, with no app release involved.
+ */
+export function rendersOnDevice(
+  device: Pick<DeviceRow, 'platform' | 'renderer'>,
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  if (env.RICH_NOTIFICATION_PUSH_ENABLED === 'false') return false;
+  return device.platform === 'android' && device.renderer >= RICH_PUSH_RENDERER;
+}
+
+/**
+ * Hosts the app is allowed to download a notification picture from.
+ *
+ * A phone fetching an image for an alert tells that host the phone exists, so
+ * the list is the places the app's own pictures already live: Firebase
+ * Storage for uploads, and Google's profile-photo host for avatars carried
+ * over from Google sign-in. Must match `allowedAlertImageHosts` in the app.
+ */
+const ALERT_IMAGE_HOSTS = new Set([
+  'firebasestorage.googleapis.com',
+  'storage.googleapis.com',
+  'lh3.googleusercontent.com',
+]);
+
+/** [value] when it is an https URL on [ALERT_IMAGE_HOSTS], otherwise ''. */
+export function alertImageUrl(value: unknown): string {
+  if (typeof value !== 'string' || value.length > 2000) return '';
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && ALERT_IMAGE_HOSTS.has(url.hostname) ? value : '';
+  } catch {
+    return '';
+  }
+}
+
+/** One multicast: a set of tokens and everything they are sent. */
+export interface PushGroup {
+  tokens: string[];
+  /** Whether these devices draw the alert themselves (data-only message). */
+  local: boolean;
+  previews: boolean;
+  notification?: { title: string; body: string; imageUrl?: string };
+  data: Record<string, string>;
+}
+
+/**
+ * How one alert is split across [devices], and what each group is sent.
+ *
+ * Two axes: whether the handset shows previews (a shared tablet turns them
+ * off), and whether it draws its own alerts. Pure, so the split — which is the
+ * difference between an alert that arrives and one that silently does not —
+ * can be tested without FCM.
+ *
+ * A group that draws its own alert gets no `notification` block at all. With
+ * one, Android draws the system notification itself while the app is in the
+ * background and never wakes it — so the avatar, the picture and the action
+ * buttons would only ever appear while the app was already open.
+ */
+export function planPushGroups(
+  devices: DeviceRow[],
+  message: PushMessage,
+  sentAt: number,
+  env: Record<string, string | undefined> = process.env,
+): PushGroup[] {
+  const imageUrl = alertImageUrl(message.imageUrl);
+  const actorName = message.actor?.name?.trim() ?? '';
+  const actorAvatarUrl = alertImageUrl(message.actor?.avatarUrl);
+  const groups: PushGroup[] = [];
+  for (const previews of [true, false]) {
+    for (const local of [true, false]) {
+      const tokens = devices
+        .filter((device) => device.previews === previews && rendersOnDevice(device, env) === local)
+        .map((device) => device.token);
+      if (tokens.length === 0) continue;
+      const title = previews ? message.title : 'Indigen World';
+      const body = previews
+        ? message.body
+        : message.redactedBody ?? 'Open Indigen World to view this update.';
+      groups.push({
+        tokens,
+        local,
+        previews,
+        ...(local
+          ? {}
+          : { notification: { title, body, ...(previews && imageUrl ? { imageUrl } : {}) } }),
+        data: {
+          ...message.data,
+          title,
+          body,
+          // A hidden preview hides the face and the picture as well as the
+          // words: a lock screen showing whose avatar wrote is a preview.
+          imageUrl: previews ? imageUrl : '',
+          actorName: previews ? actorName : '',
+          actorAvatarUrl: previews ? actorAvatarUrl : '',
+          previews: String(previews),
+          channelId: message.channelId,
+          sentAt: String(sentAt),
+          ...(local ? { renderLocally: 'true' } : {}),
+        },
+      });
+    }
+  }
+  return groups;
 }
 
 /** The devices [uid] can be reached on, with each one's preview preference. */
@@ -96,6 +234,10 @@ async function devicesFor(
       // Previews were what those devices already did, so that is what absence
       // has to mean — anything else silently changes their behaviour.
       previews: doc.get('messagePreviews') !== false,
+      // Absent on every row written before builds drew their own alerts, and
+      // absence must mean "draws none": those builds would receive a data-only
+      // message and show nothing at all.
+      renderer: typeof doc.get('pushRenderer') === 'number' ? doc.get('pushRenderer') : 0,
     }))
     .filter((device): device is DeviceRow =>
       typeof device.token === 'string' && device.token.length > 0);
@@ -132,20 +274,15 @@ export async function pushToUser(
     const devices = await devicesFor(db, uid);
     if (devices.length === 0) return { status: 'no_devices', accepted: 0, failed: 0 };
 
-    const groups = [true, false].flatMap((previews) => [true, false].map((local) => ({
-      previews, local,
-      body: previews ? message.body : message.redactedBody ?? 'Open Indigen World to view this update.',
-      tokens: devices.filter((d) => d.previews === previews && (message.richActions === true && d.platform === 'android') === local).map((d) => d.token),
-    })));
+    const groups = planPushGroups(devices, message, Date.now());
 
     const stale: string[] = [];
     let accepted = 0, failed = 0;
     for (const group of groups) {
-      if (group.tokens.length === 0) continue;
       const response = await getMessaging().sendEachForMulticast({
         tokens: group.tokens,
-        ...(group.local ? {} : { notification: { title: group.previews ? message.title : 'Indigen World', body: group.body } }),
-        data: { ...message.data, title: group.previews ? message.title : 'Indigen World', body: group.body, imageUrl: group.previews ? message.imageUrl ?? '' : '', previews: String(group.previews), ...(group.local ? { renderLocally: 'true' } : {}) },
+        ...(group.notification ? { notification: group.notification } : {}),
+        data: group.data,
         android: {
           priority: 'high',
           ...(message.collapseKey ? { collapseKey: message.collapseKey } : {}),
@@ -156,7 +293,7 @@ export async function pushToUser(
           } }),
         },
         apns: {
-          payload: { aps: { sound: 'default', category: ['like', 'reply', 'quote', 'mention', 'post', 'thread_reply'].includes(message.data.type) ? 'community_actions' : 'notification_read', ...(group.previews && message.imageUrl && process.env.IOS_RICH_MEDIA_ENABLED === 'true' ? { mutableContent: true } : {}) } },
+          payload: { aps: { sound: 'default', category: ['like', 'reply', 'quote', 'mention', 'post', 'thread_reply'].includes(message.data.type) ? 'community_actions' : 'notification_read', ...(group.previews && group.notification?.imageUrl && process.env.IOS_RICH_MEDIA_ENABLED === 'true' ? { mutableContent: true } : {}) } },
           ...(message.collapseKey
             ? { headers: { 'apns-collapse-id': message.collapseKey } }
             : {}),

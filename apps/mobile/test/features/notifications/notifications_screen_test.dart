@@ -5,6 +5,7 @@ import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_models.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
+import 'package:indigen_world_mobile/features/notifications/data/notifications_repository.dart';
 import 'package:indigen_world_mobile/features/notifications/notifications_screen.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,11 +41,14 @@ void main() {
     String? uid = 'me-uid',
     List<IndigenNotification> feed = const [],
     int unread = 0,
+    NotificationsRepository? repository,
   }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           currentUidProvider.overrideWithValue(uid),
+          if (repository != null)
+            notificationsRepositoryProvider.overrideWithValue(repository),
           notificationFeedProvider.overrideWith((ref) => Stream.value(feed)),
           unreadNotificationCountProvider.overrideWith(
             (ref) => Stream.value(unread),
@@ -229,4 +233,77 @@ void main() {
     expect(find.text('Sign in'), findsOneWidget);
     expect(find.text('Nothing yet'), findsNothing);
   });
+
+  group('deleting', () {
+    testWidgets('a swipe takes the row away at once and offers Undo', (
+      tester,
+    ) async {
+      final repository = _FakeNotificationsRepository();
+      await pump(
+        tester,
+        feed: [notification(id: 'a', read: true)],
+        repository: repository,
+      );
+
+      await tester.drag(find.byType(Dismissible), const Offset(-600, 0));
+      await tester.pumpAndSettle();
+
+      // No question first: the row is gone and Undo is on offer.
+      expect(find.text('Delete this notification?'), findsNothing);
+      expect(find.textContaining('Amina liked your post'), findsNothing);
+      expect(find.text('Notification deleted'), findsOneWidget);
+      expect(repository.deleted, isEmpty);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Amina liked your post'), findsOneWidget);
+      expect(repository.deleted, isEmpty);
+    });
+
+    testWidgets('the delete is written once Undo goes unused', (tester) async {
+      final repository = _FakeNotificationsRepository();
+      await pump(
+        tester,
+        feed: [notification(id: 'a', read: true)],
+        repository: repository,
+      );
+
+      await tester.drag(find.byType(Dismissible), const Offset(-600, 0));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pumpAndSettle();
+
+      expect(repository.deleted, ['a']);
+      expect(find.text('Notification deleted'), findsNothing);
+    });
+  });
+
+  testWidgets("alerts can be snoozed from the centre's menu", (tester) async {
+    await pump(tester);
+
+    await tester.tap(find.byTooltip('Notification actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Snooze alerts'));
+    await tester.pumpAndSettle();
+    expect(find.text('For 1 hour'), findsOneWidget);
+    await tester.tap(find.text('For 1 hour'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Alerts are silent until'), findsOneWidget);
+    await tester.tap(find.text('Resume'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Alerts are silent'), findsNothing);
+  });
+}
+
+/// Records deletes instead of writing them; any other call fails loudly.
+class _FakeNotificationsRepository implements NotificationsRepository {
+  final deleted = <String>[];
+
+  @override
+  Future<void> deleteNotification(String notificationId) async =>
+      deleted.add(notificationId);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

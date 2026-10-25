@@ -10,10 +10,12 @@ import 'package:indigen_world_mobile/features/collection/collection_data.dart';
 import 'package:indigen_world_mobile/features/community/chat_thread_loader.dart';
 import 'package:indigen_world_mobile/features/community/communities/communities_screen.dart';
 import 'package:indigen_world_mobile/features/community/communities/community_space_screen.dart';
+import 'package:indigen_world_mobile/features/community/compose_from_shortcut.dart';
 import 'package:indigen_world_mobile/features/community/messages_screen.dart';
 import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/contribute_screen.dart';
 import 'package:indigen_world_mobile/features/contribute/words/word_queue_screen.dart';
+import 'package:indigen_world_mobile/features/dictionary/dictionary_screen.dart';
 import 'package:indigen_world_mobile/features/dictionary/entry_detail_screen.dart';
 import 'package:indigen_world_mobile/features/downloads/downloads_screen.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_creation_screen.dart';
@@ -77,6 +79,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           entryId: state.pathParameters['entryId']!,
           origin: state.uri.queryParameters['from'] ?? 'link',
         ),
+      ),
+      // The app icon's "Search the dictionary" shortcut. The dictionary is
+      // otherwise a tile inside Collection; `focus=search` opens it with the
+      // keyboard already up.
+      GoRoute(
+        path: '/dictionary',
+        builder: (context, state) => DictionaryScreen(
+          autofocusSearch: state.uri.queryParameters['focus'] == 'search',
+        ),
+      ),
+      // The app icon's "Write a post" shortcut. Through the same sign-in and
+      // profile gate as the composer button in Community.
+      GoRoute(
+        path: '/compose',
+        builder: (context, state) => const ComposeFromShortcut(),
       ),
       // Push deep links land on these two.
       GoRoute(

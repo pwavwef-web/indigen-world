@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/app/shell_chrome.dart';
+import 'package:indigen_world_mobile/core/app_shortcuts.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/deep_links.dart';
 import 'package:indigen_world_mobile/features/auth/restore_credentials.dart';
@@ -185,6 +186,10 @@ class _AppShellState extends ConsumerState<AppShell>
     // first thing that exists once onboarding is done, so a link tapped on a
     // first-ever launch waits behind onboarding instead of replacing it.
     ref.watch(incomingLinksProvider);
+    // The long-press shortcuts on the app icon. They open through the same
+    // link handling as a shared post, so they are published from the same
+    // place: once there is a shell to route them.
+    ref.watch(appShortcutsProvider);
     // Play Billing is started here for two reasons that both cost real money
     // when it is not. Play redelivers a purchase that completed while the app
     // was closed the moment something listens, and until this line the only

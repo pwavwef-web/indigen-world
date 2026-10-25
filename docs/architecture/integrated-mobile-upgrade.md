@@ -13,7 +13,7 @@ confirmation of production deployment. The acceptance ledger is
 | `shopSettings/store` | Shop → Settings callable | `checkoutEnabled` defaults off; GHS, support contact, policies and optional `taxBps` are required/configured by staff |
 | `shopDelivery` | Shop → Delivery | Explicit enabled countries, regions, fees, pickup and estimates; no production zones are seeded |
 | `INDIGEN_HOUSE_ORGANISATION_ID` | Functions environment | Verified existing Indigen organisation/account ID; missing value blocks house-profile creation |
-| `RICH_NOTIFICATION_PUSH_ENABLED` | Functions environment | Defaults false. Android data-only rendering after the device matrix passes |
+| `RICH_NOTIFICATION_PUSH_ENABLED` | Functions environment | Kill switch since 0.1.35+44 (25 October 2026). Unset: Android devices whose `communityDevices` row carries `pushRenderer >= 2` (written by 0.1.35+ builds) get data-only alerts the app draws itself; every other device keeps system notifications. Set to `false` to send every device system notifications again, with no app release |
 | `IOS_RICH_MEDIA_ENABLED` | Functions environment | Defaults false. Enable only after the NotificationService extension is signed, embedded and tested on Apple hardware |
 | `ADMOB_POST_COMMENTS_NATIVE_AD_UNIT_ID` | ignored AdMob config / CI secret / Dart define | Dedicated Android native unit; optional, distinct from existing units, same publisher |
 | `POST_COMMENTS_ADS_ENABLED` | Dart define | Defaults false in release; the release-config script enables it only with the optional dedicated unit |
@@ -110,7 +110,17 @@ fixed comment box. SDK clicks and AdChoices remain SDK-owned.
   and drain a recipient-scoped native queue after authentication.
 - **OS display:** Android rich mode uses app-rendered alerts in foreground,
   background and supported terminated states; system notification mode is the
-  fallback when the flag is off. Apple uses APNs system display in background,
+  fallback for devices that never announced a renderer and for every device
+  when the kill switch is `false`. Since 0.1.35+44 the app draws the
+  notification centre's design in the shade (`alert_presentation.dart`,
+  `notification_art.dart`, `local_alerts.dart`): the actor's avatar wearing the
+  kind badge, the attached picture (Big Picture), the kind as sub-text,
+  Reply / Like / Mark as read, messages as a conversation with inline reply,
+  per-channel group summaries with Mark all as read, a silent redraw that says
+  what a button did, and snooze (silent delivery). Pictures come only from
+  `firebasestorage.googleapis.com`, `storage.googleapis.com` and
+  `lh3.googleusercontent.com` (`alertImageUrl` in push.ts mirrors the app).
+  System-drawn notifications now carry `notification.imageUrl` too. Apple uses APNs system display in background,
   local display in foreground, registered categories and a bounded image
   extension. The extension accepts only approved HTTPS Google Storage hosts,
   no redirects and at most 5 MB, and preserves text on failure. Force-stop,

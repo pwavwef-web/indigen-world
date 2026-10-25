@@ -8,6 +8,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-25: Alerts you can answer, and five shortcuts to less tapping](2026-10-25-alerts-you-can-answer/README.md) — Android 0.1.35+44: notifications drawn in the app's design (avatar with kind badge, attached picture, Reply / Like / Mark as read, messages as a conversation, grouped summaries) plus app-icon shortcuts, message drafts, copy any message, Undo for deleted notifications and snooze. Includes actual screenshots of the release build on an Android emulator and app renders with sample data. AAB built, not uploaded to Play; backend functions not deployed; Blogger publication pending.
+
 - [2026-10-23: Correct a submission and publish from the review desk](2026-10-23-reviewer-editing/README.md) — direct content corrections in Administration and the Validator portal, save-and-continue, combined approval/publication, version checks and private correction history. Includes local product captures with synthetic data. Deployed 23 October; both portal bundles, three active Functions and access guards verified. Authenticated production editing remains unverified. Blogger publication pending.
 
 - [2026-10-23: More ways to share what you know](2026-10-23-all-round-contributor-portal/README.md) — contributor Home cards, dedicated contribution workspaces, independent usage permissions, private source material and traceable review/export. Includes actual local captures with synthetic fixtures. Deployed 23 October; live routes, bundles and function states verified. Authenticated production review remains unverified after automated App Check rejection. Blogger publication and sharing remain with Chinedum.

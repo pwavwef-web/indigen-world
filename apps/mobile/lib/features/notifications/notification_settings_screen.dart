@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'package:indigen_world_mobile/features/notifications/quiet_hours_settings.dart';
-
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,9 +6,12 @@ import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/core/connectivity.dart';
 import 'package:indigen_world_mobile/features/community/community_setup_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/notifications/alert_snooze.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_preferences.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
+import 'package:indigen_world_mobile/features/notifications/local_alerts.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
+import 'package:indigen_world_mobile/features/notifications/quiet_hours_settings.dart';
 import 'package:indigen_world_mobile/features/settings/settings_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -103,6 +104,15 @@ class _NotificationSettingsScreenState
       );
   }
 
+  Future<void> _sendTestAlerts() async {
+    try {
+      await showTestAlerts();
+      _message('Sent. Pull down your notification shade to see them.');
+    } on Object {
+      _message('Could not show a test alert on this phone.');
+    }
+  }
+
   void _openProfileSetup() => Navigator.of(context).push(
     MaterialPageRoute<void>(builder: (context) => const CommunitySetupScreen()),
   );
@@ -111,6 +121,7 @@ class _NotificationSettingsScreenState
   Widget build(BuildContext context) {
     final profile = ref.watch(myCommunityProfileProvider).asData?.value;
     final alertsOn = _alertsEnabled ?? false;
+    final snoozedUntil = ref.watch(alertSnoozeProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Notification settings')),
@@ -159,6 +170,29 @@ class _NotificationSettingsScreenState
                   ),
                   value: _previewsEnabled ?? true,
                   onChanged: _previewsEnabled == null ? null : _setPreviews,
+                ),
+              if (alertsOn)
+                SettingsRow(
+                  icon: snoozedUntil == null
+                      ? Icons.snooze_rounded
+                      : Icons.notifications_active_outlined,
+                  title: snoozedUntil == null
+                      ? 'Snooze alerts'
+                      : 'Alerts are silent ${snoozeUntilLabel(snoozedUntil)}',
+                  subtitle: snoozedUntil == null
+                      ? 'Quiet for an hour, eight hours or until morning. '
+                            'Alerts still arrive, silently.'
+                      : 'Tap to resume now or change how long',
+                  onTap: () => unawaited(showSnoozeSheet(context, ref)),
+                ),
+              if (alertsOn)
+                SettingsRow(
+                  icon: Icons.notification_add_outlined,
+                  title: 'Send a test alert',
+                  subtitle:
+                      'See how alerts look on this phone, and try Reply, '
+                      'Like and Mark as read',
+                  onTap: () => unawaited(_sendTestAlerts()),
                 ),
             ],
           ),

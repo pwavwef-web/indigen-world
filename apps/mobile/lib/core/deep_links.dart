@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:indigen_world_mobile/core/app_shortcuts.dart';
 import 'package:indigen_world_mobile/features/notifications/push_messaging.dart';
 
 /// The web host the app answers for.
@@ -65,6 +66,13 @@ String? appRouteForLink(Uri uri) {
     return '/shop/payment-complete?reference=$reference';
   }
 
+  // A shortcut from the app icon (see app_shortcuts.dart). Only ever on the
+  // app's own scheme: no page on the website should be able to open the
+  // composer.
+  if (isAppLink && segments.length == 2 && segments[0] == 'open') {
+    return routeForShortcut(segments[1]);
+  }
+
   if (segments.length != 2) return null;
   final [prefix, id] = segments;
   if (!_claimedPrefixes.contains(prefix)) return null;
@@ -88,9 +96,12 @@ String? appRouteForLink(Uri uri) {
 /// notifications primer instead of skipping them, and the route it opens has
 /// the shell beneath it to go back to.
 ///
-/// This is also why the app does not set `flutter_deeplinking_enabled`. That
-/// flag hands the incoming URL to go_router as the app's initial location,
-/// which would replace the startup gate rather than sit on top of it.
+/// This is also why Flutter's own deep linking is switched off
+/// (`flutter_deeplinking_enabled` in the Android manifest,
+/// `FlutterDeepLinkingEnabled` in Info.plist). It hands the incoming URL to
+/// go_router as the app's location, which replaces the startup gate and the
+/// shell rather than sitting on top of them — and since Flutter 3.27 it is on
+/// unless switched off, which this app did not do until 0.1.35.
 final incomingLinksProvider = Provider<void>((ref) {
   final links = AppLinks();
   var disposed = false;

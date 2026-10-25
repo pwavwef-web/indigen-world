@@ -266,6 +266,42 @@ class ChatRepository {
     await batch.commit();
   }
 
+  /// Sends [text] from the Reply box on a message alert in the shade.
+  ///
+  /// The same write as [sendMessage] less the sender's profile stamp: a reply
+  /// from the shade is sent by a background isolate that has no profile
+  /// loaded, and the stamp already on the thread from the conversation's
+  /// earlier messages is the one the other side sees anyway. Returns once the
+  /// write is committed locally — Firestore carries it to the server when it
+  /// can, which is what lets a reply typed in a lift still arrive.
+  Future<void> replyFromAlert({
+    required String threadId,
+    required String senderUid,
+    required String recipientId,
+    required String text,
+  }) async {
+    final body = text.trim();
+    if (body.isEmpty) return;
+    final trimmed = body.length > maxMessageLength
+        ? body.substring(0, maxMessageLength)
+        : body;
+    final doc = _chats.doc(threadId);
+    await (_firestore.batch()
+          ..set(doc.collection('messages').doc(), {
+            'senderId': senderUid,
+            'text': trimmed,
+            'createdAt': FieldValue.serverTimestamp(),
+          })
+          ..update(doc, {
+            'lastMessage': trimmed,
+            'lastSenderId': senderUid,
+            'lastMessageAt': FieldValue.serverTimestamp(),
+            'unread.$recipientId': FieldValue.increment(1),
+            'unread.$senderUid': 0,
+          }))
+        .commit();
+  }
+
   /// Clears this member's unread count. Best-effort: a failed clear costs a
   /// badge that is one conversation stale, never a lost message.
   /// Loads one conversation by id.

@@ -157,16 +157,22 @@ class NotificationsRepository {
   /// [messagePreviews] rides on the device row rather than the account: a
   /// member with a private phone and a shared tablet wants a different answer
   /// on each, and the fan-out reads it per token when it addresses them.
+  ///
+  /// [renderer] is the alert layout this build draws itself (see
+  /// `richPushRenderer`); the fan-out only sends a data-only message to a row
+  /// that carries one.
   Future<void> registerDevice({
     required String uid,
     required String token,
     required String platform,
     required bool messagePreviews,
+    int renderer = 0,
   }) => _firestore.collection('communityDevices').doc(token).set({
     'uid': uid,
     'token': token,
     'platform': platform,
     'messagePreviews': messagePreviews,
+    'pushRenderer': renderer,
     'updatedAt': FieldValue.serverTimestamp(),
   });
 

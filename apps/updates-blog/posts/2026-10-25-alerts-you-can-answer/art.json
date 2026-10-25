@@ -1,0 +1,46 @@
+{
+  "accent": "blue",
+  "motif": "rings",
+  "eyebrow": "Indigen World app · Android 0.1.35",
+  "title": "Alerts you can answer,\nright from your phone.",
+  "lede": "Notifications now show who it is from, the picture and what happened — with Reply, Like and Mark as read buttons. Plus five shortcuts to less tapping.",
+  "tags": [
+    "Rich notifications",
+    "Reply from the shade",
+    "Five usability features"
+  ],
+  "hero": [
+    "shade-alert.png",
+    "shade-conversation.png"
+  ],
+  "figures": {
+    "shade-alert.png": {
+      "title": "The picture, the badge, the buttons",
+      "note": "Actual screenshot of the release build on an Android emulator: the app's sample alert with a bundled photograph."
+    },
+    "shade-conversation.png": {
+      "title": "Answer a message without opening the app",
+      "note": "Actual release build: the sample message, answered from the notification."
+    },
+    "alert-settings.png": {
+      "title": "Try it: Send a test alert",
+      "note": "Actual release build. Snooze and the test alert sit with the other settings for this phone."
+    },
+    "shortcuts.png": {
+      "title": "Press and hold the app icon",
+      "note": "Actual release build on an Android emulator's launcher."
+    },
+    "messages-draft.png": {
+      "title": "Unfinished messages are kept",
+      "note": "Actual app screen with sample conversations made for this picture."
+    },
+    "notifications-undo.png": {
+      "title": "Undo, and snooze when you need quiet",
+      "note": "Actual app screen with sample notifications made for this picture."
+    },
+    "chat-copy.png": {
+      "title": "Copy any message",
+      "note": "Actual app screen with a sample conversation."
+    }
+  }
+}

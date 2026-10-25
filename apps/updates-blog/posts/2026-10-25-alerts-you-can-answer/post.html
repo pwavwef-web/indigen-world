@@ -1,0 +1,66 @@
+<article>
+  <figure><img src="images/cover.png" alt="Two phones: an Indigen World alert in the Android notification shade with a picture and Reply, Like and Mark as read buttons, and a message alert answered from the shade" style="width:100%;height:auto"/><figcaption>Designed frame around actual screenshots from an Android phone emulator running the 0.1.35 release build. The alerts shown are the app's built-in sample alerts.</figcaption></figure>
+  <p class="iw-lede">Your phone's notifications now look like the notifications screen inside the Indigen World app: you see who it is from, the picture it is about and what happened, and you can reply, like or mark it as read without opening the app. This update also adds five smaller changes that save taps every day.</p>
+  <div class="iw-note"><p><strong>Status — 25 October 2026.</strong> Built and tested as Android version 0.1.35 (build 44). It is not in the Play Store yet. The new notification design also needs a server update before it reaches phones. Until both are done, the app you have works exactly as before.</p></div>
+
+  <h2>Notifications that look like the app</h2>
+  <p>Until now, an Indigen World notification on your phone was a title, one line of text and the app's icon. The same alert inside the app had much more: the person's photo, a small coloured badge saying what happened, the picture from the post, and Like and Reply buttons. If you only looked at your phone's notification shade, you got the plainer version.</p>
+  <p>From 0.1.35 the shade shows the app's design:</p>
+  <ul>
+    <li><strong>The person's photo with a badge.</strong> Each alert shows the photo of whoever replied, mentioned you or followed you, with the same coloured badge as in the app: a heart for a like, a speech bubble for a reply, an @ for a mention, and so on. People without a photo show their initials. Alerts that nobody in particular sent, such as an announcement or an order update, show the Indigen World mark.</li>
+    <li><strong>The picture.</strong> When an alert is about a post with a photo, pull the alert down and the photo fills it.</li>
+    <li><strong>What happened, in words.</strong> Next to the app name your phone shows the kind of alert, such as <em>Reply</em>, <em>Mention</em> or <em>New follower</em>, and when it happened.</li>
+  </ul>
+  <figure><img src="images/shade-alert.jpg" alt="An expanded Indigen World alert in the Android notification shade showing a photo of Paga crocodile pond, the alert text, and Reply, Like and Mark as read buttons" style="width:100%;height:auto"/><figcaption>Actual screenshot from an Android emulator running the release build. This is the app's sample alert (see "Try it yourself" below), with a photograph bundled in the app: Paga crocodile pond by Dieu-Donné Gameli, Wikimedia Commons, CC BY-SA 3.0.</figcaption></figure>
+
+  <h2>Answer without opening the app</h2>
+  <p>Alerts now have buttons, the same ones the notifications screen in the app offers:</p>
+  <ul>
+    <li><strong>Reply</strong> opens a text box right in the notification. Type and send, and your reply is posted under the post.</li>
+    <li><strong>Like</strong> likes the post the alert is about. It appears only on replies, mentions and posts, so an alert telling you someone liked <em>your</em> post has no Like button.</li>
+    <li><strong>Mark as read</strong> clears the alert and marks it read in the app too.</li>
+  </ul>
+  <p>After you press a button, the alert tells you what happened: <em>Liked</em>, <em>Reply sent</em>, or <em>Sending when you are online</em> if your phone has no connection. A reply is saved on your phone and goes out when you are back online.</p>
+  <h3>Messages become a conversation</h3>
+  <p>A direct message now appears as a short conversation with the sender's photo. Reply from the notification and your answer appears underneath theirs, so you can have a quick back-and-forth without opening the app. <strong>Mark as read</strong> clears the conversation's unread count.</p>
+  <figure><img src="images/shade-conversation.jpg" alt="A message alert in the notification shade showing the conversation, including a reply typed in the notification" style="width:100%;height:auto"/><figcaption>Actual screenshot from the release build: the sample message, answered from the shade.</figcaption></figure>
+  <h3>A tidier shade</h3>
+  <p>When two or more alerts arrive, they fold into one group with a count, such as <em>3 new alerts</em>, and a <strong>Mark all as read</strong> button. Messages, community activity and updates about your own work (orders, reviews, payments) are kept in separate groups. And when you read something inside the app, its alert disappears from the shade.</p>
+  <figure><img src="images/alert-settings.jpg" alt="Notification settings with Push alerts, Show message text, Snooze alerts and Send a test alert" style="width:100%;height:auto"/><figcaption>Actual screenshot from the release build: Snooze alerts and Send a test alert sit with the other settings for this phone.</figcaption></figure>
+  <div class="iw-tip"><p><strong>Try it yourself.</strong> In the app, open <em>Notifications → ⚙ Alert settings → Send a test alert</em>. Two sample alerts appear in your shade: a reply with a picture and a message. Their buttons work, but nothing is posted anywhere.</p></div>
+
+  <h2>Five shortcuts to less tapping</h2>
+
+  <h3>1. Press and hold the app icon</h3>
+  <p>Press and hold the Indigen World icon on your home screen for four shortcuts: <strong>Look up</strong> opens the dictionary with the keyboard ready, <strong>New post</strong> opens the composer, and <strong>Messages</strong> and <strong>Alerts</strong> go straight to your inbox and notifications. You can drag any of them onto your home screen as its own icon.</p>
+  <figure><img src="images/shortcuts.jpg" alt="The Indigen World app icon pressed and held on an Android home screen, showing Look up, New post, Messages and Alerts" style="width:100%;height:auto"/><figcaption>Actual screenshot from an Android emulator running the release build.</figcaption></figure>
+
+  <h3>2. Unfinished messages are kept</h3>
+  <p>If you leave a conversation in the middle of a sentence, to check a word or answer a call, what you typed is still there when you come back. The Messages list shows <em>Draft:</em> in red next to any conversation with an unsent message, so it is not forgotten. Drafts stay on your phone and are kept separately for each account.</p>
+  <figure><img src="images/messages-draft.jpg" alt="Messages list with one conversation showing Draft: and the unsent text" style="width:100%;height:auto"/><figcaption>Actual app screen with sample conversations.</figcaption></figure>
+
+  <h3>3. Copy any message</h3>
+  <p>Press and hold any message in a conversation, whether yours or theirs, and choose <strong>Copy text</strong>. Kasem spellings, phone numbers and directions can now be copied. Delete is still offered for your own messages.</p>
+  <figure><img src="images/chat-copy.jpg" alt="A conversation with a message held down and a menu offering Copy text" style="width:100%;height:auto"/><figcaption>Actual app screen with a sample conversation.</figcaption></figure>
+
+  <h3>4. Undo instead of "Are you sure?"</h3>
+  <p>Swiping a notification away used to ask "Delete this notification?" every time. Now it simply goes, with an <strong>Undo</strong> button for five seconds. Clearing your whole notification history still asks first.</p>
+  <figure><img src="images/notifications-undo.jpg" alt="Notifications screen with the snooze banner at the top and a Notification deleted bar with an Undo button" style="width:100%;height:auto"/><figcaption>Actual app screen with sample notifications, showing the snooze banner and Undo.</figcaption></figure>
+
+  <h3>5. Snooze alerts</h3>
+  <p>In a meeting, a church service or a class? Choose <strong>Snooze alerts</strong> from the menu on the notifications screen, or from Alert settings, and pick <em>For 1 hour</em>, <em>For 8 hours</em> or <em>Until tomorrow morning</em> (7:00). Alerts still arrive and wait in your shade, but they make no sound and do not pop up. A banner shows when snoozing ends, with a <strong>Resume</strong> button. Snoozing applies to the phone you set it on. The existing quiet hours setting is different: it holds alerts back every night at times you choose.</p>
+
+  <h2>Also fixed</h2>
+  <ul>
+    <li>Leaving a conversation could leave the app thinking it was still open, so alerts for new messages in that conversation did not appear while you were using the app. That is fixed.</li>
+    <li>Opening a shared Indigen World link, such as a post someone sent you, could show the post on its own, so pressing Back closed the app. The post now opens on top of the app, and Back takes you into it.</li>
+  </ul>
+
+  <h2>Who gets what</h2>
+  <ul>
+    <li><strong>Android, version 0.1.35 or later:</strong> everything above, once 0.1.35 is in the Play Store and the server update is live.</li>
+    <li><strong>Older Android versions:</strong> notifications keep their current plain look. After the server update they also show the post's picture.</li>
+    <li><strong>iPhone:</strong> notifications are unchanged in this update.</li>
+  </ul>
+  <p>If you turn off <em>Show message text in alerts</em> in Alert settings, your lock screen shows neither the words, the person's photo nor the picture, only that there is something new.</p>
+</article>

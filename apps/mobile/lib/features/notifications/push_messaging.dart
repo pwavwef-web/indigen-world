@@ -38,6 +38,19 @@ const pushNudgeShownKey = 'indigen_world_push_nudge_v1';
 /// alert, and the member who needs it off is the one who will go looking.
 const messagePreviewsKey = 'indigen_world_message_previews_v1';
 
+/// The alert layout this build draws itself, announced on its device row.
+///
+/// The backend sends a data-only message — the one that lets this app draw
+/// the avatar, the picture and the Reply / Like / Mark as read buttons — only
+/// to a device that announced at least `RICH_PUSH_RENDERER` (push.ts). Every
+/// build before this one announced nothing and keeps getting system-drawn
+/// notifications. Android only: iOS is not woken reliably enough for a
+/// data-only message to be the only copy of an alert.
+const richPushRenderer = 2;
+
+int pushRendererFor(TargetPlatform platform) =>
+    platform == TargetPlatform.android ? richPushRenderer : 0;
+
 /// How long a decline is left alone before the single contextual re-ask.
 const pushReaskInterval = Duration(days: 3);
 
@@ -151,6 +164,7 @@ final pushRegistrationProvider = Provider<void>((ref) {
         token: token,
         platform: defaultTargetPlatform.name,
         messagePreviews: await messagePreviewsEnabled(),
+        renderer: pushRendererFor(defaultTargetPlatform),
       );
     } on Object catch (error) {
       debugPrint('Push registration failed (continuing): $error');

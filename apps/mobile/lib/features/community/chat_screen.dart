@@ -1,15 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
+import 'package:indigen_world_mobile/features/community/data/chat_drafts.dart';
 import 'package:indigen_world_mobile/features/community/data/chat_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/chat_repository.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
+import 'package:indigen_world_mobile/features/notifications/local_alerts.dart';
 import 'package:indigen_world_mobile/features/notifications/push_nudge.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 
@@ -75,9 +79,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _controller = TextEditingController();
   var _sending = false;
 
+  /// Writes the draft a moment after typing stops, rather than on every key.
+  Timer? _draftSave;
+  late final ChatDrafts _drafts;
+
+  /// Held from the start because `dispose` may not use `ref`: Riverpod
+  /// refuses it once the element is unmounting, which used to leave this
+  /// conversation marked open — and its alerts suppressed — after leaving it.
+  late final ActiveChatThread _activeThread;
+
   @override
   void initState() {
     super.initState();
+    _drafts = ref.read(chatDraftsProvider.notifier);
+    _activeThread = ref.read(activeChatThreadProvider.notifier);
+    _controller.addListener(_scheduleDraftSave);
     // Opening the thread is what marks it read. Doing it after the first frame
     // keeps the write off the path that has to paint.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -85,14 +101,43 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _markRead();
       // Announce which conversation is on screen, so a push about this one is
       // not drawn over the very message being read.
-      ref.read(activeChatThreadProvider.notifier).open(widget.threadId);
+      _activeThread.open(widget.threadId);
+      // And take down the alert about it already in the shade: the member is
+      // reading the conversation it was announcing.
+      unawaited(clearAlertsFor(threadId: widget.threadId));
+      unawaited(_restoreDraft());
     });
+  }
+
+  /// Puts back what was being written when the member last left. Only into an
+  /// empty box — anything typed in the moment before it loads wins.
+  Future<void> _restoreDraft() async {
+    final draft = await _drafts.read(widget.threadId);
+    if (!mounted || draft == null || _controller.text.isNotEmpty) return;
+    _controller.value = TextEditingValue(
+      text: draft,
+      selection: TextSelection.collapsed(offset: draft.length),
+    );
+  }
+
+  void _scheduleDraftSave() {
+    _draftSave?.cancel();
+    _draftSave = Timer(
+      const Duration(milliseconds: 400),
+      () => unawaited(_drafts.save(widget.threadId, _controller.text)),
+    );
   }
 
   @override
   void dispose() {
-    ref.read(activeChatThreadProvider.notifier).close(widget.threadId);
-    _controller.dispose();
+    _activeThread.close(widget.threadId);
+    // Whatever is in the box when the member leaves is the draft — saved now,
+    // not left to a timer that dies with this screen.
+    _draftSave?.cancel();
+    unawaited(_drafts.save(widget.threadId, _controller.text));
+    _controller
+      ..removeListener(_scheduleDraftSave)
+      ..dispose();
     super.dispose();
   }
 
@@ -123,6 +168,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         text: body,
       );
       sent = true;
+      _draftSave?.cancel();
+      unawaited(_drafts.clear(widget.threadId));
       if (!mounted) return;
       _controller.clear();
       HapticFeedback.lightImpact();
@@ -140,6 +187,52 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     // to be told when they do. A start-up decline gets exactly one second ask,
     // and this is the moment it means something.
     if (sent && mounted) await maybeOfferPushNudge(context, ref);
+  }
+
+  /// What a held message offers: copying it, for anybody's message, and
+  /// deleting it, for your own.
+  ///
+  /// Copying used to be impossible — the only thing a long press did was ask
+  /// to delete, and only on your own messages — which is a strange gap in a
+  /// conversation where people send each other Kasem spellings, phone
+  /// numbers and directions.
+  Future<void> _messageMenu(ChatMessage message, {required bool mine}) async {
+    HapticFeedback.mediumImpact();
+    final brand = context.brand;
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: brand.surface,
+      builder: (sheet) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.copy_rounded),
+              title: const Text('Copy text'),
+              onTap: () => Navigator.pop(sheet, 'copy'),
+            ),
+            if (mine)
+              ListTile(
+                leading: Icon(
+                  Icons.delete_outline_rounded,
+                  color: brand.danger,
+                ),
+                title: Text('Delete', style: TextStyle(color: brand.danger)),
+                onTap: () => Navigator.pop(sheet, 'delete'),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return;
+    switch (choice) {
+      case 'copy':
+        await Clipboard.setData(ClipboardData(text: message.text));
+        if (mounted) showGlassToast(context, 'Message copied');
+      case 'delete':
+        await _delete(message);
+    }
   }
 
   Future<void> _delete(ChatMessage message) async {
@@ -236,7 +329,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   return _MessageBubble(
                     message: message,
                     mine: mine,
-                    onLongPress: mine ? () => _delete(message) : null,
+                    onLongPress: () => _messageMenu(message, mine: mine),
                   );
                 },
               ),

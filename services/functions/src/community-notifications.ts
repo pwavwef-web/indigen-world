@@ -1142,7 +1142,11 @@ export const onCommunityNotificationCreated = onDocumentCreated(
       body,
       redactedBody: 'New activity on Indigen World',
       imageUrl,
-      richActions: process.env.RICH_NOTIFICATION_PUSH_ENABLED === 'true',
+      // The face the row wears in the notification centre, so the alert in
+      // the phone's shade is recognisably the same alert.
+      ...(data.actor && typeof data.actor === 'object'
+        ? { actor: { name: String(data.actor.displayName ?? ''), avatarUrl: typeof data.actor.avatarUrl === 'string' ? data.actor.avatarUrl : null } }
+        : {}),
       channelId: data.type === 'order' ? ACCOUNT_CHANNEL_ID : COMMUNITY_CHANNEL_ID,
       // The app routes on these; keep every value a string, which is all FCM
       // data payloads carry.

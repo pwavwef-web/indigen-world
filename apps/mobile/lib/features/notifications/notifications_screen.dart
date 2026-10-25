@@ -14,8 +14,11 @@ import 'package:indigen_world_mobile/features/community/data/community_providers
 import 'package:indigen_world_mobile/features/community/post_detail_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
+import 'package:indigen_world_mobile/features/notifications/alert_presentation.dart';
+import 'package:indigen_world_mobile/features/notifications/alert_snooze.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_models.dart';
 import 'package:indigen_world_mobile/features/notifications/data/notification_providers.dart';
+import 'package:indigen_world_mobile/features/notifications/local_alerts.dart';
 import 'package:indigen_world_mobile/features/notifications/notification_actions.dart';
 import 'package:indigen_world_mobile/features/notifications/notification_settings_screen.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
@@ -35,6 +38,14 @@ import 'package:indigen_world_mobile/shared/glass_popup.dart';
 /// thumbnail at the end. Swipe right to mark read, swipe left to delete, hold
 /// for the rest — and Like and Reply stay inline, small, on the alerts whose
 /// target can actually take them.
+///
+/// ── Why deleting no longer asks first ─────────────────────────────────────
+/// A swipe used to open "Delete this notification?", which made the gesture
+/// two steps and still could not catch the mistake it existed for — the
+/// member had already decided by the time the question arrived. The row now
+/// goes at once with an Undo beside it for five seconds, and the delete is
+/// only written when that window closes. Clearing the whole history is
+/// different in kind and still asks.
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
@@ -68,6 +79,10 @@ enum _Filter {
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   _Filter _filter = _Filter.all;
 
+  /// Rows deleted on screen whose Undo window is still open. Hidden from the
+  /// list, not yet removed from Firestore.
+  final _pendingDeletes = <String>{};
+
   @override
   void initState() {
     super.initState();
@@ -79,7 +94,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final uid = ref.watch(currentUidProvider);
     final feed = ref
         .watch(notificationFeedProvider)
-        .whenData((rows) => rows.where(_filter.matches).toList());
+        .whenData(
+          (rows) => rows
+              .where(
+                (row) =>
+                    _filter.matches(row) && !_pendingDeletes.contains(row.id),
+              )
+              .toList(),
+        );
+    final snoozed = ref.watch(alertSnoozeProvider) != null;
     final unread =
         ref.watch(unreadNotificationCountProvider).asData?.value ?? 0;
     final hasNotifications = feed.value?.isNotEmpty ?? false;
@@ -108,23 +131,37 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               onPressed: _markAllRead,
               icon: const Icon(Icons.done_all_rounded),
             ),
-          if (hasNotifications)
+          if (uid != null)
             PopupMenuButton<_NotificationMenuAction>(
               tooltip: 'Notification actions',
-              onSelected: (action) {
-                if (action == _NotificationMenuAction.clearAll) {
-                  _clearAll();
-                }
+              onSelected: (action) => switch (action) {
+                _NotificationMenuAction.snooze => unawaited(
+                  showSnoozeSheet(context, ref),
+                ),
+                _NotificationMenuAction.clearAll => _clearAll(),
               },
-              itemBuilder: (context) => const [
+              itemBuilder: (context) => [
                 PopupMenuItem(
-                  value: _NotificationMenuAction.clearAll,
+                  value: _NotificationMenuAction.snooze,
                   child: ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.delete_sweep_outlined),
-                    title: Text('Clear notifications'),
+                    leading: Icon(
+                      snoozed
+                          ? Icons.notifications_active_outlined
+                          : Icons.snooze_rounded,
+                    ),
+                    title: Text(snoozed ? 'Resume alerts' : 'Snooze alerts'),
                   ),
                 ),
+                if (hasNotifications)
+                  const PopupMenuItem(
+                    value: _NotificationMenuAction.clearAll,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.delete_sweep_outlined),
+                      title: Text('Clear notifications'),
+                    ),
+                  ),
               ],
             ),
           IconButton(
@@ -136,35 +173,40 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       ),
       body: uid == null
           ? _GuestState(onSignIn: () => showSignInSheet(context))
-          : RefreshIndicator(
-              onRefresh: () async => ref.invalidate(notificationFeedProvider),
-              child: switch (feed) {
-                AsyncValue(:final value?) when value.isEmpty => _EmptyState(
-                  filtered: _filter != _Filter.all,
-                  onShowAll: () => setState(() => _filter = _Filter.all),
-                ),
-                AsyncValue(:final value?) => _NotificationList(
-                  notifications: {for (final item in value) item.id: item}
-                      .values
-                      .toList(),
-                  onLoadMore:
-                      value.length >= ref.watch(notificationWindowProvider)
-                      ? () =>
-                            ref.read(notificationWindowProvider.notifier).grow()
-                      : null,
-                  onOpen: _open,
-                  onDelete: _deleteOne,
-                  onMarkRead: (n) => _markRead(n.id),
-                  onMore: _rowMenu,
-                ),
-                AsyncValue(hasError: true) => _ErrorState(
-                  onRetry: () => ref.invalidate(notificationFeedProvider),
-                ),
-                _ => const _LoadingState(),
-              },
+          : Column(
+              children: [
+                const AlertSnoozeBanner(),
+                Expanded(child: _feedBody(feed)),
+              ],
             ),
     );
   }
+
+  Widget _feedBody(AsyncValue<List<IndigenNotification>> feed) =>
+      RefreshIndicator(
+        onRefresh: () async => ref.invalidate(notificationFeedProvider),
+        child: switch (feed) {
+          AsyncValue(:final value?) when value.isEmpty => _EmptyState(
+            filtered: _filter != _Filter.all,
+            onShowAll: () => setState(() => _filter = _Filter.all),
+          ),
+          AsyncValue(:final value?) => _NotificationList(
+            notifications: {for (final item in value) item.id: item}.values
+                .toList(),
+            onLoadMore: value.length >= ref.watch(notificationWindowProvider)
+                ? () => ref.read(notificationWindowProvider.notifier).grow()
+                : null,
+            onOpen: _open,
+            onDelete: _deleteOne,
+            onMarkRead: (n) => _markRead(n.id),
+            onMore: _rowMenu,
+          ),
+          AsyncValue(hasError: true) => _ErrorState(
+            onRetry: () => ref.invalidate(notificationFeedProvider),
+          ),
+          _ => const _LoadingState(),
+        },
+      );
 
   Future<void> _markAllRead() async {
     final uid = ref.read(currentUidProvider);
@@ -173,6 +215,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     HapticFeedback.selectionClick();
     try {
       await repository.markAllRead(uid);
+      // Everything the shade was announcing has now been seen.
+      unawaited(clearAlertGroup(AlertGroup.community));
     } on Object {
       if (mounted) {
         showCommunityMessage(context, 'Could not update. Try again.');
@@ -180,27 +224,48 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     }
   }
 
-  /// Asked before deleting, whichever way it was asked for — a swipe is easy
-  /// to make by accident and there is no getting a deleted alert back.
+  /// Takes the row away at once and offers Undo; the delete is written only
+  /// when the Undo has gone unused. Returns whether it was deleted.
+  ///
+  /// Everything after the first await may outlive this screen — somebody can
+  /// delete a row and press back inside the five seconds — so the repository
+  /// and the messenger are captured up front, and nothing past that point
+  /// touches the screen unless it is still mounted.
   Future<bool> _deleteOne(IndigenNotification notification) async {
     final repository = ref.read(notificationsRepositoryProvider);
     if (repository == null) return false;
-    final confirmed = await showGlassConfirm(
-      context: context,
-      title: 'Delete this notification?',
-      message: 'It will be removed from your notification history.',
-      confirmLabel: 'Delete',
-      isDestructive: true,
-    );
-    if (confirmed != true) return false;
+    HapticFeedback.mediumImpact();
+    setState(() => _pendingDeletes.add(notification.id));
+    final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+    final closed = messenger
+        .showSnackBar(
+          SnackBar(
+            content: const Text('Notification deleted'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 5),
+            // A snack bar with an action stays up until dismissed unless told
+            // otherwise, and the delete is only written once this one goes.
+            persist: false,
+            action: SnackBarAction(label: 'Undo', onPressed: () {}),
+          ),
+        )
+        .closed;
+    if (await closed == SnackBarClosedReason.action) {
+      if (mounted) setState(() => _pendingDeletes.remove(notification.id));
+      return false;
+    }
     try {
       await repository.deleteNotification(notification.id);
+      unawaited(clearAlertsFor(notificationId: notification.id));
       return true;
     } on Object {
       if (mounted) {
+        setState(() => _pendingDeletes.remove(notification.id));
         showCommunityMessage(context, 'Could not delete it. Try again.');
       }
       return false;
+    } finally {
+      if (mounted) _pendingDeletes.remove(notification.id);
     }
   }
 
@@ -267,6 +332,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   Future<void> _markRead(String id) async {
     try {
       await ref.read(notificationsRepositoryProvider)?.markRead(id);
+      unawaited(clearAlertsFor(notificationId: id));
     } on Object {
       if (mounted) {
         showCommunityMessage(
@@ -408,7 +474,7 @@ class _FilterBar extends StatelessWidget {
 
 // ── List ────────────────────────────────────────────────────────────────────
 
-enum _NotificationMenuAction { clearAll }
+enum _NotificationMenuAction { snooze, clearAll }
 
 class _NotificationList extends StatelessWidget {
   const _NotificationList({
@@ -634,17 +700,18 @@ class _NotificationRow extends StatelessWidget {
         direction: unread
             ? DismissDirection.horizontal
             : DismissDirection.endToStart,
-        // Neither swipe removes the row by itself. Mark-read leaves it in
-        // place with its dot gone; delete waits for the confirmation and then
-        // for the live list to drop it.
+        // Mark-read leaves the row in place with its dot gone. Delete slides
+        // it away and the screen offers Undo.
         confirmDismiss: (direction) async {
           if (direction == DismissDirection.startToEnd) {
             HapticFeedback.selectionClick();
             onMarkRead();
             return false;
           }
-          await onDelete();
-          return false;
+          // The screen hides the row in the same frame (Undo keeps it for
+          // five seconds), so the swipe is allowed to finish its slide.
+          unawaited(onDelete());
+          return true;
         },
         background: _SwipeBackground(
           color: brand.accent,

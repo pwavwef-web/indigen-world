@@ -12,6 +12,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:indigen_world_mobile/core/app_config.dart';
 import 'package:indigen_world_mobile/features/notifications/local_alerts.dart';
+import 'package:indigen_world_mobile/features/notifications/push_messaging.dart'
+    show pushRouteFor;
 import 'package:indigen_world_mobile/firebase_options_development.dart'
     as development;
 import 'package:indigen_world_mobile/firebase_options_production.dart'
@@ -27,22 +29,35 @@ FirebaseOptions firebaseOptionsFor(AppEnvironment environment) =>
         production.DefaultFirebaseOptions.currentPlatform,
     };
 
-@pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+/// Brings Firebase up in an isolate the system started without the app: the
+/// one a data-only push wakes, and the one a button on an alert wakes.
+///
+/// App Check is activated here too. Those isolates write — a reply, a like, a
+/// read receipt — and a backend that enforces App Check would refuse every one
+/// of them from an isolate that never proved it is this app.
+Future<void> initializeFirebaseInBackground() async {
   if (Firebase.apps.isEmpty) {
     await Firebase.initializeApp(options: firebaseOptionsFor(appEnvironment));
   }
-  if (message.data['renderLocally'] == 'true') {
-    await createNotificationChannels();
-    await showForegroundAlert(
-      message,
-      route:
-          message.data['route'] ??
-          (message.data['postId'] == null
-              ? '/notifications'
-              : '/post/${message.data['postId']}'),
-    );
+  if (!useFirebaseEmulators) {
+    try {
+      await FirebaseBootstrap._activateAppCheck();
+    } on Object catch (error) {
+      debugPrint('Background App Check failed (continuing): $error');
+    }
   }
+}
+
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Only a build that announced it draws its own alerts is ever sent one to
+  // draw (see `pushRenderer` on the device row). Anything else carries a
+  // notification block, and the system has already drawn it.
+  if (message.data['renderLocally'] != 'true') return;
+  await initializeFirebaseInBackground();
+  await createNotificationChannels();
+  await ensureAlertsReady();
+  await showForegroundAlert(message, route: pushRouteFor(message.data));
 }
 
 class FirebaseBootstrap {

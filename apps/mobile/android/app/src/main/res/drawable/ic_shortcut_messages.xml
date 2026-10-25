@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  "Your messages", one of the long-press shortcuts on the app icon
+  (lib/core/app_shortcuts.dart). The launcher's own shortcut style: a pale
+  disc in the brand's sand with the Material glyph in its action blue.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#FFEAF0FF"
+        android:pathData="M24,2A22,22 0,1 1,24 46A22,22 0,1 1,24 2Z"/>
+    <group
+        android:translateX="12"
+        android:translateY="12">
+        <path
+            android:fillColor="#FF2149B8"
+            android:pathData="M20,2H4c-1.1,0 -1.99,0.9 -1.99,2L2,22l4,-4h14c1.1,0 2,-0.9 2,-2V4c0,-1.1 -0.9,-2 -2,-2z"/>
+    </group>
+</vector>
