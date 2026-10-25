@@ -1,6 +1,6 @@
 import { SubmissionEditor } from '@indigen-world/console-ui';
 import { EDITABLE_SUBMISSION_STATUSES } from '@indigen-world/contracts/submission-editing';
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { collection, doc, getDoc, getCountFromServer, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { getDownloadURL, ref } from 'firebase/storage';
@@ -16,13 +16,19 @@ import { CommunityGoalControl } from './CommunityGoalControl';
 import './review.css';
 import { MaterialReview } from '../MaterialReview';
 
+// Indigen Forms responses: their own desk and chunk (the shared form renderer comes with it).
+const FormsReviewDesk = lazy(() => import('../forms/review/FormsReviewDesk').then((module) => ({ default: module.FormsReviewDesk })));
+
 /** Only the authorized child mounts Firestore subscriptions. Direct URLs use the same guard. */
 export function ReviewDesk() {
   const { search } = useRoute();
   const { ready, user, role } = useAuth();
   if (!ready) return <p role="status" className="ts-loading">Checking review access…</p>;
   if (!user || !canValidate(role)) return <p role="alert" className="ts-loading">Validator access required.</p>;
-  if (new URLSearchParams(search).get('desk') === 'materials') return <MaterialReview />;
+  const requested = new URLSearchParams(search).get('desk');
+  if (requested === 'materials') return <MaterialReview />;
+  // Behind the same two-step verification as the materials desk (ReviewVerification inside).
+  if (requested === 'forms') return <Suspense fallback={<p role="status" className="ts-loading">Opening the form responses desk…</p>}><FormsReviewDesk key={user.uid} /></Suspense>;
   return <AuthorizedDesk key={user.uid} />;
 }
 

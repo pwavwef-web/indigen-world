@@ -12,15 +12,18 @@
       "default": "./dist/index.js"
     },
     "./kit.css": "./src/kit.css",
+    "./forms.css": "./src/forms.css",
     "./package.json": "./package.json"
   },
   "files": [
     "dist",
-    "src/kit.css"
+    "src/kit.css",
+    "src/forms.css"
   ],
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test scripts/forms-render.test.mjs"
   },
   "peerDependencies": {
     "react": "^19.0.0"

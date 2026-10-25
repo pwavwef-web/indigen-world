@@ -121,6 +121,9 @@ function previewPaths(): PortalPaths {
     section: (section, params) => withQuery(section === 'overview' ? base : `${base}/${section}`, params),
     account: (tab) => `${base}/account/${tab}`,
     work: (workId, itemId) => withQuery(`${base}/assignment/${workId}`, itemId ? { item: itemId } : undefined),
+    // Indigen Forms read and write the in-memory fixture in forms/forms-preview.ts (development builds only).
+    form: (formId, params) => withQuery(`${base}/forms/${encodeURIComponent(formId)}`, params),
+    formSubmission: (responseId) => `${base}/forms/submissions/${encodeURIComponent(responseId)}`,
   };
 }
 

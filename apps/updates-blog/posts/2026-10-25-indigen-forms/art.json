@@ -1,0 +1,44 @@
+{
+  "accent": "violet",
+  "motif": "dots",
+  "eyebrow": "Indigen World · Indigen Forms",
+  "title": "Build the form.\nCollect the knowledge.",
+  "lede": "Admins build and publish contribution forms in Administration. Contributors answer them in the portal, and reviewers decide.",
+  "tags": [
+    "No app release needed",
+    "Versioned forms",
+    "Your permissions kept"
+  ],
+  "hero": [
+    {
+      "file": "admin-builder.png",
+      "kind": "browser"
+    },
+    {
+      "file": "contributor-fill-mobile.png",
+      "kind": "phone"
+    }
+  ],
+  "figures": {
+    "admin-builder.png": {
+      "kind": "browser",
+      "title": "Build a form\nwithout a release",
+      "note": "Actual Administration builder rendered locally against the real form service. Synthetic data."
+    },
+    "admin-publish.png": {
+      "kind": "browser",
+      "title": "Check everything\nbefore it goes live",
+      "note": "Actual publish summary computed by the form service for a local test form."
+    },
+    "contributor-fill-mobile.png": {
+      "kind": "phone",
+      "title": "Answer on any\nscreen, tone marks kept",
+      "note": "Actual contributor portal at phone width. Verified dictionary word and placeholder text."
+    },
+    "reviewer-desk.png": {
+      "kind": "browser",
+      "title": "Review with clear\nchecks and history",
+      "note": "Actual review desk rendered locally against the real form service. Synthetic data."
+    }
+  }
+}

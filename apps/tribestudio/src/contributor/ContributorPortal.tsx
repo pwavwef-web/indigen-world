@@ -252,7 +252,10 @@ export function ContributorSignIn({ code }: { code: string | null }) {
       event.preventDefault(); setBusy(true); setError('');
       try {
         if (reset) {
-          await sendPasswordResetEmail(auth, email.trim(), { url: window.location.origin + '/contributor' + (studioReturn(new URLSearchParams(search).get('returnTo')) ? '?returnTo=' + encodeURIComponent(destination) : '') });
+          // An explicit ?returnTo= wins; otherwise a deep link the visitor landed on (such as a
+          // form) is kept when the allowlist accepts it, so the reset email returns them there.
+          const back = studioReturn(new URLSearchParams(search).get('returnTo')) ?? (code ? null : studioReturn(path + search));
+          await sendPasswordResetEmail(auth, email.trim(), { url: window.location.origin + '/contributor' + (back ? '?returnTo=' + encodeURIComponent(back) : '') });
           setNotice('If this email has an account, a reset link is on its way. Check your inbox and spam folder.');
           return;
         }

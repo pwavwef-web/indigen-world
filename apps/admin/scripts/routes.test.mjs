@@ -21,11 +21,27 @@ const financeAdmin = { role: 'admin', finance: true, superAdmin: false };
 const validator = { role: 'validator', finance: false, superAdmin: false };
 const nobody = { role: null, finance: false, superAdmin: false };
 
-test('the home launcher has the nine approved sections in order', () => {
+test('the home launcher has the ten approved sections in order', () => {
   assert.deepEqual(SECTIONS.map((section) => section.label), [
     'Finance', 'Collections', 'Messaging', 'Creators', 'Contributors',
-    'Review Desk', 'Learning', 'Community', 'Governance',
+    'Forms', 'Review Desk', 'Learning', 'Community', 'Governance',
   ]);
+});
+
+test('Indigen Forms is an admin section; records travel in the query string', () => {
+  const forms = sectionById('forms');
+  assert.equal(forms.base, '/forms');
+  assert.deepEqual(forms.tools.map((tool) => [tool.id, tool.slug]), [['dashboard', ''], ['builder', 'builder'], ['responses', 'responses'], ['settings', 'settings']]);
+  assert.equal(resolve('/forms', admin).kind, 'tool');
+  assert.equal(resolve('/forms', admin).tool.id, 'dashboard');
+  assert.equal(resolve('/forms/builder', admin).tool.id, 'builder');
+  // One slug segment only: a form is chosen with ?form=<id>, never a path segment.
+  assert.equal(resolve('/forms/builder/abc123', admin).kind, 'not-found');
+  assert.equal(resolve('/forms/responses', validator).kind, 'denied');
+  assert.equal(resolve('/forms', validator).needs, 'admin');
+  // The older Community tool keeps its address but says what it is.
+  const community = sectionById('community');
+  assert.equal(community.tools.find((tool) => tool.id === 'forms').label, 'Website forms & claims');
 });
 
 test('every tool path resolves to that tool for someone allowed to use it', () => {
@@ -86,7 +102,7 @@ test('unknown addresses are an explicit not-found', () => {
 test('navigation reflects permissions', () => {
   assert.deepEqual(visibleSections(validator).map((s) => s.id), ['creators', 'review', 'learning', 'community']);
   assert.equal(visibleSections(nobody).length, 0);
-  assert.equal(visibleSections(admin).length, 9);
+  assert.equal(visibleSections(admin).length, 10);
   const finance = SECTIONS.find((s) => s.id === 'finance');
   assert.ok(!visibleTools(finance, admin).some((t) => t.id === 'payouts'));
   assert.ok(visibleTools(finance, financeAdmin).some((t) => t.id === 'payouts'));

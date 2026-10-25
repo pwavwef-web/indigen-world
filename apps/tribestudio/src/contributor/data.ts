@@ -58,6 +58,8 @@ export function livePaths(uid: string): PortalPaths {
     section: (section: Section, params?: Record<string, string>) => withQuery(section === 'overview' ? base : `${base}/${section}`, params),
     account: (tab: AccountTab) => `${base}/account/${tab}`,
     work: (workId: string, itemId?: string) => withQuery(`${base}/${uid}/${workId}`, itemId ? { item: itemId } : undefined),
+    form: (formId: string, params?: Record<string, string>) => withQuery(`${base}/forms/${encodeURIComponent(formId)}`, params),
+    formSubmission: (responseId: string) => `${base}/forms/submissions/${encodeURIComponent(responseId)}`,
   };
 }
 

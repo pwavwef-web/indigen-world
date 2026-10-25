@@ -53,6 +53,13 @@
     "./submission-editing": {
       "types": "./submission-editing.d.ts",
       "default": "./submission-editing.mjs"
+    },
+    "./forms": {
+      "types": "./forms.d.ts",
+      "default": "./forms.mjs"
+    },
+    "./forms-api": {
+      "types": "./forms-api.d.ts"
     }
   },
   "files": [
@@ -79,7 +86,11 @@
     "correspondence.mjs",
     "heritage-frame.mjs",
     "submission-editing.mjs",
-    "submission-editing.d.ts"
+    "submission-editing.d.ts",
+    "forms.mjs",
+    "forms.d.ts",
+    "forms-templates.mjs",
+    "forms-api.d.ts"
   ],
   "scripts": {
     "test": "node scripts/validate.mjs",

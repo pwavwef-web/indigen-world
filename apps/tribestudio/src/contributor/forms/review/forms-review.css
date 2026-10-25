@@ -1,0 +1,422 @@
+/* ==========================================================================
+   Indigen Forms review desk (/contributor/review?desk=forms).
+   --------------------------------------------------------------------------
+   Every class starts with `fr-`. The layout is the validator portal's own
+   (review/review.css, `rv-`): queue beside the record at 1024 px and up,
+   stacked with a back button below. Answers are drawn by the shared renderer
+   (`iwf-`); timelines and multi-line text reuse the contributor forms' `fm-`
+   pieces. Nothing here is wider than its container: reference ids, file names
+   and long words wrap, so the page never scrolls sideways at 360 px.
+   ========================================================================== */
+
+.fr-desk {
+  min-width: 0;
+}
+
+/* Long words, reference ids and file names break rather than widen the page. */
+.fr-record,
+.fr-decide,
+.fr-queue__item {
+  overflow-wrap: break-word;
+}
+
+/*
+ * Between 1280 and 1500 px a third column leaves the answers about 330 px
+ * wide; the response reads better full width with the decision under it.
+ */
+@media (min-width: 1280px) and (max-width: 1499px) {
+  .fr-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fr-detail .rv-decide {
+    position: static;
+  }
+}
+
+/* -- Toolbar ------------------------------------------------------------------------ */
+.fr-toolbar .ts-search {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.fr-form-filter {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.fr-form-filter .ts-select {
+  max-width: 100%;
+}
+
+@media (max-width: 600px) {
+  .fr-form-filter {
+    flex: 1 1 100%;
+  }
+
+  .fr-form-filter .ts-select {
+    width: 100%;
+  }
+}
+
+/* -- Queue -------------------------------------------------------------------------- */
+.fr-ref {
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+  overflow-wrap: anywhere;
+}
+
+.fr-queue__who {
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  overflow-wrap: anywhere;
+}
+
+.fr-queue__extra {
+  color: var(--text-4);
+  font-size: var(--fs-tiny);
+}
+
+.fr-queue__item:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* The decision message takes focus after a decision so it is announced and the reviewer knows where they are. */
+.fr-notice {
+  border-radius: var(--r-lg);
+}
+
+.fr-notice:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.fr-notice p {
+  margin: 0;
+}
+
+/* -- Record ------------------------------------------------------------------------- */
+.fr-record {
+  min-width: 0;
+}
+
+.fr-record .rv-record__title:focus {
+  outline: none;
+}
+
+.fr-record .rv-record__title:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: var(--r);
+}
+
+.fr-head {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.fr-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
+  gap: var(--space-3) var(--space-4);
+  margin: 0;
+}
+
+.fr-facts__item {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.fr-facts__item--ref {
+  grid-column: 1 / -1;
+}
+
+.fr-facts dt {
+  color: var(--text-3);
+  font-size: var(--fs-tiny);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.fr-facts dd {
+  margin: 0;
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+
+.fr-facts__ref {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.fr-facts__ref .fr-ref {
+  padding: 0;
+  background: none;
+  color: var(--text);
+  font-size: var(--fs-base);
+  font-weight: 700;
+  user-select: all;
+}
+
+.fr-instructions {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--accent-line);
+  border-left: 4px solid var(--c-blue);
+  border-radius: var(--r-lg);
+  background: var(--accent-softer);
+}
+
+.fr-instructions__text {
+  color: var(--text);
+  font-size: var(--fs-sm);
+}
+
+.fr-instructions .ts-hint {
+  margin: 0;
+}
+
+.fr-outcome .ts-notice p,
+.fr-stale p,
+.fr-decide .ts-notice p {
+  margin: 0;
+}
+
+.fr-answers {
+  min-width: 0;
+}
+
+.fr-answers__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* -- Files and permissions ------------------------------------------------------------ */
+.fr-files,
+.fr-consents {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fr-file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.fr-file__name {
+  flex: 1 1 12rem;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.fr-file__meta {
+  flex: 1 1 10rem;
+  min-width: 0;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+.fr-consent {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+}
+
+.fr-consent__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.fr-consent__caption {
+  color: var(--text-3);
+  font-size: var(--fs-tiny);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.fr-consent__wording {
+  font-size: var(--fs-sm);
+}
+
+/* -- Decision ------------------------------------------------------------------------- */
+.fr-decide {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.fr-decide .rv-choices {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.fr-decide .rv-choices > legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+}
+
+.fr-approve {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.fr-points {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  justify-self: start;
+  margin: 0;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--r-full);
+  background: var(--success-surface);
+  color: var(--success);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.fr-points .ts-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.fr-effect {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+}
+
+.fr-checks {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+}
+
+.fr-checks.is-invalid {
+  border-color: var(--danger);
+}
+
+.fr-checks > legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 0.35rem;
+}
+
+.fr-checks__count {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.fr-checks .ts-hint,
+.fr-checks .ts-error {
+  margin: 0;
+}
+
+.fr-counter {
+  font-variant-numeric: tabular-nums;
+}
+
+.fr-counter.is-invalid {
+  color: var(--danger);
+}
+
+.fr-stale-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.fr-stale-hint > span {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.fr-decide-none {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.fr-decide-none .ts-hint {
+  margin: 0;
+}
+
+/* -- Confirmation ---------------------------------------------------------------------- */
+.fr-confirm {
+  display: grid;
+  gap: var(--space-3);
+  overflow-wrap: anywhere;
+}
+
+.fr-confirm p {
+  margin: 0;
+}
+
+.fr-confirm__list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: var(--fs-sm);
+}
+
+.fr-confirm__feedback {
+  display: grid;
+  gap: 0.35rem;
+  padding: var(--space-3);
+  border-left: 3px solid var(--warning);
+  border-radius: 0 var(--r) var(--r) 0;
+  background: var(--warning-surface);
+}
+
+.fr-blocked {
+  display: grid;
+}
+
+@media (max-width: 560px) {
+  .fr-file .ts-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

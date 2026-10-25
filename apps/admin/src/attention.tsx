@@ -53,7 +53,7 @@ export const ATTENTION_ITEMS: AttentionItem[] = [
   { key: 'redemptionsAwaitingDelivery', label: (n) => `Approved ${n === 1 ? 'redemption' : 'redemptions'} awaiting delivery`, to: '/finance/redemptions?status=approved', icon: 'send', access: 'admin' },
   { key: 'openReports', label: (n) => `Community ${n === 1 ? 'report' : 'reports'} to resolve`, to: '/community/reports', icon: 'shield', access: 'admin' },
   { key: 'creatorApplications', label: (n) => `Creator ${n === 1 ? 'application' : 'applications'} to decide`, to: '/creators/applications', icon: 'inbox', access: 'validator' },
-  { key: 'newForms', label: (n) => `New form ${n === 1 ? 'response' : 'responses'}`, to: '/community/forms', icon: 'mail', access: 'validator' },
+  { key: 'newForms', label: (n) => `New website form ${n === 1 ? 'response' : 'responses'}`, to: '/community/forms', icon: 'mail', access: 'validator' },
 ];
 
 async function count(name: string, ...constraints: QueryConstraint[]): Promise<number> {

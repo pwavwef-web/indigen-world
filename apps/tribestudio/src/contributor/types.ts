@@ -221,7 +221,7 @@ export interface WorkspaceServices {
   signOut(): Promise<void>;
 }
 
-export type Section = 'overview' | 'assignments' | 'contributions' | 'activity' | 'guide' | 'kawuri' | 'account' | 'rewards' | 'streak' | 'translations' | 'words' | 'audio' | 'stories' | 'documents' | 'corrections';
+export type Section = 'overview' | 'assignments' | 'contributions' | 'activity' | 'guide' | 'kawuri' | 'account' | 'rewards' | 'streak' | 'translations' | 'words' | 'audio' | 'stories' | 'documents' | 'corrections' | 'forms';
 export type AccountTab = 'profile' | 'security' | 'notifications' | 'payments';
 
 export interface PortalPaths {
@@ -229,6 +229,10 @@ export interface PortalPaths {
   section(section: Section, query?: Record<string, string>): string;
   account(tab: AccountTab): string;
   work(workId: string, itemId?: string): string;
+  /** Indigen Forms: fill one form (`?response=` continues a response, `?new=1` starts another). */
+  form(formId: string, query?: Record<string, string>): string;
+  /** Indigen Forms: one of the contributor's own responses. */
+  formSubmission(responseId: string): string;
 }
 
 export interface WorkspaceData {

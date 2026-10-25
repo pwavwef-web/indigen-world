@@ -1,0 +1,677 @@
+/* ==========================================================================
+   Indigen Forms in the contributor portal (/contributor/forms).
+   --------------------------------------------------------------------------
+   Every class starts with `fm-`. The questions themselves are drawn by the
+   shared renderer (@indigen-world/console-ui/forms.css, `iwf-`); this file
+   lays out the pages around it with the portal's tokens and `ts-` kit.
+   Nothing here is wider than its container, so the page never scrolls
+   sideways at 360 px: long titles, reference ids and file names wrap.
+   ========================================================================== */
+
+.fm-page {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fm-page .ts-page-head__title {
+  overflow-wrap: anywhere;
+}
+
+.fm-multiline {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+
+.fm-meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.fm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.75rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--r-full);
+  background: var(--neutral-surface);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.fm-chip .ts-icon {
+  flex: 0 0 auto;
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.fm-chip.fm-tone--warning { background: var(--warning-surface); }
+.fm-chip.fm-tone--danger { background: var(--danger-surface); }
+.fm-chip.fm-tone--info { background: var(--info-surface); }
+
+.fm-tab-count {
+  display: inline-flex;
+  margin-left: 0.15rem;
+}
+
+/* -- Cards on the Available tab ------------------------------------------- */
+.fm-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.fm-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.fm-card__top {
+  min-height: 1.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.fm-card__title {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-heading);
+  font-size: var(--fs-lg);
+  line-height: 1.3;
+}
+
+.fm-card__desc {
+  margin: 0;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+
+.fm-card__meta {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.fm-card__meta li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.fm-card__meta .ts-icon,
+.fm-card__note .ts-icon {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.15rem;
+}
+
+.fm-tone--warning { color: var(--warning-strong); }
+.fm-tone--danger { color: var(--danger-strong); }
+.fm-tone--info { color: var(--info-strong); }
+
+.fm-card__note {
+  display: flex;
+  gap: 0.45rem;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--r-lg);
+  background: var(--neutral-surface);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.fm-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-1);
+}
+
+/* -- My submissions ---------------------------------------------------------- */
+.fm-rows {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fm-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.fm-row--changes_requested {
+  border-left: 4px solid var(--warning);
+}
+
+.fm-row__main {
+  display: grid;
+  flex: 1 1 18rem;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.fm-row__title {
+  margin: 0;
+  font-size: var(--fs-base);
+  line-height: 1.35;
+}
+
+.fm-row__title a {
+  color: var(--text);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.fm-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+
+.fm-row__ref {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  letter-spacing: 0.02em;
+  color: var(--text-2);
+}
+
+.fm-row__feedback {
+  margin: var(--space-1) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--r-sm);
+  background: var(--warning-surface);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.fm-row__side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* -- Reference id ---------------------------------------------------------------- */
+.fm-ref {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.fm-ref__label {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fm-ref__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.fm-ref__value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  user-select: all;
+}
+
+.fm-ref--large .fm-ref__value {
+  font-size: clamp(1.4rem, 5vw, 2rem);
+  letter-spacing: 0.06em;
+}
+
+/* -- Fill workspace ------------------------------------------------------------------ */
+.fm-notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.fm-dropped {
+  margin: var(--space-2) 0 0;
+  padding-left: 1.25rem;
+}
+
+.fm-feedback {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--warning-line);
+  border-left: 4px solid var(--warning);
+  border-radius: var(--r-lg);
+  background: var(--warning-surface);
+  color: var(--text);
+}
+
+.fm-feedback__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: var(--fs-base);
+}
+
+.fm-feedback__title .ts-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--warning-strong);
+}
+
+.fm-sheet {
+  gap: var(--space-5);
+  background: var(--surface);
+}
+
+.fm-sheet__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  min-width: 0;
+}
+
+.fm-sheet__where {
+  color: var(--accent-text);
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.fm-sheet__where:focus {
+  outline: none;
+}
+
+.fm-sheet__where:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: var(--r-xs);
+}
+
+.fm-sheet__body {
+  min-width: 0;
+}
+
+.fm-sheet .ts-save {
+  max-width: 100%;
+}
+
+/* Section steps wrap only between words. The page's `overflow-wrap: anywhere`
+   (for long titles and ids) counts every letter as a break when sizing, so a
+   narrow step split "Permissions" into "Permissio / ns". Here a step is never
+   narrower than its longest word, and steps that do not fit on one row move
+   to the next instead. */
+.ts-steps.fm-steps {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: var(--space-3);
+}
+
+.fm-steps .ts-step {
+  flex: 1 1 0;
+  min-width: min-content;
+  max-width: 100%;
+}
+
+.fm-steps .ts-step__copy {
+  min-width: auto;
+}
+
+.fm-steps .ts-step__title {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.fm-review {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.fm-review__title,
+.fm-done__title {
+  margin: 0;
+  font-size: var(--fs-xl);
+  line-height: 1.25;
+}
+
+.fm-review__title:focus,
+.fm-done__title:focus {
+  outline: none;
+}
+
+.fm-review__title:focus-visible,
+.fm-done__title:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.fm-review__consent {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.fm-review__consent .ts-icon {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.15rem;
+}
+
+.fm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.fm-actions__main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.fm-actions__note {
+  margin: 0;
+}
+
+.fm-aside__title {
+  margin: 0;
+  font-size: var(--fs-base);
+}
+
+.fm-aside__note {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
+/* Kasem answers: KasemField plus a row of letters. */
+.fm-kasem {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.fm-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.fm-key {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-kasem, inherit);
+  font-size: var(--fs-lg);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.fm-key:hover {
+  border-color: var(--c-blue);
+  background: var(--accent-softer);
+}
+
+.fm-key:active {
+  background: var(--accent-soft);
+}
+
+.fm-key:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.fm-key--mark {
+  font-size: var(--fs-xl);
+}
+
+/* The portal's in-browser recorder, without the creator studio's stylesheet. */
+.fm-page .cr-recorder {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.fm-page .cr-recorder__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.fm-page .cr-recorder__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--danger-strong);
+  font-weight: 600;
+}
+
+.fm-page .cr-recorder__dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--danger);
+}
+
+.fm-page .cr-recorder__wave {
+  display: none;
+}
+
+.fm-page .cr-recorder audio {
+  width: 100%;
+  max-width: 28rem;
+}
+
+/* -- Confirmation ------------------------------------------------------------------------- */
+.fm-done {
+  justify-items: start;
+  gap: var(--space-4);
+  background: var(--surface);
+}
+
+.fm-done__icon .ts-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--success);
+}
+
+.fm-done__message {
+  font-size: var(--fs-lg);
+}
+
+.fm-done__next {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--r-lg);
+  background: var(--neutral-surface);
+}
+
+.fm-done__next h3 {
+  margin: 0;
+  font-size: var(--fs-base);
+}
+
+/* -- Response page ---------------------------------------------------------------------------- */
+.fm-status__title,
+.fm-answers__title {
+  margin: 0;
+  font-size: var(--fs-lg);
+}
+
+.fm-status__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+  line-height: 1.55;
+}
+
+.fm-answers {
+  background: var(--surface);
+}
+
+.fm-answers__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.fm-revision {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.fm-revision .ts-select {
+  max-width: 100%;
+}
+
+.fm-timeline {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fm-timeline__item {
+  position: relative;
+  display: grid;
+  gap: 0.15rem;
+  padding-left: 1.1rem;
+}
+
+.fm-timeline__item::before {
+  content: "";
+  position: absolute;
+  top: 0.45rem;
+  left: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+
+.fm-timeline__item--approved::before,
+.fm-timeline__item--points_awarded::before { background: var(--success); }
+.fm-timeline__item--changes_requested::before { background: var(--warning); }
+.fm-timeline__item--rejected::before { background: var(--danger); }
+.fm-timeline__item--submitted::before,
+.fm-timeline__item--resubmitted::before { background: var(--c-blue); }
+
+.fm-timeline__what {
+  font-weight: 600;
+}
+
+.fm-timeline__meta {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+.fm-timeline__note {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+/* -- Small screens ------------------------------------------------------------------------------ */
+@media (max-width: 720px) {
+  /* The progress bar and "Section 2 of 4" say where you are; the step list would push the questions down. */
+  .ts-steps.fm-steps {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .fm-card,
+  .fm-sheet {
+    padding: var(--space-4);
+  }
+
+  .fm-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .fm-actions__main {
+    flex-direction: column-reverse;
+    margin-left: 0;
+  }
+
+  .fm-actions .ts-btn,
+  .fm-card__actions .ts-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .fm-row__side {
+    width: 100%;
+  }
+}

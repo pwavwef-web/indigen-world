@@ -1,5 +1,5 @@
 /**
- * The administration map: nine sections, the tools inside each, who may open
+ * The administration map: ten sections, the tools inside each, who may open
  * them, and where old addresses now live. Pure data and pure functions, so the
  * routing rules are tested without a browser (see scripts/routes.test.mjs).
  *
@@ -65,7 +65,7 @@ export const ACCESS_LABEL: Record<AccessLevel, string> = {
 
 export type SectionId =
   | 'finance' | 'collections' | 'messaging' | 'creators' | 'contributors'
-  | 'review' | 'learning' | 'community' | 'governance';
+  | 'forms' | 'review' | 'learning' | 'community' | 'governance';
 
 /** Names in the admin icon set (see ui/icons.tsx). */
 export type IconKey = string;
@@ -165,6 +165,16 @@ export const SECTIONS: SectionDef[] = [
     ],
   },
   {
+    id: 'forms', label: 'Forms', description: 'Build, publish and review contributor forms',
+    icon: 'list', base: '/forms', access: 'admin',
+    tools: [
+      { id: 'dashboard', slug: '', label: 'All forms', icon: 'grid', hint: 'Every form, its status, audience and response counts', access: 'admin', group: 'Build' },
+      { id: 'builder', slug: 'builder', label: 'Builder', icon: 'edit', hint: 'Questions, rules, audience, review, destination and publishing', access: 'admin', group: 'Build' },
+      { id: 'responses', slug: 'responses', label: 'Responses', icon: 'inbox', hint: 'Read, review and export what contributors sent', access: 'admin', group: 'Review' },
+      { id: 'settings', slug: 'settings', label: 'Forms settings', icon: 'settings', hint: 'Cohorts, publishing and export access, points limits', access: 'admin', group: 'Review' },
+    ],
+  },
+  {
     id: 'review', label: 'Review Desk', description: 'Submissions and publication decisions',
     icon: 'doc', base: '/review', access: 'validator',
     tools: [
@@ -191,7 +201,7 @@ export const SECTIONS: SectionDef[] = [
     icon: 'users', base: '/community', access: 'validator',
     tools: [
       { id: 'reports', slug: 'reports', label: 'Reports', icon: 'flag', hint: 'Community moderation queue', access: 'admin' },
-      { id: 'forms', slug: 'forms', label: 'Forms & claims', icon: 'inbox', hint: 'Website forms and Founding Tester claims', access: 'validator' },
+      { id: 'forms', slug: 'forms', label: 'Website forms & claims', icon: 'inbox', hint: 'Website contact forms and Founding Tester claims', access: 'validator' },
       { id: 'team-sites', slug: 'team-sites', label: 'Team sites', icon: 'home', hint: 'Team site intake responses', access: 'validator' },
     ],
   },

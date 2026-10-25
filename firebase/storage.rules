@@ -117,14 +117,19 @@ service firebase.storage {
     // its owner and staff regardless, so opening it exposes nothing: a file
     // only becomes world-readable when the publication workflow copies it into
     // published-media/, which no client can write.
+    //
+    // `form_…` submission folders hold recordings that Indigen Forms routing
+    // copied from an inspected upload. Only the Admin SDK writes them, so the
+    // owner may read but not replace or remove what reviewers were given.
     match /creator-submissions/{uid}/{campaignId}/{submissionId}/{fileName} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isStaff());
       allow write: if isSignedIn()
         && request.auth.uid == uid
+        && !submissionId.matches('form_.*')
         && !isBlockedCreator()
         && withinSizeLimit()
         && allowedType();
-      allow delete: if isSignedIn() && ((request.auth.uid == uid && !isBlockedCreator()) || isStaff());
+      allow delete: if isSignedIn() && ((request.auth.uid == uid && !submissionId.matches('form_.*') && !isBlockedCreator()) || isStaff());
     }
 
     // ---- Creator profile avatars: owner-writable, world-readable ------------
@@ -446,6 +451,11 @@ service firebase.storage {
       // tokens, so direct client creation is deliberately closed as well.
       allow read, write: if false;
     }
+    // Indigen Forms uploads: written only through server-issued resumable
+    // sessions (formsContributor.beginUpload, ifGenerationMatch 0) and read
+    // only through five-minute, generation-pinned signed links. Firebase SDK
+    // uploads would mint bearer download tokens, so every client is refused.
+    match /form-uploads/{allPaths=**} { allow read, write: if false; }
     // Private immutable letters: downloads go through the owner-checked callable.
     match /correspondence/{allPaths=**} { allow read, write: if false; }
     match /{allPaths=**} {

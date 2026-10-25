@@ -665,13 +665,14 @@ export function MediaFrame({ src, kind = 'image', alt = '', ratio = '16 / 10', l
   );
 }
 
-export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+/** `unsaved` marks edits that exist only on this page, so it never shows the saved tick. */
+export type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved' | 'error';
 
 export function SaveState({ status, label }: { status: SaveStatus; label?: ReactNode }) {
-  const text = label ?? (status === 'saving' ? 'Saving…' : status === 'error' ? 'Not saved' : status === 'saved' ? 'Saved' : 'No changes');
+  const text = label ?? (status === 'saving' ? 'Saving…' : status === 'error' ? 'Not saved' : status === 'saved' ? 'Saved' : status === 'unsaved' ? 'Unsaved changes' : 'No changes');
   return (
     <span className={cx('ts-save', status === 'saving' && 'is-saving', status === 'error' && 'is-error')} role="status" aria-live="polite">
-      <span className="ts-save__mark" aria-hidden="true"><Icon name={status === 'error' ? 'alert' : 'check'} /></span>
+      <span className="ts-save__mark" aria-hidden="true"><Icon name={status === 'error' ? 'alert' : status === 'unsaved' ? 'edit' : 'check'} /></span>
       <span className="ts-truncate">{text}</span>
     </span>
   );

@@ -1,9 +1,9 @@
-import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRoute } from '../router';
 import { type IconName } from './components';
 import { friendlyError, itemStatus, metricsFor, type FriendlyError } from './model';
 import type { AccountTab, PaymentsView, Section, SelfView, WorkspaceData } from './types';
-import { AppShell, EmptyState, Button, Page, type NavItem } from '../ui';
+import { AppShell, EmptyState, Button, Page, Skeleton, type NavItem } from '../ui';
 import { canValidate, useAuth } from '../auth';
 import { ContributionWorkspace } from './ContributionWorkspace';
 import './portal.css';
@@ -17,6 +17,11 @@ import { GuidePage } from './pages/GuidePage';
 import { KawuriPage } from './pages/KawuriPage';
 import { AccountPage } from './pages/AccountPage';
 import { RewardsPage } from './rewards';
+import { useFormsAttention } from './forms/forms-data';
+
+// Indigen Forms carry the form renderer and the shared rules engine; they load
+// only when a contributor opens them.
+const FormsPage = lazy(() => import('./forms/FormsPage').then((module) => ({ default: module.FormsPage })));
 
 /**
  * The contributor workspace shell: persistent navigation, the page for the
@@ -34,6 +39,9 @@ import { RewardsPage } from './rewards';
  *   /contributor/guide[?section=]        Platform guide
  *   /contributor/kawuri[?work=&item=]    Kawuri Intelligence
  *   /contributor/account[/{tab}]         Account & settings
+ *   /contributor/forms[?tab=mine]        Available forms / my form responses
+ *   /contributor/forms/{formId}          Fill a form (?response= continues one, ?new=1 starts another)
+ *   /contributor/forms/submissions/{id}  One of my form responses
  */
 
 import { WorkspaceContext, SharedContext } from './context';
@@ -48,12 +56,18 @@ export interface PortalRoute {
   section: Section;
   work?: string;
   item?: string;
+  /** Indigen Forms: the form being filled (/forms/{formId}). */
+  formId?: string;
+  /** Indigen Forms: the response being viewed (/forms/submissions/{id}). */
+  submissionId?: string;
   accountTab: AccountTab;
   query: URLSearchParams;
   notFound: boolean;
 }
 
-const SIMPLE_SECTIONS: Section[] = ['assignments', 'contributions', 'activity', 'guide', 'kawuri', 'rewards', 'streak', 'translations', 'words', 'audio', 'stories', 'documents', 'corrections'];
+const SIMPLE_SECTIONS: Section[] = ['assignments', 'contributions', 'activity', 'guide', 'kawuri', 'rewards', 'streak', 'translations', 'words', 'audio', 'stories', 'documents', 'corrections', 'forms'];
+/** Form and response ids as the server issues them; anything else is not a link we made. */
+const FORM_ID = /^[A-Za-z0-9_-]{1,128}$/;
 const ACCOUNT_TABS: AccountTab[] = ['profile', 'security', 'notifications', 'payments'];
 
 export function parsePortalRoute(path: string, search: string, base: string, preview: boolean): PortalRoute {
@@ -63,6 +77,14 @@ export function parsePortalRoute(path: string, search: string, base: string, pre
   if (rest.length === 0) return route;
   const [first, second] = rest;
   if (rest.length === 1 && SIMPLE_SECTIONS.includes(first as Section)) return { ...route, section: first as Section };
+  // Forms come before the two-segment assignment rule: /contributor/forms/{id}
+  // has the shape of an SMS link (/contributor/{uid}/{work}) but is not one.
+  if (first === 'forms') {
+    if (rest.length === 2 && second === 'submissions') return { ...route, section: 'forms', query: new URLSearchParams({ ...Object.fromEntries(query), tab: 'mine' }) };
+    if (rest.length === 2 && FORM_ID.test(second)) return { ...route, section: 'forms', formId: second };
+    if (rest.length === 3 && second === 'submissions' && FORM_ID.test(rest[2])) return { ...route, section: 'forms', submissionId: rest[2] };
+    return { ...route, notFound: true };
+  }
   if (first === 'account' && rest.length <= 2) {
     const tab = ACCOUNT_TABS.includes(second as AccountTab) ? second as AccountTab : 'profile';
     return { ...route, section: 'account', accountTab: tab, notFound: Boolean(second) && tab !== second };
@@ -76,12 +98,14 @@ export function parsePortalRoute(path: string, search: string, base: string, pre
 
 /**
  * The account an SMS invitation link belongs to: /contributor/{uid}/{work}.
- * Account pages have the same two-segment shape (/contributor/account/{tab}),
- * so they are never read as a link for someone else's account.
+ * Account pages (/contributor/account/{tab}) and forms
+ * (/contributor/forms/{formId}) have the same two-segment shape, so they are
+ * never read as a link for someone else's account.
  */
+const NOT_ACCOUNTS = ['account', 'forms'];
 export function invitationLinkOwner(path: string): string | null {
   const [root, uid, work, ...extra] = path.split('/').filter(Boolean);
-  if (root !== 'contributor' || !uid || !work || extra.length || uid === 'account') return null;
+  if (root !== 'contributor' || !uid || !work || extra.length || NOT_ACCOUNTS.includes(uid)) return null;
   try {
     return decodeURIComponent(uid);
   } catch {
@@ -108,6 +132,7 @@ export const NAV: SectionEntry[] = [
   { section: 'stories', label: 'Stories & culture', short: 'Stories', icon: 'library', group: 'Contribute' },
   { section: 'documents', label: 'Documents & research', short: 'Documents', icon: 'doc', group: 'Contribute' },
   { section: 'corrections', label: 'Corrections', short: 'Corrections', icon: 'pen', group: 'Contribute' },
+  { section: 'forms', label: 'Available forms', short: 'Forms', icon: 'list', group: 'Contribute', hint: 'Forms from the Indigen World team' },
   { section: 'account', label: 'Account & settings', short: 'Account', icon: 'settings', group: 'Account' },
 ];
 
@@ -223,6 +248,7 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
   const returned = metricsFor(Object.values(data.items).flat()).returned;
   const openAssignments = data.works.filter(work => (data.items[work.id] ?? []).some(item => ['not_started', 'draft', 'unsure'].includes(itemStatus(item)))).length;
   const shared = useMemo<ShellShared>(() => ({ self, payments, navigateTo: navigate, setEditing }), [self, payments, navigate]);
+  const formsAttention = useFormsAttention(data.preview);
   const nav = contributorNav({
     path,
     paths: data.paths,
@@ -232,6 +258,7 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
       { section: 'assignments', badge: openAssignments || undefined },
       { section: 'contributions', badge: returned || undefined },
       { section: 'account', badge: paymentsNeedAttention(payments.value) ? '!' : undefined },
+      { section: 'forms', badge: formsAttention || undefined },
     ],
   }).filter((item) => !data.preview || item.to !== '/contributor/corpus');
   const workTitle = route.section === 'assignments' && route.work ? data.works.find((work) => work.id === route.work)?.title : undefined;
@@ -248,7 +275,8 @@ export function WorkspaceShell({ banner }: { banner?: ReactNode }) {
         bell={{ to: data.paths.base + '?panel=notifications', label: 'Feedback and notifications' }}
       >
         <div className="cw">
-          {route.notFound ? <NotFound /> : <PageFor key={`${data.uid}:${route.section}`} route={route} />}
+          {/* A different form or response is a different page: it must not inherit the previous one's answers. */}
+          {route.notFound ? <NotFound /> : <PageFor key={`${data.uid}:${route.section}:${route.formId ?? ''}:${route.submissionId ?? ''}`} route={route} />}
         </div>
       </AppShell>
     </JourneyProvider></SharedContext.Provider>
@@ -275,6 +303,12 @@ function PageFor({ route }: { route: PortalRoute }) {
       return <KawuriPage initialWork={route.query.get('work') ?? ''} initialItem={route.query.get('item') ?? ''} initialMode={route.query.get('mode') ?? ''} />;
     case 'account':
       return <AccountPage tab={route.accountTab} />;
+    case 'forms':
+      return (
+        <Suspense fallback={<div className="ts-page"><Skeleton title lines={4} label="Opening forms" /></div>}>
+          <FormsPage formId={route.formId} submissionId={route.submissionId} query={route.query} />
+        </Suspense>
+      );
     default:
       return <CollectionHome />;
   }

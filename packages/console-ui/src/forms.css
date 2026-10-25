@@ -1,0 +1,845 @@
+/* ==========================================================================
+   Indigen Forms: the shared renderer, response view and review summary.
+   --------------------------------------------------------------------------
+   import '@indigen-world/console-ui/forms.css';
+
+   Every class starts with `iwf-`. The renderer also uses TribeStudio's
+   component classes (ts-input, ts-select, ts-textarea, ts-label, ts-hint,
+   ts-error, ts-check, ts-drop, ts-progress, ts-btn, ts-sr) and its design
+   tokens, which both the admin console and TribeStudio already load. Nothing
+   here sets a width wider than its container: long words, file names and
+   links wrap, so the page never scrolls sideways at 360 px.
+   ========================================================================== */
+
+.iwf-form,
+.iwf-view,
+.iwf-review {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.iwf-section,
+.iwf-section__fields,
+.iwf-entry,
+.iwf-entry__fields,
+.iwf-view__section,
+.iwf-review__section,
+.iwf-answer > * {
+  min-width: 0;
+}
+
+.iwf-choice > input,
+.iwf-tick > input {
+  flex: 0 0 auto;
+}
+
+/* -- Error summary ------------------------------------------------------- */
+.iwf-summary {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--danger-line);
+  border-left: 4px solid var(--danger);
+  border-radius: var(--r-lg);
+  background: var(--danger-surface);
+  color: var(--danger-strong);
+}
+
+.iwf-summary:focus {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.iwf-summary__title {
+  margin: 0;
+  color: var(--danger-strong);
+  font-size: var(--fs-base);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.iwf-summary__list {
+  display: grid;
+  gap: 0.35rem;
+  margin: var(--space-2) 0 0;
+  padding-left: 1.1rem;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.iwf-summary__list a {
+  color: var(--danger-strong);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.iwf-summary__list a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* -- Sections -------------------------------------------------------------- */
+.iwf-section {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.iwf-section + .iwf-section {
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border-soft);
+}
+
+.iwf-section__head {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.iwf-section__title {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-heading);
+  font-size: var(--fs-xl);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.iwf-section__desc {
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.iwf-section__fields {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.iwf-empty {
+  margin: 0;
+}
+
+/* -- Questions ---------------------------------------------------------------- */
+.iwf-q {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  min-inline-size: 0;
+}
+
+/* A floated legend joins the grid, so it spaces like every other label. */
+.iwf-q > legend {
+  float: left;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.iwf-q.is-invalid {
+  padding-left: var(--space-3);
+  border-left: 3px solid var(--danger);
+}
+
+.iwf-label {
+  color: var(--text);
+  font-size: var(--fs-base);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.iwf-label__text,
+.iwf-statement {
+  overflow-wrap: anywhere;
+}
+
+.iwf-desc,
+.iwf-example,
+.iwf-rule,
+.iwf-limits {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.iwf-desc {
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+
+.iwf-example__text {
+  color: var(--text-2);
+  font-family: var(--font-kasem);
+  font-style: normal;
+}
+
+.iwf-kasem {
+  font-family: var(--font-kasem);
+}
+
+.iwf-textarea {
+  line-height: 1.6;
+}
+
+.iwf-number {
+  max-width: 16rem;
+}
+
+.iwf-date {
+  max-width: 14rem;
+}
+
+.iwf-counter {
+  margin-top: -0.2rem;
+}
+
+.iwf-counter.is-over {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.iwf-error {
+  margin: 0;
+}
+
+.iwf-error__mark {
+  display: inline-grid;
+  place-items: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+  margin-top: 0.05rem;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.iwf-error__text {
+  display: grid;
+  gap: 0.15rem;
+  overflow-wrap: anywhere;
+}
+
+.iwf-error__line {
+  display: block;
+}
+
+/* -- Choices -------------------------------------------------------------------- */
+.iwf-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: var(--space-2);
+}
+
+.iwf-choice .ts-check__copy strong,
+.iwf-tick .ts-check__copy strong {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.iwf-clear {
+  justify-self: start;
+}
+
+/* -- Consent -------------------------------------------------------------------- */
+.iwf-consent__purpose {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.6rem;
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
+.iwf-consent__tag {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0.12rem 0.55rem;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-full);
+  background: var(--accent-softer);
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.iwf-consent__statement {
+  display: block;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--accent-line);
+  border-radius: 0 var(--r-lg) var(--r-lg) 0;
+  background: var(--surface-sunken);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* -- Instruction and heading ----------------------------------------------------- */
+.iwf-instruction {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--info-line);
+  border-radius: var(--r-lg);
+  background: var(--info-surface);
+  color: var(--info-strong);
+}
+
+.iwf-instruction__title {
+  margin: 0;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.iwf-instruction__body {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.iwf-heading-block {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.iwf-heading {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-heading);
+  font-size: var(--fs-lg);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+/* -- Repeatable group ------------------------------------------------------------- */
+.iwf-entries {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.iwf-entry {
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.iwf-entry.is-invalid {
+  border-color: var(--danger-line);
+}
+
+.iwf-entry__group {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.iwf-entry__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+
+.iwf-entry__title {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+}
+
+.iwf-entry__title:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: var(--r-xs);
+}
+
+.iwf-entry__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.iwf-entry__fields {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.iwf-group__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.iwf-group__empty {
+  margin: 0;
+}
+
+/* -- Uploads ------------------------------------------------------------------------ */
+.iwf-limits {
+  color: var(--text-3);
+}
+
+.iwf-note {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
+.iwf-drop.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.iwf-drop.is-disabled:hover {
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+
+.iwf-drop.is-disabled input[type="file"] {
+  cursor: not-allowed;
+}
+
+.iwf-drop__or {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+.iwf-full {
+  margin: 0;
+}
+
+.iwf-files {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.iwf-file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.iwf-file.is-invalid,
+.iwf-file.is-failed {
+  border-color: var(--danger-line);
+  background: var(--danger-surface);
+}
+
+.iwf-file__icon {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  border-radius: var(--r);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.iwf-file__main {
+  display: grid;
+  gap: 0.3rem;
+  flex: 1 1 11rem;
+}
+
+.iwf-file__name {
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.iwf-file__meta {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  overflow-wrap: anywhere;
+}
+
+.iwf-file__problem {
+  color: var(--danger-strong);
+}
+
+.iwf-file__progress {
+  width: 100%;
+}
+
+.iwf-file__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+
+.iwf-recorder {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.iwf-checks {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--success-strong);
+  font-size: var(--fs-xs);
+  overflow-wrap: anywhere;
+}
+
+/* -- Response view and review summary ----------------------------------------------- */
+.iwf-view__compare {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.iwf-view__section {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.iwf-view__title,
+.iwf-review__title {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-heading);
+  font-size: var(--fs-lg);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.iwf-view__subheading {
+  margin: var(--space-2) 0 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.iwf-answers {
+  display: grid;
+  margin: 0;
+}
+
+.iwf-answer {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.4fr) minmax(0, 1fr);
+  gap: var(--space-1) var(--space-4);
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.iwf-answer:last-child {
+  border-bottom: 0;
+}
+
+.iwf-answer.is-changed {
+  margin: 0 calc(-1 * var(--space-2));
+  padding-inline: var(--space-2);
+  border-radius: var(--r);
+  background: var(--warning-surface);
+}
+
+.iwf-answer__label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.5rem;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.iwf-answer__question {
+  overflow-wrap: anywhere;
+}
+
+.iwf-answer__value {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--text);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.iwf-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.iwf-none {
+  color: var(--text-4);
+  font-style: italic;
+}
+
+.iwf-changed {
+  display: inline-flex;
+  padding: 0.05rem 0.45rem;
+  border-radius: var(--r-full);
+  background: var(--warning-line);
+  color: var(--warning-strong);
+  font-size: var(--fs-tiny);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.iwf-before > summary {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+.iwf-before__value {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--border);
+  color: var(--text-2);
+}
+
+.iwf-state {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.55rem;
+  border-radius: var(--r-full);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.iwf-state.is-yes {
+  background: var(--success-surface);
+  color: var(--success-strong);
+}
+
+.iwf-state.is-no {
+  background: var(--neutral-surface);
+  color: var(--neutral);
+}
+
+.iwf-tick-view,
+.iwf-consent-view,
+.iwf-consent-view__wording {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.iwf-tick-view__statement {
+  color: var(--text-2);
+  white-space: pre-wrap;
+}
+
+.iwf-consent-view__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.iwf-consent-view__wording {
+  justify-self: stretch;
+  justify-items: stretch;
+  gap: var(--space-1);
+}
+
+.iwf-consent-view__caption {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+.iwf-view-files {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.iwf-file-link {
+  display: grid;
+  gap: 0.15rem;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+button.iwf-file-link {
+  cursor: pointer;
+  transition: border-color var(--dur-2) ease, background-color var(--dur-2) ease;
+}
+
+button.iwf-file-link:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-softer);
+}
+
+button.iwf-file-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.iwf-file-link__name {
+  color: var(--accent-text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.iwf-file-link--static .iwf-file-link__name {
+  color: var(--text);
+}
+
+.iwf-file-link__meta {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+.iwf-view-entries {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.iwf-view-entry {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+}
+
+.iwf-view-entry__title {
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.iwf-answers--nested .iwf-answer {
+  grid-template-columns: 1fr;
+  padding: 0.45rem 0;
+}
+
+.iwf-review__section {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--surface);
+}
+
+.iwf-review__section.is-invalid {
+  border-color: var(--danger-line);
+}
+
+.iwf-review__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.iwf-review__count {
+  padding: 0.1rem 0.55rem;
+  border-radius: var(--r-full);
+  background: var(--danger-surface);
+  color: var(--danger-strong);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.iwf-review__edit {
+  margin-left: auto;
+}
+
+.iwf-summary--static .iwf-summary__title {
+  font-size: var(--fs-sm);
+}
+
+/* -- Narrow screens --------------------------------------------------------------------- */
+@media (max-width: 560px) {
+  .iwf-form,
+  .iwf-view,
+  .iwf-review {
+    gap: var(--space-5);
+  }
+
+  .iwf-section__fields {
+    gap: var(--space-5);
+  }
+
+  .iwf-entry {
+    padding: var(--space-3);
+  }
+
+  .iwf-entry__tools {
+    width: 100%;
+  }
+
+  .iwf-answer {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+
+  .iwf-review__section {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .iwf-file__actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .iwf-number,
+  .iwf-date {
+    max-width: none;
+  }
+}

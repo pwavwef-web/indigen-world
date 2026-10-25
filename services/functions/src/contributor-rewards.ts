@@ -215,10 +215,12 @@ export const getContributorRewards = onCall(options, async req => {
   const uid = requireAuth(req);
   await consumeRateLimit('getContributorRewards', uid, 60);
   const db = getFirestore();
-  const [balance, system, legacySettings, requests, assessments] = await Promise.all([
+  const [balance, system, legacySettings, requests, assessments, forms] = await Promise.all([
     balanceOf(db, uid), loadRewardSystem(db), db.doc('settings/contributorRewards').get(),
     db.collection('contributorRedemptions').where('contributorId', '==', uid).limit(100).get(),
     db.collection(ASSESSMENTS).where('contributorId', '==', uid).orderBy('createdAt', 'desc').limit(60).get(),
+    // Points from approved Indigen Forms responses (form-rewards.ts); the marker carries what the list shows.
+    db.collection('formAwards').where('uid', '==', uid).orderBy('awardedAt', 'desc').limit(50).get(),
   ]);
   if (balance.legacy.get('status') !== 'active') throw new HttpsError('permission-denied', 'An active contributor account is required.');
   const account = balance.legacy;
@@ -244,6 +246,10 @@ export const getContributorRewards = onCall(options, async req => {
     requests: requests.docs.filter(row => ['airtime', 'data'].includes(String(row.get('kind'))))
       .map(row => requestView(row.id, row.data()))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    formAwards: forms.docs.filter(row => row.get('status') === 'awarded').map(row => ({
+      responseId: row.id, formTitle: String(row.get('formTitle') ?? ''), referenceId: row.get('referenceId') ?? null,
+      points: Number(row.get('points') ?? 0), awardedAt: String(row.get('awardedAt') ?? ''),
+    })),
   };
 });
 

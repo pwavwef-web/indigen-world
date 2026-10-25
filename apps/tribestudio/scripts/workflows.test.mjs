@@ -28,6 +28,8 @@ const KIT_MOCKS = {
   MilestoneBurst: 'MilestoneBurst', JourneyProvider: 'JourneyProvider', CollectionHome: 'CollectionHome',
   KasemField: 'KasemField',
   DictionaryRecommendations: 'DictionaryRecommendations', DictionaryReview: 'DictionaryReview',
+  // Route-split pages (React.lazy) stand in as named placeholders too.
+  lazy: () => 'LazyPage', Suspense: 'Suspense',
   ...Object.fromEntries(KIT.map((name) => [name, name])),
   cx: (...values) => values.filter(Boolean).join(' '),
   spotlight() {},
@@ -972,6 +974,29 @@ test('portal routes keep SMS assignment links and map every section', async () =
   assert.equal(parsePortalRoute('/contributor/preview/x/y', '', '/contributor/preview', true).notFound, true);
 });
 
+test('Indigen Forms routes are never read as SMS assignment links', async () => {
+  const { parsePortalRoute } = await load('src/contributor/workspace.tsx', ['parsePortalRoute'], { createContext: () => ({}) });
+  const route = (path, search = '', base = '/contributor', preview = false) => parsePortalRoute(path, search, base, preview);
+  assert.deepEqual(plain({ ...route('/contributor/forms'), query: undefined }), { section: 'forms', accountTab: 'profile', notFound: false });
+  const form = route('/contributor/forms/form_abc-123', '?response=r1');
+  assert.equal(form.section, 'forms');
+  assert.equal(form.formId, 'form_abc-123');
+  assert.equal(form.work, undefined, 'a form id is not an assignment');
+  assert.equal(form.query.get('response'), 'r1');
+  const response = route('/contributor/forms/submissions/resp_9');
+  assert.equal(response.section, 'forms');
+  assert.equal(response.submissionId, 'resp_9');
+  assert.equal(response.formId, undefined);
+  assert.equal(route('/contributor/forms/submissions').query.get('tab'), 'mine');
+  for (const path of ['/contributor/forms/a/b', '/contributor/forms/submissions/a/b', '/contributor/forms/a%2Fb', '/contributor/forms/submissions/x.y']) {
+    assert.equal(route(path).notFound, true, path);
+  }
+  assert.equal(route('/contributor/preview/forms/preview_words', '', '/contributor/preview', true).formId, 'preview_words');
+  assert.equal(route('/contributor/preview/forms/submissions/preview_resp_changes', '', '/contributor/preview', true).submissionId, 'preview_resp_changes');
+  // SMS links keep working beside them.
+  assert.equal(route('/contributor/uid-1/work-9').work, 'work-9');
+});
+
 test('account pages are never mistaken for an invitation link to another account', async () => {
   const { invitationLinkOwner } = await load('src/contributor/workspace.tsx', ['invitationLinkOwner'], { createContext: () => ({}) });
   assert.equal(invitationLinkOwner('/contributor/uid-1/work-9'), 'uid-1');
@@ -980,6 +1005,52 @@ test('account pages are never mistaken for an invitation link to another account
   for (const path of ['/contributor', '/contributor/assignments', '/contributor/account', '/contributor/a/b/c', '/studio/a/b']) {
     assert.equal(invitationLinkOwner(path), null, path);
   }
+  // A form link has the same shape and must open the form, not "sign in as another account".
+  for (const path of ['/contributor/forms/form_abc', '/contributor/forms/submissions/resp_1', '/contributor/forms']) assert.equal(invitationLinkOwner(path), null, path);
+});
+
+test('Indigen Forms wording and submit request ids', async () => {
+  const { cardAction, cardStatus, scheduleText, estimatedTime, openIssues, submitRequest, statusMeaning, actorLabel, sameValue } = await load('src/contributor/forms/forms-model.ts',
+    ['cardAction', 'cardStatus', 'scheduleText', 'estimatedTime', 'openIssues', 'submitRequest', 'statusMeaning', 'actorLabel', 'sameValue']);
+  const form = (mine = {}, extra = {}) => ({ id: 'f', open: true, closedReason: null, policy: 'multiple', mine: { draftId: null, draftVersion: null, submitted: 0, latestStatus: null, latestResponseId: null, needsChanges: 0, ...mine }, ...extra });
+  assert.deepEqual(plain(cardAction(form())), { kind: 'start' });
+  assert.deepEqual(plain(cardAction(form({ draftId: 'd1' }))), { kind: 'continue', responseId: 'd1' });
+  assert.deepEqual(plain(cardAction(form({ needsChanges: 1, latestStatus: 'changes_requested', latestResponseId: 'r1', draftId: 'd1' }))), { kind: 'revise', responseId: 'r1' }, 'feedback comes before a draft');
+  assert.deepEqual(plain(cardAction(form({ submitted: 1, latestResponseId: 'r1' }))), { kind: 'start_another', latestResponseId: 'r1' });
+  assert.deepEqual(plain(cardAction(form({ submitted: 1, latestResponseId: 'r1' }, { policy: 'once' }))), { kind: 'view', responseId: 'r1' });
+  assert.deepEqual(plain(cardAction(form({}, { open: false, closedReason: 'closed' }))), { kind: 'none' });
+  assert.deepEqual(plain(cardAction(form({}, { open: false, closedReason: 'not_yet_open' }))), { kind: 'start' }, 'a draft may be started before a form opens');
+  assert.equal(cardStatus(form({ draftId: 'd' })).label, 'Draft in progress');
+  assert.equal(cardStatus(form({ submitted: 2 })).label, 'Submitted 2 times');
+  assert.equal(cardStatus(form()), null);
+  const now = new Date('2026-10-25T09:00:00').getTime();
+  assert.match(scheduleText({ opensAt: null, closesAt: new Date('2026-10-28T17:00:00').toISOString() }, now).label, /^Closes in 3 days/);
+  assert.equal(scheduleText({ opensAt: null, closesAt: new Date('2026-10-28T17:00:00').toISOString() }, now).tone, 'warning');
+  assert.match(scheduleText({ opensAt: null, closesAt: new Date('2026-10-25T17:00:00').toISOString() }, now).label, /^Closes today at 17:00/);
+  assert.match(scheduleText({ opensAt: null, closesAt: new Date('2026-10-20T17:00:00').toISOString() }, now).label, /^Closed on 20 Oct/);
+  assert.match(scheduleText({ opensAt: new Date('2026-10-26T08:00:00').toISOString(), closesAt: null }, now).label, /^Opens tomorrow/);
+  assert.equal(scheduleText({ opensAt: null, closesAt: null }, now), null);
+  assert.equal(estimatedTime(5), 'About 5 minutes');
+  assert.equal(estimatedTime(90), 'About 1 hour 30 minutes');
+  assert.equal(estimatedTime(null), '');
+  assert.match(statusMeaning('changes_requested'), /asked for changes/);
+  assert.match(statusMeaning('submitted', false), /does not need review/);
+  assert.equal(actorLabel('reviewer'), 'Indigen World reviewer', 'reviewers are named by role only');
+  // Problems disappear once their question changes, and only then; text is compared exactly.
+  const tone = 'ka\u0300';
+  const found = { issues: [{ path: 'word', message: 'Required' }, { path: 'examples.0.text', message: 'Too long' }, { path: '', message: 'Form-level' }], answers: { word: tone, examples: [{ text: 'x' }] } };
+  assert.equal(openIssues(found, { word: tone, examples: [{ text: 'x' }] }).length, 3);
+  assert.deepEqual(plain(openIssues(found, { word: '\u006b\u00e0', examples: [{ text: 'x' }] }).map((issue) => issue.path)), ['examples.0.text', ''], 'a precomposed letter is a change from a combining mark');
+  assert.equal(openIssues(null, {}).length, 0);
+  assert.equal(sameValue('', undefined), true);
+  assert.equal(sameValue([], null), true);
+  // The same answers reuse the request id (a retry or double click is replayed); new answers get a new one.
+  let ids = 0;
+  const next = () => `req-${++ids}`;
+  const first = submitRequest(null, { responseId: 'r', answers: { word: tone }, expectedDraftRevision: 3 }, next);
+  assert.equal(submitRequest(first, { responseId: 'r', answers: { word: tone }, expectedDraftRevision: 3 }, next).requestId, first.requestId);
+  assert.notEqual(submitRequest(first, { responseId: 'r', answers: { word: '\u006b\u00e0' }, expectedDraftRevision: 3 }, next).requestId, first.requestId);
+  assert.notEqual(submitRequest(first, { responseId: 'r', answers: { word: tone }, expectedDraftRevision: 4 }, next).requestId, first.requestId);
 });
 
 test('activity comes only from real rounds, assignments and payment notices, newest first', async () => {
@@ -1204,6 +1275,9 @@ test('only allowlisted contribution destinations survive email sign-in returns',
  const {studioReturn}=await load('src/authReturn.ts',['studioReturn']);
  for(const route of ['/studio/dictionary','/studio/expressions?kind=proverb','/studio/knowledge?category=sentences','/studio/submissions/new?type=audio&category=song'])assert.equal(studioReturn(route),route);
  for(const route of ['//evil.test','https://evil.test','/studio/admin','/studio/dictionary/unexpected'])assert.equal(studioReturn(route),null);
+ // Indigen Forms deep links survive sign-in and password reset; nothing else under /contributor does.
+ for(const route of ['/contributor/forms','/contributor/forms?tab=mine','/contributor/forms/form_abc-1','/contributor/forms/form_abc?response=r_1','/contributor/forms/form_abc?new=1','/contributor/forms/submissions/resp_1'])assert.equal(studioReturn(route),route);
+ for(const route of ['/contributor/forms/a/b','/contributor/forms/../account','/contributor/forms/a#x','/contributor/forms/submissions/a/b','/contributor/account','/contributor/forms.evil.test','//contributor/forms/a','/contributor/forms/a%2F..'])assert.equal(studioReturn(route),null,route);
 });
 test('timeline keeps submitted and published separate and preserves earlier revision links',async()=>{
  const {contributionTimeline}=await load('src/contributor/timeline.ts',['contributionTimeline']);
@@ -1211,4 +1285,84 @@ test('timeline keeps submitted and published separate and preserves earlier revi
  const events=plain(contributionTimeline({id:'i'},rounds));
  assert.deepEqual(events.map(event=>event.label),['Submitted for review','Correction requested','Submitted for review','Published']);
  assert.equal(events.at(-1).revisionOf,'earlier');assert.equal(events[1].feedback,'Correct context');
+});
+
+// -- Indigen Forms review desk (/contributor/review?desk=forms) -----------------------------------------
+test('forms review desk: queue filters, decision rules, request ids and outcomes', async () => {
+  const contract = await import('@indigen-world/contracts/forms');
+  const m = await load('src/contributor/forms/review/review-model.ts', [
+    'queueFilter', 'deskSearch', 'safeId', 'orderedDecisions', 'decisionBlocker', 'decisionPayload', 'decisionRequestId',
+    'nextItemAfter', 'matchesReference', 'feedbackProblem', 'consentGaps', 'routingOutcome', 'rewardOutcome',
+  ], { CONSENT_PURPOSES: contract.CONSENT_PURPOSES, DESTINATIONS: contract.DESTINATIONS, REVIEW_DECISIONS: contract.REVIEW_DECISIONS });
+  assert.equal(m.queueFilter('approved'), 'approved');
+  assert.equal(m.queueFilter('draft'), 'open', 'drafts are never a review queue');
+  assert.equal(m.queueFilter(null), 'open');
+  assert.equal(m.deskSearch({ status: 'open', form: null, item: 'r1' }), '?desk=forms&item=r1');
+  assert.equal(m.deskSearch({ status: 'approved', form: 'f_1' }), '?desk=forms&status=approved&form=f_1');
+  assert.equal(m.safeId('../account'), null);
+  assert.equal(m.safeId('preview_rv_word'), 'preview_rv_word');
+  assert.deepEqual(plain(m.orderedDecisions(['reject', 'approve', 'start_review', 'request_changes'])), ['start_review', 'request_changes', 'approve', 'reject']);
+
+  const checks = [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }];
+  const allowed = ['request_changes', 'approve', 'reject'];
+  const blocker = (decision, feedback = '', ticked = []) => m.decisionBlocker({ decision, allowed, feedback, checks, ticked });
+  assert.equal(blocker(null).field, 'decision');
+  assert.equal(blocker('start_review').field, 'decision', 'a decision the status does not allow is refused');
+  assert.match(blocker('approve').message, /Tick all 2 reviewer checks/);
+  assert.match(blocker('approve', '', ['a']).message, /Still to confirm: B\./);
+  assert.equal(blocker('approve', '', ['b', 'a']), null, 'approval needs every check and no feedback');
+  assert.equal(blocker('request_changes', '   abcd   ').field, 'feedback', 'surrounding spaces do not count, as on the server');
+  assert.equal(blocker('reject', ' abcde'), null);
+  assert.match(m.feedbackProblem('approve', 'x'.repeat(3001)), /3000 characters or fewer/);
+
+  // Feedback goes out exactly as typed: tone marks, a decomposed letter and the surrounding spaces.
+  const typed = ' Nàá ɛ́ ok ';
+  const payload = m.decisionPayload({ responseId: 'r', decision: 'request_changes', feedback: typed, checks, ticked: ['b', 'a', 'unknown'], expectedStatus: 'submitted', expectedRevision: 2 });
+  assert.equal(payload.feedback, typed);
+  assert.deepEqual(plain(payload.checks), ['a', 'b'], 'only the form’s checks, in form order');
+  assert.equal(payload.expectedStatus, 'submitted');
+  assert.equal(payload.expectedRevision, 2);
+  assert.equal(m.decisionPayload({ responseId: 'r', decision: 'start_review', feedback: 'note', checks, ticked: ['a'], expectedStatus: 'submitted', expectedRevision: 1 }).feedback, undefined, 'start review sends no note');
+
+  let count = 0;
+  const id = () => `request-${++count}-000000000000`;
+  const first = m.decisionRequestId(null, payload, id);
+  assert.equal(m.decisionRequestId(first, { ...payload, checks: ['b', 'a'] }, id).requestId, first.requestId, 'a retry of the same decision reuses its request id');
+  assert.notEqual(m.decisionRequestId(first, { ...payload, expectedRevision: 3 }, id).requestId, first.requestId, 'a newer revision is a new decision');
+  assert.notEqual(m.decisionRequestId(first, { ...payload, feedback: `${typed}!` }, id).requestId, first.requestId, 'changed feedback is a new decision');
+
+  assert.equal(m.nextItemAfter(['a', 'b', 'c'], 'b'), 'c');
+  assert.equal(m.nextItemAfter(['a', 'b', 'c'], 'c'), 'b');
+  assert.equal(m.nextItemAfter(['a'], 'a'), null);
+  assert.ok(m.matchesReference({ id: 'r', referenceId: 'IWF-AB12-CD34' }, ' ab12 '));
+  assert.ok(!m.matchesReference({ id: 'r', referenceId: null }, 'IWF'));
+
+  assert.deepEqual(plain(m.consentGaps({ destination: { type: 'audio_collection', mapping: {} } }, ['review'])), ['storage']);
+  assert.deepEqual(plain(m.consentGaps({ destination: { type: 'general_intake', mapping: {} } }, [])), []);
+  assert.match(m.routingOutcome({ destination: 'dictionary_candidate', status: 'routed', targetCollection: 'submissions', targetId: 'S1', note: null }).text, /Nothing was published/);
+  assert.equal(m.rewardOutcome({ points: 5, status: 'awarded', note: null }, 5).tone, 'success');
+});
+
+test('the validator portal routes desk=forms to the forms desk and lists it in the navigation', async () => {
+  const { DESKS } = await load('src/contributor/review/model.ts', ['DESKS']);
+  const { reviewNav } = await load('src/contributor/review/nav.ts', ['reviewNav'], { DESKS });
+  const nav = reviewNav({ path: '/contributor/review', desk: 'forms' });
+  const forms = nav.find((entry) => entry.to === '/contributor/review?desk=forms');
+  assert.equal(forms.label, 'Form responses');
+  assert.equal(forms.active, true);
+  assert.deepEqual(plain(nav.filter((entry) => entry.active).map((entry) => entry.to)), ['/contributor/review?desk=forms']);
+  assert.equal(reviewNav({ path: '/contributor/review' }).find((entry) => entry.to.endsWith('desk=forms')).active, false);
+  assert.ok(nav.filter((entry) => entry.dock).length <= 4, 'the phone dock keeps at most four entries');
+
+  const { canValidate } = await load('src/auth.ts', ['canValidate'], { GoogleAuthProvider: class {} });
+  const h = hooks(); let reads = 0;
+  const { ReviewDesk } = await load('src/contributor/review/ReviewDesk.tsx', ['ReviewDesk'], {
+    ...h.api, canValidate, useAuth: () => ({ ready: true, user: { uid: 'u' }, role: 'validator' }), useRoute: () => ({ search: '?desk=forms' }),
+    onSnapshot: () => { reads++; return () => {}; },
+  });
+  const tree = h.render(ReviewDesk); h.flush();
+  assert.equal(tree.type, 'Suspense');
+  assert.ok(find(tree, (node) => node.type === 'LazyPage'), 'the forms desk loads as its own chunk');
+  assert.equal(reads, 0, 'the forms desk starts no Firestore listeners');
+  h.dispose();
 });

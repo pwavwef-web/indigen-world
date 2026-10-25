@@ -489,6 +489,11 @@ export const saveContributorProfile = onStaffCall(options, async req => {
       ...input,
       status: before.get('status') ?? 'active',
       publicVisibility: visibility,
+      // Written by the contributor (updateContributorSelf) or by setContributorAccess, not by
+      // this form: carry them over so an admin edit never erases a contributor's own Kasem
+      // variety, which form audiences target.
+      ...(before.get('languageProfile') ? { languageProfile: before.get('languageProfile') } : {}),
+      ...(before.get('lastStatusReason') ? { lastStatusReason: before.get('lastStatusReason') } : {}),
       lifecycle: {
         createdAt: before.get('lifecycle.createdAt') ?? now,
         updatedAt: now,

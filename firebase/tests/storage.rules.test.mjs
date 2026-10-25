@@ -31,14 +31,16 @@ async function clientFor(name, uid, claims = null, { verified = false } = {}) {
   }, name);
   clientApps.push(app);
   const auth = clientAuth(app);
-  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+  // The hosts emulators:exec started, so a run on other ports never reaches a different emulator.
+  connectAuthEmulator(auth, `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST ?? '127.0.0.1:9099'}`, { disableWarnings: true });
   if (uid) {
     const token = await adminAuth(adminApp).createCustomToken(uid, claims ?? {});
     await signInWithCustomToken(auth, token);
     if (verified) await verifyClientSession(adminAuth(adminApp), auth, claims ?? {});
   }
   const storage = getStorage(app);
-  connectStorageEmulator(storage, '127.0.0.1', 9199);
+  const [storageHost, storagePort] = (process.env.FIREBASE_STORAGE_EMULATOR_HOST ?? '127.0.0.1:9199').split(':');
+  connectStorageEmulator(storage, storageHost, Number(storagePort));
   return storage;
 }
 
@@ -164,6 +166,26 @@ test('raw submission media is private to owner and staff', async () => {
 
   const reviewer = await clientFor('reviewer-storage', 'reviewer-1', { role: 'reviewer' });
   await getBytes(ref(reviewer, path));
+});
+
+test('a recording Indigen Forms routed is server-written: its owner reads it but cannot replace or delete it', async () => {
+  const owner = await clientFor('form-route-owner', 'form-route-owner');
+  const reviewer = await clientFor('form-route-reviewer', 'form-route-reviewer', { role: 'reviewer' });
+  const folder = `creator-submissions/form-route-owner/collection-contributions/form_${'b2'.repeat(16)}`;
+  const routed = `${folder}/pronunciation.wav`;
+  const original = Buffer.from('RIFF0000WAVEfmt synthetic routed copy');
+  await adminStorage(adminApp).bucket(BUCKET).file(routed).save(original, { contentType: 'audio/wav' });
+  assert.equal((await getBytes(ref(owner, routed))).byteLength, original.length);
+  await getBytes(ref(reviewer, routed));
+  await assert.rejects(uploadBytes(ref(owner, routed), new Uint8Array([9, 9, 9]), { contentType: 'audio/wav' }), 'no overwrite');
+  await assert.rejects(uploadBytes(ref(owner, `${folder}/second.wav`), new Uint8Array([9]), { contentType: 'audio/wav' }), 'no new file beside it');
+  await assert.rejects(deleteObject(ref(owner, routed)), 'no delete');
+  const [kept] = await adminStorage(adminApp).bucket(BUCKET).file(routed).download();
+  assert.ok(kept.equals(original), 'reviewers still get the bytes that were inspected');
+  // The owner's own submission folders stay owner-managed.
+  const own = 'creator-submissions/form-route-owner/collection-contributions/everyday-post/pronunciation.wav';
+  await uploadBytes(ref(owner, own), new Uint8Array([1, 2]), { contentType: 'audio/wav' });
+  await deleteObject(ref(owner, own));
 });
 
 test('generated Studio videos are private and server-written only', async () => {

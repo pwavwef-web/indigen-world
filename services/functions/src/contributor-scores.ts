@@ -623,6 +623,9 @@ export const awardContributorPoints = onDocumentUpdated(
     const before = event.data?.before;
     const after = event.data?.after;
     if (!after?.exists) return;
+    // Routed from an approved Indigen Forms response: that approval already paid
+    // the contributor through the points ledger, so the board pays nothing more.
+    if (after.get('formOrigin')) return;
     if (!isNewlyApproved(before?.get('status'), after.get('status'))) return;
 
     const contributionId = after.id;

@@ -37,7 +37,7 @@ The console is marked `noindex` and must not be publicly discoverable.
 
 ## Structure
 
-After sign-in the console opens on **Home**: a launcher of nine workspace
+After sign-in the console opens on **Home**: a launcher of ten workspace
 cards, live queue counts and a "Needs attention" strip. Inside a workspace a
 sidebar holds *Back to home*, a section switcher and that section's tools.
 The map lives in [`src/routes.ts`](src/routes.ts) and each tool's screen in
@@ -50,9 +50,10 @@ The map lives in [`src/routes.ts`](src/routes.ts) and each tool's screen in
 | Messaging `/messaging` | Compose · Contact groups · Campaign history · Test SMS | admin |
 | Creators `/creators` | Overview · Applications · Creator profiles · Members · Campaigns | validator |
 | Contributors `/contributors` | Directory · Invitations · Assignments · Contribution history · Support & issues | admin |
+| Forms `/forms` | All forms · Builder (`?form=`) · Responses (`?form=&item=`) · Forms settings | admin (publish and export can be limited to named admins; points limits are Finance's) |
 | Review Desk `/review` | Pending · Approved · Published · Needs revision · Rejected · Archived | validator |
 | Learning `/learning` | Lessons · Units (admin) · Illustrations · Pronunciation | validator |
-| Community `/community` | Reports (admin) · Forms & claims · Team sites | validator |
+| Community `/community` | Reports (admin) · Website forms & claims · Team sites | validator |
 | Governance `/governance` | Audit trail · Exports · Configuration | admin |
 
 Old addresses (`/reports`, `/audit`, `/collection`, `/interests`,
@@ -60,6 +61,17 @@ Old addresses (`/reports`, `/audit`, `/collection`, `/interests`,
 A path someone may not open says which permission it needs; an unknown path
 is an explicit 404. `/team-site-intake` stays public. Access here only decides
 what is shown — Security Rules and the callables enforce it.
+
+**Indigen Forms** (`src/forms/`) builds versioned contributor forms. Every
+read and write goes through the `formsAdmin` and `formsReview` staff callables
+(shapes in `packages/contracts/forms-api.d.ts`); the builder validates with the
+same contract as the server (`packages/contracts/forms.mjs`), saves drafts with
+the revision it loaded (a conflict keeps the admin's edits), and previews with
+the shared `FormRenderer` from console-ui. How-to:
+[`docs/product/indigen-forms-admin-guide.md`](../../docs/product/indigen-forms-admin-guide.md);
+design: [`docs/architecture/indigen-forms.md`](../../docs/architecture/indigen-forms.md).
+Browser check: `node apps/admin/scripts/forms-browser.test.mjs` (from the repo
+root, after `npm run build:console-ui`).
 
 **Finance owns money: rates, award policies, the points ledger and fulfilment.**
 Contributors request airtime or data in TribeStudio from a server quote; the

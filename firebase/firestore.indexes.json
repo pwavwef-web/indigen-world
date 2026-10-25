@@ -1,5 +1,14 @@
 {
   "indexes": [
+    {"collectionGroup":"indigenFormResponses","queryScope":"COLLECTION","fields":[{"fieldPath":"contributorUid","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"indigenFormResponses","queryScope":"COLLECTION","fields":[{"fieldPath":"formId","order":"ASCENDING"},{"fieldPath":"submittedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"indigenFormResponses","queryScope":"COLLECTION","fields":[{"fieldPath":"formId","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"submittedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"indigenFormResponses","queryScope":"COLLECTION","fields":[{"fieldPath":"formId","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"submittedAt","order":"ASCENDING"}]},
+    {"collectionGroup":"indigenFormResponses","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"submittedAt","order":"ASCENDING"}]},
+    {"collectionGroup":"indigenFormResponses","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"submittedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"indigenFormResponses","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"ASCENDING"}]},
+    {"collectionGroup":"indigenFormUploads","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"createdAt","order":"ASCENDING"}]},
+    {"collectionGroup":"formAwards","queryScope":"COLLECTION","fields":[{"fieldPath":"uid","order":"ASCENDING"},{"fieldPath":"awardedAt","order":"DESCENDING"}]},
     {"collectionGroup":"financeAudit","queryScope":"COLLECTION","fields":[{"fieldPath":"targetId","order":"ASCENDING"},{"fieldPath":"at","order":"DESCENDING"}]},
     {"collectionGroup":"submissions","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"lifecycle.createdAt","order":"DESCENDING"}]},
     {"collectionGroup":"collectionMediaAssets","queryScope":"COLLECTION","fields":[{"fieldPath":"ownerUid","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"}]},
@@ -1133,6 +1142,14 @@
     }
   ],
   "fieldOverrides": [
+    {"collectionGroup":"indigenFormResponses","fieldPath":"answers","indexes":[]},
+    {"collectionGroup":"indigenFormResponses","fieldPath":"workingAnswers","indexes":[]},
+    {"collectionGroup":"indigenFormResponses","fieldPath":"consents","indexes":[]},
+    {"collectionGroup":"formRevisions","fieldPath":"answers","indexes":[]},
+    {"collectionGroup":"formRevisions","fieldPath":"consents","indexes":[]},
+    {"collectionGroup":"formVersions","fieldPath":"definition","indexes":[]},
+    {"collectionGroup":"indigenFormRequests","fieldPath":"result","indexes":[]},
+    {"collectionGroup":"indigenFormRequests","fieldPath":"expiresAt","ttl":true,"indexes":[]},
     {"collectionGroup":"communityFeedSessions","fieldPath":"items","indexes":[]},
     {"collectionGroup":"communityFeedSessions","fieldPath":"issued","indexes":[]},
     {"collectionGroup":"communityFeedSessions","fieldPath":"expiresAt","ttl":true,"indexes":[]},

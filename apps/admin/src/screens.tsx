@@ -75,6 +75,11 @@ export const SCREENS: Record<`${SectionId}.${string}`, Screen> = {
   'contributors.history': named(contributors, 'ContributorsAdmin', { view: 'history' }),
   'contributors.support': named(contributors, 'ContributorsAdmin', { view: 'support' }),
 
+  'forms.dashboard': named(() => import('./forms/FormsDashboard'), 'FormsDashboard'),
+  'forms.builder': named(() => import('./forms/FormBuilder'), 'FormBuilder'),
+  'forms.responses': named(() => import('./forms/FormResponses'), 'FormResponses'),
+  'forms.settings': named(() => import('./forms/FormsSettings'), 'FormsSettings'),
+
   'review.pending': named(review, 'ReviewDesk', { scope: 'pending' }),
   'review.approved': named(review, 'ReviewDesk', { scope: 'approved' }),
   'review.published': named(review, 'ReviewDesk', { scope: 'published' }),

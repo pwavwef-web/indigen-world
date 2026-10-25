@@ -2,7 +2,7 @@ import { PageHeader } from './components';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
-import { useRoute } from '../router';
+import { Link, useRoute } from '../router';
 import { friendlyError, type Item } from './model';
 import { useWorkspace } from './workspace';
 import { TableShell } from '@indigen-world/console-ui';
@@ -40,11 +40,15 @@ type PublicRedemptionPolicy = Pick<RedemptionPolicyConfig, 'basePoints' | 'baseA
 type PublicAwardPolicy = { id: string; version: number; basis: string; bands: QualityBand[];
   categories: { key: string; label: string; basePoints: number; minPoints: number; maxPoints: number; note: string; examples: { band: string; multiplierBps: number; points: number }[] }[] };
 export type Streak = { current: number; best: number; lastDay: string; activeToday: boolean };
+/** Points from an approved Indigen Forms response (one per response, through the same ledger). */
+export type FormAward = { responseId: string; formTitle: string; referenceId: string | null; points: number; awardedAt: string };
 export type RewardView = {
   mode: { awardMode: 'legacy-flat' | 'assessed'; assessmentWorker: 'off' | 'on'; redemptionsOpen: boolean };
   balance: { available: number; reserved: number; lifetimeEarned: number; lifetimeRedeemed: number; pendingEstimate: number; pendingCount: number };
   awards: AwardView[]; requests: PaymentRequest[]; streak: Streak;
   redemptionPolicy: PublicRedemptionPolicy; awardPolicy: PublicAwardPolicy; legacyAward: { pointsPerExpression: number; dailyCap: number } | null;
+  /** Optional: older servers do not send it. */
+  formAwards?: FormAward[];
 };
 export type QuoteRequest = { kind: 'airtime' | 'data'; network?: string; points?: number; bundleId?: string };
 export type Quote = { quoteId: string; expiresAt: string; kind: 'airtime' | 'data'; network: string; points: number; baseMinor: number; bonusMinor: number;
@@ -88,6 +92,8 @@ const previewState: RewardView = {
   redemptionPolicy: previewPolicy,
   awardPolicy: { id: 'sample', version: 1, basis: 'proposed-default', bands: DEFAULT_AWARD_POLICY.bands, categories: [{ key: 'expressions', label: 'Everyday expression', basePoints: 20, minPoints: 20, maxPoints: 40, note: '', examples: [] }] },
   legacyAward: null,
+  // Matches the approved sample response in contributor/forms/forms-preview.ts.
+  formAwards: [{ responseId: 'preview_resp_approved', formTitle: 'Sentence translation', referenceId: 'IWF-PREV-0002', points: 3, awardedAt: new Date(Date.now() - 200 * 3_600_000).toISOString() }],
 };
 export const previewService: ContributorPaymentService = {
   load: async () => ({ data: structuredClone(previewState) }),
@@ -125,6 +131,7 @@ const AWARD_TONE: Record<string, 'info' | 'success' | 'danger' | 'warning' | 'ne
 
 export function RewardsPage({ streak = false, history = false }: { streak?: boolean; history?: boolean }) {
   const data = useWorkspace(); const { navigate } = useRoute();
+  const formLink = (responseId: string) => data.paths.formSubmission(responseId);
   const service = data.preview ? previewService : livePaymentService;
   const onOpenTasks = () => navigate(data.paths.section('assignments'));
   const [howOpen, setHowOpen] = useState(false);
@@ -137,7 +144,7 @@ export function RewardsPage({ streak = false, history = false }: { streak?: bool
         actions={streak ? undefined : <Button icon="info" onClick={() => setHowOpen(true)}>How points work</Button>}
       />
       {streak ? <ContributorStreak service={service} onOpenTasks={onOpenTasks} />
-        : <ContributorRewards service={service} onOpenTasks={onOpenTasks} focusHistory={history} howOpen={howOpen} onCloseHow={() => setHowOpen(false)} />}
+        : <ContributorRewards service={service} onOpenTasks={onOpenTasks} focusHistory={history} howOpen={howOpen} onCloseHow={() => setHowOpen(false)} formLink={formLink} />}
     </div>
   );
 }
@@ -244,8 +251,10 @@ export function ContributorStreak({ service = livePaymentService, onOpenTasks }:
 
 /* -- Rewards ----------------------------------------------------------------- */
 
-export function ContributorRewards({ service = livePaymentService, onOpenTasks, focusHistory = false, howOpen = false, onCloseHow = () => undefined }: {
+export function ContributorRewards({ service = livePaymentService, onOpenTasks, focusHistory = false, howOpen = false, onCloseHow = () => undefined, formLink }: {
   service?: ContributorPaymentService; onOpenTasks: () => void; focusHistory?: boolean; howOpen?: boolean; onCloseHow?: () => void;
+  /** Where an Indigen Forms award links to (the response page). */
+  formLink?: (responseId: string) => string;
 }) {
   const [view, setView] = useState<RewardView | null>(null);
   const [loading, setLoading] = useState(true);
@@ -282,6 +291,7 @@ export function ContributorRewards({ service = livePaymentService, onOpenTasks, 
         <div className="ts-split rw-layout">
           <div className="ts-stack">
             <AwardsPanel view={view} service={service} onChanged={async message => { setNotice(message); await refresh(); }} onOpenTasks={onOpenTasks} />
+            <FormAwardsPanel awards={view.formAwards} formLink={formLink} />
             <HistoryPanel ref={historyRef} requests={view.requests} service={service} onChanged={async message => { setNotice(message); await refresh(); }} />
           </div>
           <RedeemPanel view={view} service={service} openRequest={openRequest}
@@ -356,6 +366,40 @@ function AwardsPanel({ view, service, onChanged, onOpenTasks }: { view: RewardVi
 }
 
 function FragmentRow({ children }: { children: ReactNode }) { return <>{children}</>; }
+
+/** Approved Indigen Forms responses that earned points. Shown only when the server sends any. */
+function FormAwardsPanel({ awards, formLink }: { awards?: FormAward[]; formLink?: (responseId: string) => string }) {
+  const rows = Array.isArray(awards) ? awards.filter(a => a && typeof a.responseId === 'string' && Number.isFinite(a.points)) : [];
+  if (!rows.length) return null;
+  return (
+    <section className="ts-panel ts-panel--flush rw-card" aria-labelledby="rw-form-awards-title">
+      <header className="rw-card__head">
+        <div><h2 id="rw-form-awards-title">Form responses</h2><p className="ts-muted">Points from approved form responses, awarded once each</p></div>
+      </header>
+      <TableShell label="Points from form responses" className="rw-scroll">
+        <table className="ts-table rw-table">
+          <thead><tr><th scope="col">Form response</th><th scope="col" className="rw-num">Points</th></tr></thead>
+          <tbody>
+            {rows.map(a => (
+              <tr key={a.responseId}>
+                <td>
+                  <span className="rw-row-button rw-row-button--static">
+                    <span className="rw-row-icon" aria-hidden="true"><Icon name="list" /></span>
+                    <span className="rw-row-copy">
+                      <strong>{formLink ? <Link to={formLink(a.responseId)}>{a.formTitle || 'Form response'}</Link> : a.formTitle || 'Form response'}</strong>
+                      <span className="rw-row-status"><span className="rw-dot rw-dot--success" aria-hidden="true" />{`Form response approved · +${pts(a.points)}`}{a.referenceId ? ` · ${a.referenceId}` : ''}{a.awardedAt ? ` · ${dateShort(a.awardedAt)}` : ''}</span>
+                    </span>
+                  </span>
+                </td>
+                <td className="rw-num"><strong className="rw-plus">+{pts(a.points)} pts</strong></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </TableShell>
+    </section>
+  );
+}
 
 function AwardDetail({ award, service, onChanged }: { award: AwardView; service: ContributorPaymentService; onChanged: (m: string) => Promise<void> }) {
   const [mode, setMode] = useState<'clarification' | 'review' | null>(null);

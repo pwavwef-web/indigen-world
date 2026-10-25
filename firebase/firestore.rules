@@ -775,6 +775,9 @@ service cloud.firestore {
         && !isBlockedCreator(request.auth.uid)
         && (!isCampaignSubmission(request.resource.data) || isApprovedCreator(request.auth.uid))
         && !request.resource.data.keys().hasAny(['contributorPortal'])
+        // `form_…` ids belong to approved Indigen Forms responses filed by the
+        // backend; a client must not occupy one before routing does.
+        && !submissionId.matches('form_.*')
         && request.resource.data.id == submissionId
         && request.resource.data.authUid == request.auth.uid
         && request.resource.data.creator.id == request.auth.uid
@@ -1024,8 +1027,11 @@ service cloud.firestore {
     }
 
     // ---- Notifications: owner reads own; owner may only flip `read` ----------
+    // Indigen Forms review notices (`form_review`) carry reviewer feedback on
+    // responses that only their reviewer group may see, through the 2FA-gated
+    // callables; staff read every other kind, owners read their own.
     match /notifications/{notificationId} {
-      allow read: if isStaff() || (
+      allow read: if (isStaff() && resource.data.get('type', '') != 'form_review') || (
         isSignedIn() && resource.data.authUid == request.auth.uid
       );
       allow create: if false;
@@ -2514,6 +2520,22 @@ service cloud.firestore {
     match /contributionMediaDigests/{digest} {
       allow read, write: if false;
     }
+
+    // ---- Indigen Forms (docs/architecture/indigen-forms.md) ----------------
+    // Forms, versions, responses, revisions, history, uploads, cohorts,
+    // idempotency records, award markers and routing records are server-only.
+    // The formsAdmin, formsContributor and formsReview callables are the only
+    // way in: they check permissions per action, validate answers against the
+    // authoritative published version and write audit rows. Clients, staff
+    // included, never read or write these documents directly.
+    match /indigenForms/{document=**} { allow read, write: if false; }
+    match /indigenFormResponses/{document=**} { allow read, write: if false; }
+    match /indigenFormUploads/{uploadId} { allow read, write: if false; }
+    match /indigenFormCohorts/{cohortId} { allow read, write: if false; }
+    match /indigenFormRequests/{key} { allow read, write: if false; }
+    match /indigenFormRoutes/{responseId} { allow read, write: if false; }
+    match /formAwards/{responseId} { allow read, write: if false; }
+    match /settings/indigenForms { allow read, write: if false; }
 
     // ---- Default deny -------------------------------------------------------
     match /{document=**} {
