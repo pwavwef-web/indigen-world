@@ -4,7 +4,7 @@
 - **Topic:** The public progress page (`/progress`) redesigned as a factory hall with parallax depth; liquid with a moving surface; printed labels on every jar; a fix for jars that slid in late and pipes that missed them; ten features: plant output dial, delivery log, shift board, goal lines, ordering, pipe tracing, day/night shifts, showcase mode, links to a jar and an optional factory sound. Sealed jars when a target is met.
 - **Labels:** Progress, Website, Feature, Community, Indigen World
 - **Search description:** The Indigen World progress page now stands in a factory: every Kasem collection jar has a label, the water moves, and new tools show the next goal, the latest approvals and which collection needs help most.
-- **Status (25 October 2026):** Implemented in the website code and tested locally (typecheck, `npm test` in `apps/website` with 33 unit tests and the site/progress validators, and the full `test:progress:browser` Playwright check against the dev server). **Not deployed**: indigenworld.com/progress still shows the previous design. Nothing is committed yet. No backend, rules or index change is needed; a website hosting deploy publishes it. Not published on Blogger.
+- **Status (25 October 2026):** **Live.** Code commit `43439c6`, deployed to Hosting `indigen-world` at about 20:20 UTC from a clean detached checkout of `origin/main` (production guard passed; predeploy `check:website` passed). Verified at 20:25 UTC: the served entry assets match the local build exactly; headless Chrome at 1440 px and 390 px rendered 10 jars with 10 labels, the factory backdrop, the control room (dial 3.4%, five delivery-log rows) and the Live status, with no console errors, no sideways scrolling and no scroll-card classes on the jars; `/`, `/progress` and `/app-ads.txt` answer 200. Before release: typecheck, `npm test` (33 unit tests plus the site and progress validators) and the full `test:progress:browser` check. Not checked: Safari, Firefox and real low-end phones. No backend, rules or index change was needed. Not published on Blogger.
 - **Publishing owner:** Chinedum. Preparing this post does not authorize publishing or sharing it.
 
 ## What changed (code)
@@ -53,9 +53,8 @@ World mark is the existing repository logo.
 
 ## Blogger handoff
 
-1. Confirm the release status first: the post says the redesign is built but
-   not deployed. Once the website is deployed and `/progress` shows the factory,
-   change the status note and the closing "When can I see it?" note.
+1. The post says the redesign is live (deployed 25 October 2026). Open
+   indigenworld.com/progress once before publishing to confirm it still is.
 2. Upload every image in `images/` to Blogger, keep the captions and alt text,
    and replace each `images/...` path with Blogger's image URL.
 3. Paste `post.html` in HTML mode; set the title, labels and search
