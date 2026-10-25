@@ -8,6 +8,8 @@ date identifies when the post was prepared; it does not prove the update is live
 
 ## Posts
 
+- [2026-10-25: Welcome to the factory floor](2026-10-25-progress-factory-floor/README.md) — the `/progress` page redesigned as a factory hall with parallax depth (day and night shifts), moving liquid surfaces, a printed label on every jar and sealed jars; fixes jars that slid in late and pipes that missed them; adds the plant output dial, delivery log, shift board, goal lines, ordering, pipe tracing, showcase mode, jar links and an optional factory sound. Actual local captures with the public production totals (one labelled sample preview). Built and tested; not deployed; Blogger publication pending.
+
 - [2026-10-23: Correct a submission and publish from the review desk](2026-10-23-reviewer-editing/README.md) — direct content corrections in Administration and the Validator portal, save-and-continue, combined approval/publication, version checks and private correction history. Includes local product captures with synthetic data. Deployed 23 October; both portal bundles, three active Functions and access guards verified. Authenticated production editing remains unverified. Blogger publication pending.
 
 - [2026-10-23: More ways to share what you know](2026-10-23-all-round-contributor-portal/README.md) — contributor Home cards, dedicated contribution workspaces, independent usage permissions, private source material and traceable review/export. Includes actual local captures with synthetic fixtures. Deployed 23 October; live routes, bundles and function states verified. Authenticated production review remains unverified after automated App Check rejection. Blogger publication and sharing remain with Chinedum.

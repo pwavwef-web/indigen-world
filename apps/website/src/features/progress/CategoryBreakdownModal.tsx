@@ -5,6 +5,7 @@
  * linguistic parts of speech, and dialect breakdowns without merging.
  */
 
+import { useEffect, useState } from 'react';
 import { ProgressDialog } from './ProgressDialog';
 import { Button } from '../../components/Button';
 import { Icon } from '../../components/Icon';
@@ -21,10 +22,23 @@ interface CategoryBreakdownModalProps {
 }
 
 export function CategoryBreakdownModal({ progress, fixtureMode = false, onClose, onOpenPledge, onOpenShare, onOpenAudit }: CategoryBreakdownModalProps) {
+  const [linkCopied, setLinkCopied] = useState(false);
+  useEffect(() => { setLinkCopied(false); }, [progress?.category.id]);
   if (!progress) return null;
 
   const { category, approvedCount, target } = progress;
   const percentText = formatPercent(approvedCount, target);
+  // Opens the page at this jar, scrolled into view with its pipe lit.
+  const jarLink = `${window.location.origin}/progress#jar-${category.id}`;
+  const copyJarLink = async () => {
+    try {
+      await navigator.clipboard.writeText(jarLink);
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 2500);
+    } catch {
+      window.prompt('Copy this link to the jar:', jarLink);
+    }
+  };
 
   return (
     <ProgressDialog labelledBy="breakdown-title" onClose={onClose}>
@@ -73,6 +87,7 @@ export function CategoryBreakdownModal({ progress, fixtureMode = false, onClose,
             <button type="button" onClick={() => onOpenPledge?.(progress)}><Icon name="check" size={14} /> Make a pledge</button>
             <button type="button" onClick={() => onOpenShare?.(progress)}><Icon name="chat" size={14} /> Share progress</button>
             <button type="button" onClick={() => onOpenAudit?.(progress)}><Icon name="source" size={14} /> How we count</button>
+            <button type="button" onClick={() => void copyJarLink()} aria-live="polite"><Icon name={linkCopied ? 'check' : 'pin'} size={14} /> {linkCopied ? 'Link copied' : 'Copy link to this jar'}</button>
           </div>
           {fixtureMode && <p className="tiny muted">Illustrative prompt: {category.activeQueuePrompt.promptText}</p>}
           {fixtureMode && <>
