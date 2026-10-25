@@ -1,6 +1,6 @@
 # Android 0.1.35+44 — alerts drawn in the app's design, five usability features
 
-Built 25 October 2026 from the code committed with this record (main). Not uploaded to Play. Backend for this build **not deployed** (see below).
+Built 25 October 2026 from the code committed with this record (`f4d1314`, main). Not uploaded to Play. Backend for this build **deployed 25 October 2026** (see below).
 
 ## Android artifact
 
@@ -21,12 +21,18 @@ Built 25 October 2026 from the code committed with this record (main). Not uploa
 - **Fix:** Flutter's built-in deep linking (default on since Flutter 3.27) is now switched off on Android and iOS, so links are routed only by `core/deep_links.dart` as designed: a shared post opens on top of the app instead of replacing it, and the app-icon shortcuts keep their query (`/dictionary?focus=search`).
 - Post: `apps/updates-blog/posts/2026-10-25-alerts-you-can-answer/`.
 
-## Backend this build expects (NOT deployed)
+## Backend this build expects (deployed 25 October 2026)
 
-The app announces `pushRenderer: 2` on its `communityDevices` row (no rules change needed: the rule does not restrict keys). Until these functions are deployed, every device keeps receiving system-drawn notifications and the new design appears only for alerts that arrive while the app is open:
+The app announces `pushRenderer: 2` on its `communityDevices` row (no rules change needed: the rule does not restrict keys). Only devices that announce it receive the data-only alerts the app draws; every older build keeps system-drawn notifications:
 
 - Required: `onCommunityNotificationCreated`, `retryNotificationPushes`, `onChatMessageCreated`, `onNotificationCreated`, `notificationAction`.
-- Optional: `getKawuriTask`, `sweepKawuriTasks` (the "your video is ready" push). Left on the old bundle they keep sending system notifications to every device, which new builds still display.
+- Optional, **not deployed**: `getKawuriTask`, `sweepKawuriTasks` (the "your video is ready" push). Left on the old bundle they keep sending system notifications to every device, which new builds still display.
+
+**Deployed 25 October 2026, 13:57 UTC** (project-kassena-7e026, us-central1) from `f4d1314`, by explicit `--only` list with `FUNCTIONS_DISCOVERY_TIMEOUT=180` from the repo root; no `functions.yaml` on disk, discovery served cleanly. All five: "Successful update operation"; exit 0.
+- Before and after: 249 live functions, identical lists — nothing created or deleted. (Unrelated and untouched: three WhatsApp support functions are on main but not live; `replaceContributorExpressions` and the Python `run_assessment_job` are live but not in this code.)
+- Cold-start probe: unauthenticated `notificationAction` answers `{"error":{"message":"Sign in is required.","status":"UNAUTHENTICATED"}}` — its own message, so the bundle boots.
+- `retryNotificationPushes` revision `00003` updated 13:57:07 UTC, ACTIVE, and has run each minute since with no errors logged; `notificationAction` revision `00003` ready 13:57:21 UTC.
+- `RICH_NOTIFICATION_PUSH_ENABLED` is unset (rich alerts on for 0.1.35+ Android devices).
 - Kill switch: set `RICH_NOTIFICATION_PUSH_ENABLED=false` in the Functions environment to send every device system notifications again without an app release.
 - Older app builds (no `pushRenderer`) keep system notifications, which now also carry the post picture (`notification.imageUrl`).
 
@@ -34,7 +40,7 @@ Deploy by explicit `--only functions:a,b,…` list from the repo root with `FUNC
 
 ## Before uploading
 
-1. Deploy the functions above (owner approval).
+1. Backend: done (above).
 2. Install on a real Android phone and check: a real reply / mention / message push while the app is closed (avatar, picture, buttons), Reply and Like from the shade reaching the post, Mark all as read, snooze, the four app-icon shortcuts, and the Explore / comment ads as in 0.1.34.
 3. Upload to Play (owner).
 
@@ -45,4 +51,4 @@ Deploy by explicit `--only functions:a,b,…` list from the repo root with `FUNC
 - Functions: `tsc` clean; `npm run test:function-helpers` 667/667 including the new `firebase/tests/richPush.test.mjs` (device split, kill switch, hidden previews, image host allowlist).
 - Android emulator (Pixel 7 image, Android 16), universal APK built from the bundles of this version with the debug key: the sample alerts from **Send a test alert** drawn as designed (Big Picture with avatar + badge and Reply / Like / Mark as read; the message as a conversation); inline Reply from the shade (conversation redrawn with "You"), Like ("Liked", Like button gone) and Mark as read (alert removed) all answered by the background action handler; the four app-icon shortcuts registered with icons; `indigen://open/notifications` and `…/dictionary` route correctly; the dictionary shortcut opens on top of the app (back arrow) with the search box focused and the keyboard up. Taken across the candidate builds of the day; the last build added only the deep-link opt-out, re-checked on the emulator.
 - Emulator caveats: the host had under 1 GB of RAM free, so System UI and the system process repeatedly stopped responding; one action took long enough to log a broadcast ANR (the plugin starts its background engine on the receiver's main thread) before completing. Pressing Back all the way out of a shortcut-opened page was swamped by those freezes and is not directly observed.
-- **Not verified:** a real push from the backend (functions not deployed), any real phone, iOS (unchanged; the iOS opt-out of Flutter deep linking is untested on Apple hardware).
+- **Not verified:** a real push reaching a phone through the deployed backend (no device has 0.1.35 from Play yet), any real phone, iOS (unchanged; the iOS opt-out of Flutter deep linking is untested on Apple hardware).
