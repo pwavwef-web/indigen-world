@@ -186,8 +186,58 @@ try {
   assert.equal(await reduced.page.evaluate(() => window.__pulses), 0, 'reduced motion: a static cue, nothing travels');
   assert(Math.abs(Number(await reduced.page.locator('.floating-vessel[data-category="lexicon"] .liquid-fill').getAttribute('height')) - 209 * .841) < .01, 'reduced motion: the fill updates at once');
   await reduced.context.close();
+
+  // The factory floor: shared site motion stays off the jars, labels, honest surfaces, order, logs, links, showcase.
+  const factory = await samplePage();
+  const floor = factory.page;
+  const cards = await floor.locator('.floating-vessel').evaluateAll(nodes => nodes.filter(node => node.matches('.scroll-card, .motion-ready')).length);
+  assert.equal(cards, 0, 'site scroll-card motion never slides a measured vessel');
+  assert.equal(await floor.locator('.jar-label').count(), 10, 'every jar carries its printed label');
+  assert.equal(await floor.locator('.floating-vessel[data-category="grammar"] .jar-label__number').textContent(), 'No. 08');
+  const surface = await floor.locator('.floating-vessel[data-category="sentences"]').evaluate(root => ({
+    level: Number(root.querySelector('.liquid-fill').getAttribute('y')),
+    bodyTop: Number(root.querySelector('clipPath[id^="fill-"] rect').getAttribute('y')),
+    moving: root.querySelector('.glass-vessel').dataset.surface,
+    band: Boolean(root.querySelector('.liquid-band')),
+  }));
+  assert.equal(surface.moving, 'moving');
+  assert(surface.band, 'a filling jar has a moving surface');
+  assert(surface.bodyTop > surface.level && surface.bodyTop - surface.level <= 3.4 + 1e-6, 'a trough dips at most one wave height below the counted level');
+  assert.equal(await floor.locator('.plant-dial__readout strong').textContent(), '59.9%', 'the dial is the mean of the jars’ own fills');
+  await floor.getByRole('button', { name: 'Needs help', exact: true }).click();
+  await floor.waitForTimeout(1000);
+  const order = await floor.locator('.floating-vessel').evaluateAll(nodes => nodes.map(node => node.dataset.category));
+  assert.deepEqual(order.slice(0, 2), ['audiobooks', 'video'], 'needs help puts the emptiest jars first');
+  assert.equal(await floor.locator('.floating-vessel[data-category="audiobooks"] .vessel-index').textContent(), '06', 'a jar keeps its catalogue number when moved');
+  await pipesAreConnectedAndClear(floor, 'jars after reordering');
+  await floor.getByRole('button', { name: 'Catalogue', exact: true }).click();
+  await floor.waitForTimeout(1000);
+  await floor.evaluate(() => window.scrollTo(0, 460));
+  await floor.evaluate(() => window.__progressSimulateApproval('proverbs'));
+  await floor.locator('.delivery-log__row').first().waitFor({ timeout: 3000 });
+  assert.match(await floor.locator('.delivery-log__row').first().textContent(), /Proverbs & Wisdom.*\+1 approved · now 46/);
+  await floor.getByRole('button', { name: 'Explore Kasem Sentences details', exact: true }).focus();
+  assert.equal(await floor.locator('.pipe-trace').count(), 1, 'focusing a jar lights its pipe from the pump');
+  const shift = await floor.locator('.progress-observatory').getAttribute('data-shift');
+  await floor.locator('.shift-control').click();
+  assert.notEqual(await floor.locator('.progress-observatory').getAttribute('data-shift'), shift, 'the lights change shift');
+  await floor.evaluate(() => { window.location.hash = '#jar-grammar'; });
+  await floor.locator('.floating-vessel[data-category="grammar"][data-spotlight="true"]').waitFor({ timeout: 3000 });
+  assert(await floor.locator('.floating-vessel[data-category="grammar"] .vessel-explore').evaluate(node => document.activeElement === node), 'a jar link brings that jar into focus');
+  const launch = floor.locator('.showcase-launch');
+  await launch.click();
+  await floor.locator('.showcase-dialog[open]').waitFor();
+  const firstTitle = await floor.locator('#showcase-title').textContent();
+  await floor.getByRole('button', { name: 'Next jar', exact: true }).click();
+  assert.notEqual(await floor.locator('#showcase-title').textContent(), firstTitle, 'the showcase moves to the next jar');
+  await floor.getByRole('button', { name: 'Exit' }).click();
+  assert.equal(await floor.locator('.showcase-dialog').count(), 0, 'the showcase closes');
+  assert(await launch.evaluate(node => document.activeElement === node), 'closing the showcase returns focus to its button');
+  await capture(floor, 'factory-floor-desktop');
+  await factory.context.close();
+
   assert.deepEqual(errors, []);
-  console.log('Progress browser checks passed: all views, exact fills, connected pipes clear of text at 320–1440px, the pump link, a sample approval flow, popup/focus workflows, carousel, pause and reduced motion.');
+  console.log('Progress browser checks passed: all views, exact fills, connected pipes clear of text at 320–1440px, the pump link, a sample approval flow, popup/focus workflows, carousel, pause and reduced motion, and the factory floor (labels, surfaces, order, log, tracing, shifts, jar links, showcase).');
 } finally {
   await browser.close();
 }

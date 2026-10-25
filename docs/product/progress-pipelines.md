@@ -19,6 +19,10 @@ deployed 2026-10-05 (`13c9ab4`); release record:
 | Pipe geometry from measured anchors (pure) | `pipeGeometry.ts`, rendered by `PipeNetwork.tsx` |
 | Pump link, status label | `TribePump.tsx`, `ConnectionStatus.tsx` |
 | Percent formatting (pure) | `progressFormat.ts` |
+| Factory backdrop, shifts, ambience | `FactoryBackdrop.tsx`, `useShiftLighting.ts`, `factoryAmbience.ts`, `styles/progressFactory.css` |
+| Vessel layers, labels | `GlassVessel.tsx`, `liquidVisuals.tsx`, `JarLabel.tsx` |
+| Control room (dial, delivery log, shift board), showcase | `ControlRoom.tsx`, `ShowcaseMode.tsx` |
+| Goal lines, floor order, plant output (pure) | `progressMilestones.ts`, `progressSort.ts`, `progressPlant.ts` |
 
 ## 2. Data contract
 
@@ -73,12 +77,35 @@ metadata; admin library audiobooks.
 - Reduced motion or Pause motion: static cue, nothing travels. Screen readers get
   one polite summary per burst.
 
+### The factory floor (October 2026)
+
+- The page opts out of the site's shared scroll-card effect
+  (`data-scroll-cards="off"`, honoured by `public/scroll-cards.js`). Never let a
+  site-wide reveal transform a vessel: the pipes are measured from the vessels'
+  positions, and a card sliding in once left them joined to nothing.
+- Keep the main thread idle when nothing is happening. Everything that moves
+  continuously is its own element animated by `transform`/`opacity` only: the
+  backdrop parts (`FactoryBackdrop.tsx`), each vessel's surface waves and bubbles
+  (the middle layer of `GlassVessel.tsx`), the pump's rotor and halo, the Live
+  ring. Do not animate SVG children, `box-shadow`, `stroke-dashoffset` or blur
+  continuously, and do not use a scroll-linked CSS timeline on the backdrop:
+  each forced a full main-thread frame every vsync, which starved the approval
+  flow's timers. Parallax runs from a passive scroll listener instead.
+- Vessels are three layers: back SVG (glass, exact `.liquid-fill`), HTML middle
+  layer (positioned in drawing units through container-query units that copy
+  the SVG's `meet` scaling), front SVG (highlights, label, lid, goal line). The
+  surface wave's mean is the counted level; the drawn body starts at its trough.
+- The plant dial is the mean of readable jars' own fills; the delivery log reads
+  the projection's event ring (collection, delta, total, time — no names); goal
+  lines come from `progressMilestones.ts`; ordering from `progressSort.ts`. All
+  three are pure and covered by `scripts/progressFactory.test.mjs`.
+
 ## 5. Testing
 
 ```
 npm run test:public-progress                    # backend unit tests
 npm run test:public-progress:integration        # emulator, real trigger handlers
-npm test --workspace @indigen-world/website     # includes progressLive.test.mjs
+npm test --workspace @indigen-world/website     # includes progressLive.test.mjs and progressFactory.test.mjs
 npm run test:progress:browser --workspace @indigen-world/website   # needs a dev preview (PROGRESS_PREVIEW_URL)
 npm run test:progress:live --workspace @indigen-world/website      # needs the emulator + website-emulators preview
 ```

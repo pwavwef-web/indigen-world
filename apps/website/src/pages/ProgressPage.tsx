@@ -1,6 +1,6 @@
 /** Full-screen community progress: TribeStudio pumps verified contributions into each collection's vessel. */
 
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useDocumentMeta } from '../lib/useDocumentMeta';
 import { ROUTES_BY_PATH } from '../content/navigation';
 import { Link } from '../app/router';
@@ -25,6 +25,13 @@ import { PledgeModal } from '../features/progress/PledgeModal';
 import { ShareVesselModal } from '../features/progress/ShareVesselModal';
 import { AuditQueryModal } from '../features/progress/AuditQueryModal';
 import { playVesselChime } from '../features/progress/progressAudio';
+import { FactoryBackdrop } from '../features/progress/FactoryBackdrop';
+import { ControlRoom } from '../features/progress/ControlRoom';
+import { ShowcaseMode } from '../features/progress/ShowcaseMode';
+import { jarAnchor } from '../features/progress/VesselPresentation';
+import { useShiftLighting } from '../features/progress/useShiftLighting';
+import { startFactoryAmbience, stopFactoryAmbience } from '../features/progress/factoryAmbience';
+import { FLOOR_ORDERS, FLOOR_ORDER_LABELS, sortFloor, type FloorOrder } from '../features/progress/progressSort';
 import {
   CATEGORIES_BY_ID,
   COMMUNITY_CONTRIBUTOR_HONORS,
@@ -38,6 +45,11 @@ import type {
 } from '../features/progress/progressTypes';
 
 const VIEW_MODE_STORAGE_KEY = 'iw_progress_vessel_view_mode';
+const FLOOR_ORDER_STORAGE_KEY = 'iw_progress_floor_order';
+/** How long a jar found by a link or the shift board stays lit. */
+const SPOTLIGHT_MS = 4500;
+/** A reorder glides for this long; the pipes are drawn again once it lands. */
+const REFLOW_MS = 620;
 /** Screen readers hear at most one approval summary in this window. */
 const ANNOUNCE_WINDOW_MS = 8000;
 const route = ROUTES_BY_PATH.progress ?? {
@@ -88,6 +100,40 @@ function useInView(ref: RefObject<HTMLElement | null>) {
   return inView;
 }
 
+function readFloorOrder(): FloorOrder {
+  try {
+    const stored = localStorage.getItem(FLOOR_ORDER_STORAGE_KEY);
+    if (stored && (FLOOR_ORDERS as readonly string[]).includes(stored)) return stored as FloorOrder;
+  } catch {
+    // Catalogue order by default.
+  }
+  return 'catalogue';
+}
+
+/** A jar named in the address: /progress#jar-lexicon */
+function jarFromHash(): ContributionCategoryId | null {
+  if (typeof window === 'undefined') return null;
+  const match = /^#jar-([a-z]+)$/.exec(window.location.hash);
+  return match && match[1] in CATEGORIES_BY_ID ? match[1] as ContributionCategoryId : null;
+}
+
+/** Offsets of each vessel inside the gallery: scroll-independent, for gliding a reorder. */
+function snapshotPositions(gallery: HTMLElement | null) {
+  const positions = new Map<string, { x: number; y: number }>();
+  gallery?.querySelectorAll<HTMLElement>('[data-category]').forEach((element) => {
+    positions.set(element.dataset.category ?? '', { x: element.offsetLeft, y: element.offsetTop });
+  });
+  return positions;
+}
+
+function ShiftIcon({ shift }: { shift: 'day' | 'night' }) {
+  return <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+    {shift === 'day'
+      ? <><circle cx="12" cy="12" r="4.2" /><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6" /></>
+      : <path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1Z" />}
+  </svg>;
+}
+
 export function ProgressPage() {
   useDocumentMeta(route.title, route.description);
 
@@ -118,6 +164,15 @@ export function ProgressPage() {
   const [pageHidden, setPageHidden] = useState(() => typeof document !== 'undefined' && document.hidden);
   const [announcement, setAnnouncement] = useState('');
   const [sessionPledges, setSessionPledges] = useState<Partial<Record<ContributionCategoryId, number>>>({});
+  const [floorOrder, setFloorOrder] = useState<FloorOrder>(readFloorOrder);
+  const [reflowing, setReflowing] = useState(false);
+  const [measureNonce, setMeasureNonce] = useState(0);
+  const [trace, setTrace] = useState<ContributionCategoryId | null>(null);
+  const [spotlight, setSpotlight] = useState<ContributionCategoryId | null>(null);
+  const [pendingFind, setPendingFind] = useState<ContributionCategoryId | null>(jarFromHash);
+  const [showcase, setShowcase] = useState<{ startId: ContributionCategoryId | null } | null>(null);
+  const [ambienceOn, setAmbienceOn] = useState(false);
+  const lighting = useShiftLighting();
 
   const stageRef = useRef<HTMLDivElement>(null);
   const galleryRef = useRef<HTMLDivElement>(null);
@@ -131,7 +186,9 @@ export function ProgressPage() {
 
   const hasPipes = viewMode === 'vertical' || viewMode === 'horizontal';
   const stageInView = useInView(stageRef);
-  const decorativeMotion = canAnimate && stageInView;
+  // While the showcase covers the page, the page itself rests.
+  const pageMotion = canAnimate && !showcase;
+  const decorativeMotion = pageMotion && stageInView;
   const flows = useApprovalFlows({ travel: canAnimate && hasPipes, cues: !pageHidden });
   // Filled in once the vessels exist (they mount when the first numbers arrive).
   const isVisibleRef = useRef<(id: ContributionCategoryId) => boolean>(() => false);
@@ -176,6 +233,41 @@ export function ProgressPage() {
   }, [live.totals, live.config, live.fixtureMode, sessionPledges]);
   const summary = calculateTargetsSummary(categories);
   const knownCount = categories.filter((item) => item.isCountKnown).length;
+  const catalogueIndex = useMemo(() => new Map(categories.map((item, index) => [item.category.id, index])), [categories]);
+  const floor = useMemo(() => sortFloor(categories, floorOrder), [categories, floorOrder]);
+  const floorKey = floor.map((item) => item.category.id).join(',');
+
+  // Glide each jar from where it stood to its new place, then redraw the pipes.
+  const reflowFrom = useRef<Map<string, { x: number; y: number }> | null>(null);
+  useLayoutEffect(() => {
+    const before = reflowFrom.current;
+    reflowFrom.current = null;
+    const gallery = galleryRef.current;
+    if (!before || !gallery) return undefined;
+    if (canAnimate) {
+      const after = snapshotPositions(gallery);
+      gallery.querySelectorAll<HTMLElement>('[data-category]').forEach((element) => {
+        const from = before.get(element.dataset.category ?? '');
+        const to = after.get(element.dataset.category ?? '');
+        if (!from || !to || (Math.abs(from.x - to.x) < 1 && Math.abs(from.y - to.y) < 1)) return;
+        element.animate?.([{ transform: `translate(${from.x - to.x}px, ${from.y - to.y}px)` }, { transform: 'none' }],
+          { duration: REFLOW_MS - 60, easing: 'cubic-bezier(.2,.8,.2,1)' });
+      });
+    }
+    const timer = window.setTimeout(() => {
+      setReflowing(false);
+      setMeasureNonce((nonce) => nonce + 1);
+    }, canAnimate ? REFLOW_MS : 0);
+    return () => window.clearTimeout(timer);
+  }, [floorKey, canAnimate]);
+
+  const handleFloorOrder = (order: FloorOrder) => {
+    if (order === floorOrder) return;
+    reflowFrom.current = snapshotPositions(galleryRef.current);
+    setReflowing(true);
+    setFloorOrder(order);
+    try { localStorage.setItem(FLOOR_ORDER_STORAGE_KEY, order); } catch { /* Optional preference. */ }
+  };
 
   const handleViewModeChange = useCallback((mode: VesselViewMode) => {
     // A transient flow belongs to the view it started in; the next view shows the true snapshot.
@@ -197,6 +289,51 @@ export function ProgressPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [viewMode, handleViewModeChange]);
+
+  // A jar named by a link or the shift board: show it in the jars, bring it into view, light its pipe.
+  useEffect(() => {
+    const onHash = () => { const id = jarFromHash(); if (id) setPendingFind(id); };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  useEffect(() => {
+    if (!pendingFind || !live.hasData) return undefined;
+    if (viewMode === 'table') {
+      handleViewModeChange('vertical');
+      return undefined;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      const element = document.getElementById(jarAnchor(pendingFind));
+      if (!element) return;
+      element.scrollIntoView({ behavior: canAnimate ? 'smooth' : 'auto', block: 'center' });
+      element.querySelector<HTMLElement>('.vessel-explore')?.focus({ preventScroll: true });
+      setSpotlight(pendingFind);
+      setPendingFind(null);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [pendingFind, live.hasData, viewMode, canAnimate, handleViewModeChange]);
+  useEffect(() => {
+    if (!spotlight) return undefined;
+    const timer = window.setTimeout(() => setSpotlight(null), SPOTLIGHT_MS);
+    return () => window.clearTimeout(timer);
+  }, [spotlight]);
+
+  // The machine-room sound never outlives the page or plays to a hidden tab.
+  useEffect(() => {
+    if (pageHidden && ambienceOn) {
+      stopFactoryAmbience();
+      setAmbienceOn(false);
+    }
+  }, [pageHidden, ambienceOn]);
+  useEffect(() => () => stopFactoryAmbience(), []);
+  const handleToggleAmbience = () => {
+    if (ambienceOn) {
+      stopFactoryAmbience();
+      setAmbienceOn(false);
+    } else {
+      setAmbienceOn(startFactoryAmbience());
+    }
+  };
 
   const handleToggleSound = () => {
     const next = !soundEnabled;
@@ -220,18 +357,28 @@ export function ProgressPage() {
     onOpenAudit: setAuditProgress,
     onOpenPledge: setPledgeProgress,
   };
+  const traced = trace ?? spotlight;
   const vesselState = (progress: CategoryProgress) => ({
     fillCount: flows.held[progress.category.id] ?? null,
     arrival: flows.arrivals[progress.category.id] ?? null,
+    catalogueIndex: catalogueIndex.get(progress.category.id) ?? 0,
+    spotlight: spotlight === progress.category.id,
+    traced: traced === progress.category.id,
+    onTrace: setTrace,
   });
+  const nextShift = lighting.shift === 'day' ? 'night' : 'day';
 
   return (
-    <div className="progress-immersive progress-observatory" data-motion={canAnimate ? 'animated' : 'static'}>
-      <div className="observatory-atmosphere" aria-hidden="true"><span /><span /><span /></div>
+    <div className="progress-immersive progress-observatory" data-motion={pageMotion ? 'animated' : 'static'} data-shift={lighting.shift} data-scroll-cards="off">
+      <FactoryBackdrop parallax={pageMotion} />
       <header className="progress-immersive-header">
         <div className="progress-immersive-nav">
           <Link to="home" className="observatory-brand" aria-label="Back to website"><BrandMark /><span>Indigen<strong>World</strong></span></Link>
           <div className="progress-actions-group">
+            <button type="button" className="control-toggle-btn shift-control" onClick={lighting.toggle}
+              aria-label={`Switch to the ${nextShift} shift`} title={`Switch to the ${nextShift} shift`}>
+              <ShiftIcon shift={lighting.shift} /><span>{lighting.shift === 'day' ? 'Day shift' : 'Night shift'}</span>
+            </button>
             <button type="button" className="control-toggle-btn" aria-haspopup="dialog" onClick={() => setPopup('settings')}>
               <Icon name="context" size={14} /> Options
             </button>
@@ -249,6 +396,8 @@ export function ProgressPage() {
             {prefersReducedMotion && <span className="progress-summary-badge">Reduced motion</span>}
           </div>
         </div>
+        {showVessels && <ControlRoom categories={categories} events={live.events} connection={live.connection} fixtureMode={live.fixtureMode}
+          config={live.config} onFind={setPendingFind} />}
         <div className="observatory-toolbar">
           <div className="observatory-views" role="group" aria-label="Progress view">
             {VIEW_MODES.map(mode => <button key={mode} type="button" aria-pressed={viewMode === mode} onClick={() => handleViewModeChange(mode)}>
@@ -256,13 +405,22 @@ export function ProgressPage() {
               {VIEW_LABELS[mode].short}
             </button>)}
           </div>
-          <button className="observatory-text-button" type="button" aria-haspopup="dialog" onClick={() => setPopup('about')}><Icon name="check" size={14} /> Verified contributions <Icon name="context" size={13} /></button>
+          <div className="observatory-toolbar__end">
+            {showVessels && <button className="showcase-launch" type="button" aria-haspopup="dialog" onClick={() => setShowcase({ startId: traced })}>
+              <Icon name="maximize" size={14} /> Showcase
+            </button>}
+            <button className="observatory-text-button" type="button" aria-haspopup="dialog" onClick={() => setPopup('about')}><Icon name="check" size={14} /> Verified contributions <Icon name="context" size={13} /></button>
+          </div>
         </div>
       </header>
 
       <section className="progress-immersive-stage" id="vessels-section" aria-label="Community contribution progress">
         <div className="container">
           <div className="observatory-gallery-heading"><span>{viewLabel}<small> / {String(categories.length).padStart(2, '0')} COLLECTIONS</small></span>
+            {showVessels && viewMode !== 'table' && <div className="floor-order" role="group" aria-label="Order the jars">
+              <span className="floor-order__label" aria-hidden="true">Order</span>
+              {FLOOR_ORDERS.map((order) => <button key={order} type="button" aria-pressed={floorOrder === order} onClick={() => handleFloorOrder(order)}>{FLOOR_ORDER_LABELS[order]}</button>)}
+            </div>}
             {viewMode === 'cultural' && <div className="observatory-gallery-controls"><button type="button" onClick={() => scrollGallery(-1)} aria-label="Previous collections"><span aria-hidden="true">←</span></button><button type="button" onClick={() => scrollGallery(1)} aria-label="Next collections"><span aria-hidden="true">→</span></button></div>}
           </div>
           {!showVessels && live.connection !== 'error' && live.connection !== 'offline' && <p className="progress-status" role="status">Loading contribution counts…</p>}
@@ -286,10 +444,12 @@ export function ProgressPage() {
               <PipeNetwork
                 layout={viewMode === 'vertical' ? 'jars' : 'tanks'}
                 containerRef={stageRef}
-                measureKey={`${viewMode}|${knownCount}|${live.fixtureMode}`}
+                measureKey={`${viewMode}|${knownCount}|${live.fixtureMode}|${floorKey}|${measureNonce}`}
                 active={flows.active}
                 travel={canAnimate}
                 onArrive={flows.arrive}
+                trace={traced}
+                settling={reflowing}
               />
             )}
             {viewMode === 'vertical' && <span className="pipeline-trunk-marker" data-pipe-trunk aria-hidden="true" />}
@@ -299,16 +459,16 @@ export function ProgressPage() {
             </div>
 
             {showVessels && viewMode === 'vertical' && (
-              <div className="vessels-gallery vessels-gallery--vertical" ref={galleryRef} aria-label="Category jars progress gallery">
-                {categories.map((progress, index) => (
+              <div className="vessels-gallery vessels-gallery--vertical" ref={galleryRef} aria-label="Category jars progress gallery" data-tracing={traced ? 'true' : undefined}>
+                {floor.map((progress, index) => (
                   <VerticalJar key={progress.category.id} progress={progress} canAnimate={decorativeMotion} staggerIndex={index} {...vesselState(progress)} {...vesselHandlers} />
                 ))}
               </div>
             )}
 
             {showVessels && viewMode === 'horizontal' && (
-              <div className="vessels-gallery vessels-gallery--horizontal" ref={galleryRef} aria-label="Category horizontal tanks progress list">
-                {categories.map((progress, index) => (
+              <div className="vessels-gallery vessels-gallery--horizontal" ref={galleryRef} aria-label="Category horizontal tanks progress list" data-tracing={traced ? 'true' : undefined}>
+                {floor.map((progress, index) => (
                   <HorizontalTank key={progress.category.id} progress={progress} canAnimate={decorativeMotion} staggerIndex={index} {...vesselState(progress)} {...vesselHandlers} />
                 ))}
               </div>
@@ -316,7 +476,7 @@ export function ProgressPage() {
 
             {showVessels && viewMode === 'cultural' && (
               <div className="vessels-gallery vessels-gallery--cultural" ref={galleryRef} tabIndex={0} aria-label="Illustrated earthenware progress vessels gallery">
-                {categories.map((progress, index) => (
+                {floor.map((progress, index) => (
                   <CulturalPot key={progress.category.id} progress={progress} canAnimate={decorativeMotion} staggerIndex={index} {...vesselState(progress)} {...vesselHandlers} />
                 ))}
               </div>
@@ -355,6 +515,11 @@ export function ProgressPage() {
           <div className="progress-popup-options">
             <button type="button" className="progress-popup-option" onClick={() => setPopup('view')}><Icon name="layers" size={16} /> Choose your view</button>
             <button type="button" className="progress-popup-option" aria-pressed={soundEnabled} onClick={handleToggleSound}><Icon name="volume" size={16} /> {soundEnabled ? 'Chimes on' : 'Enable sound'}</button>
+            <button type="button" className={`progress-popup-option ${ambienceOn ? 'is-active' : ''}`} aria-pressed={ambienceOn} onClick={handleToggleAmbience}><Icon name={ambienceOn ? 'volume' : 'volume-off'} size={16} /> {ambienceOn ? 'Factory sound on' : 'Play factory sound'}</button>
+            <button type="button" className={`progress-popup-option ${lighting.preference === 'auto' ? 'is-active' : ''}`} aria-pressed={lighting.preference === 'auto'} onClick={() => lighting.setPreference(lighting.preference === 'auto' ? lighting.shift : 'auto')}>
+              <ShiftIcon shift={lighting.shift} /> {lighting.preference === 'auto' ? `Lights follow your clock (${lighting.shift} now)` : 'Let the lights follow your clock'}
+            </button>
+            {showVessels && <button type="button" className="progress-popup-option" onClick={() => { closePopup(); setShowcase({ startId: null }); }}><Icon name="maximize" size={16} /> Showcase mode</button>}
             <button type="button" className="progress-popup-option" onClick={handlePrintBulletin}><Icon name="bookmark" size={16} /> Print flyer</button>
             {import.meta.env.DEV && <button type="button" className={`progress-popup-option ${useFixtures ? 'is-active' : ''}`} aria-pressed={useFixtures} onClick={() => { setUseFixtures((prev) => !prev); closePopup(); }}><Icon name="context" size={16} /> {useFixtures ? 'Return to live progress' : 'Preview sample targets'}</button>}
             {import.meta.env.DEV && useFixtures && <button type="button" className="progress-popup-option" onClick={() => setPopup('simulate')}><Icon name="play" size={16} /> Simulate an approval</button>}
@@ -493,6 +658,8 @@ export function ProgressPage() {
       </ProgressPopup>}
       {popup === 'about' && <ProgressPopup title="How progress works" onClose={closePopup}>
         <p>TribeStudio is the pump. When a reviewer approves a contribution and it is published, the change travels down the pipe into its own collection’s vessel. Collections never share liquid: each fills on its own.</p>
+        <p>The factory around the jars is scenery: its crane, conveyor and steam keep moving whether or not anything arrives. Only the pipes, the delivery log and the numbers report real approvals.</p>
+        <p>Each jar’s dashed goal line marks its next milestone. The plant dial shows the average of the jars’ own fills, so a collection with a small target counts as much as one with a large target.</p>
         <p>A vessel fills to exactly its counted total divided by its target, so a small collection shows a small sliver and its precise percentage. Songs &amp; Lyrics counts all published songs, including songs creators publish directly. Its pulse marks a publication arriving; the other collections show approvals.</p>
         <p><strong>Live</strong> means this page is subscribed to collection totals and shows changes within moments of their being committed. <strong>Updated</strong> with a time means the totals were counted at that time instead. Totals counted before you opened the page are history and are never replayed as new.</p>
         <p>Local pots use generated pottery illustrations and a separate fill gauge because clay is opaque. They are artistic interpretations, not photographs of authenticated Kasena artifacts.</p>
@@ -573,6 +740,9 @@ export function ProgressPage() {
         connection={live.connection}
         onClose={() => setAuditProgress(null)}
       />
+
+      {showcase && <ShowcaseMode categories={floor} startId={showcase.startId} canAnimate={canAnimate} shift={lighting.shift}
+        connection={live.connection} confirmedAtMs={live.confirmedAtMs} fixtureMode={live.fixtureMode} onClose={() => setShowcase(null)} />}
 
       {import.meta.env.DEV && live.fixtureMode && <DevSimulationHook simulate={live.simulateApproval} />}
     </div>

@@ -10,7 +10,6 @@ const CARD_SELECTOR = [
   '.post-card:not([aria-busy=true])',
   '.privacy-principles > a', '.privacy-copy__section > div', '.privacy-request',
   '.contact-guidance', '.form-card', '.tester-claim-summary', '.tester-claim-form-wrap',
-  '.honor-card', '.methodology-card', '.progress-calculator-card', '.floating-vessel',
   '.labs-card', '.labs-panel', '.labs-update', '.labs-empty', '.labs-principles > div',
   '.not-found__card', '.not-found__route',
 ].join(', ');
@@ -38,6 +37,9 @@ export function mountScrollCards(root, { paused = false, reduced = false, standa
     for (const item of root.querySelectorAll(selector)) {
       if (seen.has(item)) continue;
       seen.add(item);
+      // Pages with their own measured layout (the progress pipes) opt out: a
+      // card still sliding in would be measured in the wrong place.
+      if (item.closest('[data-scroll-cards="off"]')) continue;
       const card = item.matches(cards);
       // Reveal wrappers must not hide cards which have their own entrance.
       if (!card && item.querySelector(cards)) { item.classList.add('is-visible'); continue; }

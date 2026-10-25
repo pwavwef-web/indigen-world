@@ -1,0 +1,58 @@
+{
+  "accent": "blue",
+  "motif": "chevrons",
+  "eyebrow": "Help fill the jars · Progress",
+  "title": "Welcome to the\nfactory floor.",
+  "lede": "The progress page moves into a working bottling hall: labelled jars, moving water, pipes that always connect, and ten new features.",
+  "tags": [
+    "Pipes fixed",
+    "Labels on every jar",
+    "Ten new features"
+  ],
+  "hero": [
+    { "file": "factory-hero.png", "kind": "browser" },
+    { "file": "phone-jars.png", "kind": "phone" }
+  ],
+  "figures": {
+    "jars-night.png": {
+      "kind": "browser",
+      "title": "Every jar joined\nto its pipe",
+      "note": "Actual local build of the website showing the public production totals on 25 October 2026. Not deployed yet."
+    },
+    "jar-label.png": {
+      "kind": "card",
+      "title": "A label on\nevery jar",
+      "note": "Actual local build, live totals. The zigzag band follows the painted walls of Kasena compounds; the dashed line marks the jar's next goal."
+    },
+    "control-room.png": {
+      "kind": "card",
+      "title": "The control room",
+      "note": "Actual local build. The delivery log lists real approvals from the public projection: collection, amount and time, never a name."
+    },
+    "needs-help-trace.png": {
+      "kind": "browser",
+      "title": "Order the floor.\nTrace a pipe.",
+      "note": "Actual local build, live totals, ordered by Needs help, with the pointer on Oral Narrations."
+    },
+    "day-shift.png": {
+      "kind": "browser",
+      "title": "Day shift",
+      "note": "Actual local build, live totals. The lights follow your clock, or choose a shift yourself."
+    },
+    "showcase.png": {
+      "kind": "browser",
+      "title": "Showcase mode\nfor a big screen",
+      "note": "Actual local build, live totals: the tour shows one jar at a time, full screen."
+    },
+    "sealed-sample.png": {
+      "kind": "browser",
+      "title": "Sealed when a\ntarget is met",
+      "note": "Development preview with SAMPLE counts and targets (labelled on the page). No live collection has reached its target yet."
+    },
+    "phone-control-room.png": {
+      "kind": "phone",
+      "title": "On your phone",
+      "note": "Actual local build at phone width, live totals. Swipe the control room sideways."
+    }
+  }
+}

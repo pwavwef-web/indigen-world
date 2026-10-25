@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { jarNetwork, tankNetwork, travelDuration, type Fitting, type NetworkGeometry, type Route, type Segment } from './pipeGeometry';
 import type { ActiveFlow } from './useApprovalFlows';
+import type { ContributionCategoryId } from './progressTypes';
 
 /** Width, in a vessel's own drawing units, of the inlet stub the pipes join. */
 const STUB_UNITS = 14;
@@ -25,14 +26,18 @@ function centreOf(element: Element, box: DOMRect) {
  * a click or hide a focus ring. Geometry is re-measured only when layout
  * changes — never per frame.
  */
-export function PipeNetwork({ layout, containerRef, measureKey, active, travel, onArrive }: {
+export function PipeNetwork({ layout, containerRef, measureKey, active, travel, onArrive, trace = null, settling = false }: {
   layout: 'jars' | 'tanks';
   containerRef: RefObject<HTMLElement | null>;
-  /** Changes whenever the vessels may have moved (data, view, fonts). */
+  /** Changes whenever the vessels may have moved (data, view, fonts, order). */
   measureKey: string;
   active: ActiveFlow | null;
   travel: boolean;
   onArrive: (key: string) => void;
+  /** A collection whose route from the pump is lit, while a visitor points at it. */
+  trace?: ContributionCategoryId | null;
+  /** Vessels are moving to new places: hide the tubes until they land. */
+  settling?: boolean;
 }) {
   const id = useId().replace(/:/g, '');
   const [measured, setMeasured] = useState<Measured | null>(null);
@@ -69,11 +74,16 @@ export function PipeNetwork({ layout, containerRef, measureKey, active, travel, 
     observer.observe(container);
     container.querySelectorAll('.vessel-stage, .tribe-pump').forEach((element) => observer.observe(element));
     window.addEventListener('resize', request);
+    // Moves that change no size (a reorder, an entrance) still move the inlets.
+    container.addEventListener('transitionend', request);
+    container.addEventListener('animationend', request);
     void document.fonts?.ready.then(request);
     return () => {
       window.cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener('resize', request);
+      container.removeEventListener('transitionend', request);
+      container.removeEventListener('animationend', request);
     };
   }, [containerRef, layout, measureKey]);
 
@@ -86,8 +96,10 @@ export function PipeNetwork({ layout, containerRef, measureKey, active, travel, 
 
   if (!measured) return null;
   const { width, height, tube, network } = measured;
+  const traced = trace ? network.routes[trace] : undefined;
   return (
-    <svg className={`pipe-network pipe-network--${layout}`} width={width} height={height} viewBox={`0 0 ${width} ${height}`}
+    <svg className={`pipe-network pipe-network--${layout}${traced ? ' pipe-network--tracing' : ''}${settling ? ' pipe-network--settling' : ''}`}
+      width={width} height={height} viewBox={`0 0 ${width} ${height}`}
       aria-hidden="true" focusable="false" style={{ '--tube': `${tube}px` } as CSSProperties}>
       <defs>
         <linearGradient id={`${id}-collar-h`} x1="0" y1="0" x2="0" y2="1">
@@ -106,6 +118,10 @@ export function PipeNetwork({ layout, containerRef, measureKey, active, travel, 
       <g className="pipe-network__tubes">
         {network.segments.map((segment, index) => <Tube key={index} segment={segment} tube={tube} />)}
       </g>
+      {traced && <g className="pipe-trace" key={trace}>
+        <path className="pipe-trace__glow" d={traced.d} strokeWidth={tube * 1.6} />
+        <path className="pipe-trace__core" d={traced.d} strokeWidth={Math.max(2, tube * 0.42)} />
+      </g>}
       {travelling && active && route && travel && (
         <Pulse key={active.key} route={route} tube={tube} onDone={() => onArrive(active.key)} />
       )}

@@ -1,0 +1,84 @@
+<article>
+  <figure><img src="images/cover.png" alt="The Help fill the jars progress page set in a factory hall with tall windows, roof trusses and hanging lamps, on a laptop and a phone" style="width:100%;height:auto"/><figcaption>Designed frame around actual screenshots of the new progress page, built locally and showing the public totals of 25 October 2026.</figcaption></figure>
+  <p class="iw-lede">The page where you watch Kasem collections grow, <em>Help fill the jars</em>, has moved onto a factory floor. The jars stand in a working bottling hall, each one has its own printed label, the water in them moves, and ten new features show where your next contribution counts most. This update also fixes jars that could appear late and pipes that did not connect.</p>
+  <div class="iw-note"><p><strong>Status — 25 October 2026.</strong> Built and tested in the website code. It is <strong>not on indigenworld.com yet</strong>: the progress page you can open today still shows the previous design until the website is deployed. The counts and counting rules are unchanged.</p></div>
+
+  <h2>First, a fix</h2>
+  <p>In mid-October the website gained a gentle effect on many pages: cards rise into place as you scroll. That effect also caught the jars. A jar below the first screen started invisible and slightly lower, then slid up when you reached it, while the glass pipes had already been drawn to where each jar <em>was</em> at the start. The result was pipes that stopped short of some jars or ran past them, mostly on phones.</p>
+  <p>The jars are no longer treated as scrolling cards, the progress page now opts out of that effect, and the pipes measure themselves again whenever anything on the page settles. An automated browser check now fails if a jar is ever moved this way again, and it confirms that every pipe meets its jar at screen widths from 320 to 1440 pixels.</p>
+  <figure><img src="images/jars-night.jpg" alt="Ten labelled glass jars on a factory floor, each joined by a glass pipe to the TribeStudio pump at the top" style="width:100%;height:auto"/><figcaption>Actual local build showing the public totals of 25 October 2026. Every jar is joined to its pipe.</figcaption></figure>
+
+  <h2>A factory with depth</h2>
+  <p>Behind the jars there is now a bottling hall: tall arched windows, steel roof trusses, a crane carrying a crate along its rail, a conveyor belt of jars and crates, turning gears, a warning beacon, steam from the vents and lamps that swing a little on their cables, with dust drifting through their light. As you scroll, the far wall moves least and the hanging lamps move most, which gives the page real depth.</p>
+  <p>The factory is scenery. Its crane and conveyor keep moving whether or not anything arrives. Only three things report real activity: the pipes (a pulse travels to a jar when a contribution is approved), the numbers, and the new delivery log.</p>
+  <div class="iw-tip"><p><strong>Motion is yours to control.</strong> <em>Pause motion</em> at the top of the page stops everything, and if your device asks for reduced motion, the page starts still.</p></div>
+
+  <h2>Water that moves</h2>
+  <p>The liquid in each jar now has a real surface: two gentle waves slide across it in opposite directions, with bubbles rising underneath. The waves are honest. Their average height is exactly the counted level, and a jar with only a sliver of liquid gets a tiny ripple, so a small collection never looks fuller than it is.</p>
+  <p>The moving water is drawn in a way that phones handle easily, so the whole factory stays smooth while it runs.</p>
+
+  <h2>A label on every jar</h2>
+  <p>Each jar now carries a printed paper label:</p>
+  <ul>
+    <li>a zigzag band across the top, after the painted geometric walls of Kasena compounds;</li>
+    <li>the jar's catalogue number, such as <em>No. 02</em>, which stays the same however you order the jars;</li>
+    <li>the collection's emblem in its own colour, its short name in large letters (<em>EXPRESSIONS</em>) and its full name underneath (<em>Everyday Expressions</em>);</li>
+    <li>a line reading <em>Kasem heritage</em>.</li>
+  </ul>
+  <p>The label sits high on the jar and is narrower than the glass, so the liquid stays visible below it and on both sides.</p>
+  <figure><img src="images/jar-label.jpg" alt="Close-up of the Everyday Expressions jar: a cream paper label with a zigzag band, No. 02, EXPRESSIONS and Kasem heritage, above blue water with a wavy surface; a dashed gold line marks 50 percent" style="width:100%;height:auto"/><figcaption>Actual local build, live total. The dashed gold line behind the label is this jar's next goal: 50%.</figcaption></figure>
+  <h3>Sealed when the target is met</h3>
+  <p>When a collection reaches its launch target, its jar is sealed: a red wax seal appears on the lid, the label gets a <em>Sealed · Target met</em> stamp and the jar's base glows gold. No collection has reached its target yet. The picture below uses the page's sample preview, which is clearly marked as sample data.</p>
+  <figure><img src="images/sealed-sample.jpg" alt="Sample preview of the jars with fuller liquid; two jars have wax seals and a Sealed target met line" style="width:100%;height:auto"/><figcaption>Development preview with SAMPLE counts and targets, labelled on the page. Shown only to illustrate sealed jars.</figcaption></figure>
+
+  <h2>Ten new features</h2>
+
+  <h3>1. Plant output dial</h3>
+  <p>A gauge at the top shows the average fill of the ten jars, with a strip of ten small level indicators beside it, one per jar. Each collection counts equally, whatever its target, and words are never added to videos or recordings to make one bigger number. Next to it you see the total number of verified items.</p>
+
+  <h3>2. Delivery log</h3>
+  <p>The latest approvals as they reach the page: which collection, how many, its new total and how long ago. The log comes from the same public record as the totals, so it shows a collection, an amount and a time, never a contributor's name.</p>
+
+  <h3>3. Shift board</h3>
+  <p>How many jars are sealed, the launch window, the collection that most needs help right now, and the collection closest to its next goal. Press either of the last two to jump straight to that jar.</p>
+  <figure><img src="images/control-room.jpg" alt="Three control panels: Plant output with a dial reading 3.4 percent average jar fill, a delivery log of recent approvals, and a shift board" style="width:100%;height:auto"/><figcaption>Actual local build. The delivery log shows real approvals from the public record: collection, amount and time only.</figcaption></figure>
+
+  <h3>4. Goal lines</h3>
+  <p>Every jar shows its next milestone in plain numbers, such as <em>445 words to 1%</em> or <em>246 expressions to 50%</em>, and a dashed gold line on the glass marks where that milestone sits. For large targets the goals start at a tenth of a percent, so every jar always has one within reach.</p>
+
+  <h3>5. Order the floor</h3>
+  <p>Arrange the jars in catalogue order, fullest first, <em>Needs help</em> first or largest first. The jars glide to their new places and the pipes reconnect. Jars whose count or target cannot be read always go last, so they never look empty or full by mistake.</p>
+
+  <h3>6. Trace a pipe</h3>
+  <p>Point at a jar, or move to it with the keyboard, and its pipe from TribeStudio lights up in gold while the others dim.</p>
+  <figure><img src="images/needs-help-trace.jpg" alt="Jars ordered by Needs help, with the empty Oral Narrations and Cultural Videos jars first and a gold dashed pipe traced from the pump to Oral Narrations" style="width:100%;height:auto"/><figcaption>Actual local build, live totals, ordered by Needs help, with the pointer on Oral Narrations.</figcaption></figure>
+
+  <h3>7. Day and night shifts</h3>
+  <p>The factory has two lighting schemes. By day, daylight comes through the windows. By night, the hall is lit by amber lamps and the water glows. The lights follow your device's clock (day from 06:00 to 18:00), or you can choose a shift with the button at the top. Your choice is remembered on that device.</p>
+  <figure><img src="images/day-shift.jpg" alt="The jars in the factory by daylight, with bright windows and pale steel" style="width:100%;height:auto"/><figcaption>Actual local build, live totals, on the day shift.</figcaption></figure>
+
+  <h3>8. Showcase mode</h3>
+  <p>For a screen at a community meeting, a school or an event: <em>Showcase</em> opens a full-screen tour that shows one jar at a time, large, with its count, its next goal and where to contribute. It moves on every nine seconds, and you can step through with the arrow keys. The numbers stay live while it runs. Press <em>Exit</em> or Escape to leave.</p>
+  <figure><img src="images/showcase.jpg" alt="Showcase mode: the Everyday Expressions jar large on the left, and on the right 254 expressions verified, of 1,000, 25.4 percent, and 246 expressions to reach 50 percent" style="width:100%;height:auto"/><figcaption>Actual local build, live totals, in Showcase mode.</figcaption></figure>
+
+  <h3>9. Link straight to a jar</h3>
+  <p>Every jar has its own link. In a jar's details choose <em>Copy link to this jar</em>; whoever opens the link lands on that jar, highlighted, with its pipe lit. This works well in a WhatsApp group: "Help us fill this one."</p>
+
+  <h3>10. Factory sound</h3>
+  <p>For those who like it, <em>Options → Play factory sound</em> adds a quiet machine-room hum with a slow press rhythm. It is made in your browser, never starts on its own and stops when you leave the page.</p>
+
+  <h2>On your phone</h2>
+  <p>On a phone the control room becomes a row of panels you swipe sideways, the jars stand two to a row with every pipe connected, and the labels, waves and goal lines are all there.</p>
+  <figure><img src="images/phone-control-room.jpg" alt="The progress page on a phone: the factory, the heading and the Plant output panel" style="width:100%;height:auto"/><figcaption>Actual local build at phone width, live totals.</figcaption></figure>
+
+  <h2>Who benefits</h2>
+  <ul>
+    <li><strong>Everyone following the launch</strong> gets a clearer picture of where each collection stands and what the next goal is.</li>
+    <li><strong>Contributors</strong> can see which collection needs them most and how close the nearest goal is, then go straight to TribeStudio from the jar.</li>
+    <li><strong>Organisers</strong> can put Showcase mode on a screen at a meeting, or share a link to the one jar they are rallying people around.</li>
+  </ul>
+
+  <h2>What has not changed</h2>
+  <p>The counting rules are exactly as before. A jar fills to its counted total divided by its target, and only approved, usable contributions count (published songs for Songs &amp; Lyrics). The table view, the pottery view and the tanks are all still there, and <em>Alt + T</em> still opens the data table.</p>
+  <div class="iw-note"><p><strong>When can I see it?</strong> When the website is next deployed. Until then, indigenworld.com/progress shows the previous design.</p></div>
+</article>

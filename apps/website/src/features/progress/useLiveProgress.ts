@@ -25,8 +25,10 @@ import {
 } from './progressData';
 import {
   ingestPublicProgress,
+  PUBLIC_EVENT_RING,
   type FreshApproval,
   type LiveModelState,
+  type PublicProgressEventView,
   type PublicProgressView,
 } from './liveProgressModel';
 import type { ConnectionState, ContributionCategoryId, LaunchProgressConfig } from './progressTypes';
@@ -55,16 +57,22 @@ export interface LiveProgressState {
   /** When the numbers were last confirmed by the server (ms), or cached (ms). */
   confirmedAtMs: number | null;
   error: string | null;
+  /**
+   * The projection's own ring of recent changes, oldest first: collection,
+   * amount, new total and time — never a contributor. Null while the page is
+   * measuring snapshots instead, when no such log exists.
+   */
+  events: PublicProgressEventView[] | null;
 }
 
 function initialState(fixtureMode: boolean): LiveProgressState {
   if (fixtureMode) {
-    return { connection: 'sample', totals: { ...FIXTURE_APPROVED_COUNTS }, hasData: true, config: FIXTURE_CONFIG, fixtureMode: true, confirmedAtMs: null, error: null };
+    return { connection: 'sample', totals: { ...FIXTURE_APPROVED_COUNTS }, hasData: true, config: FIXTURE_CONFIG, fixtureMode: true, confirmedAtMs: null, error: null, events: [] };
   }
   const cached = loadCachedProgress();
   return cached
-    ? { connection: 'cached', totals: cached.totals, hasData: true, config: DEFAULT_PRODUCTION_CONFIG, fixtureMode: false, confirmedAtMs: cached.savedAtMs, error: null }
-    : { connection: 'connecting', totals: {}, hasData: false, config: DEFAULT_PRODUCTION_CONFIG, fixtureMode: false, confirmedAtMs: null, error: null };
+    ? { connection: 'cached', totals: cached.totals, hasData: true, config: DEFAULT_PRODUCTION_CONFIG, fixtureMode: false, confirmedAtMs: cached.savedAtMs, error: null, events: null }
+    : { connection: 'connecting', totals: {}, hasData: false, config: DEFAULT_PRODUCTION_CONFIG, fixtureMode: false, confirmedAtMs: null, error: null, events: null };
 }
 
 function online(): boolean {
@@ -130,7 +138,7 @@ export function useLiveProgress({ fixtureMode, onApprovals }: {
         const known = Object.values(totals).some((value) => typeof value === 'number');
         if (known) {
           saveCachedProgress(totals);
-          setState((previous) => ({ ...previous, connection: online() ? 'snapshot' : 'offline', totals, hasData: true, confirmedAtMs: Date.now(), error: null }));
+          setState((previous) => ({ ...previous, connection: online() ? 'snapshot' : 'offline', totals, hasData: true, confirmedAtMs: Date.now(), error: null, events: null }));
         } else {
           setState((previous) => previous.hasData
             ? { ...previous, connection: online() ? 'cached' : 'offline' }
@@ -168,6 +176,7 @@ export function useLiveProgress({ fixtureMode, onApprovals }: {
           totals: { ...result.state.totals },
           hasData: true,
           connection: !online() ? 'offline' : wasLive || previous.connection === 'live' ? 'reconnecting' : previous.connection,
+          events: view.events,
         }));
         return;
       }
@@ -185,6 +194,7 @@ export function useLiveProgress({ fixtureMode, onApprovals }: {
         hasData: true,
         confirmedAtMs: Date.now(),
         error: null,
+        events: view.events,
       }));
       if (result.approvals.length) onApprovalsRef.current(result.approvals);
     }, () => {
@@ -245,7 +255,7 @@ export function useLiveProgress({ fixtureMode, onApprovals }: {
       updatedAtMs: Date.now(),
     };
     const result = ingest(view, !document.hidden);
-    setState((previous) => ({ ...previous, totals: { ...result.state.totals } }));
+    setState((previous) => ({ ...previous, totals: { ...result.state.totals }, events: [...(previous.events ?? []), ...view.events].slice(-PUBLIC_EVENT_RING) }));
     if (result.approvals.length) onApprovalsRef.current(result.approvals);
   }, [fixtureMode, ingest]);
 

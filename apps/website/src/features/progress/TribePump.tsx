@@ -90,22 +90,26 @@ export function TribePump({ outlet, pulse, motion }: {
           <g className="tribe-pump__rotor-housing">
             <circle cx="90" cy="64" r="44" fill={`url(#${id}-metal)`} stroke="#7a9fb3" strokeWidth="1.2" />
             <circle cx="90" cy="64" r="37" fill={`url(#${id}-chamber)`} />
-            <circle className="tribe-pump__ring-halo" cx="90" cy="64" r="34" fill="none" stroke="#7dd3fc" strokeWidth="7" opacity=".28" />
             <circle className="tribe-pump__ring" cx="90" cy="64" r="34" fill="none" stroke="#bff0ff" strokeWidth="1.8" />
-            <g className="tribe-pump__rotor">
-              <g className={pulse > 0 ? 'tribe-pump__spin is-spinning' : 'tribe-pump__spin'} key={pulse}>
-                {blades.map((angle) => (
-                  <path key={angle} transform={`rotate(${angle} 90 64)`}
-                    d="M90 64 C95 55 104 46 115 44 C111 52 104 60 94 66 Z"
-                    fill={`url(#${id}-blade)`} stroke="#0b5fa6" strokeWidth=".5" strokeOpacity=".5" />
-                ))}
-              </g>
-            </g>
-            <circle cx="90" cy="64" r="8.5" fill={`url(#${id}-metal-x)`} stroke="#4d758c" strokeWidth=".8" />
-            <circle cx="90" cy="64" r="2.6" fill="#e9f7fd" />
-            <ellipse cx="76" cy="46" rx="15" ry="7" fill="#ffffff" opacity=".35" transform="rotate(-28 76 46)" />
           </g>
           {pulse > 0 && <circle key={`flash-${pulse}`} className="tribe-pump__flash" cx="90" cy="64" r="34" fill="none" stroke="#e0f7ff" strokeWidth="4" />}
+        </svg>
+        {/* The moving parts sit over the drawing as their own layers: the idle turn and the
+            breathing ring are composited, so an idle page asks nothing of the main thread. */}
+        <span className="tribe-pump__halo-layer" aria-hidden="true" />
+        <svg className="tribe-pump__rotor-layer" viewBox="56 30 68 68" aria-hidden="true" focusable="false">
+          <g className={pulse > 0 ? 'tribe-pump__spin is-spinning' : 'tribe-pump__spin'} key={pulse}>
+            {blades.map((angle) => (
+              <path key={angle} transform={`rotate(${angle} 90 64)`}
+                d="M90 64 C95 55 104 46 115 44 C111 52 104 60 94 66 Z"
+                fill={`url(#${id}-blade)`} stroke="#0b5fa6" strokeWidth=".5" strokeOpacity=".5" />
+            ))}
+          </g>
+        </svg>
+        <svg className="tribe-pump__cap-layer" viewBox="56 30 68 68" aria-hidden="true" focusable="false">
+          <circle cx="90" cy="64" r="8.5" fill={`url(#${id}-metal-x)`} stroke="#4d758c" strokeWidth=".8" />
+          <circle cx="90" cy="64" r="2.6" fill="#e9f7fd" />
+          <ellipse cx="76" cy="46" rx="15" ry="7" fill="#ffffff" opacity=".35" transform="rotate(-28 76 46)" />
         </svg>
         <span className="tribe-pump__label">
           <span className="tribe-pump__name">TribeStudio</span>
