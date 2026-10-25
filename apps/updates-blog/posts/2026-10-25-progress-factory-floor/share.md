@@ -2,8 +2,8 @@
 
 **Article URL:** `[PUBLISHED ARTICLE URL]` ← replace after the post is live on Blogger.
 
-> Share only after the website is deployed, so people who open the progress
-> page see the factory the post describes.
+> The website is live with this design (deployed 25 October 2026), so the
+> link and the page match the post.
 
 ## Short (WhatsApp / X)
 
