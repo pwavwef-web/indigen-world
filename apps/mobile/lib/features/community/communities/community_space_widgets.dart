@@ -213,11 +213,16 @@ class CommunitySpaceTile extends StatelessWidget {
   const CommunitySpaceTile({
     required this.space,
     required this.onTap,
+    this.hasNews = false,
     super.key,
   });
 
   final CommunitySpace space;
   final VoidCallback onTap;
+
+  /// Whether there are posts since the member was last in it — a dot beside
+  /// the name on the Joined list.
+  final bool hasNews;
 
   @override
   Widget build(BuildContext context) {
@@ -266,6 +271,21 @@ class CommunitySpaceTile extends StatelessWidget {
                                 size: 14,
                                 color: brand.mutedInk,
                                 semanticLabel: l10n.communitiesPrivate,
+                              ),
+                            ],
+                            if (hasNews) ...[
+                              const SizedBox(width: 6),
+                              Semantics(
+                                label: l10n.communitiesNewPosts,
+                                child: Container(
+                                  key: ValueKey('community-news-${space.id}'),
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: brand.accent,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
                               ),
                             ],
                           ],

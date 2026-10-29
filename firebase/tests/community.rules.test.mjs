@@ -283,6 +283,86 @@ test('a member with a profile can post as themselves', async () => {
   );
 });
 
+test('an Event post may say when and where, and nothing else', async () => {
+  const amina = env.authenticatedContext(AMINA);
+  const store = db(amina);
+  const event = { startsAt: Timestamp.fromDate(new Date('2026-12-01T15:00:00Z')), place: 'Navrongo' };
+  await assertSucceeds(
+    setDoc(
+      doc(store, 'communityPosts/event-ok'),
+      makePost(AMINA, { rootId: 'event-ok', category: 'event', event }),
+    ),
+  );
+  // Without the label, the date belongs to nothing.
+  await assertFails(
+    setDoc(doc(store, 'communityPosts/event-unlabelled'), makePost(AMINA, { event })),
+  );
+  // A reply is an answer, not a gathering of its own.
+  await assertFails(
+    setDoc(
+      doc(store, 'communityPosts/event-reply'),
+      makePost(AMINA, { category: 'event', event, parentId: 'post1', isReply: true }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(store, 'communityPosts/event-extra'),
+      makePost(AMINA, { category: 'event', event: { ...event, guests: 400 } }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(store, 'communityPosts/event-string-time'),
+      makePost(AMINA, { category: 'event', event: { startsAt: 'tomorrow' } }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(store, 'communityPosts/event-long-place'),
+      makePost(AMINA, { category: 'event', event: { ...event, place: 'x'.repeat(81) } }),
+    ),
+  );
+});
+
+test('a photo may carry its description', async () => {
+  const amina = env.authenticatedContext(AMINA);
+  await assertSucceeds(
+    setDoc(
+      doc(db(amina), 'communityPosts/described'),
+      makePost(AMINA, {
+        rootId: 'described',
+        hasMedia: true,
+        media: [
+          {
+            url: 'https://example.test/a.jpg',
+            type: 'image',
+            storagePath: 'community-media/amina-uid/described/0_a.jpg',
+            aspectRatio: 1.33,
+            alt: 'Two drummers under a baobab',
+          },
+        ],
+      }),
+    ),
+  );
+});
+
+test('a member pins a post to their own profile, and only a post id', async () => {
+  const amina = env.authenticatedContext(AMINA);
+  const store = db(amina);
+  await assertSucceeds(
+    updateDoc(doc(store, `communityProfiles/${AMINA}`), { pinnedPostId: 'post1' }),
+  );
+  await assertFails(
+    updateDoc(doc(store, `communityProfiles/${AMINA}`), { pinnedPostId: 42 }),
+  );
+  await assertFails(
+    updateDoc(doc(store, `communityProfiles/${AMINA}`), { pinnedPostId: '' }),
+  );
+  await assertFails(
+    updateDoc(doc(store, `communityProfiles/${NYAABA}`), { pinnedPostId: 'post1' }),
+  );
+});
+
 test('posting as someone else, or without a profile, is rejected', async () => {
   const amina = env.authenticatedContext(AMINA);
   await assertFails(

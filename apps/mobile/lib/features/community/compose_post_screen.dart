@@ -8,12 +8,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/data/community_links.dart';
+import 'package:indigen_world_mobile/features/community/data/community_local_prefs.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
 import 'package:indigen_world_mobile/features/community/data/community_space_models.dart';
+import 'package:indigen_world_mobile/features/community/data/community_space_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/compose_draft_store.dart';
 import 'package:indigen_world_mobile/features/community/data/post_category.dart';
+import 'package:indigen_world_mobile/features/community/data/post_event.dart';
+import 'package:indigen_world_mobile/features/community/data/saved_drafts.dart';
 import 'package:indigen_world_mobile/features/community/media_picker.dart';
 import 'package:indigen_world_mobile/features/community/mentions.dart';
 import 'package:indigen_world_mobile/features/community/phone_verification_screen.dart';
@@ -44,6 +48,8 @@ class ComposePostScreen extends ConsumerStatefulWidget {
     this.startWithMedia,
     this.initialVideoProjectId,
     this.initialVideoSourcePath,
+    this.initialEvent,
+    this.draftId,
     super.key,
   });
 
@@ -83,6 +89,14 @@ class ComposePostScreen extends ConsumerStatefulWidget {
   final CommunityMediaKind? startWithMedia;
   final String? initialVideoProjectId, initialVideoSourcePath;
 
+  /// The date and place an Event post starts with — set when a saved draft is
+  /// picked up again.
+  final PostEvent? initialEvent;
+
+  /// The saved draft this composer was opened from, if any. Publishing removes
+  /// it; leaving again updates it rather than asking.
+  final String? draftId;
+
   @override
   ConsumerState<ComposePostScreen> createState() => _ComposePostScreenState();
 }
@@ -111,6 +125,16 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
   Timer? _recordingTicker;
   double? _progress;
   late var _category = widget.initialCategory;
+
+  /// When an Event post starts, once its author has picked a time.
+  late DateTime? _eventStartsAt = widget.initialEvent?.startsAt;
+  late final _eventPlace = TextEditingController(
+    text: widget.initialEvent?.place ?? '',
+  );
+
+  /// Set once the member has decided how to leave, so the back gesture that
+  /// follows is not asked about a second time.
+  var _leaving = false;
 
   bool get _isReply => widget.replyTo != null;
   bool get _isQuote => widget.quoteTo != null;
@@ -175,6 +199,7 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
     unawaited(_recorder.dispose());
     _mentions.dispose();
     _controller.dispose();
+    _eventPlace.dispose();
     _composerFocus.dispose();
     for (final controller in _pollOptions) {
       controller.dispose();
@@ -334,7 +359,180 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
     if (!mounted || identical(cropped, original)) return;
     final at = _attachments.indexOf(original);
     if (at < 0) return;
-    setState(() => _attachments[at] = cropped);
+    // A new file, the same picture: the words written for it still apply.
+    setState(
+      () => _attachments[at] = cropped.withDescription(original.description),
+    );
+  }
+
+  /// Asks for the words a reader who cannot see this photo would need.
+  Future<void> _describeAttachment(int index) async {
+    if (index < 0 || index >= _attachments.length) return;
+    final original = _attachments[index];
+    final text = await showDialog<String>(
+      context: context,
+      builder: (context) => _DescribeImageDialog(initial: original.description),
+    );
+    if (!mounted || text == null) return;
+    final at = _attachments.indexOf(original);
+    if (at < 0) return;
+    setState(() => _attachments[at] = original.withDescription(text));
+  }
+
+  /// Picks the day and then the time an Event post starts.
+  Future<void> _pickEventTime() async {
+    final now = DateTime.now();
+    final initial = _eventStartsAt ?? now.add(const Duration(days: 1));
+    final day = await showDatePicker(
+      context: context,
+      initialDate: initial.isBefore(now) ? now : initial,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: now.add(const Duration(days: 730)),
+      helpText: 'When does it start?',
+    );
+    if (day == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(
+        _eventStartsAt ?? DateTime(now.year, now.month, now.day, 16),
+      ),
+    );
+    if (time == null || !mounted) return;
+    setState(
+      () => _eventStartsAt = DateTime(
+        day.year,
+        day.month,
+        day.day,
+        time.hour,
+        time.minute,
+      ),
+    );
+  }
+
+  /// The event this post will carry, or null.
+  PostEvent? get _event {
+    final startsAt = _eventStartsAt;
+    if (_isReply || _category != PostCategory.event || startsAt == null) {
+      return null;
+    }
+    return PostEvent(startsAt: startsAt, place: _eventPlace.text.trim());
+  }
+
+  bool get _hasContent =>
+      _controller.text.trim().isNotEmpty || _attachments.isNotEmpty;
+
+  /// Whether leaving should ask what to do with what is on the screen.
+  ///
+  /// Replies and quotes are not kept: both answer a post that will have moved
+  /// on by the time a draft is picked up again.
+  ///
+  /// A composer opened from Drafts always handles its own leaving, so a draft
+  /// emptied out and left is removed rather than kept as it was.
+  bool get _offersDraft =>
+      !_leaving &&
+      !_publishing &&
+      !_isReply &&
+      !_isQuote &&
+      (_hasContent || widget.draftId != null);
+
+  SavedDraft _asSavedDraft(String id) => SavedDraft(
+    id: id,
+    text: _controller.text,
+    savedAt: DateTime.now(),
+    category: _category,
+    community: widget.community,
+    attachmentPaths: [for (final upload in _attachments) upload.path],
+    descriptions: [for (final upload in _attachments) upload.description],
+    event: _category == PostCategory.event && _eventStartsAt != null
+        ? PostEvent(startsAt: _eventStartsAt!, place: _eventPlace.text.trim())
+        : null,
+  );
+
+  /// The back gesture, when there is something on the screen worth keeping.
+  Future<void> _confirmLeave() async {
+    final drafts = ref.read(savedDraftsProvider.notifier);
+    // Picked up from Drafts: leaving again is an update, not a question.
+    if (widget.draftId case final id?) {
+      // Saving an empty draft removes it — see SavedDraftsController.save.
+      await drafts.save(_asSavedDraft(id));
+      if (!mounted) return;
+      showCommunityMessage(
+        context,
+        _hasContent ? 'Draft updated.' : 'Empty draft removed.',
+      );
+      _leave();
+      return;
+    }
+    final choice = await showGlassActionSheet<String>(
+      context: context,
+      title: 'Keep this post for later?',
+      actions: const [
+        GlassAction(
+          value: 'save',
+          icon: Icons.drafts_outlined,
+          label: 'Save draft',
+          description: 'Find it again under Drafts',
+        ),
+        GlassAction(
+          value: 'discard',
+          icon: Icons.delete_outline_rounded,
+          label: 'Discard post',
+          isDestructive: true,
+        ),
+      ],
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'save') {
+      await drafts.save(_asSavedDraft(newDraftId()));
+      if (!mounted) return;
+      showCommunityMessage(context, 'Saved to Drafts.');
+    }
+    _leave();
+  }
+
+  void _leave() {
+    setState(() => _leaving = true);
+    Navigator.of(context).pop(false);
+  }
+
+  /// The first time somebody posts into a community that has rules, the
+  /// rules are shown before the post goes. True when the post should go on.
+  ///
+  /// Once per community per account on this phone: a member who has read
+  /// them has read them, and asking on every post would teach everybody to
+  /// tap past the sheet without looking.
+  Future<bool> _acceptCommunityRules(String uid) async {
+    final community = _community;
+    if (_isReply || community == null) return true;
+    final store = CommunityRulesReadStore(uid: uid);
+    if (await store.hasRead(community.id)) return true;
+    CommunitySpace? space;
+    try {
+      space = await ref
+          .read(communitySpaceRepositoryProvider)
+          ?.getCommunity(community.id);
+    } on Object {
+      // Unreadable just now: the rules stay where they always are, on the
+      // community's Rules tab, and the post is not held hostage to them.
+      return true;
+    }
+    final rules = space?.rules ?? const <String>[];
+    if (rules.isEmpty) {
+      await store.markRead(community.id);
+      return true;
+    }
+    if (!mounted) return false;
+    final accepted = await showModalBottomSheet<bool>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) =>
+          _CommunityRulesSheet(name: community.name, rules: rules),
+    );
+    if (accepted != true) return false;
+    await store.markRead(community.id);
+    return true;
   }
 
   /// Offers verification to somebody about to post a link without it.
@@ -416,6 +614,14 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
       showCommunityMessage(context, 'Write something or add a photo first.');
       return;
     }
+    final event = _event;
+    if (event != null && !event.startsAt.isAfter(DateTime.now())) {
+      showCommunityMessage(
+        context,
+        'Choose an event time that is still ahead.',
+      );
+      return;
+    }
     final pollChoices = _pollOptions
         .map((controller) => controller.text.trim())
         .where((text) => text.isNotEmpty)
@@ -444,6 +650,7 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
     // beats a ban — a refusal here pushes the same scammer into spelling the
     // address out in words, which nothing can see and nothing can mask.
     if (!await _confirmLinkPost(profile)) return;
+    if (!mounted || !await _acceptCommunityRules(profile.uid)) return;
 
     setState(() {
       _publishing = true;
@@ -461,10 +668,14 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
         poll: poll,
         community: _community,
         category: _isReply ? null : _category,
+        event: event,
         onUploadProgress: (value) {
           if (mounted) setState(() => _progress = value);
         },
       );
+      if (widget.draftId case final id?) {
+        unawaited(ref.read(savedDraftsProvider.notifier).remove(id));
+      }
       if (!mounted) return;
       HapticFeedback.mediumImpact();
       Navigator.of(context).pop(true);
@@ -492,6 +703,22 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
     final l10n = AppLocalizations.of(context);
     final community = _community;
 
+    return PopScope(
+      canPop: !_offersDraft,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_confirmLeave());
+      },
+      child: _scaffold(context, profile, length, l10n, community),
+    );
+  }
+
+  Widget _scaffold(
+    BuildContext context,
+    CommunityProfile? profile,
+    int length,
+    AppLocalizations l10n,
+    PostCommunityStamp? community,
+  ) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -596,6 +823,7 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
                 onRemove: (index) =>
                     setState(() => _attachments.removeAt(index)),
                 onCrop: _cropAttachment,
+                onDescribe: _describeAttachment,
               ),
             ],
             if (_recording) ...[
@@ -642,6 +870,16 @@ class _ComposePostScreenState extends ConsumerState<ComposePostScreen> {
                         unawaited(_saveDraft());
                       },
               ),
+              if (_category == PostCategory.event) ...[
+                const SizedBox(height: 12),
+                _EventFields(
+                  startsAt: _eventStartsAt,
+                  place: _eventPlace,
+                  enabled: !_publishing,
+                  onPick: _pickEventTime,
+                  onClear: () => setState(() => _eventStartsAt = null),
+                ),
+              ],
             ],
             const SizedBox(height: 18),
             const Divider(height: 26),
@@ -944,6 +1182,7 @@ class _AttachmentStrip extends StatelessWidget {
     required this.attachments,
     required this.onRemove,
     required this.onCrop,
+    required this.onDescribe,
   });
 
   final List<PendingUpload> attachments;
@@ -951,6 +1190,9 @@ class _AttachmentStrip extends StatelessWidget {
 
   /// Photos only — there is nothing to crop on a clip or a voice note.
   final ValueChanged<int> onCrop;
+
+  /// Photos only, again: a clip's words are its captions.
+  final ValueChanged<int> onDescribe;
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -1042,11 +1284,294 @@ class _AttachmentStrip extends StatelessWidget {
                   icon: const Icon(Icons.crop_rounded),
                 ),
               ),
+            if (attachment.mediaType == 'image')
+              Positioned(
+                bottom: 6,
+                left: 6,
+                child: _DescribeChip(
+                  key: ValueKey('describe-attachment-$index'),
+                  described: attachment.description.isNotEmpty,
+                  onTap: () => onDescribe(index),
+                ),
+              ),
           ],
         );
       },
     ),
   );
+}
+
+/// "+ ALT" on a photo that has no description yet, "ALT ✓" on one that has.
+class _DescribeChip extends StatelessWidget {
+  const _DescribeChip({
+    required this.described,
+    required this.onTap,
+    super.key,
+  });
+
+  final bool described;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: described ? 'Edit image description' : 'Describe this image',
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: described ? context.brand.accentFill : Colors.black54,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: ExcludeSemantics(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                described ? Icons.check_rounded : Icons.add_rounded,
+                size: 13,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 3),
+              const Text(
+                'ALT',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// The words for one photo.
+class _DescribeImageDialog extends StatefulWidget {
+  const _DescribeImageDialog({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_DescribeImageDialog> createState() => _DescribeImageDialogState();
+}
+
+class _DescribeImageDialogState extends State<_DescribeImageDialog> {
+  late final _text = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Describe this image'),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Say what is in the picture for somebody who cannot see it — '
+          'who is there, what they are doing, any words in it.',
+          style: TextStyle(color: context.brand.mutedInk, fontSize: 13),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          key: const Key('image-description-field'),
+          controller: _text,
+          autofocus: true,
+          minLines: 3,
+          maxLines: 6,
+          maxLength: CommunityRepository.maxImageDescriptionLength,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            hintText: 'Women pounding fufu in a courtyard at dusk…',
+          ),
+        ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        key: const Key('image-description-save'),
+        onPressed: () => Navigator.of(context).pop(_text.text),
+        child: const Text('Save'),
+      ),
+    ],
+  );
+}
+
+/// The date, time and place of an Event post.
+class _EventFields extends StatelessWidget {
+  const _EventFields({
+    required this.startsAt,
+    required this.place,
+    required this.enabled,
+    required this.onPick,
+    required this.onClear,
+  });
+
+  final DateTime? startsAt;
+  final TextEditingController place;
+  final bool enabled;
+  final VoidCallback onPick;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    final at = startsAt;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: brand.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'EVENT DETAILS',
+            style: TextStyle(
+              color: brand.mutedInk,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  key: const Key('event-pick-time'),
+                  onPressed: enabled ? onPick : null,
+                  icon: const Icon(Icons.event_outlined),
+                  label: Text(
+                    at == null ? 'Add date and time' : eventWhenLabel(at),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              if (at != null)
+                IconButton(
+                  tooltip: 'Remove the date',
+                  onPressed: enabled ? onClear : null,
+                  icon: const Icon(Icons.close_rounded),
+                ),
+            ],
+          ),
+          TextField(
+            key: const Key('event-place'),
+            controller: place,
+            enabled: enabled,
+            maxLength: PostEvent.maxPlaceLength,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.place_outlined),
+              hintText: 'Where (optional)',
+              counterText: '',
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}
+
+/// A community's rules, before somebody's first post into it.
+class _CommunityRulesSheet extends StatelessWidget {
+  const _CommunityRulesSheet({required this.name, required this.rules});
+
+  final String name;
+  final List<String> rules;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Before you post in $name',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Its members agreed on these. Moderators may remove posts that '
+            'break them.',
+            style: TextStyle(color: brand.mutedInk, fontSize: 13),
+          ),
+          const SizedBox(height: 14),
+          Flexible(
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                for (final (index, rule) in rules.indexed)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 24,
+                          height: 24,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: brand.accentSoft,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            '${index + 1}',
+                            style: TextStyle(
+                              color: brand.accent,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            rule,
+                            style: const TextStyle(fontSize: 14.5, height: 1.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          FilledButton(
+            key: const Key('community-rules-accept'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('I’ll follow these'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Not now'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _QuoteContext extends StatelessWidget {

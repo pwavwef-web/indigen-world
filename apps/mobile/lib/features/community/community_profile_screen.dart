@@ -11,6 +11,7 @@ import 'package:indigen_world_mobile/features/community/post_detail_screen.dart'
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_post_card.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
+import 'package:indigen_world_mobile/features/community/widgets/standard_post_card.dart';
 import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
 import 'package:indigen_world_mobile/features/subscriptions/widgets/supporter_badge.dart';
@@ -345,12 +346,21 @@ class _ProfileHeader extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  profile.handle,
-                  style: TextStyle(
-                    color: context.brand.mutedInk,
-                    fontWeight: FontWeight.w700,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        profile.handle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: context.brand.mutedInk,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    if (!isMe) FollowsYouChip(uid: profile.uid),
+                  ],
                 ),
                 if (profile.bio.isNotEmpty) ...[
                   const SizedBox(height: 10),
@@ -415,7 +425,53 @@ class _ProfileHeader extends ConsumerWidget {
                     ),
                   ],
                 ),
+                if (!isMe) _FollowersYouKnow(uid: profile.uid),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Followed by Ama and 2 others you follow" — the people in common, which is
+/// what makes a stranger's profile somebody's rather than anybody's.
+class _FollowersYouKnow extends ConsumerWidget {
+  const _FollowersYouKnow({required this.uid});
+
+  final String uid;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final known = ref.watch(followersYouKnowProvider(uid)).asData?.value;
+    final line = known == null ? null : followersYouKnowLine(known);
+    if (line == null) return const SizedBox.shrink();
+    return Padding(
+      key: const Key('followers-you-know'),
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          for (final (index, person) in known!.named.indexed)
+            Transform.translate(
+              offset: Offset(index * -6.0, 0),
+              child: CommunityAvatar(
+                initials: person.initials,
+                imageUrl: person.avatarUrl,
+                size: 22,
+              ),
+            ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              line,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: context.brand.mutedInk,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -583,6 +639,39 @@ class _ProfileTabContent extends ConsumerWidget {
         const <String, String>{};
     final currentUid = ref.watch(currentUidProvider);
 
+    // ── The pinned post ─────────────────────────────────────────────────────
+    // Leads the Posts tab, labelled, and is left out of the list below it so
+    // it is never shown twice. A pin whose post is gone draws nothing.
+    final pinnedId = tab == 0
+        ? ref.watch(communityProfileProvider(uid)).asData?.value?.pinnedPostId
+        : null;
+    final pinned = pinnedId == null
+        ? null
+        : ref.watch(postProvider(pinnedId)).asData?.value;
+    final showPinned =
+        pinned != null && pinned.authorId == uid && !pinned.isReply;
+    final listed = switch (posts) {
+      AsyncValue(:final value?) when showPinned => AsyncValue.data([
+        for (final post in value)
+          if (post.id != pinned.id) post,
+      ]),
+      _ => posts,
+    };
+    if (showPinned) {
+      return ListView(
+        padding: const EdgeInsets.only(bottom: 40),
+        children: [
+          _PinnedLabel(),
+          StandardPostCard(key: ValueKey('pinned-${pinned.id}'), post: pinned),
+          for (final post in listed.asData?.value ?? const <CommunityPost>[])
+            StandardPostCard(
+              key: ValueKey('profile-post-${post.id}'),
+              post: post,
+            ),
+        ],
+      );
+    }
+
     return switch (posts) {
       AsyncValue(:final value?) when value.isEmpty => ListView(
         children: [
@@ -658,4 +747,26 @@ class _ProfileTabContent extends ConsumerWidget {
       _ => const Center(child: CircularProgressIndicator()),
     };
   }
+}
+
+/// "Pinned", above the post a member keeps at the top of their profile.
+class _PinnedLabel extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(70, 12, 16, 0),
+    child: Row(
+      children: [
+        Icon(Icons.push_pin_rounded, size: 13, color: context.brand.faintInk),
+        const SizedBox(width: 6),
+        Text(
+          'Pinned',
+          style: TextStyle(
+            color: context.brand.faintInk,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    ),
+  );
 }

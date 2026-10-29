@@ -3,11 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
+import 'package:indigen_world_mobile/features/community/data/community_local_prefs.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/link_preview.dart';
+import 'package:indigen_world_mobile/features/community/data/post_category.dart';
+import 'package:indigen_world_mobile/features/community/topic_feed_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/post_category_style.dart';
+import 'package:indigen_world_mobile/features/community/widgets/post_event_tile.dart';
 import 'package:indigen_world_mobile/features/community/widgets/post_media_view.dart';
 import 'package:indigen_world_mobile/features/community/widgets/post_text.dart';
 import 'package:indigen_world_mobile/features/community/widgets/verified_badge.dart';
@@ -60,6 +64,8 @@ class CommunityPostCard extends ConsumerWidget {
     this.showDivider = true,
     this.showCommunityLabel = true,
     this.compact = false,
+    this.respectMutedWords = true,
+    this.bylineBadge,
     super.key,
   });
 
@@ -105,9 +111,40 @@ class CommunityPostCard extends ConsumerWidget {
 
   final bool compact;
 
+  /// Whether a post containing one of the reader's muted words is folded away
+  /// behind a "Show" row. Off for the post a conversation screen was opened
+  /// on: the reader asked for that one by name.
+  final bool respectMutedWords;
+
+  /// A word drawn beside the byline — "Author" on a reply written by the
+  /// person who started the conversation.
+  final String? bylineBadge;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final brand = context.brand;
+
+    // ── Muted words ───────────────────────────────────────────────────────
+    // Folded rather than dropped, so a thread with a muted reply in it still
+    // shows that a reply is there, and one tap shows it. Never the reader's
+    // own writing: muting a word is not a way to hide from yourself.
+    final mutedWords = ref.watch(mutedWordsProvider);
+    final revealed = ref.watch(
+      revealedMutedPostsProvider.select((ids) => ids.contains(post.id)),
+    );
+    if (respectMutedWords &&
+        !revealed &&
+        post.authorId != ref.watch(currentUidProvider)) {
+      final word = mutedWordIn(post, mutedWords);
+      if (word != null) {
+        return _MutedPostRow(
+          word: word,
+          showDivider: showDivider,
+          onShow: () =>
+              ref.read(revealedMutedPostsProvider.notifier).reveal(post.id),
+        );
+      }
+    }
 
     // Author stamps make the feed cheap and offline-capable; the live profile
     // makes later avatar/name changes visible immediately. This dual lookup is
@@ -246,11 +283,12 @@ class CommunityPostCard extends ConsumerWidget {
                                           ),
                                           edited: post.isEdited,
                                           compact: compact,
+                                          badge: bylineBadge,
                                           onOpenAuthor: onOpenAuthor,
                                         ),
                                         if (category != null) ...[
                                           const SizedBox(height: 1),
-                                          PostCategoryLabel(category: category),
+                                          _TopicLink(category: category),
                                         ],
                                         if (post.text.isNotEmpty) ...[
                                           const SizedBox(height: 3),
@@ -279,6 +317,10 @@ class CommunityPostCard extends ConsumerWidget {
                                             // posts still masked.
                                             linksEnabled: linksAreLive,
                                           ),
+                                        ],
+                                        if (post.event != null) ...[
+                                          const SizedBox(height: 10),
+                                          PostEventTile(post: post),
                                         ],
                                         // Not when the post brought its own picture.
                                         // A card and an attachment are both a large
@@ -527,6 +569,7 @@ class _PostByline extends StatelessWidget {
     required this.edited,
     required this.compact,
     required this.onOpenAuthor,
+    this.badge,
   });
 
   final String name;
@@ -542,6 +585,7 @@ class _PostByline extends StatelessWidget {
   final bool edited;
   final bool compact;
   final VoidCallback onOpenAuthor;
+  final String? badge;
 
   @override
   Widget build(BuildContext context) {
@@ -576,6 +620,28 @@ class _PostByline extends StatelessWidget {
                   const SizedBox(width: 3),
                   SupporterBadge(mark: supporter, size: size),
                 ],
+                if (badge case final word?) ...[
+                  const SizedBox(width: 5),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: brand.accentSoft,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      word,
+                      style: TextStyle(
+                        color: brand.accent,
+                        fontSize: size - 3.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(width: 5),
                 Flexible(
                   child: Text(
@@ -596,6 +662,80 @@ class _PostByline extends StatelessWidget {
         // Room for the overflow menu the card lays over this row.
         const SizedBox(width: 30),
       ],
+    );
+  }
+}
+
+/// The label under a byline, as a way into every post carrying it.
+class _TopicLink extends StatelessWidget {
+  const _TopicLink({required this.category});
+
+  final PostCategory category;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    hint: 'Shows more posts with this label',
+    child: InkWell(
+      key: ValueKey('post-topic-${category.wire}'),
+      borderRadius: BorderRadius.circular(6),
+      onTap: () => openTopicFeed(context, category),
+      child: Padding(
+        // A little taller than the words, so a thumb can find it.
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: PostCategoryLabel(category: category),
+      ),
+    ),
+  );
+}
+
+/// What a post containing a muted word shows instead of itself.
+class _MutedPostRow extends StatelessWidget {
+  const _MutedPostRow({
+    required this.word,
+    required this.showDivider,
+    required this.onShow,
+  });
+
+  final String word;
+  final bool showDivider;
+  final VoidCallback onShow;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: showDivider
+            ? Border(bottom: BorderSide(color: brand.divider))
+            : null,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+        child: Row(
+          children: [
+            Icon(
+              Icons.visibility_off_outlined,
+              size: 16,
+              color: brand.faintInk,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Hidden — contains “$word”, a word you muted',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: brand.mutedInk, fontSize: 13),
+              ),
+            ),
+            TextButton(
+              key: const Key('muted-post-show'),
+              onPressed: onShow,
+              child: const Text('Show'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

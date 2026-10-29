@@ -241,6 +241,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get communityCaughtUp => 'You\'re all caught up';
 
   @override
+  String get communitySeenLastVisit => 'Seen on your last visit';
+
+  @override
+  String get communitiesNewPosts => 'New posts since your last visit';
+
+  @override
+  String get communityMembersSearch => 'Search members';
+
+  @override
+  String get communityClearSearch => 'Clear search';
+
+  @override
+  String communityMembersNoMatch(String query) {
+    return 'No member matches “$query”';
+  }
+
+  @override
   String communityPostedIn(String community) {
     return 'in $community';
   }

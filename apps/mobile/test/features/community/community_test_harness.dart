@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:indigen_world_mobile/app/app_theme.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
@@ -10,6 +11,7 @@ import 'package:indigen_world_mobile/features/community/data/community_space_mod
 import 'package:indigen_world_mobile/features/community/data/community_space_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_space_repository.dart';
 import 'package:indigen_world_mobile/features/community/data/post_category.dart';
+import 'package:indigen_world_mobile/features/community/data/post_event.dart';
 import 'package:indigen_world_mobile/l10n/app_localizations.dart';
 
 /// An in-memory stand-in for [CommunityRepository].
@@ -26,6 +28,7 @@ class FakeCommunityRepository implements CommunityRepository {
     Set<String> repostedPostIds = const {},
     Map<String, String> pollVotes = const {},
     List<String> following = const [],
+    this.followsMe = const {},
     this.feedError,
     this.likeError,
   }) : _profiles = {for (final profile in profiles) profile.uid: profile},
@@ -50,6 +53,12 @@ class FakeCommunityRepository implements CommunityRepository {
 
   /// When set, `toggleLike` fails with it — the write refused by the server.
   final Object? likeError;
+
+  /// Members who follow the signed-in member back, for "Follows you".
+  final Set<String> followsMe;
+
+  /// Pins written, as (uid, postId-or-null).
+  final pinnedWrites = <(String, String?)>[];
 
   /// When set, `toggleLike` waits for it before finishing, so a test can look
   /// at the screen while the write is still in flight.
@@ -87,6 +96,41 @@ class FakeCommunityRepository implements CommunityRepository {
     // The first page, then anything a test publishes afterwards.
     yield _topLevel;
     yield* _feed.stream;
+  }
+
+  @override
+  Stream<List<CommunityPost>> watchTopicFeed(
+    PostCategory category, {
+    int limit = 40,
+  }) => Stream.value(
+    _topLevel
+        .where((post) => post.category == category)
+        .toList(growable: false),
+  );
+
+  @override
+  Future<DateTime?> latestCommunityPostAt(
+    String communityId, {
+    required bool isPrivate,
+  }) async {
+    final dates = _topLevel
+        .where((post) => post.community?.id == communityId)
+        .map((post) => post.createdAt)
+        .whereType<DateTime>()
+        .toList();
+    if (dates.isEmpty) return null;
+    return dates.reduce((a, b) => a.isAfter(b) ? a : b);
+  }
+
+  @override
+  Future<bool> isFollowedBy({
+    required String uid,
+    required String otherUid,
+  }) async => followsMe.contains(otherUid);
+
+  @override
+  Future<void> setPinnedPost({required String uid, String? postId}) async {
+    pinnedWrites.add((uid, postId));
   }
 
   @override
@@ -405,6 +449,7 @@ CommunityPost fakePost({
   bool authorPhoneVerified = false,
   PostCommunityStamp? community,
   PostCategory? category,
+  PostEvent? event,
 }) => CommunityPost(
   id: id,
   authorId: authorId,
@@ -427,6 +472,7 @@ CommunityPost fakePost({
   createdAt: createdAt ?? DateTime(2026, 8, 23, 11, 30),
   community: community,
   category: category,
+  event: event,
 );
 
 /// Wraps [child] in the app theme and a [ProviderScope] wired to [repository].
@@ -444,6 +490,9 @@ Widget communityHarness({
   /// Pins the reading language. Null lets the harness follow the test
   /// platform's locale, which is what the app itself does.
   Locale? locale,
+
+  /// Anything else a test needs to stand in for, after the harness's own.
+  List<Override> overrides = const [],
 }) => ProviderScope(
   overrides: [
     communityRepositoryProvider.overrideWithValue(repository),
@@ -454,6 +503,7 @@ Widget communityHarness({
       (ref) => Stream<CommunityProfile?>.value(profile),
     ),
     communitySpaceRepositoryProvider.overrideWithValue(spaces),
+    ...overrides,
   ],
   child: MaterialApp(
     debugShowCheckedModeBanner: false,

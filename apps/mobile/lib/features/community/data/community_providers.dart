@@ -8,6 +8,7 @@ import 'package:indigen_world_mobile/features/community/data/community_feed_clie
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
 import 'package:indigen_world_mobile/features/community/data/feed_fairness.dart';
+import 'package:indigen_world_mobile/features/community/data/post_category.dart';
 
 /// Enable after deploying functions, rules and indexes. Guests keep the public feed.
 const communityRecommendationsEnabled = bool.fromEnvironment(
@@ -475,3 +476,99 @@ final followingListProvider = FutureProvider.autoDispose
       if (repository == null) return const <CommunityProfile>[];
       return repository.profilesByIds(await repository.followingIds(uid));
     });
+
+// ── Topics ──────────────────────────────────────────────────────────────────
+
+/// One topic's posts, with the member's hide / mute / block lists applied the
+/// same way the main feed applies them.
+final rawTopicFeedProvider =
+    StreamProvider.family<List<CommunityPost>, PostCategory>((ref, category) {
+      final repository = ref.watch(communityRepositoryProvider);
+      if (repository == null) return Stream.value(const <CommunityPost>[]);
+      return repository.watchTopicFeed(category);
+    });
+
+final topicFeedProvider =
+    Provider.family<AsyncValue<List<CommunityPost>>, PostCategory>((
+      ref,
+      category,
+    ) {
+      final hidden =
+          ref.watch(myHiddenPostsProvider).asData?.value ?? const <String>{};
+      final muted =
+          ref.watch(myMutedProfilesProvider).asData?.value ?? const <String>{};
+      final blocked =
+          ref.watch(myBlockedProfilesProvider).asData?.value ??
+          const <String>{};
+      return visibleCommunityFeed(
+        ref.watch(rawTopicFeedProvider(category)),
+        applyFairness: false,
+        hidden: hidden,
+        muted: muted,
+        blocked: blocked,
+      );
+    });
+
+// ── Who follows whom ────────────────────────────────────────────────────────
+
+/// Whether [uid] follows the signed-in member. False when signed out, and for
+/// the member's own profile.
+final followsMeProvider = FutureProvider.autoDispose.family<bool, String>((
+  ref,
+  uid,
+) async {
+  final repository = ref.watch(communityRepositoryProvider);
+  final me = ref.watch(currentUidProvider);
+  if (repository == null || me == null || me == uid) return false;
+  try {
+    return await repository.isFollowedBy(uid: me, otherUid: uid);
+  } on Object {
+    // A chip is a courtesy. A failed read draws no chip rather than an error.
+    return false;
+  }
+});
+
+/// People the signed-in member follows who also follow [uid]: how many, and
+/// the first two by name, for "Followed by Ama and 2 others you follow".
+///
+/// Bounded by the 300 followers [CommunityRepository.followerIds] reads, so on
+/// a very popular profile it undercounts rather than reading everybody. The
+/// line says "others you follow", never a total, so an undercount is still a
+/// true sentence.
+typedef FollowersYouKnow = ({List<CommunityProfile> named, int total});
+
+final followersYouKnowProvider = FutureProvider.autoDispose
+    .family<FollowersYouKnow, String>((ref, uid) async {
+      const none = (named: <CommunityProfile>[], total: 0);
+      final repository = ref.watch(communityRepositoryProvider);
+      final me = ref.watch(currentUidProvider);
+      if (repository == null || me == null || me == uid) return none;
+      final following = (await ref.watch(followingIdsProvider.future)).toSet();
+      if (following.isEmpty) return none;
+      try {
+        final shared = (await repository.followerIds(uid))
+            .where((id) => id != me && following.contains(id))
+            .toList(growable: false);
+        if (shared.isEmpty) return none;
+        final named = await repository.profilesByIds(shared.take(2).toList());
+        return (named: named, total: shared.length);
+      } on Object {
+        return none;
+      }
+    });
+
+/// "Followed by Ama", "Followed by Ama and Kofi", "Followed by Ama, Kofi and
+/// 3 others you follow" — or null when there is nobody to name.
+String? followersYouKnowLine(FollowersYouKnow known) {
+  final names = [for (final profile in known.named) profile.displayName];
+  if (names.isEmpty || known.total <= 0) return null;
+  final others = known.total - names.length;
+  if (others <= 0) {
+    return names.length == 1
+        ? 'Followed by ${names.first}'
+        : 'Followed by ${names[0]} and ${names[1]}';
+  }
+  final lead = names.join(', ');
+  return 'Followed by $lead and $others '
+      '${others == 1 ? 'other' : 'others'} you follow';
+}

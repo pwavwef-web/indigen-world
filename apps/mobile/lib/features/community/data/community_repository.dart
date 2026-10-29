@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_space_models.dart';
 import 'package:indigen_world_mobile/features/community/data/post_category.dart';
+import 'package:indigen_world_mobile/features/community/data/post_event.dart';
 import 'package:indigen_world_mobile/features/community/data/reel_post_details.dart';
 
 /// Posts whose impression this session has already committed.
@@ -51,6 +52,7 @@ class PendingUpload {
     this.aspectRatio = 4 / 3,
     this.durationSeconds,
     this.posterPath,
+    this.description = '',
   });
 
   final String path;
@@ -63,6 +65,22 @@ class PendingUpload {
   /// uploaded alongside it as the video's cover. Null when the device could not
   /// decode one — the feed falls back to reading a frame off the clip itself.
   final String? posterPath;
+
+  /// What a photo shows, written by its author for readers who cannot see it.
+  /// Saved on the uploaded media as `alt`.
+  final String description;
+
+  /// This attachment with [text] as its description. Everything else is kept,
+  /// so describing a photo never re-measures or re-stages it.
+  PendingUpload withDescription(String text) => PendingUpload(
+    path: path,
+    isVideo: isVideo,
+    isAudio: isAudio,
+    aspectRatio: aspectRatio,
+    durationSeconds: durationSeconds,
+    posterPath: posterPath,
+    description: text.trim(),
+  );
 
   String get mediaType => isAudio ? 'audio' : (isVideo ? 'video' : 'image');
 
@@ -120,6 +138,10 @@ class CommunityRepository {
   static const maxVideoBytes = 128 * 1024 * 1024;
   static const maxAudioBytes = 24 * 1024 * 1024;
   static const maxPostLength = 500;
+
+  /// How long one photo's description may be. Long enough to say what is in
+  /// a picture of a festival; short enough that it stays a description.
+  static const maxImageDescriptionLength = 420;
 
   CollectionReference<Map<String, dynamic>> get _profiles =>
       _firestore.collection('communityProfiles');
@@ -288,6 +310,18 @@ class CommunityRepository {
     });
   }
 
+  /// Pins [postId] to the top of the member's own profile, or clears the pin
+  /// when it is null.
+  ///
+  /// A field on the profile rather than a flag on the post: a member has one
+  /// pin, and moving it is then one write that cannot leave two posts both
+  /// claiming the top of the page.
+  Future<void> setPinnedPost({required String uid, String? postId}) =>
+      _profiles.doc(uid).update({
+        'pinnedPostId': postId ?? FieldValue.delete(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
   /// Writes just the birthday, for the setup flow where the rest of the profile
   /// was saved a step earlier and must not be rewritten from stale controllers.
   Future<void> setBirthday({
@@ -359,6 +393,47 @@ class CommunityRepository {
             .limit(limit),
         limit: limit,
       );
+
+  /// Top-level public posts carrying one [category], newest first — what a
+  /// tapped label opens.
+  ///
+  /// Served by the `isReply + category + createdAt` index the recommendation
+  /// backend already relies on. Public community posts are in
+  /// `communityPosts` and so appear here; a private community's never do.
+  /// No reshares: a topic page is about what was written, not who passed it on.
+  Stream<List<CommunityPost>> watchTopicFeed(
+    PostCategory category, {
+    int limit = feedPageSize,
+  }) => _posts
+      .where('isReply', isEqualTo: false)
+      .where('category', isEqualTo: category.wire)
+      .orderBy('createdAt', descending: true)
+      .limit(limit)
+      .snapshots()
+      .map(_mapPosts);
+
+  /// When the newest top-level post in a community was written, or null when
+  /// it has none — what the Joined list compares against the last visit.
+  ///
+  /// A one-off read rather than a stream: a list of twenty communities holding
+  /// twenty live listeners open to put a dot beside a name is a cost out of all
+  /// proportion to the dot.
+  Future<DateTime?> latestCommunityPostAt(
+    String communityId, {
+    required bool isPrivate,
+  }) async {
+    final query = isPrivate
+        ? _privatePosts(communityId)
+              .where('isReply', isEqualTo: false)
+              .orderBy('createdAt', descending: true)
+        : _posts
+              .where('communityId', isEqualTo: communityId)
+              .where('isReply', isEqualTo: false)
+              .orderBy('createdAt', descending: true);
+    final snapshot = await query.limit(1).get();
+    if (snapshot.docs.isEmpty) return null;
+    return (snapshot.docs.first.data()['createdAt'] as Timestamp?)?.toDate();
+  }
 
   /// Whole posts that carry a video, newest first — the community half of
   /// Explore.
@@ -726,6 +801,7 @@ class CommunityRepository {
     String? postId,
     List<CommunityMedia>? uploadedMedia,
     ReelPostDetails? reel,
+    PostEvent? event,
   }) async {
     if (uploadedMedia != null && attachments.isNotEmpty) {
       throw ArgumentError(
@@ -763,6 +839,18 @@ class CommunityRepository {
       throw const CommunityFailure(
         'Quotes and polls are not available in private communities.',
       );
+    }
+    if (event != null) {
+      // An event belongs to a post that says it is one; a reply is an answer
+      // to a post, not a gathering of its own.
+      if (category != PostCategory.event || parentId != null) {
+        throw const CommunityFailure('Only Event posts can carry a date.');
+      }
+      if (event.place.length > PostEvent.maxPlaceLength) {
+        throw const CommunityFailure(
+          'Keep the place to ${PostEvent.maxPlaceLength} characters.',
+        );
+      }
     }
     if (poll != null) {
       if (poll.options.length < 2 || poll.options.length > 4) {
@@ -827,6 +915,7 @@ class CommunityRepository {
         },
         'category': ?category?.wire,
         'reel': ?reel?.toMap(),
+        'event': ?event?.toMap(),
         'createdAt': FieldValue.serverTimestamp(),
       };
       if (quoteTo == null) {
@@ -1234,6 +1323,12 @@ class CommunityRepository {
             .toList(growable: false),
       );
 
+  /// Whether [otherUid] follows [uid] — one read of the edge that would say so.
+  Future<bool> isFollowedBy({
+    required String uid,
+    required String otherUid,
+  }) async => (await _follows.doc(edgeId(otherUid, uid)).get()).exists;
+
   Future<List<String>> followerIds(String uid, {int limit = 300}) async {
     final snapshot = await _follows
         .where('followingId', isEqualTo: uid)
@@ -1505,6 +1600,9 @@ class CommunityRepository {
             thumbnailUrl: poster?.url,
             aspectRatio: attachment.aspectRatio,
             durationSeconds: attachment.durationSeconds,
+            alt: attachment.isVideo || attachment.isAudio
+                ? ''
+                : _clipDescription(attachment.description),
           ),
         );
       }
@@ -1568,6 +1666,15 @@ class CommunityRepository {
       for (final item in media)
         if (item.storagePath.isNotEmpty) item.storagePath,
     ]);
+  }
+
+  /// Image descriptions are bounded the way post text is, so a pasted essay
+  /// cannot ride along on a photograph.
+  static String _clipDescription(String text) {
+    final trimmed = text.trim();
+    return trimmed.length > maxImageDescriptionLength
+        ? trimmed.substring(0, maxImageDescriptionLength)
+        : trimmed;
   }
 
   Future<void> _deletePaths(List<String> paths) async {

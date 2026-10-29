@@ -1235,6 +1235,22 @@ service cloud.firestore {
             && data.reel.rights == 'created'));
     }
 
+    // When and where an Event post happens, if its author said. Optional, only
+    // on a top-level post labelled Event, a timestamp and a short place —
+    // nothing else rides along under the name. Immutable once written, like
+    // the reel details: the author's update rule only lets text and editedAt
+    // change, so a gathering cannot be quietly moved after people have set
+    // reminders for it.
+    function validEventDetails(data) {
+      return data.get('event', null) == null
+        || (data.event is map
+          && data.event.keys().hasOnly(['startsAt', 'place'])
+          && data.event.startsAt is timestamp
+          && validCommunityText(data.event.get('place', ''), 80)
+          && data.get('category', '') == 'event'
+          && data.get('parentId', null) == null);
+    }
+
     // What a post in a PUBLIC community must carry, and who may write it.
     // A post with no communityId is an ordinary main-feed post.
     function validPublicSpacePost(data) {
@@ -1393,6 +1409,13 @@ service cloud.firestore {
         && validCommunityText(request.resource.data.get('location', ''), 80)
         && validCommunityText(request.resource.data.get('dialect', ''), 80)
         && validCommunityBirthday(request.resource.data)
+        // The post a member keeps at the top of their profile: a post id, or
+        // nothing. The app only pins the member's own posts; a pin naming
+        // somebody else's draws nothing, because the profile checks the author.
+        && (request.resource.data.get('pinnedPostId', null) == null
+          || (request.resource.data.pinnedPostId is string
+            && request.resource.data.pinnedPostId.size() > 0
+            && request.resource.data.pinnedPostId.size() <= 128))
       );
       allow delete: if isAdmin();
     }
@@ -1454,6 +1477,7 @@ service cloud.firestore {
           || request.resource.data.parentId is string)
         && validPublicSpacePost(request.resource.data)
         && validReelDetails(request.resource.data)
+        && validEventDetails(request.resource.data)
         && supporterMarkIsEarned(request.resource.data);
       // The author may edit their own body text; anyone signed in may move a
       // counter by one step under the constraints above.
@@ -1932,6 +1956,7 @@ service cloud.firestore {
             || request.resource.data.parentId is string)
           && validPostCategory(request.resource.data, communityId)
           && validReelDetails(request.resource.data)
+          && validEventDetails(request.resource.data)
           && supporterMarkIsEarned(request.resource.data);
 
         allow update: if (

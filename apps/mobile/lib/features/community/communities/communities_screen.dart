@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:indigen_world_mobile/core/brand.dart';
 import 'package:indigen_world_mobile/features/community/communities/community_space_actions.dart';
 import 'package:indigen_world_mobile/features/community/communities/community_space_widgets.dart';
+import 'package:indigen_world_mobile/features/community/data/community_local_prefs.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
 import 'package:indigen_world_mobile/features/community/data/community_space_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_space_providers.dart';
@@ -213,6 +214,7 @@ class _JoinedList extends ConsumerWidget {
         AsyncValue(:final value?) => _CommunityList(
           spaces: value,
           actions: actions,
+          showNews: true,
         ),
         AsyncValue(:final error?) => _ScrollableState(
           child: _LoadFailed(
@@ -264,10 +266,18 @@ class _SearchResults extends ConsumerWidget {
 }
 
 class _CommunityList extends StatelessWidget {
-  const _CommunityList({required this.spaces, required this.actions});
+  const _CommunityList({
+    required this.spaces,
+    required this.actions,
+    this.showNews = false,
+  });
 
   final List<CommunitySpace> spaces;
   final CommunitySpaceActions actions;
+
+  /// Whether rows say when a community has posts since the last visit — on
+  /// the member's own list, not on Discover, where every row would be news.
+  final bool showNews;
 
   @override
   Widget build(BuildContext context) => ListView.builder(
@@ -277,10 +287,25 @@ class _CommunityList extends StatelessWidget {
     itemCount: spaces.length,
     itemBuilder: (context, index) {
       final space = spaces[index];
-      return CommunitySpaceTile(
+      if (!showNews) {
+        return CommunitySpaceTile(
+          key: ValueKey('community-tile-${space.id}'),
+          space: space,
+          onTap: () => actions.open(context, space.id),
+        );
+      }
+      return Consumer(
         key: ValueKey('community-tile-${space.id}'),
-        space: space,
-        onTap: () => actions.open(context, space.id),
+        builder: (context, ref, _) => CommunitySpaceTile(
+          space: space,
+          hasNews: ref.watch(
+            communityHasNewsProvider((
+              id: space.id,
+              isPrivate: space.isPrivate,
+            )),
+          ),
+          onTap: () => actions.open(context, space.id),
+        ),
       );
     },
   );

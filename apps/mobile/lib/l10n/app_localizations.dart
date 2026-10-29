@@ -494,6 +494,36 @@ abstract class AppLocalizations {
   /// **'You\'re all caught up'**
   String get communityCaughtUp;
 
+  /// No description provided for @communitySeenLastVisit.
+  ///
+  /// In en, this message translates to:
+  /// **'Seen on your last visit'**
+  String get communitySeenLastVisit;
+
+  /// No description provided for @communitiesNewPosts.
+  ///
+  /// In en, this message translates to:
+  /// **'New posts since your last visit'**
+  String get communitiesNewPosts;
+
+  /// No description provided for @communityMembersSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search members'**
+  String get communityMembersSearch;
+
+  /// No description provided for @communityClearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get communityClearSearch;
+
+  /// No description provided for @communityMembersNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No member matches “{query}”'**
+  String communityMembersNoMatch(String query);
+
   /// No description provided for @communityPostedIn.
   ///
   /// In en, this message translates to:

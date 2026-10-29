@@ -80,6 +80,59 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
   }
 }
 
+/// How a conversation's replies are ordered.
+enum ReplyOrder {
+  /// As the conversation happened — the default, because a reply usually
+  /// answers the one before it.
+  oldest('Oldest first'),
+  newest('Newest first'),
+
+  /// Most appreciated first, the order a newcomer to a long thread wants.
+  top('Most appreciated');
+
+  const ReplyOrder(this.label);
+
+  final String label;
+}
+
+/// [replies] in [order]. Stable: replies that tie keep their conversation
+/// order, so two with no appreciations never swap places on a rebuild.
+List<CommunityPost> sortReplies(List<CommunityPost> replies, ReplyOrder order) {
+  final indexed = replies.indexed.toList(growable: false);
+  int byTime((int, CommunityPost) a, (int, CommunityPost) b) {
+    final at = a.$2.createdAt;
+    final bt = b.$2.createdAt;
+    if (at == null || bt == null) return a.$1.compareTo(b.$1);
+    final compared = at.compareTo(bt);
+    return compared != 0 ? compared : a.$1.compareTo(b.$1);
+  }
+
+  final sorted = [...indexed]
+    ..sort(
+      (a, b) => switch (order) {
+        ReplyOrder.oldest => byTime(a, b),
+        ReplyOrder.newest => byTime(b, a),
+        ReplyOrder.top =>
+          b.$2.likeCount != a.$2.likeCount
+              ? b.$2.likeCount.compareTo(a.$2.likeCount)
+              : a.$1.compareTo(b.$1),
+      },
+    );
+  return [for (final (_, post) in sorted) post];
+}
+
+/// The order the member last chose, for this session.
+class ReplyOrderController extends Notifier<ReplyOrder> {
+  @override
+  ReplyOrder build() => ReplyOrder.oldest;
+
+  void set(ReplyOrder order) => state = order;
+}
+
+final replyOrderProvider = NotifierProvider<ReplyOrderController, ReplyOrder>(
+  ReplyOrderController.new,
+);
+
 class _Thread extends ConsumerWidget {
   const _Thread({required this.post, required this.actions});
 
@@ -88,6 +141,7 @@ class _Thread extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final order = ref.watch(replyOrderProvider);
     final replies = post.privateCommunityId == null
         ? ref.watch(repliesProvider(post.id))
         : ref.watch(
@@ -128,6 +182,8 @@ class _Thread extends ConsumerWidget {
       children: [
         CommunityPostCard(
           post: _withPending(post, likes, pendingLikes),
+          // Opened by name: a muted word does not hide the post asked for.
+          respectMutedWords: false,
           liked: pendingLikes[post.id] ?? likes.contains(post.id),
           saved: saved.contains(post.id),
           reposted: reposts.contains(post.id),
@@ -173,14 +229,64 @@ class _Thread extends ConsumerWidget {
           onOpenLink: (url) => actions.openLink(context, url),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
-          child: Text(
-            post.replyCount == 1 ? '1 reply' : '${post.replyCount} replies',
-            style: TextStyle(
-              color: context.brand.mutedInk,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
+          padding: const EdgeInsets.fromLTRB(16, 8, 4, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  post.replyCount == 1
+                      ? '1 reply'
+                      : '${post.replyCount} replies',
+                  style: TextStyle(
+                    color: context.brand.mutedInk,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              // Only worth offering once there is something to reorder.
+              if ((replies.asData?.value.length ?? 0) > 1)
+                PopupMenuButton<ReplyOrder>(
+                  key: const Key('reply-order'),
+                  tooltip: 'Order replies',
+                  initialValue: order,
+                  onSelected: (value) =>
+                      ref.read(replyOrderProvider.notifier).set(value),
+                  itemBuilder: (context) => [
+                    for (final choice in ReplyOrder.values)
+                      PopupMenuItem(
+                        value: choice,
+                        key: ValueKey('reply-order-${choice.name}'),
+                        child: Text(choice.label),
+                      ),
+                  ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.sort_rounded,
+                          size: 17,
+                          color: context.brand.accent,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          order.label,
+                          style: TextStyle(
+                            color: context.brand.accent,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
         // Above the first reply, in the replies' own indent — the slot a
@@ -200,8 +306,10 @@ class _Thread extends ConsumerWidget {
             ),
           ],
           AsyncValue(:final value?) => [
-            for (final reply in value)
+            for (final reply in sortReplies(value, order))
               _ThreadedReply(
+                key: ValueKey('reply-${reply.id}'),
+                byThreadAuthor: reply.authorId == post.authorId,
                 reply: _withPending(reply, likes, pendingLikes),
                 liked: pendingLikes[reply.id] ?? likes.contains(reply.id),
                 canModerate: canModerate,
@@ -261,6 +369,8 @@ class _ThreadedReply extends StatelessWidget {
     required this.isOwner,
     required this.actions,
     this.canModerate = false,
+    this.byThreadAuthor = false,
+    super.key,
   });
 
   final CommunityPost reply;
@@ -271,6 +381,9 @@ class _ThreadedReply extends StatelessWidget {
   final bool isOwner;
   final CommunityActions actions;
   final bool canModerate;
+
+  /// Written by the person whose post this conversation is under.
+  final bool byThreadAuthor;
 
   @override
   Widget build(BuildContext context) {
@@ -287,6 +400,7 @@ class _ThreadedReply extends StatelessWidget {
       reposted: reposted,
       votedOptionId: votedOptionId,
       compact: true,
+      bylineBadge: byThreadAuthor ? 'Author' : null,
       onLike: () => actions.toggleLike(context, reply),
       onRepost: public ? () => actions.toggleRepost(context, reply) : null,
       onQuote: public ? () => actions.quote(context, reply) : null,

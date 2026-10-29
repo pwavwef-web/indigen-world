@@ -109,8 +109,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/post/:postId',
-        builder: (context, state) =>
-            PostDetailScreen(postId: state.pathParameters['postId']!),
+        // `community` names the private community holding the post, for the
+        // reminders an Event post in one can set. Shared links never carry it.
+        builder: (context, state) => PostDetailScreen(
+          postId: state.pathParameters['postId']!,
+          privateCommunityId: state.uri.queryParameters['community'],
+        ),
       ),
       // The communities directory, and one community by its address. Shared
       // community links use the app's own scheme (`indigen://communities/x`)

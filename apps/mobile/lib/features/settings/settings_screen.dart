@@ -425,8 +425,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 icon: Icons.block_rounded,
                 title: 'Blocked, muted and read receipts',
                 subtitle:
-                    'Undo a block or a mute, and choose whether '
-                    'messages say “Seen”',
+                    'Undo a block or a mute, mute words, and choose '
+                    'whether messages say “Seen”',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (context) => const PrivacyControlsScreen(),

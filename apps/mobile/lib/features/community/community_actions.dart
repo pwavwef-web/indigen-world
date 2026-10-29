@@ -19,6 +19,8 @@ import 'package:indigen_world_mobile/features/community/media_picker.dart';
 import 'package:indigen_world_mobile/features/community/mentions.dart';
 import 'package:indigen_world_mobile/features/community/post_engagement_screen.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
+import 'package:indigen_world_mobile/features/community/widgets/post_picture_sheet.dart';
+import 'package:indigen_world_mobile/features/community/widgets/send_post_sheet.dart';
 import 'package:indigen_world_mobile/features/kawuri/kawuri_screen.dart';
 import 'package:indigen_world_mobile/shared/glass_popup.dart';
 import 'package:share_plus/share_plus.dart';
@@ -400,6 +402,16 @@ class CommunityActions {
     // Saving, sharing and linking all need a post that can be read from
     // outside the community it was written in.
     final public = !post.isPrivateCommunityPost;
+    final pinnedId = ref
+        .read(myCommunityProfileProvider)
+        .asData
+        ?.value
+        ?.pinnedPostId;
+    final pinned = pinnedId == post.id;
+    // Only a top-level public post can lead a profile: a reply out of its
+    // thread reads as half a conversation, and a private community's post
+    // has to stay where its members are.
+    final pinnable = isMine && public && !post.isReply;
 
     final choice = await showGlassActionSheet<String>(
       context: context,
@@ -422,7 +434,31 @@ class CommunityActions {
             icon: Icons.link_rounded,
             label: 'Copy post link',
           ),
+          const GlassAction(
+            value: 'picture',
+            icon: Icons.image_outlined,
+            label: 'Share as a picture',
+            description: 'For a status or a group chat',
+          ),
+          const GlassAction(
+            value: 'send',
+            icon: Icons.send_outlined,
+            label: 'Send in a message',
+          ),
+          if (post.text.trim().isNotEmpty)
+            const GlassAction(
+              value: 'kawuri',
+              icon: Icons.auto_awesome_outlined,
+              label: 'Ask Kawuri about this post',
+              description: 'Help with the Kasem in it',
+            ),
         ],
+        if (pinnable)
+          GlassAction(
+            value: pinned ? 'unpin' : 'pin',
+            icon: pinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+            label: pinned ? 'Unpin from your profile' : 'Pin to your profile',
+          ),
         if (isMine)
           const GlassAction(
             value: 'edit',
@@ -503,6 +539,23 @@ class CommunityActions {
           ClipboardData(text: 'https://indigenworld.com/post/${post.id}'),
         );
         if (context.mounted) showCommunityMessage(context, 'Post link copied.');
+      case 'picture':
+        await showPostPictureSheet(context, post);
+      case 'send':
+        final me = await requireProfile(context);
+        if (me != null && context.mounted) {
+          await showSendPostSheet(context, me, post);
+        }
+      case 'kawuri':
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (context) =>
+                KawuriScreen(initialDraft: kawuriPostRequest(post)),
+          ),
+        );
+      case 'pin':
+      case 'unpin':
+        await _pin(context, post, pin: choice == 'pin');
       case 'edit':
         await _edit(context, post);
       case 'hide':
@@ -517,6 +570,32 @@ class CommunityActions {
         await _delete(context, post, onDeleted: onDeleted);
       case 'moderate':
         await _delete(context, post, onDeleted: onDeleted, asModerator: true);
+    }
+  }
+
+  /// Pins [post] to the top of the member's own profile, or takes it down.
+  Future<void> _pin(
+    BuildContext context,
+    CommunityPost post, {
+    required bool pin,
+  }) async {
+    final uid = ref.read(currentUidProvider);
+    final repository = ref.read(communityRepositoryProvider);
+    if (uid == null || repository == null) return;
+    try {
+      await repository.setPinnedPost(uid: uid, postId: pin ? post.id : null);
+      if (context.mounted) {
+        showCommunityMessage(
+          context,
+          pin
+              ? 'Pinned. It now leads your profile.'
+              : 'Unpinned from your profile.',
+        );
+      }
+    } on Object {
+      if (context.mounted) {
+        showCommunityMessage(context, 'Could not change your pin. Try again.');
+      }
     }
   }
 
@@ -752,4 +831,15 @@ class CommunityActions {
       }
     }
   }
+}
+
+/// What "Ask Kawuri about this post" puts in Kawuri's box, ready to send.
+///
+/// A draft, not a sent message: the member sees exactly what will be asked,
+/// about whose words, and sends it themselves — or changes it first.
+String kawuriPostRequest(CommunityPost post) {
+  final text = post.text.trim();
+  final quoted = text.length > 400 ? '${text.substring(0, 399)}…' : text;
+  return 'Help me understand this community post by ${post.authorName}. '
+      'Explain any Kasem in it, word by word:\n\n“$quoted”';
 }

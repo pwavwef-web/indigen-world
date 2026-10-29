@@ -4,6 +4,7 @@ import 'package:indigen_world_mobile/core/media_geometry.dart';
 import 'package:indigen_world_mobile/core/timed_captions.dart';
 import 'package:indigen_world_mobile/features/community/data/community_space_models.dart';
 import 'package:indigen_world_mobile/features/community/data/post_category.dart';
+import 'package:indigen_world_mobile/features/community/data/post_event.dart';
 import 'package:indigen_world_mobile/features/community/data/reel_post_details.dart';
 import 'package:indigen_world_mobile/features/subscriptions/data/subscription_catalog.dart';
 
@@ -21,6 +22,7 @@ class CommunityMedia {
     this.trimEndMs,
     this.originalSound = true,
     this.captions,
+    this.alt = '',
   });
 
   /// Public download URL of the uploaded file.
@@ -52,6 +54,11 @@ class CommunityMedia {
 
   /// Timed captions for a video, when the creator added them.
   final CaptionTrack? captions;
+
+  /// What the picture shows, in the author's words, for somebody who cannot
+  /// see it. Empty on everything posted before descriptions existed, and on
+  /// any photo its author chose not to describe.
+  final String alt;
 
   /// [trimStartMs] and [trimEndMs] as a window players can honour, or null.
   ClipWindow? get clipWindow => ClipWindow.fromMillis(trimStartMs, trimEndMs);
@@ -86,6 +93,7 @@ class CommunityMedia {
       trimEndMs: _nonNegativeInt(raw['trimEndMs']),
       originalSound: raw['originalSound'] != false,
       captions: CaptionTrack.fromMap(raw['captions']),
+      alt: raw['alt'] is String ? (raw['alt'] as String).trim() : '',
     );
   }
 
@@ -106,6 +114,7 @@ class CommunityMedia {
     if (!originalSound) 'originalSound': false,
     if (captions case final track? when !track.isEmpty)
       'captions': track.toMap(),
+    if (alt.isNotEmpty) 'alt': alt,
   };
 }
 
@@ -314,6 +323,7 @@ class CommunityProfile {
     this.birthDay = 0,
     this.usernameChangedAt,
     this.createdAt,
+    this.pinnedPostId,
   });
 
   final String uid;
@@ -367,6 +377,11 @@ class CommunityProfile {
   bool get canClaimKasemName => usernameChangedAt == null;
 
   final DateTime? createdAt;
+
+  /// The post this member keeps at the top of their profile, or null. One of
+  /// their own top-level public posts; a pin whose post has since been deleted
+  /// simply draws nothing.
+  final String? pinnedPostId;
 
   /// The mark this profile actually draws.
   VerifiedMark get mark => resolveVerifiedMark(
@@ -423,6 +438,7 @@ class CommunityProfile {
     birthDay: birthDay ?? this.birthDay,
     usernameChangedAt: usernameChangedAt,
     createdAt: createdAt,
+    pinnedPostId: pinnedPostId,
   );
 
   static CommunityProfile fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) =>
@@ -467,6 +483,7 @@ class CommunityProfile {
       birthDay: _asInt(data['birthDay']),
       usernameChangedAt: (data['usernameChangedAt'] as Timestamp?)?.toDate(),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+      pinnedPostId: _nonEmpty(data['pinnedPostId']),
     );
   }
 
@@ -544,6 +561,7 @@ class CommunityPost {
     this.community,
     this.category,
     this.reel,
+    this.event,
     this.recommendationReason,
   });
 
@@ -610,6 +628,10 @@ class CommunityPost {
   /// The topic, context, attribution and rights declared when this post was
   /// made through the reel creator. Null on every other post.
   final ReelPostDetails? reel;
+
+  /// When and where, on an Event post whose author said. Null on every other
+  /// post, and on Event posts written before the field existed.
+  final PostEvent? event;
 
   /// Server-issued explanation, never persisted on the author's post.
   final String? recommendationReason;
@@ -711,6 +733,7 @@ class CommunityPost {
       },
       category: PostCategory.fromWire(data['category']),
       reel: ReelPostDetails.fromMap(data['reel']),
+      event: PostEvent.fromMap(data['event']),
       recommendationReason: data['recommendationReason'] as String?,
     );
   }
@@ -754,6 +777,7 @@ class CommunityPost {
     community: community,
     category: category,
     reel: reel,
+    event: event,
   );
 
   /// This post with its appreciation total replaced — what the feed draws while
@@ -792,6 +816,7 @@ class CommunityPost {
     community: community,
     category: category,
     reel: reel,
+    event: event,
   );
 
   /// Immutable snapshot embedded in a quote post so the quote remains legible

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -7,6 +9,7 @@ import 'package:indigen_world_mobile/features/community/communities/community_sp
 import 'package:indigen_world_mobile/features/community/communities/community_space_widgets.dart';
 import 'package:indigen_world_mobile/features/community/community_actions.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
+import 'package:indigen_world_mobile/features/community/data/community_local_prefs.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_prompt.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
@@ -58,6 +61,19 @@ class _CommunitySpaceScreenState extends ConsumerState<CommunitySpaceScreen>
   final _viewedPostIds = <String>{};
   var _requestedWindow = 0;
 
+  /// Held from the start, because the visit is written down again on the way
+  /// out — when this widget's `ref` may no longer be used.
+  late final _visits = ref.read(communityVisitsProvider.notifier);
+
+  @override
+  void initState() {
+    super.initState();
+    // Coming in clears the dot on the Joined list straight away.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_visits.visit(widget.communityId));
+    });
+  }
+
   CommunitySpaceTab get _tab => CommunitySpaceTab.values[_tabs.index];
 
   void _onTabChanged() {
@@ -69,6 +85,8 @@ class _CommunitySpaceScreenState extends ConsumerState<CommunitySpaceScreen>
     // Flushes VisibilityDetector's coalescing timer, exactly as the main feed
     // does, so no impression callback fires after the screen has gone.
     VisibilityDetectorController.instance.notifyNow();
+    // Leaving moves the mark past anything that arrived while reading.
+    unawaited(_visits.visit(widget.communityId));
     _tabs
       ..removeListener(_onTabChanged)
       ..dispose();
@@ -980,14 +998,43 @@ class _InfoRow extends StatelessWidget {
 
 // ── Members ─────────────────────────────────────────────────────────────────
 
-class _MembersTab extends ConsumerWidget {
+/// Whether [profile] answers the members search [query]: its name or handle,
+/// with case and tone marks set aside the way community search sets them.
+bool memberMatches(CommunityProfile? profile, String query) {
+  final needle = communityFold(query.trim().replaceFirst('@', ''));
+  if (needle.isEmpty) return true;
+  if (profile == null) return false;
+  return communityFold(profile.displayName).contains(needle) ||
+      communityFold(profile.username).contains(needle);
+}
+
+/// From how many members on a page the search box is worth its row.
+const _memberSearchFrom = 6;
+
+class _MembersTab extends ConsumerStatefulWidget {
   const _MembersTab({required this.space, required this.viewer});
 
   final CommunitySpace space;
   final CommunityMembership? viewer;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_MembersTab> createState() => _MembersTabState();
+}
+
+class _MembersTabState extends ConsumerState<_MembersTab> {
+  final _search = TextEditingController();
+  var _query = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final space = widget.space;
+    final viewer = widget.viewer;
     final l10n = AppLocalizations.of(context);
     final members = ref.watch(communityMembersProvider(space.id));
     final moderator = viewer?.canModerate ?? false;
@@ -1060,28 +1107,66 @@ class _MembersTab extends ConsumerWidget {
             const SizedBox(height: 8),
           ],
           _SectionLabel(text: l10n.communitiesMembers(space.memberCount)),
+          if ((members.asData?.value.length ?? 0) >= _memberSearchFrom)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: TextField(
+                key: const Key('community-members-search'),
+                controller: _search,
+                onChanged: (value) => setState(() => _query = value),
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  hintText: l10n.communityMembersSearch,
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  isDense: true,
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: l10n.communityClearSearch,
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () {
+                            _search.clear();
+                            setState(() => _query = '');
+                          },
+                        ),
+                ),
+              ),
+            ),
           if (members.asData?.value.isEmpty ?? true)
             CommunityEmptyState(
               icon: Icons.people_outline_rounded,
               title: l10n.communityMembersEmpty,
             )
+          else if (!members.asData!.value.any(
+            (member) => memberMatches(profiles[member.uid], _query),
+          ))
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Text(
+                l10n.communityMembersNoMatch(_query.trim()),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: context.brand.mutedInk),
+              ),
+            )
           else
-            for (final member in members.asData!.value)
+            for (final member in members.asData!.value.where(
+              (member) => memberMatches(profiles[member.uid], _query),
+            ))
               _MemberRow(
                 key: ValueKey('member-${member.uid}'),
                 member: member,
                 profile: profiles[member.uid],
                 trailing:
                     viewer != null &&
-                        viewer!.canModerate &&
-                        viewer!.uid != member.uid &&
-                        viewer!.role.outranks(member.role)
+                        viewer.canModerate &&
+                        viewer.uid != member.uid &&
+                        viewer.role.outranks(member.role)
                     ? IconButton(
                         tooltip: l10n.communityMemberActions,
                         onPressed: () => actions.manageMember(
                           context,
                           space: space,
-                          viewer: viewer!,
+                          viewer: viewer,
                           member: member,
                           memberName:
                               profiles[member.uid]?.displayName ?? member.uid,

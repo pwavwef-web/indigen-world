@@ -11,8 +11,10 @@ import 'package:indigen_world_mobile/features/community/data/chat_providers.dart
 import 'package:indigen_world_mobile/features/community/data/chat_repository.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/community/widgets/chat_post_link_card.dart';
 import 'package:indigen_world_mobile/features/community/widgets/community_avatar.dart';
 import 'package:indigen_world_mobile/features/community/widgets/people_widgets.dart';
+import 'package:indigen_world_mobile/features/community/widgets/send_post_sheet.dart';
 import 'package:indigen_world_mobile/features/dictionary/kasem_key_bar.dart';
 import 'package:indigen_world_mobile/features/notifications/local_alerts.dart';
 import 'package:indigen_world_mobile/features/notifications/push_nudge.dart';
@@ -708,6 +710,10 @@ class _MessageBubble extends StatelessWidget {
                       color: mine ? Colors.white : context.brand.ink,
                     ),
                   ),
+                  // A post sent from the feed arrives as its address; this
+                  // is what makes it arrive as the post.
+                  if (linkedCommunityPostId(message.text) case final postId?)
+                    ChatPostLinkCard(postId: postId, onMine: mine),
                   const SizedBox(height: 3),
                   Text(
                     communityAgeLabel(message.createdAt),

@@ -246,6 +246,24 @@ class AppLocalizationsFr extends AppLocalizations {
   String get communityCaughtUp => 'Vous êtes à jour';
 
   @override
+  String get communitySeenLastVisit => 'Déjà vu lors de votre dernière visite';
+
+  @override
+  String get communitiesNewPosts =>
+      'Nouvelles publications depuis votre dernière visite';
+
+  @override
+  String get communityMembersSearch => 'Rechercher des membres';
+
+  @override
+  String get communityClearSearch => 'Effacer la recherche';
+
+  @override
+  String communityMembersNoMatch(String query) {
+    return 'Aucun membre ne correspond à « $query »';
+  }
+
+  @override
   String communityPostedIn(String community) {
     return 'dans $community';
   }

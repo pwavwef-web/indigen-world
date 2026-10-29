@@ -136,6 +136,18 @@
   "communityVoiceActive": "Posting now",
   "communityLoadingMore": "Loading more posts",
   "communityCaughtUp": "You're all caught up",
+  "communitySeenLastVisit": "Seen on your last visit",
+  "communitiesNewPosts": "New posts since your last visit",
+  "communityMembersSearch": "Search members",
+  "communityClearSearch": "Clear search",
+  "communityMembersNoMatch": "No member matches “{query}”",
+  "@communityMembersNoMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
   "communityPostedIn": "in {community}",
   "@communityPostedIn": {
     "placeholders": {

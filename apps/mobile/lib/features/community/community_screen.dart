@@ -18,6 +18,7 @@ import 'package:indigen_world_mobile/features/community/community_actions.dart';
 import 'package:indigen_world_mobile/features/community/community_profile_screen.dart';
 import 'package:indigen_world_mobile/features/community/compose_post_screen.dart';
 import 'package:indigen_world_mobile/features/community/data/chat_providers.dart';
+import 'package:indigen_world_mobile/features/community/data/community_local_prefs.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_repository.dart';
@@ -121,6 +122,16 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   /// The window size a "load more" was last asked for, so one approach to the
   /// end of the feed asks once rather than on every scroll notification.
   int _requestedWindow = 0;
+
+  /// Where each feed was left on the member's previous visit, read once when
+  /// the feed first draws and then held, so the "seen" line stays where it
+  /// was put however many times the feed rebuilds.
+  final _previousVisit = <String, DateTime?>{};
+  final _visitRead = <String>{};
+
+  /// The newest post written down for each feed this session, so the mark is
+  /// only moved when there is something newer to move it to.
+  final _visitWritten = <String, DateTime>{};
 
   @override
   void initState() {
@@ -342,8 +353,63 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     );
   }
 
+  /// The feed the screen is showing, as the visit store names it.
+  String get _feedKey => _communityId != null
+      ? 'space-$_communityId'
+      : (_tab == 0 ? kForYouFeed : kFollowingFeed);
+
+  /// Reads where this feed was left last time (once), and moves the mark up to
+  /// the newest post on screen now.
+  void _noteVisit(List<CommunityPost> posts) {
+    if (posts.isEmpty) return;
+    final uid = ref.read(currentUidProvider);
+    final feed = _feedKey;
+    final slot = '${uid ?? 'guest'}/$feed';
+    final store = FeedVisitStore(uid: uid);
+    DateTime? newest;
+    for (final post in posts) {
+      final at = post.feedTimestamp;
+      if (at != null && (newest == null || at.isAfter(newest))) newest = at;
+    }
+    if (_visitRead.add(slot)) {
+      unawaited(() async {
+        final previous = await store.read(feed);
+        if (!mounted) return;
+        setState(() => _previousVisit[slot] = previous);
+        if (newest != null) {
+          _visitWritten[slot] = newest;
+          await store.write(feed, newest);
+        }
+      }());
+      return;
+    }
+    if (newest == null || !_previousVisit.containsKey(slot)) return;
+    final written = _visitWritten[slot];
+    if (written != null && !newest.isAfter(written)) return;
+    _visitWritten[slot] = newest;
+    unawaited(store.write(feed, newest));
+  }
+
+  /// Where the "seen on your last visit" line goes in [posts], if anywhere.
+  ///
+  /// Not on For you while it is served by the recommendation backend, whose
+  /// order is a ranking rather than a timeline: "everything below here is
+  /// older" would not be true of it.
+  int? _seenLine(List<CommunityPost> posts) {
+    if (_communityId == null && _tab == 0 && communityRecommendationsEnabled) {
+      return null;
+    }
+    final slot = '${ref.read(currentUidProvider) ?? 'guest'}/$_feedKey';
+    return caughtUpIndex(posts, _previousVisit[slot]);
+  }
+
   void _switchTab(int tab) {
-    if (tab == _tab && _communityId == null) return;
+    if (tab == _tab && _communityId == null) {
+      // The tab already showing, tapped again: back to the top of it, which
+      // is what tapping the bottom bar's Community does as well.
+      unawaited(_flyHome());
+      return;
+    }
     setState(() {
       _tab = tab;
       _communityId = null;
@@ -519,6 +585,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     // Held back or shown, decided once — including for an empty feed, which
     // still has to clear a pill left over from the page before it.
     final shown = feed.value == null ? null : _split(feed.value!);
+    if (shown != null) _noteVisit(shown);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -660,6 +727,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                                 _communityId == null &&
                                 _tab == 0 &&
                                 _offerNewVoices,
+                            seenLineAt: _seenLine(posts),
                             footer: loadingMore
                                 ? const _FeedFooter.loading()
                                 : reachedEnd && posts.length > 4
@@ -689,6 +757,9 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                   tab: _tab,
                   communityId: _communityId,
                   onCommunity: (id) {
+                    unawaited(
+                      ref.read(communityVisitsProvider.notifier).visit(id),
+                    );
                     setState(() {
                       _communityId = id;
                       _anchor = null;
@@ -749,6 +820,7 @@ class _FeedList extends StatelessWidget {
     required this.actions,
     required this.onSeen,
     this.offerNewVoices = false,
+    this.seenLineAt,
     this.footer,
   });
 
@@ -769,6 +841,10 @@ class _FeedList extends StatelessWidget {
   /// Whether to place the New voices module a few posts in.
   final bool offerNewVoices;
 
+  /// The index in [posts] of the first post the member could already have
+  /// read on their last visit — the line is drawn above it. Null for none.
+  final int? seenLineAt;
+
   /// The row under the last post: a spinner while the next page loads, or a
   /// quiet line once there is no next page.
   final Widget? footer;
@@ -785,12 +861,25 @@ class _FeedList extends StatelessWidget {
       cadence: kCommunityAdCadence,
       render: (slot) => slot,
     );
-    final rows = offerNewVoices
+    final discovered = offerNewVoices
         ? insertDiscoveryRow(
             rows: spliced,
             isPost: (row) => row is CommunityPost,
           )
         : spliced;
+    // The line goes immediately above the post it belongs to, wherever the
+    // adverts and the module have since moved that post to.
+    final lineBefore = seenLineAt == null || seenLineAt! >= posts.length
+        ? null
+        : posts[seenLineAt!];
+    final rows = lineBefore == null
+        ? discovered
+        : [
+            for (final row in discovered) ...[
+              if (identical(row, lineBefore)) const _SeenLine(),
+              row,
+            ],
+          ];
     return SliverList.builder(
       itemCount: rows.length + (footer == null ? 0 : 1),
       // Keyed by what the row is rather than where it is, so a post published
@@ -808,6 +897,12 @@ class _FeedList extends StatelessWidget {
           return const KeyedSubtree(
             key: ValueKey('row-new-voices'),
             child: NewVoicesModule(),
+          );
+        }
+        if (row is _SeenLine) {
+          return const KeyedSubtree(
+            key: ValueKey('row-seen-line'),
+            child: _SeenLine(),
           );
         }
         // The advert brings its own visibility detector and its own impression
@@ -854,9 +949,58 @@ class _FeedList extends StatelessWidget {
   static String? _rowKey(Object row) => switch (row) {
     final CommunityPost post => 'post-${post.id}-${post.resharedById ?? 'own'}',
     DiscoveryRow() => 'row-new-voices',
+    _SeenLine() => 'row-seen-line',
     final AdSlot slot => 'ad-slot-${slot.key}',
     _ => null,
   };
+}
+
+/// Above the first post the member could already have read last time.
+///
+/// Everything above it arrived since; everything below was there when they
+/// were last here. It is a line in the feed rather than a pill or a banner,
+/// so it costs a reader nothing who wants to keep going.
+class _SeenLine extends StatelessWidget {
+  const _SeenLine();
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = context.brand;
+    return Semantics(
+      container: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Row(
+          children: [
+            Expanded(child: Divider(color: brand.divider, height: 1)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.check_circle_outline_rounded,
+                    size: 15,
+                    color: brand.accent,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    AppLocalizations.of(context).communitySeenLastVisit,
+                    style: TextStyle(
+                      color: brand.mutedInk,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(child: Divider(color: brand.divider, height: 1)),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// Under the last post: the next page arriving, or the end of the feed.

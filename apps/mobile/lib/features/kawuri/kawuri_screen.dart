@@ -40,11 +40,16 @@ import 'package:share_plus/share_plus.dart';
 /// deliberately the launch screen's — orbiting rings, cultural glyphs — so
 /// Kawuri reads as part of this project rather than a chat window bolted on.
 class KawuriScreen extends ConsumerStatefulWidget {
-  const KawuriScreen({this.learningContext, super.key});
+  const KawuriScreen({this.learningContext, this.initialDraft, super.key});
 
   /// Set when Kawuri is opened from the Learn tab: the course, unit, lesson
   /// and word the learner was on, offered as ready-made requests.
   final KawuriLearningContext? learningContext;
+
+  /// A request written for the member by the screen that opened this one —
+  /// "Ask Kawuri about this post". Put in the box of a fresh conversation and
+  /// left there for them to read and send, never sent on their behalf.
+  final String? initialDraft;
 
   @override
   ConsumerState<KawuriScreen> createState() => _KawuriScreenState();
@@ -75,6 +80,26 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
       () =>
           ref.read(kawuriControllerProvider.notifier).updateDraft(_input.text),
     );
+    if (widget.initialDraft case final draft?) {
+      ref.listenManual(kawuriControllerProvider.select((s) => s.restored), (
+        _,
+        restored,
+      ) {
+        if (!restored || _draftPrepared) return;
+        _draftPrepared = true;
+        Future.microtask(() async {
+          if (!mounted) return;
+          final controller = ref.read(kawuriControllerProvider.notifier);
+          final state = ref.read(kawuriControllerProvider);
+          // A question about a post is a conversation of its own; whatever was
+          // open before is put away into history, as a lesson's would be.
+          if (!state.isEmpty && !state.thinking) {
+            await controller.startNewConversation();
+          }
+          if (mounted) controller.updateDraft(draft);
+        });
+      }, fireImmediately: true);
+    }
     if (widget.learningContext != null) {
       // Opened from a lesson: the learning card lives on the home view, so an
       // unrelated conversation left open is put away into history first.
@@ -100,6 +125,7 @@ class _KawuriScreenState extends ConsumerState<KawuriScreen>
   }
 
   var _learningPrepared = false;
+  var _draftPrepared = false;
 
   /// One of the Learn tab's ready-made requests, sent with its grounding.
   Future<void> _learningAction(KawuriLearningAction action) async {

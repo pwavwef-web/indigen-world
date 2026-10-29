@@ -76,6 +76,10 @@ class FollowButton extends ConsumerWidget {
         : const EdgeInsets.symmetric(horizontal: 20);
     // 40 is the smallest a thumb target gets anywhere in the community.
     final size = dense ? const Size(0, 40) : const Size(0, 44);
+    // From the theme's button style, so the label is in the app's own face.
+    // A bare TextStyle here has no family and fell back to the system font.
+    final label = (Theme.of(context).textTheme.labelLarge ?? const TextStyle())
+        .copyWith(fontSize: 13, fontWeight: FontWeight.w800);
 
     return following
         ? OutlinedButton(
@@ -83,10 +87,7 @@ class FollowButton extends ConsumerWidget {
             style: OutlinedButton.styleFrom(
               minimumSize: size,
               padding: padding,
-              textStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
+              textStyle: label,
             ),
             child: const Text('Following'),
           )
@@ -95,13 +96,41 @@ class FollowButton extends ConsumerWidget {
             style: FilledButton.styleFrom(
               minimumSize: size,
               padding: padding,
-              textStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
+              textStyle: label,
             ),
             child: const Text('Follow'),
           );
+  }
+}
+
+/// "Follows you", beside the handle of somebody who does. Nothing otherwise —
+/// including while the answer is on its way, so the line never jumps.
+class FollowsYouChip extends ConsumerWidget {
+  const FollowsYouChip({required this.uid, super.key});
+
+  final String uid;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final follows = ref.watch(followsMeProvider(uid)).asData?.value ?? false;
+    if (!follows) return const SizedBox.shrink();
+    return Container(
+      key: ValueKey('follows-you-$uid'),
+      margin: const EdgeInsets.only(left: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: context.brand.divider,
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Text(
+        'Follows you',
+        style: TextStyle(
+          color: context.brand.mutedInk,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
   }
 }
 
@@ -147,13 +176,22 @@ class ProfileTile extends StatelessWidget {
     subtitle: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          profile.handle,
-          style: TextStyle(
-            color: context.brand.mutedInk,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
-          ),
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                profile.handle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: context.brand.mutedInk,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            FollowsYouChip(uid: profile.uid),
+          ],
         ),
         if (profile.bio.isNotEmpty)
           Text(

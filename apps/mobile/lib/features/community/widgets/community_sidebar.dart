@@ -9,6 +9,8 @@ import 'package:indigen_world_mobile/features/community/community_profile_screen
 import 'package:indigen_world_mobile/features/community/data/chat_providers.dart';
 import 'package:indigen_world_mobile/features/community/data/community_models.dart';
 import 'package:indigen_world_mobile/features/community/data/community_providers.dart';
+import 'package:indigen_world_mobile/features/community/data/saved_drafts.dart';
+import 'package:indigen_world_mobile/features/community/drafts_screen.dart';
 import 'package:indigen_world_mobile/features/community/messages_screen.dart';
 import 'package:indigen_world_mobile/features/community/people_screen.dart';
 import 'package:indigen_world_mobile/features/community/saved_posts_screen.dart';
@@ -130,6 +132,13 @@ class CommunitySidebar extends ConsumerWidget {
                             description: 'Kept from the feed',
                             onTap: () =>
                                 go((context) => const SavedPostsScreen()),
+                          ),
+                          _SidebarItem(
+                            icon: Icons.drafts_outlined,
+                            label: 'Drafts',
+                            description: 'Posts to finish later',
+                            badge: ref.watch(savedDraftsProvider).length,
+                            onTap: () => go((context) => const DraftsScreen()),
                           ),
                           _SidebarItem(
                             icon: Icons.group_outlined,

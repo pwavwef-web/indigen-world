@@ -362,7 +362,8 @@ class _MediaTile extends ConsumerWidget {
             ),
           );
 
-    return GestureDetector(
+    final described = !item.isVideo && item.alt.isNotEmpty;
+    final tile = GestureDetector(
       // Opaque, not deferred: a photograph that has not arrived yet paints a
       // plain fill, and a plain fill is not a hit test target — so the tap fell
       // through to the card underneath and opened the conversation instead of
@@ -414,10 +415,79 @@ class _MediaTile extends ConsumerWidget {
                 ),
               ),
             ),
+          // The badge is for sighted readers who want the author's words for
+          // the picture; a screen reader hears them as the image's label.
+          if (described && overflow == 0)
+            Positioned(
+              left: 8,
+              bottom: 8,
+              child: ImageDescriptionBadge(description: item.alt),
+            ),
         ],
       ),
     );
+    if (item.isVideo) return tile;
+    return Semantics(
+      image: true,
+      label: described ? item.alt : 'Photo, not described',
+      child: tile,
+    );
   }
+}
+
+/// "ALT" in the corner of a described photo. Tapping it shows the words the
+/// author wrote for the picture.
+class ImageDescriptionBadge extends StatelessWidget {
+  const ImageDescriptionBadge({required this.description, super.key});
+
+  final String description;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: GestureDetector(
+      key: const Key('image-description-badge'),
+      behavior: HitTestBehavior.opaque,
+      onTap: () => showModalBottomSheet<void>(
+        context: context,
+        useSafeArea: true,
+        showDragHandle: true,
+        builder: (context) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Image description',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                description,
+                style: const TextStyle(fontSize: 15.5, height: 1.5),
+              ),
+            ],
+          ),
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xB3000000),
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: const Text(
+          'ALT',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.6,
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 /// A voice note, drawn as a bar you can play rather than as a file you cannot.
@@ -969,9 +1039,13 @@ class _ViewerPageState extends State<_ViewerPage> {
       minScale: 1,
       maxScale: 4,
       child: Center(
-        child: widget.heroTag == null
-            ? picture
-            : Hero(tag: widget.heroTag!, child: picture),
+        child: Semantics(
+          image: true,
+          label: item.alt.isNotEmpty ? item.alt : 'Photo, not described',
+          child: widget.heroTag == null
+              ? picture
+              : Hero(tag: widget.heroTag!, child: picture),
+        ),
       ),
     );
   }
