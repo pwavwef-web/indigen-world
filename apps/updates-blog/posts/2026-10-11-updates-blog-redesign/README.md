@@ -1,6 +1,8 @@
 # A cleaner place to read our updates
 
-Status: **Theme ready and locally verified on October 11, 2026. Not installed on Blogger. Blogger article unpublished.**
+**Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/blog-post_29.html
+
+Status: **Theme ready and locally verified on October 11, 2026. Seen live on updates.indigenworld.com on October 29, 2026 (serif headlines, named share buttons, Indigen World byline, contents rail). Article published October 29, 2026; its opening line was updated to say the theme is live.**
 
 - Title: A cleaner place to read our updates
 - Labels: Indigen World, Design, Website, Accessibility
@@ -24,7 +26,7 @@ Defects found on the live blog (`updates.indigenworld.com`, fetched October 11, 
 
 ## Release and availability
 
-Nothing is live. The theme reaches readers only after it is pasted into **Blogger → Theme → Edit HTML**. Do this from the [theme README](../../README.md#install). Then remove the retained **Featured Post** gadget in **Layout**. The CSS already hides it whenever posts render. Existing posts need no edits. Keeping the cover as the first image in a post remains correct, because Blogger uses it for the share card and the theme hides the duplicate.
+At preparation time nothing was live. The theme reaches readers only after it is pasted into **Blogger → Theme → Edit HTML**. Do this from the [theme README](../../README.md#install). Then remove the retained **Featured Post** gadget in **Layout**. The CSS already hides it whenever posts render. Existing posts need no edits. Keeping the cover as the first image in a post remains correct, because Blogger uses it for the share card and the theme hides the duplicate.
 
 The theme has not been uploaded during this work. Blogger's own template engine, comment iframe and hosted image proxy can only be confirmed after installation. Check these first:
 

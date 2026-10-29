@@ -1,5 +1,7 @@
 # Help fill the jars moves onto a factory floor
 
+**Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/welcome-to-factory-floor-labelled-jars.html
+
 - **Title:** Welcome to the factory floor: labelled jars, moving water and ten new features
 - **Topic:** The public progress page (`/progress`) redesigned as a factory hall with parallax depth; liquid with a moving surface; printed labels on every jar; a fix for jars that slid in late and pipes that missed them; ten features: plant output dial, delivery log, shift board, goal lines, ordering, pipe tracing, day/night shifts, showcase mode, links to a jar and an optional factory sound. Sealed jars when a target is met.
 - **Labels:** Progress, Website, Feature, Community, Indigen World

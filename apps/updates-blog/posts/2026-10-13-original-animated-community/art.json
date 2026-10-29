@@ -1,0 +1,14 @@
+{
+  "accent": "rose",
+  "motif": "weave",
+  "eyebrow": "Public website · Illustration",
+  "title": "A community\nof characters",
+  "lede": "Ten original illustrated characters bring storytelling, learning and creating into the public website.",
+  "tags": ["Ten characters", "Gentle motion", "Pause any time"],
+  "hero": ["home-desktop.jpg", "dictionary-live.jpg"],
+  "figures": {
+    "home-desktop.jpg": { "title": "People at the heart of the page", "note": "Actual website preview. Original AI-generated artwork; all characters are fictional." },
+    "community-live.jpg": { "title": "Ten characters, one community", "note": "Live homepage, 13 October 2026. An illustration, not a photograph." },
+    "dictionary-live.jpg": { "title": "Room to read on a phone", "note": "Live website at phone width, 13 October 2026." }
+  }
+}

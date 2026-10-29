@@ -1,5 +1,7 @@
 # A community of characters for Indigen World
 
+**Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/blog-post_750.html
+
 - **Prepared:** October 13, 2026
 - **Title:** A community of characters for Indigen World
 - **Labels:** Website, Design, Community, Kasem, Accessibility
@@ -53,6 +55,8 @@ people. No Endangered Languages Project artwork or video was copied.
   runtime error was observed in the live banner checks.
 
 ## Images and credits
+
+On October 29, 2026 the raw screenshots below moved to `screens/`. `images/` now holds the designed cover and framed figures rendered from `art.json` with `render-post-art.mjs`; the published article uses those.
 
 Actual local website screenshots, October 13, 2026: `images/home-desktop.jpg`,
 `images/community-scenes.jpg`, `images/dictionary-mobile.jpg`. Public UI and

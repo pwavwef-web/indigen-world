@@ -1,6 +1,6 @@
 # Sharing handoff for Chinedum
 
-**Published article URL:** [ADD THE PUBLISHED ARTICLE URL HERE]
+**Published article URL:** https://updates.indigenworld.com/2026/10/blog-post_815.html
 
 Released 14 October 2026. Share after the article is published.
 
@@ -10,4 +10,4 @@ Contribute paths. If you're signed in, you go straight to playing. If not, Labs
 tells you exactly what you need.
 
 Take a look and tell us what you think: https://indigenworld.com/labs
-Read what changed: [ADD THE PUBLISHED ARTICLE URL HERE]
+Read what changed: https://updates.indigenworld.com/2026/10/blog-post_815.html

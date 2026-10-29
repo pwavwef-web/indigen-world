@@ -1,5 +1,7 @@
 # A clearer picture of Indigen World: the platform observatory
 
+**Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/a-clearer-picture-of-indigen-world.html
+
 Prepared 15 October 2026. **Local research dashboard; no production deployment. Blogger publication and sharing pending.** This post does not imply a public dashboard URL or a fully audited platform.
 
 Final local build and browser review completed 16 October 2026 UTC. The capability assertions retain the review's 15 October source scope; the dashboard shows its actual later build timestamp.

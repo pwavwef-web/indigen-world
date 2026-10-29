@@ -17,7 +17,7 @@
   (four successful updates). The live function count stayed at 223. Website
   Hosting (`indigen-world`) was also deployed through the production guard
   and `check:website`, to serve the logo copy used by the Firebase reset template.
-- **Blogger:** Unpublished. Publication and external sharing remain Chinedum’s handoff.
+- **Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/blog-post_246.html
 
 ## Publishing steps
 

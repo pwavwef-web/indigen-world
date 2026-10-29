@@ -1,5 +1,7 @@
 # An easier way to discover, learn and contribute
 
+**Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/blog-post_981.html
+
 - **Prepared:** October 12, 2026
 - **Title:** An easier way to discover, learn and contribute on Indigen World
 - **Labels:** Website, Design, Kasem, Dictionary, Learning, Accessibility
@@ -58,7 +60,13 @@
   expansion and sticky search, compact task pages, and mobile story navigation
   passed with no browser runtime errors. An actual live screenshot is saved.
 
+## Published note
+
+The article adds a "Since then" line: on October 13 the photographs in the page openings were replaced by the illustrated community scenes; search, previews and navigation are unchanged.
+
 ## Images and credits
+
+On October 29, 2026 the raw screenshots below moved to `screens/`. `images/` now holds the designed cover and framed figures rendered from `art.json` with `render-post-art.mjs`; the published article uses those.
 
 Actual local production-build screenshots, captured October 13, 2026:
 `images/home-desktop.png`, `images/language-previews.png`,

@@ -7,7 +7,7 @@ rising cards to guide you through our mission, learning resources and ways to
 take part. Mobile layouts stay readable, and you can pause the effects at any
 time.
 
-Read more: **[PUBLISHED ARTICLE URL — replace after Blogger publication]**
+Read more: https://updates.indigenworld.com/2026/10/blog-post_252.html
 
 Current status: public website deployed and verified October 12, 2026, at
 https://indigenworld.com/. This article's publication is pending.

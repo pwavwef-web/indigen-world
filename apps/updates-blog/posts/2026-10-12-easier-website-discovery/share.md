@@ -7,7 +7,7 @@ and reach learning or contribution tools more easily on your phone. Indigen
 World's website now has simpler navigation, warmer colours and clearer paths
 to take part.
 
-Read the update: **[PUBLISHED ARTICLE URL — replace after Blogger publication]**
+Read the update: https://updates.indigenworld.com/2026/10/blog-post_981.html
 
 Website: https://indigenworld.com/
 

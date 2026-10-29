@@ -5,7 +5,7 @@
 - **Search description:** One Home for contributions, private source uploads, separate usage choices, and traceable human review in the Indigen World Contributor Portal.
 - **Prepared:** 23 October 2026 (UTC).
 - **Deployment status:** Deployed 23 October 2026. Final Hosting release: 19:42:36 UTC, version `ea79e3d68d63899d`, source `632eaf9` (initial release `5ac05c9`). Four affected Functions are ACTIVE. Storage rules and private-upload CORS are released.
-- **Blogger publication:** Not published. Chinedum owns publication and sharing.
+- **Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/more-ways-to-share-what-you-know.html
 
 ## Images and credits
 

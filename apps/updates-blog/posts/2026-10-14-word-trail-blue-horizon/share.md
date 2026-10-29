@@ -4,4 +4,4 @@ Saved translations go to community review. Run points have no cash value. This r
 
 Try it: https://indigenworld.com/labs/word-trail
 
-Published article URL: [CHINEDUM: REPLACE AFTER BLOGGER PUBLICATION]
+Published article URL: https://updates.indigenworld.com/2026/10/blog-post_449.html

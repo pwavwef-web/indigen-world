@@ -1,5 +1,7 @@
 # Shop redesign, Literature + Blogs, compact notifications, comment sponsorship
 
+**Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/a-shop-reading-room-and-calmer-inbox.html
+
 - **Title:** A shop, a reading room and a calmer inbox
 - **Labels:** Indigen World, Mobile, Shop, Literature, Notifications, In development
 - **Search description:** The Indigen World shop and Literature now use the app's own navigation bar, the updates blog appears inside the app, and notifications are more compact.

@@ -5,7 +5,7 @@
 - **Search description:** Reviewers can correct submission wording in the admin and validator portals, save their work, and publish with the contributor's permission and credit.
 - **Prepared:** 23 October 2026 (UTC).
 - **Deployment status:** Deployed 23 October 2026 (UTC), source `142b5b00`. All three affected Functions are ACTIVE. Administration Hosting version `a1af8739e780dd64`; TribeStudio version `d2db363f350d241a`. Live routes, bundles and unauthenticated access guards verified; authenticated production editing/publishing was not exercised.
-- **Blogger publication:** Not published. Publication and sharing remain with Chinedum.
+- **Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/correct-submission-and-publish-from.html
 
 ## Images and credits
 

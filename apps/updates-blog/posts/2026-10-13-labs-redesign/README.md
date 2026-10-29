@@ -6,7 +6,7 @@
 - **Search description:** Indigen World Labs gets a photo-led home, live previews of Word Trail and Culture Quest, clear sign-in and access states, and Play, Learn, Create and Contribute filters.
 - **Implementation:** Committed to `main` as `afc3790` (on top of `4af3cdc`). Local verification listed below.
 - **Deployment:** Website Hosting (`indigen-world`) deployed 14 October 2026 from a clean checkout of `afc3790`, through the normal production guard and `check:website`. `labsApi` was not redeployed; the website supplies the new `summary`/`modes` fields from its bundled registry.
-- **Blogger:** Unpublished. Publication and external sharing remain Chinedum’s handoff.
+- **Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/blog-post_815.html
 
 ## Publishing steps
 

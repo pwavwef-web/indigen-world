@@ -4,6 +4,6 @@ Ten original illustrated characters bring storytelling, learning and creating in
 
 Website: https://indigenworld.com/
 
-**Published article URL: [REPLACE WITH THE BLOGGER ARTICLE URL AFTER PUBLICATION]**
+**Published article URL: https://updates.indigenworld.com/2026/10/blog-post_750.html
 
 Artwork is AI-generated; all illustrated characters are fictional.

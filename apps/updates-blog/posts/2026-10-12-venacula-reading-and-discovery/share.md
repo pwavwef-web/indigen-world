@@ -7,4 +7,4 @@ word, save it in your browser, or explore a grammar topic and its source chapter
 
 Dictionary: https://www.venacula.com/
 Grammar: https://www.venacula.com/grammar-guide
-Article: **[PUBLISHED ARTICLE URL — replace after publication]**
+Article: https://updates.indigenworld.com/2026/10/blog-post_61.html

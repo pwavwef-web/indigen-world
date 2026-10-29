@@ -1,0 +1,16 @@
+{
+  "accent": "teal",
+  "motif": "rings",
+  "eyebrow": "Venacula · Kasem Dictionary",
+  "title": "Easier discovery,\na clearer grammar guide",
+  "lede": "Phone-friendly navigation, topic search and chapter filters make the Kasem reference easier to explore.",
+  "tags": ["Phone-ready", "Topic search", "Sources visible"],
+  "hero": ["dictionary-desktop.png", "dictionary-live-mobile.png"],
+  "figures": {
+    "dictionary-desktop.png": { "title": "One dictionary workspace", "note": "Local preview: meanings, sources and learning guides together." },
+    "dictionary-mobile.png": { "title": "Better browsing on your phone", "note": "Local phone preview: search and saved entries within reach." },
+    "dictionary-live-mobile.png": { "title": "Shared links open the entry", "note": "Verified live on Venacula, 12 October 2026." },
+    "grammar-desktop.png": { "title": "Find the grammar topic you need", "note": "Local preview: contents menu, topic search and chapter filter." },
+    "grammar-mobile.png": { "title": "Search and read in one place", "note": "Local phone preview of the grammar guide." }
+  }
+}

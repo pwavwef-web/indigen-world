@@ -1,6 +1,6 @@
 # Sharing handoff for Chinedum
 
-**Published article URL:** [ADD THE PUBLISHED ARTICLE URL HERE]
+**Published article URL:** https://updates.indigenworld.com/2026/10/blog-post_246.html
 
 Share only after the article is published.
 
@@ -10,4 +10,4 @@ Published), and reviewer feedback sits in its own panel with one button back to
 your work. The emails are easy to read on a phone and work in dark mode.
 
 Same emails, same moments, just clearer. Read what changed:
-[ADD THE PUBLISHED ARTICLE URL HERE]
+https://updates.indigenworld.com/2026/10/blog-post_246.html

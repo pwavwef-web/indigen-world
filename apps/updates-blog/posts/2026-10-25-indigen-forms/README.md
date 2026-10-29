@@ -5,7 +5,7 @@
 - **Search description:** Admins build, preview and publish versioned contribution forms in Administration; contributors answer them in the contributor portal and reviewers decide, with permissions kept separate.
 - **Prepared:** 25 October 2026 (UTC).
 - **Deployment status:** Deployed 25 October 2026 (around 22:00–22:20 UTC) from source `2015515`. Firestore rules (including the already-committed 0.1.36 liked-songs rule), Storage rules, indexes and the request-record TTL released. Functions: `formsAdmin`, `formsContributor`, `formsReview` and `sweepFormUploads` created; `saveContributorProfile`, `awardContributorPoints` and `getContributorRewards` updated. Live functions went from 249 to 253 with none removed. Administration and TribeStudio hosting released; the live entry bundles match the build, and the live chunks call the new functions. Unauthenticated probes: `formsContributor` answers "Sign in is required."; `formsAdmin` and `formsReview` refuse at App Check (JSON 401). Authenticated production use (real Google sign-in with two-step verification, uploads to the production bucket, signed attachment links) has not yet been exercised.
-- **Blogger publication:** Not published. Publication and sharing remain with Chinedum.
+- **Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/indigen-forms-build-contribution-form.html
 
 ## What the post covers
 

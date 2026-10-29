@@ -1,0 +1,14 @@
+{
+  "accent": "violet",
+  "motif": "dots",
+  "eyebrow": "Public website · Motion",
+  "title": "A little motion,\nwherever you explore",
+  "lede": "Rising cards now carry you through the public pages and Kasem guides, one idea at a time.",
+  "tags": ["Rising cards", "Phone-friendly", "Pause any time"],
+  "hero": ["about-live.png", "learn-mobile.png"],
+  "figures": {
+    "about-live.png": { "title": "One idea at a time", "note": "The live About page, verified 12 October 2026." },
+    "learn-mobile.png": { "title": "Readable on a phone", "note": "On narrow screens the cards stay in a normal vertical sequence." },
+    "guide-mobile.png": { "title": "Your pace, your choice", "note": "The grammar guide keeps its sources and adds the shared motion control." }
+  }
+}

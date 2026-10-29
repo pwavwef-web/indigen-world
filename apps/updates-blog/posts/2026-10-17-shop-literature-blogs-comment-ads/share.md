@@ -1,10 +1,10 @@
 # Share copy
 
-**Article URL:** `[PUBLISHED ARTICLE URL]` ← replace after the post is live on Blogger.
+**Article URL:** https://updates.indigenworld.com/2026/10/a-shop-reading-room-and-calmer-inbox.html ← replace after the post is live on Blogger.
 
 ## Short (WhatsApp / X)
 
-Coming to the Indigen World app: a shop that feels like the rest of the app, a Literature section with its own Blogs tab (our updates, inside the app), and a calmer notifications screen. Still in development, so here is a first look 👉 [PUBLISHED ARTICLE URL]
+Coming to the Indigen World app: a shop that feels like the rest of the app, a Literature section with its own Blogs tab (our updates, inside the app), and a calmer notifications screen. Still in development, so here is a first look 👉 https://updates.indigenworld.com/2026/10/a-shop-reading-room-and-calmer-inbox.html
 
 ## Longer (Facebook / LinkedIn)
 
@@ -15,4 +15,4 @@ We have been redesigning parts of the Indigen World app:
 • Notifications are compact: one line each, swipe to mark read.
 • One clearly labelled sponsored entry can appear above the first reply in a conversation. Members never see it.
 
-This is in development and not in an app-store release yet. Read more: [PUBLISHED ARTICLE URL]
+This is in development and not in an app-store release yet. Read more: https://updates.indigenworld.com/2026/10/a-shop-reading-room-and-calmer-inbox.html

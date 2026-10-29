@@ -1,5 +1,7 @@
 # Twenty features, upgrades and improvements (0.1.36+45)
 
+**Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/twenty-upgrades-from-songs-to-messages.html
+
 - **Title:** Twenty upgrades, from songs to messages
 - **Topic:** Indigen World Android 0.1.36: liked songs, Play next / Add to queue, a sleep timer, playback speed and a place kept in every reading; recent dictionary lookups, sharing a word, practising English → Kasem and a daily practice reminder; quoted replies, Seen, day headings and older messages, muting, Kasem letters and search in Messages; undoing a block or mute, reading size and place, sharing songs and works, clearing cached pictures, and a fix for large text in the shop.
 - **Labels:** Mobile, Release, Music, Messages, Dictionary, Learn, Indigen World

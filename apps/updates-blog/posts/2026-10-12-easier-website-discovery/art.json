@@ -1,0 +1,15 @@
+{
+  "accent": "amber",
+  "motif": "weave",
+  "eyebrow": "Public website · Discovery",
+  "title": "Discover, learn\nand contribute",
+  "lede": "Search the dictionary from the homepage, try the language first and find your way around more easily.",
+  "tags": ["Homepage search", "Language previews", "Simpler menus"],
+  "hero": ["home-live.png", "dictionary-mobile.png"],
+  "figures": {
+    "home-live.png": { "title": "Find a word from the homepage", "note": "The live homepage search, verified 13 October 2026." },
+    "language-previews.png": { "title": "Try the language first", "note": "Previews come from public, reviewed records and change as records are published." },
+    "dictionary-mobile.png": { "title": "Search and filters stay close", "note": "Actual dictionary preview at phone width." },
+    "learn-mobile.png": { "title": "More room for the task", "note": "A shorter opening brings the learning steps closer to the first screen." }
+  }
+}

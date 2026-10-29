@@ -1,5 +1,7 @@
 # Rich alerts in the notification shade, plus five usability features (0.1.35+44)
 
+**Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/alerts-you-can-answer-and-five.html
+
 - **Title:** Alerts you can answer, and five shortcuts to less tapping
 - **Topic:** Android notifications drawn in the app's own design (avatar with kind badge, attached picture, Reply / Like / Mark as read, conversations, grouped summaries) and five usability features: app-icon shortcuts, message drafts, copy any message, Undo for deleted notifications, snooze alerts.
 - **Labels:** Notifications, Mobile, Release, Messages, Indigen World

@@ -1,5 +1,7 @@
 # Easier discovery and a clearer grammar guide on Venacula
 
+**Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/blog-post_61.html
+
 - **Prepared:** October 12, 2026
 - **Labels:** Indigen World, Kasem, Venacula, Dictionary, Grammar, Product Updates
 - **Search description:** A clearer Kasem dictionary and grammar reference, with mobile navigation, topic search, chapter filters and easier source browsing.
@@ -56,6 +58,8 @@ Existing unrelated workspace changes were excluded from both commits
 and deployment.
 
 ## Images and Blogger publishing
+
+On October 29, 2026 the raw screenshots below moved to `screens/`. `images/` now holds the designed cover and framed figures rendered from `art.json` with `render-post-art.mjs`; the published article uses those.
 
 The four preview PNG assets under `images/` are actual local product screenshots captured
 October 12, 2026. Dictionary screenshots use already published records. Interface

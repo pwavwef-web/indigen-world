@@ -1,5 +1,7 @@
 # A stronger gate for Administration
 
+**Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/a-stronger-gate-for-administration.html
+
 Status: **Deployed and verified October 21, 2026.** Blogger unpublished; community sharing pending.
 
 - Title: A stronger gate for Administration

@@ -4,4 +4,4 @@ It brings together diagrams, a searchable capability ledger, source excerpts, pr
 
 This is a local research dashboard, not a new public service or a claim that the platform is complete.
 
-**PUBLISHED ARTICLE URL — REPLACE AFTER BLOGGER PUBLICATION:** [ARTICLE_URL_PENDING]
+**Published article URL:** https://updates.indigenworld.com/2026/10/a-clearer-picture-of-indigen-world.html

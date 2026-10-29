@@ -2,4 +2,4 @@ Administration now has another gate before protected staff requests proceed: App
 
 Deployed and verified October 21, 2026. This protects the Administration callable workflow; shared project-wide service enforcement is outside this release.
 
-Published article URL: **[ADD PUBLISHED ARTICLE URL]**
+Published article URL: https://updates.indigenworld.com/2026/10/a-stronger-gate-for-administration.html

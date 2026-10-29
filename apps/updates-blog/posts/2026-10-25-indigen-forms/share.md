@@ -2,4 +2,4 @@ New on Indigen World: Indigen Forms. The team can now build, preview and publish
 
 Available in Administration and the contributor portal from 25 October 2026 for signed-in contributors.
 
-Published article URL: **[REPLACE WITH THE PUBLISHED BLOGGER ARTICLE URL]**
+Published article URL: https://updates.indigenworld.com/2026/10/indigen-forms-build-contribution-form.html

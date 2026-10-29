@@ -5,7 +5,7 @@
 - **Search description:** Zem Botarebu now uses Gemini to illustrate a published Kasem word's meaning, with actions for verbs and clear subjects for nouns.
 - **Implementation:** Complete; Functions build, ten policy tests and twelve Firestore/Storage emulator tests pass.
 - **Deployment:** Confirmed live on 15 October 2026. Both Functions are ACTIVE; the deployed Scheduler job generated and attached today's real Gemini illustration. Public image returned HTTP 200 and was visually inspected.
-- **Blogger:** Unpublished. Publication and sharing remain Chinedum's handoff.
+- **Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/see-meaning-illustrations-for-kasem.html
 
 ## Publishing steps
 

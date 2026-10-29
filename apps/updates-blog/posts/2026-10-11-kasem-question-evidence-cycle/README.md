@@ -1,5 +1,7 @@
 # One Kasem question through a complete evidence cycle
 
+**Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/kasem-question-evidence-cycle.html
+
 - **Title:** One Kasem question through a complete evidence cycle
 - **Labels:** Kasem, Kawuri, Research, Language review, Data quality
 - **Search description:** A five-question Kasem pilot links documentary evidence, natural speech, scoped review and unseen Kawuri tests. Local tools are ready; speaker work is pending.

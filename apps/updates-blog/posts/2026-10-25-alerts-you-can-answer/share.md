@@ -1,10 +1,10 @@
 # Share copy
 
-**Article URL:** `[PUBLISHED ARTICLE URL]` ← replace after the post is live on Blogger.
+**Article URL:** https://updates.indigenworld.com/2026/10/alerts-you-can-answer-and-five.html ← replace after the post is live on Blogger.
 
 ## Short (WhatsApp / X)
 
-Indigen World 0.1.35 for Android: your phone's notifications now look like the app's. You see the person's photo and the picture they shared, and you can Reply, Like or Mark as read straight from the notification. It also adds app-icon shortcuts, message drafts, Copy for messages, Undo and Snooze. 👉 [PUBLISHED ARTICLE URL]
+Indigen World 0.1.35 for Android: your phone's notifications now look like the app's. You see the person's photo and the picture they shared, and you can Reply, Like or Mark as read straight from the notification. It also adds app-icon shortcuts, message drafts, Copy for messages, Undo and Snooze. 👉 https://updates.indigenworld.com/2026/10/alerts-you-can-answer-and-five.html
 
 ## Longer (Facebook / LinkedIn)
 
@@ -16,4 +16,4 @@ The next Indigen World app update for Android makes notifications something you 
 
 Also included: shortcuts when you press and hold the app icon, messages you have not finished are kept as drafts, any message can be copied, deleted notifications can be brought back with Undo, and alerts can be snoozed for an hour, eight hours or until morning.
 
-Read more: [PUBLISHED ARTICLE URL]
+Read more: https://updates.indigenworld.com/2026/10/alerts-you-can-answer-and-five.html

@@ -1,5 +1,7 @@
 # The dictionary, right where you write
 
+**Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/the-dictionary-right-where-you-write.html
+
 Status: **Deployed and verified October 18, 2026.** Blogger unpublished. Community sharing pending.
 
 - Title: The dictionary, right where you write

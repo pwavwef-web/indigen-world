@@ -1,5 +1,7 @@
 # Connected mobile workflows — development preview
 
+**Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/a-more-connected-indigen-world-shop.html
+
 - **Title:** A more connected Indigen World: shop, notifications and mobile creation
 - **Labels:** Indigen World, Mobile, Development preview, Shop, TribeStudio
 - **Search description:** A development preview of connected shop, artwork uploads, actionable notifications and native mobile editing, with availability gates explained.

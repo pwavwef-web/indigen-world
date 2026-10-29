@@ -6,7 +6,7 @@
 - Date: 2026-10-14 (UTC)
 - Product route: https://indigenworld.com/labs/word-trail
 - Release status: Deployed and verified on production on 2026-10-14. Final website source: 5cfe66fa8c5c345c11cb3daacee11adfc37a548b. Checkpoint API source: be1cf01eccd5feaf70e30a921dc55f5886f41ca7.
-- Blogger status: Prepared for Chinedum; unpublished. No community messages have been sent.
+- **Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/blog-post_449.html
 
 ## What changed
 

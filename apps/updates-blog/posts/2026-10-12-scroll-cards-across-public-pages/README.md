@@ -1,5 +1,7 @@
 # Scroll cards across the public website
 
+**Blogger:** Published on Indigen World Updates on 29 October 2026: https://updates.indigenworld.com/2026/10/blog-post_252.html
+
 - **Prepared:** October 12, 2026
 - **Title:** A little motion, wherever you explore Indigen World
 - **Labels:** Website, Design, Accessibility, Learning, Kasem
@@ -55,6 +57,8 @@ this update, as selected by the user.
   Reduced-motion handling is implemented in the shared controller and CSS.
 
 ## Images and credits
+
+On October 29, 2026 the raw screenshots below moved to `screens/`. `images/` now holds the designed cover and framed figures rendered from `art.json` with `render-post-art.mjs`; the published article uses those.
 
 Actual local screenshots, October 12, 2026:
 
