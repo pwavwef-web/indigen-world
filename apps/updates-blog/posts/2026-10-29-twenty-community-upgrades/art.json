@@ -1,0 +1,54 @@
+{
+  "accent": "blue",
+  "motif": "dots",
+  "eyebrow": "Indigen World app · Android 0.1.37",
+  "title": "Twenty community upgrades,\nfrom topics to reminders.",
+  "lede": "Labels that open a topic page, events with a date and a reminder, described photos, drafts, a pinned post, muted words — and posts you can share as a picture.",
+  "tags": [
+    "Community",
+    "Events",
+    "Sharing"
+  ],
+  "hero": [
+    "topic.png",
+    "events.png"
+  ],
+  "figures": {
+    "topic.png": {
+      "title": "Every post with the label",
+      "note": "Actual app screen rendered from the 0.1.37 code, with sample posts written in English for the picture."
+    },
+    "events.png": {
+      "title": "When, where, and Remind me",
+      "note": "Actual app screen with sample events; the first has its reminder set."
+    },
+    "compose-event.png": {
+      "title": "An event's date and place",
+      "note": "Actual app screen: the composer with a sample event."
+    },
+    "muted-words.png": {
+      "title": "Mute words and phrases",
+      "note": "Actual app screen; the muted words are chosen for the picture."
+    },
+    "drafts.png": {
+      "title": "Drafts, kept on this phone",
+      "note": "Actual app screen with sample drafts."
+    },
+    "picture.png": {
+      "title": "A post as a picture",
+      "note": "Actual app screen with a sample post, ready for a status."
+    },
+    "chat-post.png": {
+      "title": "Posts in messages look like posts",
+      "note": "Actual app screen with a sample conversation."
+    },
+    "thread.png": {
+      "title": "Most appreciated, and the Author",
+      "note": "Actual app screen with a sample conversation."
+    },
+    "profile.png": {
+      "title": "Pinned, Follows you, in common",
+      "note": "Actual app screen with sample members and posts."
+    }
+  }
+}
