@@ -19,7 +19,6 @@ export function HomePage() {
     <HomeHero>
         <div className="hero__content">
           <span className="status-pill"><span className="status-pill__dot" /> Starting with Kasem, in Northern Ghana</span>
-          <p className="hero__kicker">Language, stories and the people behind them</p>
           <h1>Culture belongs<span> in the future.</span></h1>
           <p className="hero__lead">Discover Kasem words, hear their voices, and help keep everyday knowledge alive.</p>
           <HomeSearch />
@@ -32,9 +31,9 @@ export function HomePage() {
     </HomeHero>
     <HomeDiscovery />
     <HomeCultureMap />
-    <section className="section section--cream" id="progress">
+    <section className="section section--cream home-build" id="progress">
       <div className="container">
-        <SectionHeading eyebrow="Build with us" title="The next chapter has room for you." body="Share what you know, understand how it is cared for, and follow the work as it grows." />
+        <SectionHeading title="The next chapter has room for you." body="Share what you know, understand how it is cared for, and follow the work as it grows." />
         <HomeScrollStories />
         <p className="home-mobile-status">Learning on your phone: the mobile app is still in development. <Link to="get-involved?route=mobile-app-waitlist">Join the app waitlist</Link> to hear when access is available.</p>
         <p className="target-label">These describe what is available, not measured community impact.</p>
@@ -48,10 +47,10 @@ export function HomePage() {
       </div>
     </section>
     <LatestUpdates />
-    <section className="section section--white">
-      <div className="container split-intro">
-        <SectionHeading eyebrow="Built with communities" title="The people behind the knowledge stay part of its future." />
-        <div className="split-intro__copy">
+    <section className="section home-community">
+      <div className="container home-community__inner">
+        <h2>The people behind the knowledge stay part of its future.</h2>
+        <div className="home-community__copy">
           <p>Contributors bring words and stories. Teachers, speakers and cultural custodians help review language contributions. Clear permissions explain how work can be shared.</p>
           <p>Public posts and reviewed language entries follow different paths. Sharing work does not automatically give permission to use it for AI training.</p>
           <Button to="impact-governance" variant="secondary">Read how we care for shared knowledge</Button>

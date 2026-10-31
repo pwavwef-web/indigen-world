@@ -87,7 +87,7 @@
   color: var(--green);
 }
 .form-status--error {
-  background: rgba(182, 90, 58, 0.1);
+  background: rgba(23, 71, 209, 0.1);
   color: var(--terracotta-dark);
 }
 .form-status--submitting {
@@ -152,7 +152,7 @@
   margin: 0;
   padding: 11px 13px;
   border-left: 3px solid var(--gold);
-  background: rgba(214, 165, 43, 0.08);
+  background: rgba(61, 123, 255, 0.08);
   color: var(--muted);
   font-size: 0.78rem;
 }

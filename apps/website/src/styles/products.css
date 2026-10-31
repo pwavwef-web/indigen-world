@@ -129,8 +129,8 @@
   background: var(--green);
 }
 .status-badge--in-development {
-  background: rgba(214, 165, 43, 0.18);
-  color: #7a5c14;
+  background: rgba(255, 194, 61, 0.26);
+  color: #5c4100;
 }
 .status-badge--in-development::before {
   background: var(--gold);
@@ -143,7 +143,7 @@
   background: var(--indigo-900);
 }
 .status-badge--research {
-  background: rgba(182, 90, 58, 0.12);
+  background: rgba(23, 71, 209, 0.12);
   color: var(--terracotta-dark);
 }
 .status-badge--research::before {
@@ -268,7 +268,7 @@
   gap: var(--space-2);
   margin-top: var(--space-4);
   padding: var(--space-4);
-  border: 1px solid rgba(182, 90, 58, 0.2);
+  border: 1px solid rgba(23, 71, 209, 0.2);
   border-radius: var(--radius-lg);
   background: linear-gradient(135deg, var(--sand), rgba(255, 255, 255, 0.72));
 }
@@ -279,7 +279,7 @@
   height: 56px;
   place-items: center;
   border-radius: 16px;
-  background: rgba(182, 90, 58, 0.11);
+  background: rgba(23, 71, 209, 0.11);
   color: var(--terracotta-dark);
 }
 
@@ -355,7 +355,7 @@
   margin-bottom: 10px;
   padding: 4px 8px;
   border-radius: var(--radius-full);
-  background: rgba(182, 90, 58, 0.1);
+  background: rgba(23, 71, 209, 0.1);
   color: var(--terracotta-dark);
   font-size: 0.66rem;
   font-weight: 800;
@@ -367,7 +367,7 @@
   color: var(--green);
 }
 .dataflow-status--partial {
-  background: rgba(214, 165, 43, 0.15);
+  background: rgba(61, 123, 255, 0.15);
   color: var(--indigo-900);
 }
 .dataflow-step strong {

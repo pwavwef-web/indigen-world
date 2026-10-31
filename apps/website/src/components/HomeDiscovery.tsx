@@ -25,10 +25,10 @@ export function HomeDiscovery() {
   }, [retry]);
   return <section className="section section--cream home-discovery" id="find-your-path">
     <div className="container">
-      <SectionHeading eyebrow="Try something today" title="A word. An expression. A new beginning." body="Explore public language records and a source-based guide. No account needed to browse." />
+      <SectionHeading title="A word. An expression. A new beginning." body="Explore public language records and a source-based guide. No account needed to browse." />
       <div className="home-discovery__grid">
         <article className="discovery-card discovery-card--word" aria-labelledby="discovery-word-title">
-          <p className="eyebrow"><Icon name="volume" size={18} /> The dictionary</p>
+          <p className="discovery-card__label"><Icon name="volume" size={18} /> The dictionary</p>
           <h3 id="discovery-word-title">{word.item ? <span lang="xsm">{word.item.headword}</span> : 'Start with a word'}</h3>
           {word.status === 'loading' && <p role="status">Finding a reviewed word…</p>}
           {word.item && <>
@@ -42,7 +42,7 @@ export function HomeDiscovery() {
           <Link className="discovery-card__link" to={word.item ? `dictionary?entry=${encodeURIComponent(word.item.id)}#dictionary-results-heading` : 'dictionary'}>{word.item ? 'Read the full entry' : 'Open the dictionary'} <Icon name="arrow" size={18} /></Link>
         </article>
         <article className="discovery-card" aria-labelledby="discovery-expression-title">
-          <p className="eyebrow"><Icon name="chat" size={18} /> Everyday Kasem</p>
+          <p className="discovery-card__label"><Icon name="chat" size={18} /> Everyday Kasem</p>
           <h3 id="discovery-expression-title">{expression.item ? <span lang="xsm">{expression.item.phrase}</span> : 'Language in everyday life'}</h3>
           {expression.status === 'loading' && <p role="status">Finding a published expression…</p>}
           {expression.item && <>
@@ -56,7 +56,7 @@ export function HomeDiscovery() {
           <Link className="discovery-card__link" to={expression.item ? `contribute#expression-${encodeURIComponent(expression.item.id)}` : 'contribute#published'}>{expression.item ? 'Explore this expression' : 'Explore the expression collection'} <Icon name="arrow" size={18} /></Link>
         </article>
         <article className="discovery-card discovery-card--guide" aria-labelledby="discovery-guide-title">
-          <p className="eyebrow"><Icon name="book" size={18} /> A little learning</p>
+          <p className="discovery-card__label"><Icon name="book" size={18} /> A little learning</p>
           <h3 id="discovery-guide-title">Make sense of a sentence.</h3>
           <p>Explore pronouns, word forms and sentence patterns in the public Kasem grammar guide.</p>
           <div className="discovery-card__guide-mark" aria-hidden="true">Aa<span>Words become stories.</span></div>

@@ -1,43 +1,56 @@
 /**
  * src/styles/tokens.css
  *
- * Design tokens as CSS custom properties. This is the single biggest
- * visual correction from the uploaded template: the template's palette
- * (--indigo-900: #101c36, --terracotta: #c96e4b, --gold: #f0ba3c,
- * --green: #39735b, --cream: #f6f0e5) and its Inter font-family didn't
- * match the brief's exact spec. Every value below is now the literal
- * hex/typeface the brief lists, and every other stylesheet reads from
- * these variables rather than hardcoding color — so the correction
- * only had to happen in one place.
+ * Design tokens as CSS custom properties: the single source of the
+ * public website's palette. Every other stylesheet reads these names,
+ * so no later layer redefines them.
+ *
+ * Indigo world (2026-10-31): deep night indigo over Kassena country.
+ * Real photographs carry the culture, blue carries the brand, and one
+ * warm "sun" accent (the sun in the logo) marks the primary action on
+ * dark surfaces. Legacy names are kept so older stylesheets keep
+ * working: --terracotta is now the action blue and --gold is the sun.
+ * See apps/website/DESIGN.md.
  */
 :root {
   color-scheme: light;
 
-  /* Brief-specified palette */
-  --indigo-950: #142543; /* deepest tint, used for footer/backgrounds */
-  --indigo-900: #1e365d; /* Deep Indigo — the brief's primary brand color */
-  --indigo-800: #24406e;
-  --indigo-700: #2c4b80;
-  --terracotta: #b65a3a; /* brief-specified Terracotta */
-  --terracotta-dark: #9a492e;
-  --gold: #d6a52b; /* brief-specified Kente Gold */
-  --gold-soft: #f0d99c;
-  --green: #1f5b3a; /* brief-specified Savannah Green */
-  --cream: #faf6ed; /* brief-specified Plaster Cream */
-  --sand: #f1eada;
-  --white: #fffdfa;
-  --ink: #1b1b18;
-  --muted: #66604f;
-  --line: rgba(30, 54, 93, 0.14);
-  --shadow: 0 28px 80px rgba(20, 37, 67, 0.14);
+  /* Blue ramp, darkest to brightest */
+  --indigo-950: #06102b; /* night: footer, hero overlay, deepest bands */
+  --indigo-900: #0b1f5c; /* deep: headings, dark cards */
+  --indigo-800: #1338a8;
+  --indigo-700: #1747d1; /* royal: links, buttons on light surfaces */
+  --blue-500: #3d7bff; /* electric: accents on dark surfaces */
+  --sky: #a9c8ff; /* text accent on dark surfaces */
+  --sky-soft: #dbe7ff;
+
+  /* Legacy role names, remapped to the blue world */
+  --terracotta: var(--indigo-700);
+  --terracotta-dark: var(--indigo-900);
+  --gold: #ffc23d; /* sun: primary action on dark, logo sun, highlights */
+  --gold-soft: #ffe2a1;
+  --green: #12805f;
+
+  /* Surfaces */
+  --cream: #f2f6ff; /* canvas */
+  --sand: #e3ebfd; /* mist: tinted panels */
+  --white: #ffffff;
+  --ink: #0a1838;
+  --muted: #47557a;
+  --line: rgba(11, 31, 92, 0.12);
+  --shadow: 0 24px 60px rgba(6, 16, 43, 0.16);
+  --shadow-soft: 0 10px 30px rgba(6, 16, 43, 0.08);
 
   /* Mobile-first container: percentage-based margin by default, capped
      at a max width once the viewport is wide enough for it to matter. */
-  --container: min(1180px, calc(100% - 32px));
+  --container: min(1200px, calc(100% - 32px));
 
-  /* Brief-specified typeface: Noto Sans (the template used Inter). */
+  /* Noto Sans carries Kasem's ɛ ɔ ɩ ʋ ŋ and tone marks; Sora is the
+     display voice for headings (Kasem text inside headings falls back
+     to Noto via [lang="xsm"]). */
   --font-body: "Noto Sans Variable", "Noto Sans", ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Sora Variable", "Sora", var(--font-body);
 
   --space-1: 0.5rem;
   --space-2: 1rem;
@@ -46,16 +59,16 @@
   --space-5: 3.5rem;
   --space-6: 5rem;
 
-  --radius-sm: 8px;
+  --radius-sm: 10px;
   --radius-md: 16px;
-  --radius-lg: 26px;
+  --radius-lg: 24px;
   --motion-duration: 220ms;
-  --motion-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (min-width: 660px) {
   :root {
-    --container: min(1180px, calc(100% - 40px));
+    --container: min(1200px, calc(100% - 48px));
   }
 }
 

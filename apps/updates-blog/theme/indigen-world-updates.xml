@@ -118,14 +118,14 @@
 <Variable name="keycolor" description="Main colour" type="color" default="#19327f" value="#19327f"/>
 
 <Group description="Brand palette" selector="body">
-  <Variable name="brand.indigo" description="Royal blue" type="color" default="#19327f" value="#19327f"/>
-  <Variable name="brand.indigoDeep" description="Deep navy" type="color" default="#0f1830" value="#0f1830"/>
-  <Variable name="brand.gold" description="Cyan accent" type="color" default="#22d3ee" value="#22d3ee"/>
-  <Variable name="brand.goldSoft" description="Soft blue" type="color" default="#cfe0ff" value="#cfe0ff"/>
-  <Variable name="brand.terracotta" description="Electric blue" type="color" default="#2f6bff" value="#2f6bff"/>
-  <Variable name="brand.green" description="Green" type="color" default="#168466" value="#168466"/>
-  <Variable name="brand.cream" description="Page ground" type="color" default="#f6f7fb" value="#f6f7fb"/>
-  <Variable name="brand.sand" description="Blue mist" type="color" default="#eaf0ff" value="#eaf0ff"/>
+  <Variable name="brand.indigo" description="Deep blue" type="color" default="#0b1f5c" value="#0b1f5c"/>
+  <Variable name="brand.indigoDeep" description="Night blue" type="color" default="#06102b" value="#06102b"/>
+  <Variable name="brand.gold" description="Sun accent" type="color" default="#ffc23d" value="#ffc23d"/>
+  <Variable name="brand.goldSoft" description="Soft sun" type="color" default="#ffe2a1" value="#ffe2a1"/>
+  <Variable name="brand.terracotta" description="Royal blue" type="color" default="#1747d1" value="#1747d1"/>
+  <Variable name="brand.green" description="Green" type="color" default="#12805f" value="#12805f"/>
+  <Variable name="brand.cream" description="Page ground" type="color" default="#f2f6ff" value="#f2f6ff"/>
+  <Variable name="brand.sand" description="Blue mist" type="color" default="#e3ebfd" value="#e3ebfd"/>
 </Group>
 
 <Group description="Typography" selector="body">
@@ -144,8 +144,8 @@
 /* ==========================================================================
    1. Tokens
    --------------------------------------------------------------------------
-   The palette is the public website's theme, apps/website/src/styles/
-   comitia-theme.css: deep navy, royal and electric blue, a cyan accent and a
+   The palette is the public website's tokens, apps/website/src/styles/
+   tokens.css: night and deep blue, royal blue, a sun-yellow accent and a
    blue-white ground. Like the website, the token names keep their original
    roles (--gold is the accent, --terracotta the action blue) so every rule
    below reads the same as before. The validator checks these defaults against
@@ -180,7 +180,7 @@
   --link-hover:var(--indigo);
   --code-ink:#1a3ea8;
   --info-ink:#1f50d6;
-  --success-ink:#0f7a5a;
+  --success-ink:#0d7253;
   --warn-ink:#8a5a04;
   --topic-release:#168466;
   --topic-feature:#12b5cf;
@@ -204,7 +204,7 @@
   --shadow-1:0 1px 2px rgba(15,24,48,.05),0 10px 30px rgba(15,24,48,.055);
   --shadow-2:0 2px 8px rgba(15,24,48,.06),0 18px 44px rgba(15,24,48,.11);
   --hero-bg:
-    radial-gradient(circle at 78% 20%,rgba(34,211,238,.23),transparent 30%),
+    radial-gradient(circle at 78% 20%,rgba(61,123,255,.3),transparent 30%),
     radial-gradient(circle at 10% 100%,rgba(47,107,255,.22),transparent 34%),
     linear-gradient(145deg,#0b1225,#19327f 62%,#2457d6);
   --dots:radial-gradient(rgba(255,255,255,.28) 1px,transparent 1px);
@@ -592,7 +592,7 @@ table{border-collapse:collapse}
 }
 .iw-hero__rail span::before{
   content:"";position:absolute;left:0;top:21px;width:7px;height:7px;border-radius:50%;
-  background:var(--gold);box-shadow:0 0 0 4px rgba(34,211,238,.14);
+  background:var(--gold);box-shadow:0 0 0 4px rgba(255,194,61,.2);
 }
 @keyframes iw-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .iw-hero .iw-eyebrow,.iw-hero__title,.iw-hero__mark,.iw-hero__lede,.iw-hero__actions,.iw-hero__rail span{
@@ -612,7 +612,7 @@ table{border-collapse:collapse}
 }
 .iw-eyebrow::before{
   content:"";width:7px;height:7px;border-radius:50%;flex:0 0 auto;
-  background:var(--gold);box-shadow:0 0 0 4px rgba(34,211,238,.14);
+  background:var(--gold);box-shadow:0 0 0 4px rgba(255,194,61,.2);
 }
 .iw-hero__title{
   font-family:var(--font-display);font-size:clamp(2.5rem,7vw,5.2rem);line-height:.98;letter-spacing:-.025em;

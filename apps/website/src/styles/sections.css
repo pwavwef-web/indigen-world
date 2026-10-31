@@ -96,11 +96,11 @@
   aspect-ratio: 1;
   top: -118px;
   right: -74px;
-  border: 1px solid rgba(240, 217, 156, 0.13);
+  border: 1px solid rgba(169, 200, 255, 0.13);
   border-radius: 50%;
   box-shadow:
     0 0 0 34px rgba(255, 255, 255, 0.025),
-    0 0 0 68px rgba(214, 165, 43, 0.025);
+    0 0 0 68px rgba(61, 123, 255, 0.025);
 }
 .page-hero > .container {
   position: relative;
@@ -128,7 +128,7 @@
     repeating-linear-gradient(
       -45deg,
       transparent 0 17px,
-      rgba(240, 217, 156, 0.1) 17px 19px,
+      rgba(169, 200, 255, 0.1) 17px 19px,
       transparent 19px 36px
     );
 }
@@ -136,25 +136,25 @@
 .page-hero--ecosystem::before {
   opacity: 0.7;
   background-image:
-    radial-gradient(circle at 59% 36%, rgba(240, 217, 156, 0.72) 0 3px, transparent 4px),
+    radial-gradient(circle at 59% 36%, rgba(169, 200, 255, 0.72) 0 3px, transparent 4px),
     radial-gradient(circle at 73% 70%, rgba(255, 255, 255, 0.62) 0 4px, transparent 5px),
-    radial-gradient(circle at 87% 29%, rgba(214, 165, 43, 0.72) 0 3px, transparent 4px),
+    radial-gradient(circle at 87% 29%, rgba(61, 123, 255, 0.72) 0 3px, transparent 4px),
     radial-gradient(circle at 96% 78%, rgba(255, 255, 255, 0.5) 0 3px, transparent 4px),
     linear-gradient(28deg, transparent 0 66%, rgba(255, 255, 255, 0.1) 66.2% 66.5%, transparent 66.7%),
-    linear-gradient(146deg, transparent 0 73%, rgba(240, 217, 156, 0.1) 73.2% 73.5%, transparent 73.7%);
+    linear-gradient(146deg, transparent 0 73%, rgba(169, 200, 255, 0.1) 73.2% 73.5%, transparent 73.7%);
 }
 
 .page-hero--governance::before {
   opacity: 0.78;
   background-image: radial-gradient(
     circle at 84% 54%,
-    rgba(214, 165, 43, 0.12) 0 4px,
+    rgba(61, 123, 255, 0.12) 0 4px,
     transparent 5px 54px,
-    rgba(240, 217, 156, 0.12) 55px 56px,
+    rgba(169, 200, 255, 0.12) 55px 56px,
     transparent 57px 92px,
     rgba(255, 255, 255, 0.09) 93px 94px,
     transparent 95px 132px,
-    rgba(214, 165, 43, 0.09) 133px 134px,
+    rgba(61, 123, 255, 0.09) 133px 134px,
     transparent 135px
   );
 }
@@ -162,7 +162,7 @@
 .page-hero--kasena::before {
   opacity: 0.68;
   background-image:
-    radial-gradient(ellipse at 82% 50%, transparent 0 42px, rgba(240, 217, 156, 0.14) 43px 44px, transparent 45px 78px, rgba(255, 255, 255, 0.1) 79px 80px, transparent 81px 120px, rgba(214, 165, 43, 0.09) 121px 122px, transparent 123px),
+    radial-gradient(ellipse at 82% 50%, transparent 0 42px, rgba(169, 200, 255, 0.14) 43px 44px, transparent 45px 78px, rgba(255, 255, 255, 0.1) 79px 80px, transparent 81px 120px, rgba(61, 123, 255, 0.09) 121px 122px, transparent 123px),
     repeating-linear-gradient(90deg, transparent 0 27px, rgba(255, 255, 255, 0.045) 27px 29px, transparent 29px 56px);
 }
 
@@ -171,7 +171,7 @@
   background-image: repeating-conic-gradient(
     from 198deg at 84% 58%,
     transparent 0 11deg,
-    rgba(240, 217, 156, 0.11) 11.4deg 12deg,
+    rgba(169, 200, 255, 0.11) 11.4deg 12deg,
     transparent 12.4deg 24deg
   );
   -webkit-mask-image: radial-gradient(circle at 84% 58%, #000 0 8%, transparent 70%);
@@ -181,8 +181,8 @@
 .page-hero--contact::before {
   opacity: 0.52;
   background-image:
-    radial-gradient(circle at 78% 76%, transparent 0 38px, rgba(255, 255, 255, 0.1) 39px 40px, transparent 41px 76px, rgba(240, 217, 156, 0.09) 77px 78px, transparent 79px),
-    radial-gradient(circle at 94% 26%, rgba(214, 165, 43, 0.1) 0 68px, transparent 69px);
+    radial-gradient(circle at 78% 76%, transparent 0 38px, rgba(255, 255, 255, 0.1) 39px 40px, transparent 41px 76px, rgba(169, 200, 255, 0.09) 77px 78px, transparent 79px),
+    radial-gradient(circle at 94% 26%, rgba(61, 123, 255, 0.1) 0 68px, transparent 69px);
 }
 
 .page-hero--legal::before {
@@ -325,12 +325,12 @@
 .not-found__glow--one {
   top: 5%;
   left: -170px;
-  background: radial-gradient(circle, rgba(182, 90, 58, 0.34), transparent 68%);
+  background: radial-gradient(circle, rgba(23, 71, 209, 0.34), transparent 68%);
 }
 .not-found__glow--two {
   right: -180px;
   bottom: -80px;
-  background: radial-gradient(circle, rgba(214, 165, 43, 0.3), transparent 68%);
+  background: radial-gradient(circle, rgba(61, 123, 255, 0.3), transparent 68%);
 }
 .not-found__layout {
   display: grid;
@@ -369,11 +369,11 @@
   place-items: center;
   width: clamp(72px, 16vw, 116px);
   aspect-ratio: 1;
-  border: 1px solid rgba(240, 217, 156, 0.34);
+  border: 1px solid rgba(169, 200, 255, 0.34);
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.18), rgba(214, 165, 43, 0.08));
+  background: radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.18), rgba(61, 123, 255, 0.08));
   box-shadow:
-    0 0 46px rgba(214, 165, 43, 0.2),
+    0 0 46px rgba(61, 123, 255, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 .not-found__mark .brand-mark--compact svg {

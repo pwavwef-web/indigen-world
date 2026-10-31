@@ -1,14 +1,12 @@
 import { CULTURE_PHOTOS as photos } from './culture-photos.js';
 
-// Standalone guides share the original character ensemble and motion preference.
+// Standalone guides share the site's Kassena photographs, credits and motion preference.
+const SLIDE_MS = 7000;
+const ARROW = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 const root = document.querySelector('.culture-hero--guide');
 if (root) {
-  root.classList.add('culture-hero--illustrated');
-  root.setAttribute('aria-label', 'Indigen World illustrated community banner');
-  const stylesheet = document.createElement('link'); stylesheet.rel = 'stylesheet'; stylesheet.href = '/culture-scene.css'; document.head.append(stylesheet);
-  const atmosphere = document.createElement('div'); atmosphere.className = 'culture-atmosphere'; atmosphere.setAttribute('aria-hidden', 'true');
-  atmosphere.innerHTML = '<span class="culture-cloud culture-cloud--one"></span><span class="culture-cloud culture-cloud--two"></span><svg class="culture-birds" viewBox="0 0 800 180"><path d="M90 90q12-16 24 0q12-16 24 0 M300 55q10-14 20 0q10-14 20 0 M560 115q14-18 28 0q14-18 28 0"/></svg><span class="culture-leaf culture-leaf--left"></span><span class="culture-leaf culture-leaf--right"></span>';
-  root.prepend(atmosphere);
+  root.setAttribute('aria-label', 'Photographs of Kassena places and people');
+  root.style.setProperty('--slide-ms', `${SLIDE_MS}ms`);
   const query = matchMedia('(prefers-reduced-motion: reduce)');
   const images = root.querySelector('.culture-hero__images');
   const footer = root.querySelector('.culture-hero__footer');
@@ -18,18 +16,22 @@ if (root) {
     if (text) el.textContent = text;
     return el;
   };
+  const link = (href, text) => {
+    const el = create('a', '', text);
+    el.href = href; el.target = '_blank'; el.rel = 'noreferrer'; return el;
+  };
   const caption = create('div', 'culture-hero__caption');
   const controls = create('div', 'culture-hero__controls');
   controls.setAttribute('role', 'group');
-  controls.setAttribute('aria-label', 'Illustrated scene controls');
+  controls.setAttribute('aria-label', 'Photograph controls');
   const announcement = create('span', 'sr-only');
   announcement.setAttribute('aria-live', 'polite');
   footer.append(caption, controls, announcement);
   let active = 0, visible = false, hovered = false, focused = false, timer;
   let captionKey;
   const ready = new Set();
-  const button = (label, text, action) => {
-    const el = create('button', '', text);
+  const button = (label, className, action) => {
+    const el = create('button', className);
     el.type = 'button'; el.setAttribute('aria-label', label);
     el.addEventListener('click', action); return el;
   };
@@ -47,16 +49,22 @@ if (root) {
       if (ready.has(next)) { select(next); break; }
     }
   };
-  const prev = button('Previous scene', '←', () => step(-1));
   const dots = create('div', 'culture-hero__dots');
+  dots.setAttribute('role', 'group'); dots.setAttribute('aria-label', 'Choose a photograph');
   const choices = photos.map((photo, index) => {
-    const choice = button(`Show scene ${index + 1}: ${photo.title}`, '', () => select(index));
-    choice.append(document.createElement('span')); dots.append(choice); return choice;
+    const choice = button(`Show photograph ${index + 1}: ${photo.title}`, '', () => select(index));
+    const track = create('span', 'culture-hero__dot-track');
+    track.append(document.createElement('span'));
+    choice.append(create('span', 'culture-hero__dot-label', photo.label), track);
+    dots.append(choice); return choice;
   });
-  const next = button('Next scene', '→', () => step(1));
-  const pause = button('Pause animations', 'Pause animations', () => document.querySelector('.standalone-motion-control')?.click());
-  pause.className = 'culture-hero__pause';
-  controls.append(prev, dots, next, pause);
+  const buttons = create('div', 'culture-hero__buttons');
+  const prev = button('Previous photograph', 'culture-hero__arrow culture-hero__arrow--back', () => step(-1));
+  const next = button('Next photograph', 'culture-hero__arrow', () => step(1));
+  prev.innerHTML = next.innerHTML = ARROW;
+  const pause = button('Pause animations', 'culture-hero__pause', () => document.querySelector('.standalone-motion-control')?.click());
+  buttons.append(prev, next, pause);
+  controls.append(dots, buttons);
   const slides = photos.map((photo, index) => {
     const img = document.createElement('img');
     img.dataset.scene = photo.id;
@@ -64,7 +72,7 @@ if (root) {
     img.style.setProperty('--photo-position', photo.position);
     img.fetchPriority = index === 0 ? 'high' : 'low'; img.decoding = 'async';
     img.addEventListener('load', () => { ready.add(index); update(); });
-    img.src = photo.image;
+    img.sizes = '100vw'; img.srcset = photo.srcset; img.src = photo.image;
     images.append(img); return img;
   });
   function update() {
@@ -76,17 +84,18 @@ if (root) {
     choices.forEach((choice, index) => { choice.disabled = !ready.has(index); choice.setAttribute('aria-pressed', String(index === active)); });
     prev.disabled = next.disabled = ready.size < 2;
     pause.hidden = query.matches;
-    pause.textContent = paused ? 'Resume animations' : 'Pause animations';
-    pause.setAttribute('aria-label', pause.textContent); pause.setAttribute('aria-pressed', String(paused));
+    pause.textContent = paused ? 'Play' : 'Pause';
+    pause.setAttribute('aria-label', paused ? 'Resume animations' : 'Pause animations'); pause.setAttribute('aria-pressed', String(paused));
     const photo = photos[active];
     const currentCaption = `${active}:${ready.has(active)}`;
     if (captionKey !== currentCaption) {
-    captionKey = currentCaption;
-    caption.replaceChildren(create('p', 'culture-hero__location', ready.has(active) ? photo.place : 'Language, stories and shared knowledge'), create('p', 'culture-hero__photo-title', ready.has(active) ? photo.title : 'Indigen World'));
-    if (ready.has(active)) {
-      const credit = create('p', 'culture-hero__credit', 'Original Indigen World illustration · AI-generated · Fictional characters');
-      caption.append(credit, create('span', 'sr-only', photo.alt));
-    }
+      captionKey = currentCaption;
+      caption.replaceChildren(create('p', 'culture-hero__location', ready.has(active) ? photo.place : 'Kassena country'), create('p', 'culture-hero__photo-title', ready.has(active) ? photo.title : 'Language, stories and shared knowledge'));
+      if (ready.has(active)) {
+        const credit = create('p', 'culture-hero__credit', 'Photo: ');
+        credit.append(link(photo.source, photo.author), ' · ', link(photo.licenceUrl, photo.licence), ' · Wikimedia Commons');
+        caption.append(credit, create('span', 'sr-only', photo.alt));
+      }
     }
     if (playing) timer = setTimeout(() => {
       for (let offset = 1; offset < photos.length; offset++) {
@@ -94,7 +103,7 @@ if (root) {
         if (ready.has(candidate)) { active = candidate; break; }
       }
       update();
-    }, 8000);
+    }, SLIDE_MS);
   }
   const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; update(); }, { threshold: .1 });
   observer.observe(root);

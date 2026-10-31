@@ -35,7 +35,7 @@
   }
 
   .responsive-disclosure > summary:focus-visible {
-    outline: 3px solid rgba(214, 165, 43, 0.72);
+    outline: 3px solid rgba(61, 123, 255, 0.72);
     outline-offset: 3px;
   }
 
@@ -48,7 +48,7 @@
   }
 
   .responsive-disclosure[open] > summary {
-    border-color: rgba(182, 90, 58, 0.28);
+    border-color: rgba(23, 71, 209, 0.28);
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
   }
@@ -89,7 +89,7 @@
   }
 
   .footer-newsletter-disclosure[open] > summary {
-    border-color: rgba(240, 217, 156, 0.34);
+    border-color: rgba(169, 200, 255, 0.34);
   }
 }
 

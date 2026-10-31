@@ -1,18 +1,18 @@
 /**
  * src/components/SectionHeading.tsx
  *
- * The eyebrow + title + optional body pattern used at the top of
- * almost every section on the site. Carried over from the template
- * unchanged (it was already a clean, reusable component there).
+ * The title + optional body pattern used at the top of almost every
+ * section on the site. Since the 2026-10-31 redesign the heading carries
+ * its own weight: `eyebrow` is still accepted so existing pages compile,
+ * but it is no longer rendered above the title.
  */
 export function SectionHeading({
-  eyebrow,
   title,
   body,
   light = false,
   as = "h2",
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   body?: string;
   light?: boolean;
@@ -22,7 +22,6 @@ export function SectionHeading({
 
   return (
     <div className={`section-heading${light ? " section-heading--light" : ""}`}>
-      <p className="eyebrow">{eyebrow}</p>
       <Heading>{title}</Heading>
       {body ? <p className="section-heading__body">{body}</p> : null}
     </div>

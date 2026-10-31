@@ -205,10 +205,14 @@ const defaults = Object.fromEntries(
   [...skin.matchAll(/<Variable\s+name="([^"]+)"[^>]*?default="([^"]*)"/g)].map((m) => [m[1], m[2]])
 );
 /* The blog wears the public website's theme. Its palette is the :root block of
-   the website's theme layer, which keeps the original token names with new
-   values, so each Blogger variable maps to the custom property it mirrors. */
-const websiteTheme = readFileSync(join(here, "..", "..", "website", "src", "styles", "comitia-theme.css"), "utf8");
-const website = properties(websiteTheme.match(/:root\s*\{([\s\S]*?)\}/)[1].replace(/:\s+/g, ":"));
+   the website's tokens.css, which keeps the original token names with new
+   values (some as var() aliases, resolved here), so each Blogger variable maps
+   to the custom property it mirrors. */
+const websiteTheme = readFileSync(join(here, "..", "..", "website", "src", "styles", "tokens.css"), "utf8");
+const websiteRaw = properties(websiteTheme.match(/:root\s*\{([\s\S]*?)\}/)[1].replace(/:\s+/g, ":"));
+const resolveWebsite = (value, depth = 0) => depth > 10 || !value ? value
+  : value.replace(/var\((--[\w-]+)\)/g, (_, name) => resolveWebsite(websiteRaw[name], depth + 1));
+const website = Object.fromEntries(Object.entries(websiteRaw).map(([name, value]) => [name, resolveWebsite(value)]));
 const brandNames = { indigo: "--indigo-900", indigoDeep: "--indigo-950", gold: "--gold", goldSoft: "--gold-soft", terracotta: "--terracotta", green: "--green", cream: "--cream", sand: "--sand" };
 const brandDrift = Object.entries(brandNames)
   .filter(([name, source]) => defaults[`brand.${name}`]?.toLowerCase() !== website[source]?.toLowerCase())

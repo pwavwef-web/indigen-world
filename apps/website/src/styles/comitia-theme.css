@@ -1,27 +1,6 @@
 /* Comitia-aligned public theme: the shared visual language used by the
    Indigen administration and creator workspaces, adapted for editorial pages. */
-:root {
-  --indigo-950: #0f1830;
-  --indigo-900: #19327f;
-  --indigo-800: #2149b8;
-  --indigo-700: #2f6bff;
-  --terracotta: #2f6bff;
-  --terracotta-dark: #19327f;
-  --gold: #22d3ee;
-  --gold-soft: #cfe0ff;
-  --green: #168466;
-  --cream: #f6f7fb;
-  --sand: #eaf0ff;
-  --white: #ffffff;
-  --ink: #0f1830;
-  --muted: #5d667b;
-  --line: rgba(15, 24, 48, 0.11);
-  --shadow: 0 20px 56px rgba(15, 24, 48, 0.14);
-  --radius-sm: 10px;
-  --radius-md: 18px;
-  --radius-lg: 28px;
-}
-
+/* Palette values live in tokens.css. */
 body {
   background:
     radial-gradient(circle at 96% 0, rgba(47, 107, 255, 0.06), transparent 30rem),

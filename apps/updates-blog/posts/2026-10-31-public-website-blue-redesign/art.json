@@ -1,0 +1,58 @@
+{
+  "accent": "blue",
+  "motif": "chevrons",
+  "eyebrow": "Indigen World website · Redesign",
+  "title": "Blue skies over\nKassena country.",
+  "lede": "The public website moves to a bold blue design, and its opening photographs now come from Tiébélé, Paga and Navrongo.",
+  "tags": [
+    "Back to blue",
+    "Real Kassena photographs",
+    "Every page refreshed"
+  ],
+  "hero": [
+    { "file": "home-hero.png", "kind": "browser" },
+    { "file": "phone-walls.png", "kind": "phone" }
+  ],
+  "figures": {
+    "before-home.png": {
+      "kind": "browser",
+      "title": "Before: cream,\nbrown and drawings",
+      "note": "The homepage as it was on 31 October 2026, before this redesign: cream paper, terracotta buttons and AI-generated illustrated characters."
+    },
+    "hero-paga.png": {
+      "kind": "browser",
+      "title": "Photographs from\nKassena country",
+      "note": "Actual local build. Each slide names the place, the photographer and the licence while it is on screen. Photo: Knowledge and philosophy, CC BY-SA 4.0."
+    },
+    "discovery.png": {
+      "kind": "browser",
+      "title": "A word, front\nand centre",
+      "note": "Actual local build reading the public dictionary and expression collection."
+    },
+    "map-band.png": {
+      "kind": "browser",
+      "title": "Ghana, lit up\non the map",
+      "note": "Actual local build. Map: Natural Earth; the northern Ghana marker is indicative."
+    },
+    "stories.png": {
+      "kind": "browser",
+      "title": "Real places\nin every story",
+      "note": "Actual local build. Photo: c.hug, CC BY-SA 2.0 (Tiébélé house decoration)."
+    },
+    "community.png": {
+      "kind": "browser",
+      "title": "A royal-blue\nclose",
+      "note": "Actual local build. The chevron band is an original pattern inspired by Kassena wall painting."
+    },
+    "contribute.png": {
+      "kind": "browser",
+      "title": "Every page\nfollows",
+      "note": "Actual local build of the contribution page. Photo: Alexander Leisser, CC BY-SA 4.0."
+    },
+    "phone-home.png": {
+      "kind": "phone",
+      "title": "Made for\nyour phone",
+      "note": "Actual local build at phone width."
+    }
+  }
+}

@@ -1,0 +1,102 @@
+/* Indigo world: the public website's finishing layer, imported last.
+   Global type, browser surfaces, navigation, buttons and footer in the blue
+   palette from tokens.css. Page-specific layouts stay in their own files. */
+
+/* Ground and browser surfaces */
+html { scrollbar-color: #8fa6d8 var(--cream); accent-color: var(--indigo-700); }
+body { background: var(--cream); color: var(--ink); caret-color: var(--indigo-700); }
+::selection { background: var(--gold); color: var(--indigo-950); }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: var(--cream); }
+::-webkit-scrollbar-thumb { background: #9fb3df; border: 3px solid var(--cream); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--indigo-700); }
+:focus-visible { outline: 3px solid var(--indigo-700); outline-offset: 3px; border-radius: 4px; }
+.skip-link { background: var(--gold); color: var(--indigo-950); border-radius: 99px; }
+a { text-underline-offset: 4px; }
+[lang="xsm"] { font-family: var(--font-body); }
+
+/* Type: Sora for display, Noto Sans for reading and for Kasem. */
+h1, h2 { font-family: var(--font-display); letter-spacing: -.03em; color: var(--indigo-900); }
+h3 { color: var(--indigo-900); }
+h1 { font-weight: 800; }
+h2 { font-weight: 750; }
+.section { padding: clamp(72px, 9vw, 120px) 0; }
+.section-heading { max-width: 720px; margin-bottom: clamp(32px, 4vw, 52px); }
+.section-heading h2 { font-size: clamp(2.1rem, 4.2vw, 3.6rem); line-height: 1.04; }
+.section-heading h1 { line-height: 1.04; }
+.section-heading__body { margin-top: 16px; font-size: clamp(1rem, 1.3vw, 1.14rem); max-width: 60ch; }
+.section-heading--light h1, .section-heading--light h2 { color: #fff; }
+.section-heading--light .section-heading__body { color: var(--sky-soft); }
+.section--indigo h1, .section--indigo h2, .section--indigo h3, .section--indigo strong { color: #fff; }
+.section--indigo p { color: var(--sky-soft); }
+.section--white { background: var(--white); }
+.section--cream { background: var(--cream); }
+.section--sand { background: var(--sand); }
+
+/* Labels that stay inside cards and panels read as quiet sentence-case tags. */
+.eyebrow { font-size: .86rem; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--indigo-700); }
+.section-heading--light .eyebrow, .section--indigo .eyebrow { color: var(--sky); }
+.target-label { color: var(--indigo-700); }
+.target-badge { border-radius: 99px; }
+
+/* Navigation: a floating night-glass bar with a sun-coloured action. */
+.site-header__inner {
+  overflow: visible; border-radius: 18px; border-color: rgba(169, 200, 255, .16);
+  background: rgba(6, 16, 43, .78); box-shadow: 0 14px 40px rgba(6, 16, 43, .28), inset 0 1px 0 rgba(255, 255, 255, .08);
+  -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%);
+}
+.site-header__inner::after { display: none; }
+.brand__text strong { font-family: var(--font-display); letter-spacing: -.01em; }
+.brand__text small { color: var(--sky); }
+.brand-mark__frame { stroke: var(--sky); }
+.brand-mark__line { stroke: #fff; }
+.brand-mark__sun { fill: var(--gold); }
+.desktop-nav { border: 0; background: none; gap: 4px; }
+.desktop-nav a { display: flex; align-items: center; min-height: 44px; padding-inline: 14px; border: 0; border-radius: 99px; color: #ffffffd9; }
+.desktop-nav a:hover, .desktop-nav a[aria-current=page] { background: rgba(255, 255, 255, .1); color: #fff; box-shadow: none; }
+.desktop-nav a[aria-current=page] { box-shadow: inset 0 -2px 0 var(--gold); }
+.header-cta {
+  align-items: center; gap: 10px; min-height: 44px; padding-inline: 18px; border: 0; border-radius: 99px;
+  background: var(--gold); color: var(--indigo-950); font-weight: 700; box-shadow: 0 8px 24px rgba(255, 194, 61, .22);
+}
+.header-cta:hover, .header-cta:focus-visible { background: #ffd56e; box-shadow: 0 10px 28px rgba(255, 194, 61, .34); }
+.menu-button { min-width: 44px; min-height: 44px; border-radius: 12px; box-shadow: none; background: rgba(255, 255, 255, .08); border-color: rgba(169, 200, 255, .24); }
+.mobile-nav { border-radius: 16px; background: rgba(6, 16, 43, .97); }
+.mobile-nav a:hover, .mobile-nav a:focus-visible, .mobile-nav a[aria-current="page"] { background: rgba(61, 123, 255, .16); }
+.mobile-nav a.mobile-nav__cta { background: var(--gold); border-color: var(--gold); color: var(--indigo-950); box-shadow: none; }
+
+/* Buttons: royal on light surfaces, sun on dark openings. */
+.button { border-radius: 99px; font-weight: 700; letter-spacing: -.005em; }
+.button--primary { background: var(--indigo-700); color: #fff; box-shadow: 0 10px 26px rgba(23, 71, 209, .24); }
+.button--primary:hover, .button--primary:focus-visible { background: var(--indigo-900); box-shadow: 0 14px 32px rgba(23, 71, 209, .3); }
+:is(.section--white, .section--cream, .section--sand) .button--secondary { border-color: var(--indigo-700); color: var(--indigo-700); }
+:is(.section--white, .section--cream, .section--sand) .button--secondary:hover { background: var(--indigo-700); border-color: var(--indigo-700); color: #fff; }
+
+/* Shared surfaces: one elevation per card, rounded, no ghost borders. */
+:is(.vision-card, .product-card, .involvement-route-card, .contact-card, .phrase-card, .update-card, .learning-resource) { border-radius: 20px; }
+.update-card { border-color: transparent; box-shadow: var(--shadow-soft); transition: transform var(--motion-duration) var(--motion-ease), box-shadow var(--motion-duration) ease; }
+.update-card:hover { box-shadow: var(--shadow); }
+.update-card__image { background: linear-gradient(135deg, var(--indigo-950), var(--indigo-700)); }
+.update-card__more { color: var(--indigo-700); }
+.home-targets summary { color: var(--indigo-700); }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--indigo-700); box-shadow: 0 0 0 4px rgba(23, 71, 209, .14); }
+
+/* Footer: night, closed with the same Kassena chevrons that open each page. */
+.site-footer {
+  padding-top: calc(var(--space-5) + 14px);
+  background: radial-gradient(circle at 90% 0, rgba(61, 123, 255, .26), transparent 30rem), linear-gradient(160deg, var(--indigo-950), #081638 60%, #0b1f5c);
+}
+.site-footer::before {
+  inset: 0 0 auto; top: 0; right: 0; width: auto; height: 14px; aspect-ratio: auto; border: 0; border-radius: 0; box-shadow: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='14'%3E%3Crect width='36' height='14' fill='%231747d1'/%3E%3Cpath d='M0 14 9 0l9 14z' fill='%23ffffff'/%3E%3Cpath d='M18 0l9 14 9-14z' fill='%2306102b'/%3E%3C/svg%3E") left top / 36px 14px repeat-x;
+}
+.site-footer::after { display: none; }
+.site-footer h2 { color: #fff; }
+.site-footer p { color: #b6c5e8; }
+.footer-newsletter__intro h2 { font-family: var(--font-display); letter-spacing: -.03em; }
+.footer-links strong { color: #fff; }
+.footer-links a { color: #c9d6f2; }
+.footer-links a:hover { color: var(--gold); }
+.site-footer .eyebrow { color: var(--sky); }
+.site-footer :focus-visible { outline-color: var(--gold); }
+.footer-newsletter .form-status--success { background: rgba(61, 123, 255, .18); color: var(--sky-soft); }
