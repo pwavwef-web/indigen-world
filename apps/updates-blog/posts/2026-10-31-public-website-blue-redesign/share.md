@@ -2,8 +2,8 @@
 
 **Article URL:** [ARTICLE URL — replace after the post is live on Blogger]
 
-> Share only after the redesign is live on indigenworld.com, so the link and
-> the website match the post.
+> The website is live with this design (deployed 31 October 2026), so the
+> link and the website match the post.
 
 ## Short (WhatsApp / X)
 

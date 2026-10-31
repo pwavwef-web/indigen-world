@@ -6,7 +6,7 @@
 - **Topic:** Public website (`apps/website`) redesign: the cream/terracotta palette and AI-illustrated banner (added 12–13 October) replaced by a deep-blue palette with one sun-yellow accent; the header carousel on every public page now shows five real, credited Wikimedia Commons photographs of Kassena places (Tiébélé, Paga, Navrongo); homepage sections redesigned (dark word card, night map band, photographic stories, royal-blue community band); Sora display type; standalone grammar and spelling guides restyled.
 - **Labels:** Website, Design, Feature, Kasem, Indigen World
 - **Search description:** The Indigen World website moves to a bold blue design, and the photographs at the top of every page now show real Kassena places: Tiébélé, Paga and Navrongo.
-- **Status (31 October 2026):** **Committed to `main` locally (the commit that adds this folder); not pushed, not deployed.** Verified on the local build: `npm run check --workspace @indigen-world/website` (typecheck, site/progress validators, unit tests, production build) passed; `scripts/check-motion.mjs` passed against `vite preview` (27 routes at 1440 and 360 px, banner overlap and reachable controls at 320/999/1000/1920 px, playback/pause/reduced-motion/fallback); `scripts/check-website-refresh.mjs` passed (12 routes at 1440/768/390/320 px, Unicode search, mobile navigation, dictionary flows). Not checked: Safari, Firefox, real phones. Hosting deploy needs a clean tree pushed to `origin/main` first. The post says "coming soon"; update its note and `share.md` once the site is live.
+- **Status (31 October 2026):** **Live.** Code commit `7cdbcda`, pushed to `origin/main` and deployed to Hosting `indigen-world` at about 15:15 UTC from a clean detached checkout of `origin/main` (production guard passed; every hosting predeploy, including `check:website`, passed). Verified at 15:16 UTC: the served entry assets match the deployed build exactly; `/culture-photos.js`, `/culture-banner.css`, the new photographs, `/app-ads.txt`, `/grammar-guide.html` and `/progress` answer 200 with the new content, and the removed `culture-scene.css` and illustration answer 404; headless Chrome at 1440 px and 390 px rendered the blue homepage with the dancers slide and no sideways scrolling, and `/contribute` opened on the Tiébélé walls with its credit. Before release, on the local build: `npm run check --workspace @indigen-world/website` (typecheck, site/progress validators, unit tests, production build) passed; `scripts/check-motion.mjs` passed against `vite preview` (27 routes at 1440 and 360 px, banner overlap and reachable controls at 320/999/1000/1920 px, playback/pause/reduced-motion/fallback); `scripts/check-website-refresh.mjs` passed (12 routes at 1440/768/390/320 px, Unicode search, mobile navigation, dictionary flows). Not checked: Safari, Firefox, real phones. The Blogger theme's updated brand colours only reach updates.indigenworld.com if the theme XML is re-uploaded. Not published on Blogger.
 - **Publishing owner:** Chinedum. Preparing this post does not authorize publishing or sharing it.
 
 ## What changed (code)
@@ -62,8 +62,8 @@ artwork. The Indigen World mark is the existing repository logo.
 
 ## Blogger handoff
 
-1. Wait until the redesign is live on indigenworld.com, then change the
-   "Coming soon" note in `post.html` to the live date.
+1. The post says the redesign is live (deployed 31 October 2026). Open
+   indigenworld.com once before publishing to confirm it still is.
 2. Upload every image in `images/` to Blogger, keep the captions and alt text
    (they carry the photo credits), and replace each `images/...` path with
    Blogger's image URL.
